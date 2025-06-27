@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="th" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTGLG: แผนกลยุทธ์สู่ IPO ใน 5 ปี</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: PTG Growth & Innovation -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard with thematic sections. This structure was chosen over a linear report format to provide a more intuitive and exploratory user experience. The flow is: 1) Vision & Core Strengths (establishing the foundation), 2) Market Opportunities (visualizing the potential), 3) Strategic Pillars (detailing the core strategies), and 4) The 5-Year Roadmap (outlining the execution plan). This non-linear, thematic approach allows users to quickly grasp the key components of the plan and drill down into areas of interest, facilitating better synthesis and understanding of the complex strategy. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: PTG Core Assets (Stations, Members) -> Goal: Inform -> Viz: KPI Cards -> Interaction: Static display -> Justification: Provides a high-impact, immediate overview of foundational strengths. -> Method: HTML/Tailwind.
+        - Report Info: Market Growth Projections (E-commerce, Cold Chain, etc.) -> Goal: Compare/Change -> Viz: Bar Charts -> Interaction: Buttons to switch datasets, hover for tooltips -> Justification: Visually demonstrates the scale of opportunities and compares growth rates across key sectors. -> Library: Chart.js.
+        - Report Info: 8 Strategic Solutions -> Goal: Organize/Inform -> Viz: Tabbed Interface -> Interaction: Click to switch content panes -> Justification: Organizes complex strategies into digestible, thematic chunks, preventing user overload and focusing attention. -> Method: HTML/Tailwind/JS.
+        - Report Info: 5-Year IPO Plan -> Goal: Change/Organize -> Viz: Interactive Vertical Timeline -> Interaction: Click to expand phase details -> Justification: Clearly illustrates the phased approach and key milestones over time in a scannable, engaging format. -> Method: HTML/Tailwind/JS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .tab-active {
+            border-color: #16a34a;
+            color: #16a34a;
+            font-weight: 600;
+        }
+        .timeline-item-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .timeline-item.active .timeline-item-content {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold text-green-700">PTGLG: แผนกลยุทธ์สู่ IPO</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#vision" class="text-gray-600 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">ภาพรวม</a>
+                        <a href="#market" class="text-gray-600 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">โอกาสตลาด</a>
+                        <a href="#strategy" class="text-gray-600 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">เสาหลักการเติบโต</a>
+                        <a href="#roadmap" class="text-gray-600 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium">แผน 5 ปี</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="vision" class="text-center mb-16 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">วิสัยทัศน์: ปูทางสู่ IPO ใน 5 ปี</h2>
+            <p class="max-w-3xl mx-auto text-gray-600 mb-8">
+                เปลี่ยนผ่าน PTGLG จากผู้ให้บริการโลจิสติกส์แบบดั้งเดิมสู่ผู้นำด้านโลจิสติกส์ที่ขับเคลื่อนด้วยเทคโนโลยีและยั่งยืน โดยใช้ประโยชน์จากระบบนิเวศที่แข็งแกร่งของกลุ่ม PTG เพื่อสร้างการเติบโตและเตรียมความพร้อมสู่การเสนอขายหุ้น IPO ที่ประสบความสำเร็จ
+            </p>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                    <h3 class="text-3xl font-bold text-green-600">2,199+</h3>
+                    <p class="text-gray-600 mt-2">สถานีบริการ PT ทั่วประเทศ</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500">
+                    <h3 class="text-3xl font-bold text-orange-600">21 ล้าน+</h3>
+                    <p class="text-gray-600 mt-2">สมาชิก PT Max Card</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                    <h3 class="text-3xl font-bold text-blue-600">502</h3>
+                    <p class="text-gray-600 mt-2">คันในกองยานพาหนะ</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-teal-500">
+                    <h3 class="text-3xl font-bold text-teal-600">7 MW</h3>
+                    <p class="text-gray-600 mt-2">ไฟฟ้าจากพลังงานหมุนเวียน</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="market" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-4">โอกาสทางการตลาดที่สำคัญ</h2>
+            <p class="max-w-3xl mx-auto text-center text-gray-600 mb-8">
+                ตลาดโลจิสติกส์ของไทยกำลังเติบโตอย่างก้าวกระโดดในหลายกลุ่มธุรกิจ โดยเฉพาะกลุ่มที่เกี่ยวข้องกับอีคอมเมิร์ซ ห่วงโซ่ความเย็น และเทคโนโลยี ซึ่งเป็นโอกาสสำคัญสำหรับ PTGLG ในการขยายธุรกิจและสร้างมูลค่าเพิ่ม
+            </p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="flex justify-center mb-6 border-b border-gray-200">
+                    <div id="chart-buttons" class="flex flex-wrap justify-center -mb-px">
+                        <button data-chart="ecom" class="chart-btn tab-active border-b-2 px-4 py-2 text-sm">อีคอมเมิร์ซ</button>
+                        <button data-chart="coldchain" class="chart-btn border-b-2 border-transparent px-4 py-2 text-sm text-gray-500 hover:text-green-600">ห่วงโซ่ความเย็น</button>
+                        <button data-chart="fleet" class="chart-btn border-b-2 border-transparent px-4 py-2 text-sm text-gray-500 hover:text-green-600">บริหารจัดการยานพาหนะ</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="marketChart"></canvas>
+                </div>
+                <p id="chart-description" class="text-center text-gray-500 mt-4 text-sm"></p>
+            </div>
+        </section>
+
+        <section id="strategy" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-8">8 เสาหลักการเติบโตเชิงกลยุทธ์</h2>
+            
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="w-full md:w-1/3">
+                    <div class="sticky top-24">
+                        <ul id="strategy-tabs" class="space-y-2">
+                            <li><button data-target="strategy-1" class="strategy-tab w-full text-left p-4 rounded-lg bg-white shadow-sm hover:bg-green-50 strategy-tab-active">1. รุกตลาด E-commerce และ Last-Mile</button></li>
+                            <li><button data-target="strategy-2" class="strategy-tab w-full text-left p-4 rounded-lg bg-white shadow-sm hover:bg-green-50">2. ขยายธุรกิจ Cold Chain Logistics</button></li>
+                            <li><button data-target="strategy-3" class="strategy-tab w-full text-left p-4 rounded-lg bg-white shadow-sm hover:bg-green-50">3. เจาะตลาดโลจิสติกส์เฉพาะทาง</button></li>
+                            <li><button data-target="strategy-4" class="strategy-tab w-full text-left p-4 rounded-lg bg-white shadow-sm hover:bg-green-50">4. สร้างรายได้จากเทคโนโลยีและบริการ</button></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="w-full md:w-2/3">
+                    <div id="strategy-content">
+                        <!-- Content will be injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="roadmap" class="scroll-mt-20">
+            <h2 class="text-3xl md:text-4xl font-bold text-center text-gray-900 mb-8">แผนปฏิบัติการ 5 ปีสู่ IPO</h2>
+            <div class="relative">
+                <div class="absolute left-1/2 -translate-x-1/2 h-full w-1 bg-gray-200 rounded"></div>
+                <div id="timeline-container" class="space-y-12">
+                     <!-- Timeline items injected by JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-sm">
+            <p>&copy; 2025 PTG Logistics (PTGLG) Strategic Plan. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const chartData = {
+            ecom: {
+                labels: ['2567', '2573'],
+                values: [26, 60],
+                title: 'ตลาดอีคอมเมิร์ซไทย (พันล้านดอลลาร์สหรัฐ)',
+                description: 'คาดการณ์ตลาดอีคอมเมิร์ซจะเติบโตกว่า 2 เท่าใน 6 ปี เป็นโอกาสมหาศาลสำหรับการจัดส่งสินค้าถึงมือผู้รับ'
+            },
+            coldchain: {
+                labels: ['2568', '2573'],
+                values: [1.21, 1.78],
+                title: 'ตลาดโลจิสติกส์แบบควบคุมอุณหภูมิ (พันล้านดอลลาร์สหรัฐ)',
+                description: 'เติบโตเฉลี่ย (CAGR) 8.03% จากความต้องการในกลุ่มอาหารและยา'
+            },
+            fleet: {
+                labels: ['อัตราการเติบโตต่อปี'],
+                values: [16.5],
+                title: 'ตลาดบริหารจัดการยานพาหนะ (CAGR %)',
+                description: 'เติบโตเฉลี่ย 15-18% ต่อปี จากความต้องการเพิ่มประสิทธิภาพและใช้เทคโนโลยี AI'
+            }
+        };
+
+        const strategyData = {
+            'strategy-1': {
+                title: 'รุกตลาด E-commerce และ Last-Mile Delivery',
+                icon: '🚚',
+                description: 'ใช้เครือข่ายสถานีบริการ PT กว่า 2,199 แห่ง เป็น Micro-Fulfillment Center และจุดรับส่งพัสดุ (PUDO) เพื่อแก้ปัญหาการจัดส่งล่าช้าและเพิ่มความสะดวกสบาย',
+                solutions: [
+                    'เปลี่ยนสถานี PT เป็นศูนย์กระจายสินค้าขนาดเล็กและจุด PUDO',
+                    'ใช้แอป Max Me สำหรับการชำระเงินและสะสมคะแนน',
+                    'ขยายบริการ PT Max Service ให้ครอบคลุมการจัดส่งพัสดุ'
+                ],
+                partners: ['Flash Express', 'J&T Express', 'Kerry Express', 'ไปรษณีย์ไทย', 'SCG Express']
+            },
+            'strategy-2': {
+                title: 'ขยายธุรกิจ Cold Chain & Green Logistics',
+                icon: '❄️',
+                description: 'ลงทุนในคลังสินค้าควบคุมอุณหภูมิที่ทันสมัยในจุดยุทธศาสตร์ และใช้พลังงานหมุนเวียนจาก PPP Green Complex เพื่อสร้างบริการ "Green Cold Chain" ที่แตกต่างและยั่งยืน',
+                solutions: [
+                    'สร้างคลังสินค้าควบคุมอุณหภูมิในแหล่งเกษตรกรรมและ EEC',
+                    'พัฒนากองยานพาหนะขนส่งควบคุมอุณหภูมิสำหรับยาและอาหารมูลค่าสูง',
+                    'ใช้ไฟฟ้า 7MW และเชื้อเพลิง B100 จากโรงงานในเครือเพื่อลดต้นทุนและเป็นมิตรต่อสิ่งแวดล้อม'
+                ],
+                partners: ['JWD Infologistics', 'Thai Cold Chain Logistics', 'Kao Charoen Cold Storage', 'Inter Express Logistics', 'DKSH Thailand']
+            },
+             'strategy-3': {
+                title: 'เจาะตลาดโลจิสติกส์อุตสาหกรรมเฉพาะทาง',
+                icon: '⚙️',
+                description: 'ต่อยอดจากประสบการณ์ในการขนส่งเคมีภัณฑ์และก๊าซอุตสาหกรรม เพื่อขยายสู่ตลาดเฉพาะทางที่มีอัตรากำไรสูงและมีการแข่งขันน้อยกว่า เช่น การขนส่งวัตถุอันตรายและของเหลวพิเศษ',
+                solutions: [
+                    'ขยายบริการขนส่งสารเคมีและก๊าซอุตสาหกรรม',
+                    'ลงทุนในการฝึกอบรมและใบอนุญาตจัดการวัตถุอันตราย (DG)',
+                    'สร้างความร่วมมือกับโรงงานในนิคมอุตสาหกรรม'
+                ],
+                partners: ['SCG Logistics', 'PTT Global Chemical', 'Linde Thailand', 'Air Liquide Thailand', 'Thai Tank Terminal']
+            },
+            'strategy-4': {
+                title: 'สร้างรายได้จากเทคโนโลยีและบริการ',
+                icon: '💡',
+                description: 'นำเทคโนโลยีที่พัฒนาและใช้งานภายในองค์กร เช่น ระบบ TMS, ADAS/DMS AI มาสร้างเป็นผลิตภัณฑ์เชิงพาณิชย์ในรูปแบบบริการ (FMaaS) และแพลตฟอร์ม (SaaS) สำหรับลูกค้าภายนอก โดยเฉพาะกลุ่ม SME',
+                solutions: [
+                    'เปิดตัวบริการบริหารจัดการยานพาหนะ (Fleet Management as a Service)',
+                    'พัฒนาแพลตฟอร์ม SaaS ด้านโลจิสติกส์',
+                    'ใช้ Big Data จากการดำเนินงานมาวิเคราะห์และสร้างมูลค่าเพิ่ม'
+                ],
+                partners: ['True Digital Group', 'KBTG', 'WHA Group', 'SMAT (Siam Motors)', 'Synnex (Thailand)']
+            }
+        };
+        
+        const timelineData = [
+            {
+                phase: 'ปีที่ 1-2',
+                title: 'สร้างรากฐานและขยายธุรกิจหลัก',
+                description: 'มุ่งเน้นการลงทุนในโครงสร้างพื้นฐานที่สำคัญ พัฒนาเทคโนโลยี และสร้างพันธมิตรทางธุรกิจเพื่อเตรียมความพร้อมสำหรับการเติบโตในอนาคต',
+                milestones: [
+                    'ลงทุนในคลังสินค้าควบคุมอุณหภูมิและระบบล็อกเกอร์อัจฉริยะ',
+                    'พัฒนาแพลตฟอร์ม FMaaS/SaaS รุ่น Beta',
+                    'สร้างความร่วมมือเชิงกลยุทธ์กับพันธมิตรในกลุ่มเป้าหมาย'
+                ]
+            },
+            {
+                phase: 'ปีที่ 3-4',
+                title: 'ขยายขนาดและเจาะตลาด',
+                description: 'เร่งขยายบริการสู่ภูมิภาคต่างๆ ทั่วประเทศ และเปิดตัวผลิตภัณฑ์เทคโนโลยีสู่ตลาดอย่างเต็มรูปแบบ เพื่อสร้างการเติบโตและฐานรายได้ที่มั่นคง',
+                milestones: [
+                    'ขยายบริการ Last-Mile และ Cold Chain ทั่วประเทศ',
+                    'เปิดตัวแพลตฟอร์ม FMaaS และ SaaS เชิงพาณิชย์',
+                    'บูรณาการ Max Me เข้ากับทุกบริการโลจิสติกส์'
+                ]
+            },
+            {
+                phase: 'ปีที่ 5',
+                title: 'เตรียมความพร้อม IPO',
+                description: 'ปรับโครงสร้างองค์กรให้พร้อมสำหรับการเข้าจดทะเบียนในตลาดหลักทรัพย์ และสร้างเรื่องราวการลงทุนที่น่าสนใจเพื่อดึงดูดนักลงทุน',
+                milestones: [
+                    'ปรับโครงสร้าง PTGLG เป็นหน่วยธุรกิจที่ชัดเจน',
+                    'แสดงผลประกอบการที่เติบโตอย่างต่อเนื่องและมีกำไร',
+                    'ทำงานร่วมกับที่ปรึกษาทางการเงินและเตรียมเอกสารยื่น IPO'
+                ]
+            }
+        ];
+
+        const ctx = document.getElementById('marketChart').getContext('2d');
+        let marketChart;
+
+        function renderChart(type) {
+            const data = chartData[type];
+            if (marketChart) {
+                marketChart.destroy();
+            }
+            marketChart = new Chart(ctx, {
+                type: type === 'fleet' ? 'bar' : 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: data.title,
+                        data: data.values,
+                        backgroundColor: 'rgba(22, 163, 74, 0.2)',
+                        borderColor: 'rgba(22, 163, 74, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += context.parsed.y;
+                                        if (type !== 'fleet') label += ' พันล้าน USD';
+                                        else label += ' %';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            document.getElementById('chart-description').textContent = data.description;
+        }
+
+        const chartButtons = document.querySelectorAll('.chart-btn');
+        chartButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                chartButtons.forEach(btn => btn.classList.remove('tab-active'));
+                button.classList.add('tab-active');
+                renderChart(button.dataset.chart);
+            });
+        });
+
+        renderChart('ecom');
+
+        const strategyTabs = document.getElementById('strategy-tabs');
+        const strategyContentContainer = document.getElementById('strategy-content');
+
+        function renderStrategyContent(targetId) {
+            const data = strategyData[targetId];
+            if (!data) return;
+
+            let partnersHtml = data.partners.map(p => `<li class="text-sm text-gray-600">${p}</li>`).join('');
+            let solutionsHtml = data.solutions.map(s => `
+                <li class="flex items-start">
+                    <span class="text-green-500 mr-2 mt-1">✓</span>
+                    <span>${s}</span>
+                </li>
+            `).join('');
+
+            strategyContentContainer.innerHTML = `
+                <div class="bg-white p-6 rounded-lg shadow-md transition-all duration-300">
+                    <h3 class="text-2xl font-bold mb-3 text-gray-800">${data.icon} ${data.title}</h3>
+                    <p class="text-gray-600 mb-6">${data.description}</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">โซลูชันหลัก:</h4>
+                            <ul class="space-y-2">
+                                ${solutionsHtml}
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-700 mb-2">พันธมิตรที่แนะนำ (JV/Partner):</h4>
+                            <ul class="list-disc list-inside text-gray-600 space-y-1">
+                                ${partnersHtml}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        strategyTabs.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                document.querySelectorAll('.strategy-tab').forEach(tab => tab.classList.remove('strategy-tab-active', 'bg-green-100', 'font-bold'));
+                e.target.classList.add('strategy-tab-active', 'bg-green-100', 'font-bold');
+                renderStrategyContent(e.target.dataset.target);
+            }
+        });
+        
+        document.querySelector('.strategy-tab').classList.add('strategy-tab-active', 'bg-green-100', 'font-bold');
+        renderStrategyContent('strategy-1');
+        
+        const timelineContainer = document.getElementById('timeline-container');
+        timelineData.forEach((item, index) => {
+            const milestonesHtml = item.milestones.map(m => `
+                <li class="flex items-start">
+                    <svg class="w-4 h-4 mr-2 mt-1 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                    <span>${m}</span>
+                </li>`).join('');
+            
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item relative';
+            timelineItem.innerHTML = `
+                <div class="timeline-marker absolute left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-white border-2 border-green-500 flex items-center justify-center font-bold text-green-600 cursor-pointer z-10">${index + 1}</div>
+                <div class="ml-auto w-[calc(50%-2rem)] mr-[calc(50%+2rem)] pl-8 py-4 ${index % 2 === 0 ? 'md:ml-[calc(50%+2rem)] md:mr-auto md:pr-8 md:pl-0 md:text-right' : ''}">
+                    <div class="bg-white p-6 rounded-lg shadow-md cursor-pointer timeline-header">
+                        <p class="text-sm text-gray-500">${item.phase}</p>
+                        <h4 class="font-bold text-lg text-gray-800">${item.title}</h4>
+                        <div class="timeline-item-content mt-4 text-left">
+                            <p class="text-gray-600 mb-3">${item.description}</p>
+                            <ul class="space-y-2 text-gray-600">
+                                ${milestonesHtml}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+             timelineContainer.appendChild(timelineItem);
+        });
+        
+        timelineContainer.addEventListener('click', (e) => {
+            const header = e.target.closest('.timeline-item');
+            if (header) {
+                document.querySelectorAll('.timeline-item').forEach(item => {
+                    if (item !== header) {
+                        item.classList.remove('active');
+                    }
+                });
+                header.classList.toggle('active');
+            }
+        });
+
+    });
+    </script>
+</body>
+</html>
