@@ -84,10 +84,11 @@
 <audio id="beepSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
 
 <script>
-// ✅ ลิงก์ API พร้อมใช้งาน
+// ✅ ลิงก์ API แยกชัดเจน
+const authAPI = "https://script.google.com/macros/s/AKfycbyuxwEJM0q--XhbXTCD4lr275v8GJ2dyUP0t5QzayiBQREDVRpBaKUJLDQ0vOr9cxmF/exec"; // 🔐 Login
+const sheetAPI = "https://script.google.com/macros/s/AKfycbxkue2j9mKYMkDxNCcsyihRVPH87qHeQygNBhxsLqhj4FfRmbyFpO00XCm6CBTGvKkI/exec"; // 📄 Sheet
+const smlBackendAPI = "https://script.google.com/macros/s/AKfycby9rFdE4cN5fzMGIgs66psVHe9SukVKpDtt3IiASeXlk2S1POKuHpJXInUQ7-lzsuteDQ/exec"; // 🧾 SML
 const barcodeAPI = "https://script.google.com/macros/s/AKfycbwQtPsLfDLqG9wYtpG6zO4GgY7zUzdtKkPa4oLToQ6Ng8JIq5XDbJYvzvOOayZWIvg8hA/exec?barcode=";
-const sheetAPI = "https://script.google.com/macros/s/AKfycbyuxwEJM0q--XhbXTCD4lr275v8GJ2dyUP0t5QzayiBQREDVRpBaKUJLDQ0vOr9cxmF/exec";
-const smlBackendAPI = "https://script.google.com/macros/s/AKfycby9rFdE4cN5fzMGIgs66psVHe9SukVKpDtt3IiASeXlk2S1POKuHpJXInUQ7-lzsuteDQ/exec";
 
 let currentIC = "";
 let currentUser = "";
@@ -120,7 +121,7 @@ function login() {
   if (!u || !p) return Swal.fire("❌ ผิดพลาด", "กรอกข้อมูลให้ครบ", "error");
   currentUser = u; currentPass = p;
   Swal.fire({ title: "🔐 ตรวจสอบ...", didOpen: () => Swal.showLoading() });
-  fetch(sheetAPI, {
+  fetch(authAPI, {
     method: "POST",
     body: new URLSearchParams({ username: u, password: p, action: "ping" })
   }).then(r => r.json()).then(res => {
@@ -152,7 +153,6 @@ function showResult(data) {
   document.getElementById("beepSound").play();
   navigator.vibrate && navigator.vibrate([100]);
   Swal.close();
-
   addToScanHistory(data.barcode || "-", data.ic_code || "-");
 }
 
@@ -160,7 +160,6 @@ function addToScanHistory(barcode, ic_code) {
   const timestamp = new Date().toLocaleTimeString();
   scanHistory.unshift({ barcode, ic_code, timestamp });
   if (scanHistory.length > 5) scanHistory.pop();
-
   const ul = document.getElementById("scanHistory");
   ul.innerHTML = "";
   scanHistory.forEach(item => {
