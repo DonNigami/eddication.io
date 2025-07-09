@@ -205,8 +205,9 @@ function onScanSuccess(decodedText) {
   });
 }
 
-  function getSheetData() {
+function getSheetData() {
   if (!currentIC) return alert("ไม่พบ IC Code");
+
   Swal.fire({ title: "📄 โหลดข้อมูลจาก Sheet...", didOpen: () => Swal.showLoading() });
 
   fetch(`${sheetAPI}?ic_code=${encodeURIComponent(currentIC)}`)
@@ -220,9 +221,9 @@ function onScanSuccess(decodedText) {
         row.className = "v-row";
         row.innerHTML = `<label>${mapField[k] || k}</label>`;
 
-        // ให้ 3 ช่องนี้สามารถแก้ไขได้เสมอ
+        // ✅ เปิดให้แก้ไขเฉพาะฟิลด์ minimum_qty, purchase_point, maximum_qty
         if (["minimum_qty", "purchase_point", "maximum_qty"].includes(k)) {
-          row.innerHTML += `<input name="${k}" type="number" step="any" value="${v || ""}">`;
+          row.innerHTML += `<input name="${k}" type="number" step="any" value="${v || ""}" />`;
         } else {
           row.innerHTML += `<span>${v ?? ""}</span>`;
         }
@@ -235,11 +236,9 @@ function onScanSuccess(decodedText) {
       document.getElementById("smlDataResult").style.display = "none";
       Swal.close();
     })
-    .catch(err => {
-      Swal.fire("❌", "ดึงข้อมูลจาก Sheet ไม่สำเร็จ", "error");
-      console.error("getSheetData error:", err);
-    });
+    .catch(err => Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ: " + err, "error"));
 }
+
 
 function saveSheetData(e) {
   e.preventDefault();
