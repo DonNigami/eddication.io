@@ -207,7 +207,6 @@ function onScanSuccess(decodedText) {
 
 function getSheetData() {
   if (!currentIC) return alert("ไม่พบ IC Code");
-
   Swal.fire({ title: "📄 โหลดข้อมูลจาก Sheet...", didOpen: () => Swal.showLoading() });
 
   fetch(`${sheetAPI}?ic_code=${encodeURIComponent(currentIC)}`)
@@ -216,16 +215,27 @@ function getSheetData() {
       const container = document.getElementById("sheetVerticalTable");
       container.innerHTML = "";
 
-      Object.entries(data).forEach(([k, v]) => {
+      // สร้างฟิลด์ทีละตัว
+      Object.entries(data).forEach(([key, value]) => {
         const row = document.createElement("div");
         row.className = "v-row";
-        row.innerHTML = `<label>${mapField[k] || k}</label>`;
 
-        // ✅ เปิดให้แก้ไขเฉพาะฟิลด์ minimum_qty, purchase_point, maximum_qty
-        if (["minimum_qty", "purchase_point", "maximum_qty"].includes(k)) {
-          row.innerHTML += `<input name="${k}" type="number" step="any" value="${v || ""}" />`;
+        const label = document.createElement("label");
+        label.textContent = mapField[key] || key;
+        row.appendChild(label);
+
+        // ฟิลด์ที่ต้องการให้แก้ไขได้
+        if (["minimum_qty", "maximum_qty", "purchase_point"].includes(key)) {
+          const input = document.createElement("input");
+          input.name = key;
+          input.value = value ?? "";
+          input.type = "number";
+          input.step = "any";
+          row.appendChild(input);
         } else {
-          row.innerHTML += `<span>${v ?? ""}</span>`;
+          const span = document.createElement("span");
+          span.textContent = value ?? "";
+          row.appendChild(span);
         }
 
         container.appendChild(row);
@@ -236,8 +246,11 @@ function getSheetData() {
       document.getElementById("smlDataResult").style.display = "none";
       Swal.close();
     })
-    .catch(err => Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ: " + err, "error"));
+    .catch(err => {
+      Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ: " + err.message, "error");
+    });
 }
+
 
 
 function saveSheetData(e) {
