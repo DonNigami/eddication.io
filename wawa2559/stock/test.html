@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>📦 สแกนและแก้ไขข้อมูลสินค้า</title>
+  <title>📦 สแกนและแก้ไขสินค้า</title>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
@@ -84,20 +84,28 @@
 <audio id="beepSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
 
 <script>
-// ✅ ลิงก์ API แยกชัดเจน
-const authAPI = "https://script.google.com/macros/s/AKfycbyuxwEJM0q--XhbXTCD4lr275v8GJ2dyUP0t5QzayiBQREDVRpBaKUJLDQ0vOr9cxmF/exec"; // 🔐 Login
-const sheetAPI = "https://script.google.com/macros/s/AKfycbxkue2j9mKYMkDxNCcsyihRVPH87qHeQygNBhxsLqhj4FfRmbyFpO00XCm6CBTGvKkI/exec"; // 📄 Sheet
-const smlBackendAPI = "https://script.google.com/macros/s/AKfycby9rFdE4cN5fzMGIgs66psVHe9SukVKpDtt3IiASeXlk2S1POKuHpJXInUQ7-lzsuteDQ/exec"; // 🧾 SML
+const authAPI = "https://script.google.com/macros/s/AKfycbyuxwEJM0q--XhbXTCD4lr275v8GJ2dyUP0t5QzayiBQREDVRpBaKUJLDQ0vOr9cxmF/exec";
+const sheetAPI = "https://script.google.com/macros/s/AKfycbxkue2j9mKYMkDxNCcsyihRVPH87qHeQygNBhxsLqhj4FfRmbyFpO00XCm6CBTGvKkI/exec";
+const smlBackendAPI = "https://script.google.com/macros/s/AKfycby9rFdE4cN5fzMGIgs66psVHe9SukVKpDtt3IiASeXlk2S1POKuHpJXInUQ7-lzsuteDQ/exec";
 const barcodeAPI = "https://script.google.com/macros/s/AKfycbwQtPsLfDLqG9wYtpG6zO4GgY7zUzdtKkPa4oLToQ6Ng8JIq5XDbJYvzvOOayZWIvg8hA/exec?barcode=";
 
-let currentIC = "";
-let currentUser = "";
-let currentPass = "";
-const SESSION_TIMEOUT = 30 * 60 * 1000;
-const scanHistory = [];
+let currentIC = "", currentUser = "", currentPass = "";
+const scanHistory = [], SESSION_TIMEOUT = 30 * 60 * 1000;
 
-function encrypt(text) { return btoa(unescape(encodeURIComponent(text))); }
-function decrypt(text) { try { return decodeURIComponent(escape(atob(text))); } catch (e) { return ""; } }
+const mapField = {
+  code: "รหัสสินค้า",
+  name_1: "ชื่อสินค้า",
+  barcode: "Barcode",
+  balance_qty: "คงเหลือ",
+  minimum_qty: "ขั้นต่ำ",
+  maximum_qty: "ขั้นสูง",
+  purchase_point: "จุดสั่งซื้อ",
+  is_hold_purchase: "Hold Purchase",
+  is_hold_sale: "Hold Sale"
+};
+
+function encrypt(t) { return btoa(unescape(encodeURIComponent(t))); }
+function decrypt(t) { try { return decodeURIComponent(escape(atob(t))); } catch { return ""; } }
 
 function checkSession() {
   const session = sessionStorage.getItem("login");
@@ -111,23 +119,20 @@ function checkSession() {
       startScan(); return;
     }
   }
-  const lastUser = localStorage.getItem("lastUsername");
-  if (lastUser) document.getElementById("username").value = lastUser;
 }
 
 function login() {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
-  if (!u || !p) return Swal.fire("❌ ผิดพลาด", "กรอกข้อมูลให้ครบ", "error");
+  if (!u || !p) return Swal.fire("❌", "กรอกข้อมูลให้ครบ", "error");
   currentUser = u; currentPass = p;
-  Swal.fire({ title: "🔐 ตรวจสอบ...", didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: "🔐 กำลังเข้าสู่ระบบ...", didOpen: () => Swal.showLoading() });
   fetch(authAPI, {
     method: "POST",
     body: new URLSearchParams({ username: u, password: p, action: "ping" })
   }).then(r => r.json()).then(res => {
     Swal.close();
     if (res.success !== false) {
-      localStorage.setItem("lastUsername", u);
       sessionStorage.setItem("login", encrypt(JSON.stringify({ username: u, password: p, timestamp: Date.now() })));
       document.getElementById("loginBox").style.display = "none";
       document.getElementById("mainApp").style.display = "block";
@@ -151,32 +156,15 @@ function showResult(data) {
   document.getElementById("sheetDataResult").style.display = "none";
   document.getElementById("smlDataResult").style.display = "none";
   document.getElementById("beepSound").play();
-  navigator.vibrate && navigator.vibrate([100]);
-  Swal.close();
   addToScanHistory(data.barcode || "-", data.ic_code || "-");
+  Swal.close();
 }
 
 function addToScanHistory(barcode, ic_code) {
-  const timestamp = new Date().toLocaleTimeString();
-  scanHistory.unshift({ barcode, ic_code, timestamp });
+  scanHistory.unshift({ barcode, ic_code, timestamp: new Date().toLocaleTimeString() });
   if (scanHistory.length > 5) scanHistory.pop();
   const ul = document.getElementById("scanHistory");
-  ul.innerHTML = "";
-  scanHistory.forEach(item => {
-    const li = document.createElement("li");
-    li.innerHTML = `<span class="label">[${item.timestamp}]</span> Barcode: ${item.barcode}, IC: ${item.ic_code}`;
-    ul.appendChild(li);
-  });
-}
-
-function onScanSuccess(decodedText) {
-  Swal.fire({ title: "📥 กำลังโหลด...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-  html5QrcodeScanner.clear().then(() => {
-    fetch(barcodeAPI + encodeURIComponent(decodedText))
-      .then(res => res.json())
-      .then(data => showResult(data))
-      .catch(err => { Swal.close(); alert("❌ ดึงข้อมูลไม่สำเร็จ: " + err); });
-  });
+  ul.innerHTML = scanHistory.map(i => `<li><span class="label">[${i.timestamp}]</span> Barcode: ${i.barcode}, IC: ${i.ic_code}</li>`).join("");
 }
 
 let html5QrcodeScanner;
@@ -189,25 +177,35 @@ function startScan() {
   html5QrcodeScanner.render(onScanSuccess);
 }
 
+function onScanSuccess(decodedText) {
+  Swal.fire({ title: "📥 โหลดข้อมูล...", didOpen: () => Swal.showLoading() });
+  html5QrcodeScanner.clear().then(() => {
+    fetch(barcodeAPI + encodeURIComponent(decodedText))
+      .then(res => res.json())
+      .then(data => showResult(data))
+      .catch(err => Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ: " + err, "error"));
+  });
+}
+
 function getSheetData() {
   if (!currentIC) return alert("ไม่พบ IC Code");
-  Swal.fire({ title: "โหลดข้อมูลจาก Sheet...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: "📄 โหลดข้อมูลจาก Sheet...", didOpen: () => Swal.showLoading() });
   fetch(`${sheetAPI}?ic_code=${encodeURIComponent(currentIC)}`)
     .then(res => res.json())
     .then(data => {
       const container = document.getElementById("sheetVerticalTable");
       container.innerHTML = "";
-      for (const key in data) {
+      Object.entries(data).forEach(([k, v]) => {
         const row = document.createElement("div");
         row.className = "v-row";
-        row.innerHTML = `<label>${key}</label>`;
-        if (["minimum_qty", "maximum_qty"].includes(key)) {
-          row.innerHTML += `<input name="${key}" value="${data[key]}">`;
+        row.innerHTML = `<label>${mapField[k] || k}</label>`;
+        if (["minimum_qty", "maximum_qty", "purchase_point"].includes(k)) {
+          row.innerHTML += `<input name="${k}" value="${v}">`;
         } else {
-          row.innerHTML += `<span>${data[key]}</span>`;
+          row.innerHTML += `<span>${v}</span>`;
         }
         container.appendChild(row);
-      }
+      });
       document.getElementById("sheetForm").dataset.ic_code = currentIC;
       document.getElementById("sheetDataResult").style.display = "block";
       document.getElementById("smlDataResult").style.display = "none";
@@ -221,7 +219,7 @@ function saveSheetData(e) {
   const ic_code = form.dataset.ic_code;
   const data = new URLSearchParams({ username: currentUser, password: currentPass, action: "updateSheet", ic_code });
   form.querySelectorAll("input").forEach(i => data.append(i.name, i.value));
-  Swal.fire({ title: "บันทึกข้อมูล...", didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: "💾 กำลังบันทึก...", didOpen: () => Swal.showLoading() });
   fetch(sheetAPI, { method: "POST", body: data })
     .then(r => r.json())
     .then(r => Swal.fire(r.success ? "✅ สำเร็จ" : "❌", r.success ? "บันทึกแล้ว" : r.message, r.success ? "success" : "error"));
@@ -229,34 +227,27 @@ function saveSheetData(e) {
 
 function getSmlData() {
   if (!currentIC) return alert("ไม่พบ IC Code");
-  Swal.fire({ title: "โหลดข้อมูลจาก SML...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: "🧾 โหลดจาก SML...", didOpen: () => Swal.showLoading() });
   fetch(`${smlBackendAPI}?ic_code=${encodeURIComponent(currentIC)}&username=${currentUser}&password=${currentPass}`)
     .then(res => res.json())
     .then(result => {
-      const data = result.data || {};
-      const container = document.getElementById("smlFields");
+      const data = result.data || {}, container = document.getElementById("smlFields");
       container.innerHTML = "";
-      const inv = data.inventory_detail || {};
-      const bar = (data.inventory_barcode || [])[0] || {};
-      const fieldsToShow = {
-        code: data.code,
-        name_1: data.name_1,
-        barcode: bar.barcode,
-        balance_qty: data.balance_qty,
-        minimum_qty: inv.minimum_qty,
-        maximum_qty: inv.maximum_qty,
-        purchase_point: inv.purchase_point,
-        is_hold_purchase: inv.is_hold_purchase,
-        is_hold_sale: inv.is_hold_sale
+      const inv = data.inventory_detail || {}, bar = (data.inventory_barcode || [])[0] || {};
+      const fields = {
+        code: data.code, name_1: data.name_1, barcode: bar.barcode,
+        balance_qty: data.balance_qty, minimum_qty: inv.minimum_qty,
+        maximum_qty: inv.maximum_qty, purchase_point: inv.purchase_point,
+        is_hold_purchase: inv.is_hold_purchase, is_hold_sale: inv.is_hold_sale
       };
-      Object.entries(fieldsToShow).forEach(([key, value]) => {
+      Object.entries(fields).forEach(([k, v]) => {
         const row = document.createElement("div");
         row.className = "v-row";
-        row.innerHTML = `<label>${key}</label>`;
-        if (["minimum_qty", "maximum_qty", "purchase_point"].includes(key)) {
-          row.innerHTML += `<input name="${key}" value="${value ?? ""}">`;
+        row.innerHTML = `<label>${mapField[k] || k}</label>`;
+        if (["minimum_qty", "maximum_qty", "purchase_point"].includes(k)) {
+          row.innerHTML += `<input name="${k}" value="${v ?? ""}">`;
         } else {
-          row.innerHTML += `<span>${value ?? ""}</span>`;
+          row.innerHTML += `<span>${v ?? ""}</span>`;
         }
         container.appendChild(row);
       });
@@ -264,10 +255,6 @@ function getSmlData() {
       document.getElementById("smlDataResult").style.display = "block";
       document.getElementById("sheetDataResult").style.display = "none";
       Swal.close();
-    })
-    .catch(err => {
-      Swal.close();
-      Swal.fire("❌ ผิดพลาด", "โหลด SML ไม่สำเร็จ: " + err, "error");
     });
 }
 
@@ -277,7 +264,7 @@ function submitSmlUpdate(e) {
   const ic_code = form.dataset.ic_code;
   const data = new URLSearchParams({ username: currentUser, password: currentPass, action: "updateSML", ic_code });
   form.querySelectorAll("input").forEach(i => data.append(i.name, i.value));
-  Swal.fire({ title: "กำลังอัปเดต SML...", didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: "📤 อัปเดตข้อมูล...", didOpen: () => Swal.showLoading() });
   fetch(smlBackendAPI, { method: "POST", body: data })
     .then(r => r.json())
     .then(r => Swal.fire(r.success ? "✅ สำเร็จ" : "❌", r.success ? "บันทึกแล้ว" : r.message, r.success ? "success" : "error"));
