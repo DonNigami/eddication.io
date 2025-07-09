@@ -97,11 +97,11 @@ const mapField = {
   name_1: "ชื่อสินค้า",
   barcode: "Barcode",
   balance_qty: "คงเหลือ",
-  minimum_qty: "ขั้นต่ำ",
-  maximum_qty: "ขั้นสูง",
+  minimum_qty: "จุดต่ำสุด",
+  maximum_qty: "จุดสูงสุด",
   purchase_point: "จุดสั่งซื้อ",
-  is_hold_purchase: "Hold Purchase",
-  is_hold_sale: "Hold Sale"
+  is_hold_purchase: "ระงับการซื้อเข้า",
+  is_hold_sale: "ระงับการขายออก"
 };
 
 function encrypt(t) { return btoa(unescape(encodeURIComponent(t))); }
