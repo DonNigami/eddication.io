@@ -207,47 +207,40 @@ function onScanSuccess(decodedText) {
 
 function getSheetData() {
   if (!currentIC) return alert("ไม่พบ IC Code");
-  Swal.fire({ title: "📄 โหลดข้อมูลจาก Sheet...", didOpen: () => Swal.showLoading() });
+  Swal.fire({ title: "โหลดข้อมูลจาก Sheet...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
   fetch(`${sheetAPI}?ic_code=${encodeURIComponent(currentIC)}`)
     .then(res => res.json())
     .then(data => {
       const container = document.getElementById("sheetVerticalTable");
       container.innerHTML = "";
-
-      // สร้างฟิลด์ทีละตัว
-      Object.entries(data).forEach(([key, value]) => {
+      for (const key in data) {
         const row = document.createElement("div");
         row.className = "v-row";
-
         const label = document.createElement("label");
-        label.textContent = mapField[key] || key;
+        label.innerText = key;
         row.appendChild(label);
-
-        // ฟิลด์ที่ต้องการให้แก้ไขได้
-        if (["minimum_qty", "maximum_qty", "purchase_point"].includes(key)) {
+        if (key === Object.keys(data)[2] || key === Object.keys(data)[3]) {
           const input = document.createElement("input");
+          input.type = "text";
           input.name = key;
-          input.value = value ?? "";
-          input.type = "number";
-          input.step = "any";
+          input.value = data[key];
           row.appendChild(input);
         } else {
           const span = document.createElement("span");
-          span.textContent = value ?? "";
+          span.innerText = data[key];
           row.appendChild(span);
         }
-
         container.appendChild(row);
-      });
-
+      }
       document.getElementById("sheetForm").dataset.ic_code = currentIC;
       document.getElementById("sheetDataResult").style.display = "block";
       document.getElementById("smlDataResult").style.display = "none";
       Swal.close();
     })
     .catch(err => {
-      Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ: " + err.message, "error");
+      Swal.close();
+      alert("❌ ไม่สามารถโหลดจาก Sheet: " + err);
     });
 }
 
