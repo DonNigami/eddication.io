@@ -95,6 +95,7 @@ const authAPI = "https://script.google.com/macros/s/AKfycbyuxwEJM0q--XhbXTCD4lr2
 const sheetAPI = "https://script.google.com/macros/s/AKfycbxkue2j9mKYMkDxNCcsyihRVPH87qHeQygNBhxsLqhj4FfRmbyFpO00XCm6CBTGvKkI/exec";
 const smlBackendAPI = "https://script.google.com/macros/s/AKfycby9rFdE4cN5fzMGIgs66psVHe9SukVKpDtt3IiASeXlk2S1POKuHpJXInUQ7-lzsuteDQ/exec";
 const barcodeAPI = "https://script.google.com/macros/s/AKfycbwQtPsLfDLqG9wYtpG6zO4GgY7zUzdtKkPa4oLToQ6Ng8JIq5XDbJYvzvOOayZWIvg8hA/exec?barcode=";
+const imageProxyAPI = "https://script.google.com/macros/s/AKfycbwDEGjHdhl4AkuRG5bzSiU8QaiNqt1p6Ng7NMPd80oQElzHj2d2XJxjJMpRJ_m3wj1I/exec";
 
 let currentIC = "", currentUser = "", currentPass = "";
 const scanHistory = [], SESSION_TIMEOUT = 30 * 60 * 1000;
@@ -161,7 +162,8 @@ function showResult(data) {
 
   const imageBox = document.getElementById("imageBox");
   if (data.image) {
-    imageBox.innerHTML = `<img src="${data.image}" alt="Product Image">`;
+    const proxiedURL = `${imageProxyAPI}?url=${encodeURIComponent(data.image)}`;
+    imageBox.innerHTML = `<img src="${proxiedURL}" alt="Product Image">`;
   } else {
     imageBox.innerHTML = "";
   }
@@ -201,7 +203,6 @@ function onScanSuccess(decodedText) {
       .catch(err => Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ: " + err, "error"));
   });
 }
-
 function getSheetData() {
   if (!currentIC) return alert("ไม่พบ IC Code");
   Swal.fire({ title: "📄 โหลดข้อมูลจาก Sheet...", didOpen: () => Swal.showLoading() });
