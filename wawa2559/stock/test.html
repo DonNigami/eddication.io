@@ -109,7 +109,8 @@ const mapField = {
   maximum_qty: "จุดสูงสุด",
   purchase_point: "จุดสั่งซื้อ",
   is_hold_purchase: "สินค้าหยุดซื้อ",
-  is_hold_sale: "สินค้าหยุดขาย"
+  is_hold_sale: "สินค้าหยุดขาย",
+  supplier_code_name: "ซัพพลายเออร์"
 };
 
 function encrypt(t) { return btoa(unescape(encodeURIComponent(t))); }
@@ -247,15 +248,25 @@ function getSmlData() {
   fetch(`${smlBackendAPI}?ic_code=${encodeURIComponent(currentIC)}&username=${currentUser}&password=${currentPass}`)
     .then(res => res.json())
     .then(result => {
-      const data = result.data || {}, container = document.getElementById("smlFields");
+      const data = result || {}; // ← backend ส่งข้อมูลแบบ flatten แล้ว
+      const container = document.getElementById("smlFields");
       container.innerHTML = "";
+
       const inv = data.inventory_detail || {}, bar = (data.inventory_barcode || [])[0] || {};
+
       const fields = {
-        code: data.code, name_1: data.name_1, barcode: bar.barcode,
-        balance_qty: data.balance_qty, minimum_qty: inv.minimum_qty,
-        maximum_qty: inv.maximum_qty, purchase_point: inv.purchase_point,
-        is_hold_purchase: inv.is_hold_purchase, is_hold_sale: inv.is_hold_sale
+        code: data.ic_code || data.code,
+        name_1: data.name || data.name_1,
+        supplier_code_name: data.supplier_code_name || "-",
+        barcode: bar.barcode || "-",
+        balance_qty: data.balance_qty || "-",
+        minimum_qty: inv.minimum_qty,
+        maximum_qty: inv.maximum_qty,
+        purchase_point: inv.purchase_point,
+        is_hold_purchase: inv.is_hold_purchase,
+        is_hold_sale: inv.is_hold_sale
       };
+
       Object.entries(fields).forEach(([k, v]) => {
         const row = document.createElement("div");
         row.className = "v-row";
@@ -267,6 +278,7 @@ function getSmlData() {
         }
         container.appendChild(row);
       });
+
       document.getElementById("smlForm").dataset.ic_code = currentIC;
       document.getElementById("smlDataResult").style.display = "block";
       document.getElementById("sheetDataResult").style.display = "none";
