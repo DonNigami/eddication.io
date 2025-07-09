@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📦 สแกนและแก้ไขข้อมูลสินค้า</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f4f4f4; }
+    .box, .result-box, .btn-box, .sheet-box {
+      background: #fff; margin-top: 20px; padding: 15px;
+      border-radius: 8px; box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+    .label { font-weight: bold; color: #333; }
+    button {
+      padding: 10px; margin-top: 10px; width: 100%;
+      background: #007bff; color: white; border: none; border-radius: 5px;
+      font-size: 1rem; cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .vertical-table { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+    .v-row { display: flex; flex-direction: column; }
+    .v-row label { font-weight: bold; }
+    .v-row input, .v-row span {
+      padding: 8px; border-radius: 5px;
+    }
+    .v-row input { border: 1px solid #ccc; }
+    .v-row span { background: #eee; border: 1px solid #ccc; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    #scanHistory li { padding: 5px 0; border-bottom: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+<h2>🔍 สแกน Barcode สินค้า</h2>
+<div id="reader" style="width: 100%;"></div>
+
+<div class="result-box" id="result" style="display: none;">
+  <div><span class="label">📌 Barcode:</span> <span id="barcodeText"></span></div>
+  <div><span class="label">🔑 IC Code:</span> <span id="icCode"></span></div>
+  <div><span class="label">📦 หน่วย:</span> <span id="unitCode"></span></div>
+</div>
+
+<div class="btn-box" id="actionButtons" style="display:none;">
+  <button onclick="startScan()">🔄 สแกนใหม่</button>
+  <button onclick="getSmlData()">🔍 ดูข้อมูลจาก SML</button>
+  <button onclick="getSheetData()">📄 ดูข้อมูลจาก Sheet</button>
+</div>
+
+<div class="sheet-box" id="sheetDataResult" style="display:none;">
+  <h3>📋 แก้ไขข้อมูลจาก Sheet</h3>
+  <form id="sheetForm" onsubmit="saveSheetData(event)">
+    <button type="submit">💾 บันทึกกลับ Google Sheet</button>
+    <div id="sheetVerticalTable" class="vertical-table"></div>
+  </form>
+</div>
+
+<div class="sheet-box" id="smlDataResult" style="display:none;">
+  <h3>🧾 ข้อมูลจาก SML</h3>
+  <form id="smlForm" onsubmit="submitSmlUpdate(event)">
+    <div id="smlFields" class="vertical-table"></div>
+    <button type="submit">📤 อัปเดตกลับ SML</button>
+  </form>
+</div>
+
+<!-- ✅ ประวัติการสแกนล่าสุด -->
+<div class="sheet-box" id="historyBox">
+  <h3>🕘 ประวัติการสแกนล่าสุด</h3>
+  <ul id="scanHistory" style="list-style: none; padding-left: 0;"></ul>
+</div>
+
+<audio id="beepSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+
+<script>
+const barcodeAPI = "https://script.google.com/macros/s/AKfycbwQtPsLfDLqG9wYtpG6zO4GgY7zUzdtKkPa4oLToQ6Ng8JIq5XDbJYvzvOOayZWIvg8hA/exec?barcode=";
+const sheetAPI = "https://script.google.com/macros/s/AKfycbxkue2j9mKYMkDxNCcsyihRVPH87qHeQygNBhxsLqhj4FfRmbyFpO00XCm6CBTGvKkI/exec";
+const smlBackendAPI = "https://script.google.com/macros/s/AKfycby9rFdE4cN5fzMGIgs66psVHe9SukVKpDtt3IiASeXlk2S1POKuHpJXInUQ7-lzsuteDQ/exec";
+
+let currentIC = "";
+const beep = () => document.getElementById("beepSound").play();
+const vibrate = () => navigator.vibrate && navigator.vibrate([100]);
+
+function showResult(data) {
+  document.getElementById("barcodeText").innerText = data.barcode || "-";
+  document.getElementById("icCode").innerText = data.ic_code || "-";
+  document.getElementById("unitCode").innerText = data.unit_code || "-";
+  currentIC = data.ic_code || "";
+  document.getElementById("result").style.display = "block";
+  document.getElementById("actionButtons").style.display = "block";
+  document.getElementById("sheetDataResult").style.display = "none";
+  document.getElementById("smlDataResult").style.display = "none";
+  beep(); vibrate(); Swal.close();
+
+  // ✅ เพิ่มลงประวัติ
+  addToHistory(data);
+}
+
+// ✅ ฟังก์ชันแสดงประวัติ
+const historyLimit = 5;
+const historyList = [];
+
+function addToHistory(data) {
+  const entry = {
+    barcode: data.barcode || "-",
+    ic_code: data.ic_code || "-",
+    timestamp: new Date().toLocaleTimeString()
+  };
+
+  historyList.unshift(entry);
+  if (historyList.length > historyLimit) historyList.pop();
+
+  renderHistory();
+}
+
+function renderHistory() {
+  const ul = document.getElementById("scanHistory");
+  ul.innerHTML = "";
+  historyList.forEach(item => {
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="label">[${item.timestamp}]</span> Barcode: ${item.barcode}, IC: ${item.ic_code}`;
+    ul.appendChild(li);
+  });
+}
+
+function onScanSuccess(decodedText) {
+  Swal.fire({ title: "📥 กำลังโหลด...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  html5QrcodeScanner.clear().then(() => {
+    fetch(barcodeAPI + encodeURIComponent(decodedText))
+      .then(res => res.json())
+      .then(data => showResult(data))
+      .catch(err => {
+        Swal.close();
+        alert("❌ ดึงข้อมูลไม่สำเร็จ: " + err);
+      });
+  });
+}
+
+let html5QrcodeScanner;
+function startScan() {
+  document.getElementById("result").style.display = "none";
+  document.getElementById("actionButtons").style.display = "none";
+  document.getElementById("sheetDataResult").style.display = "none";
+  document.getElementById("smlDataResult").style.display = "none";
+  html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 100 } }, false);
+  html5QrcodeScanner.render(onScanSuccess);
+}
+
+function getSmlData() {
+  if (!currentIC) return alert("ไม่พบ IC Code");
+  Swal.fire({ title: "🔄 โหลดจาก SML...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  fetch(`${smlBackendAPI}?ic_code=${encodeURIComponent(currentIC)}`)
+    .then(res => res.json())
+    .then(result => {
+      Swal.close();
+      const data = result.data || {};
+      const container = document.getElementById("smlFields");
+      container.innerHTML = "";
+      const inv = data.inventory_detail || {};
+      const bar = (data.inventory_barcode || [])[0] || {};
+      const fieldsToShow = {
+        code: data.code,
+        name_1: data.name_1,
+        barcode: bar.barcode,
+        balance_qty: data.balance_qty,
+        minimum_qty: inv.minimum_qty,
+        maximum_qty: inv.maximum_qty,
+        purchase_point: inv.purchase_point,
+        is_hold_purchase: inv.is_hold_purchase,
+        is_hold_sale: inv.is_hold_sale
+      };
+
+      Object.entries(fieldsToShow).forEach(([key, value]) => {
+        const row = document.createElement("div");
+        row.className = "v-row";
+        const label = document.createElement("label");
+        label.innerText = key;
+        row.appendChild(label);
+
+        if (["minimum_qty", "maximum_qty", "purchase_point"].includes(key)) {
+          const input = document.createElement("input");
+          input.name = key;
+          input.value = value ?? "";
+          row.appendChild(input);
+        } else {
+          const span = document.createElement("span");
+          span.innerText = value ?? "";
+          row.appendChild(span);
+        }
+        container.appendChild(row);
+      });
+      document.getElementById("smlForm").dataset.ic_code = currentIC;
+      document.getElementById("smlDataResult").style.display = "block";
+      document.getElementById("sheetDataResult").style.display = "none";
+    })
+    .catch(err => {
+      Swal.close();
+      Swal.fire("❌", "ไม่สามารถโหลดจาก SML: " + err, "error");
+    });
+}
+
+function submitSmlUpdate(event) {
+  event.preventDefault();
+  const form = document.getElementById("smlForm");
+  const ic_code = form.dataset.ic_code;
+
+  const formData = new FormData();
+  formData.append("ic_code", ic_code);
+
+  form.querySelectorAll("input").forEach(input => {
+    formData.append(input.name, input.value);
+  });
+
+  formData.append("branch_code", "000");
+  formData.append("unit_code", document.getElementById("unitCode").innerText || "PCS");
+  formData.append("is_hold_purchase", "false");
+  formData.append("is_hold_sale", "false");
+
+  Swal.fire({
+    title: "📤 อัปเดตกลับ SML...",
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  fetch(smlBackendAPI, {
+    method: "POST",
+    body: formData
+  }).then(res => res.json())
+    .then(result => {
+      Swal.close();
+      if (!result.success) {
+        Swal.fire("❌ ผิดพลาด", result.message || "เกิดข้อผิดพลาด", "error");
+      } else {
+        Swal.fire("✅ สำเร็จ", "อัปเดตเรียบร้อย", "success");
+      }
+    })
+    .catch(err => {
+      Swal.close();
+      Swal.fire("❌ ผิดพลาด", err.message, "error");
+    });
+}
+
+function getSheetData() {
+  if (!currentIC) return alert("ไม่พบ IC Code");
+  Swal.fire({ title: "โหลดข้อมูลจาก Sheet...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  fetch(`${sheetAPI}?ic_code=${encodeURIComponent(currentIC)}`)
+    .then(res => res.json())
+    .then(data => {
+      const container = document.getElementById("sheetVerticalTable");
+      container.innerHTML = "";
+      for (const key in data) {
+        const row = document.createElement("div");
+        row.className = "v-row";
+        const label = document.createElement("label");
+        label.innerText = key;
+        row.appendChild(label);
+        if (key === Object.keys(data)[2] || key === Object.keys(data)[3]) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.name = key;
+          input.value = data[key];
+          row.appendChild(input);
+        } else {
+          const span = document.createElement("span");
+          span.innerText = data[key];
+          row.appendChild(span);
+        }
+        container.appendChild(row);
+      }
+      document.getElementById("sheetForm").dataset.ic_code = currentIC;
+      document.getElementById("sheetDataResult").style.display = "block";
+      document.getElementById("smlDataResult").style.display = "none";
+      Swal.close();
+    })
+    .catch(err => {
+      Swal.close();
+      alert("❌ ไม่สามารถโหลดจาก Sheet: " + err);
+    });
+}
+
+function saveSheetData(event) {
+  event.preventDefault();
+  const form = document.getElementById("sheetForm");
+  const ic_code = form.dataset.ic_code;
+  const formData = new FormData();
+  formData.append("ic_code", ic_code);
+  form.querySelectorAll("input").forEach(input => formData.append(input.name, input.value));
+
+  Swal.fire({ title: "บันทึก...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+  fetch(sheetAPI, { method: "POST", body: formData })
+    .then(res => res.json())
+    .then(result => {
+      Swal.close();
+      Swal.fire(result.success ? "✅ สำเร็จ" : "❌ ผิดพลาด", result.success ? "บันทึกเรียบร้อย" : result.error, result.success ? "success" : "error");
+    });
+}
+
+window.onload = startScan;
+</script>
+</body>
+</html>
