@@ -29,6 +29,12 @@
     .v-row input { border: 1px solid #ccc; }
     .v-row span { background: #eee; border: 1px solid #ccc; }
     #scanHistory li { padding: 5px 0; border-bottom: 1px solid #eee; }
+    #imageBox img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
@@ -48,6 +54,7 @@
   <div id="reader" style="width: 100%;"></div>
 
   <div class="result-box" id="result" style="display: none;">
+    <div id="imageBox" style="text-align:center; margin-bottom:10px;"></div>
     <div><span class="label">📌 Barcode:</span> <span id="barcodeText"></span></div>
     <div><span class="label">🔑 IC Code:</span> <span id="icCode"></span></div>
     <div><span class="label">📦 หน่วย:</span> <span id="unitCode"></span></div>
@@ -151,6 +158,14 @@ function showResult(data) {
   document.getElementById("icCode").innerText = data.ic_code || "-";
   document.getElementById("unitCode").innerText = data.unit_code || "-";
   currentIC = data.ic_code || "";
+
+  const imageBox = document.getElementById("imageBox");
+  if (data.image) {
+    imageBox.innerHTML = `<img src="${data.image}" alt="Product Image">`;
+  } else {
+    imageBox.innerHTML = "";
+  }
+
   document.getElementById("result").style.display = "block";
   document.getElementById("actionButtons").style.display = "block";
   document.getElementById("sheetDataResult").style.display = "none";
