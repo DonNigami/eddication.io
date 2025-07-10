@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>จัดการร้านค้า</title>
+  <style>
+    /* CSS สำหรับ UI */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+    h2, h3 {
+      text-align: center;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background: #00c300;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #009f00;
+    }
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .profile img {
+      width: 64px;
+      border-radius: 50%;
+    }
+    .section {
+      display: none;
+      margin-top: 30px;
+    }
+    .autocomplete-list {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+      width: 100%;
+      z-index: 999;
+      border-radius: 8px;
+      margin-top: -5px;
+    }
+    .autocomplete-list div {
+      padding: 8px;
+      cursor: pointer;
+    }
+    .autocomplete-list div:hover {
+      background-color: #eee;
+    }
+    #loader {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      font-size: 1.2em;
+      color: #444;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    .loader-spinner {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: conic-gradient(#00c300 10%, #f3f3f3 10%);
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loader -->
+  <div id="loader">
+    <div class="loader-spinner"></div>
+    <div>กำลังโหลดข้อมูล กรุณารอสักครู่...</div>
+  </div>
+
+  <div class="container">
+    <h2>จัดการร้านค้า</h2>
+    <!-- แสดงโปรไฟล์ของผู้ใช้งาน -->
+    <div class="profile">
+      <img id="profileImage" src="" />
+      <div>
+        <div id="displayName">ชื่อ</div>
+        <div id="statusMessage">สถานะ</div>
+      </div>
+    </div>
+
+    <!-- สำหรับ admin: ลูกค้าที่ต้องการลงทะเบียน -->
+    <div class="section" id="pendingUsersSection">
+      <h3>ลูกค้าที่ต้องการลงทะเบียน</h3>
+      <select id="pendingUserSelect">
+        <option value="">-- เลือกลูกค้า --</option>
+      </select>
+      <div id="pendingUserInfo" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+         <img id="pendingProfileImage" src="" style="width:64px; border-radius:50%;" />
+         <div>
+           <div id="pendingDisplayName"></div>
+           <div id="pendingUserId"></div>
+         </div>
+      </div>
+    </div>
+
+    <!-- สำหรับ admin: ลงทะเบียนร้านใหม่ -->
+    <div class="section" id="registerSection">
+      <h3>ลงทะเบียนร้านใหม่</h3>
+      <input type="text" id="storeSearchInput" placeholder="พิมพ์ชื่อร้าน..." />
+      <div id="suggestionBox" class="autocomplete-list"></div>
+      <button id="registerBtn">ลงทะเบียนร้าน</button>
+    </div>
+
+    <!-- สำหรับ admin: รายการร้านที่ลงทะเบียนแล้ว (แสดงทั้งหมด) -->
+    <div class="section" id="editSection">
+      <h3>ร้านที่ลงทะเบียนแล้ว</h3>
+      <select id="registeredStoreSelect">
+        <option value="">-- เลือกร้านที่ลงทะเบียน --</option>
+      </select>
+      <button id="deleteBtn" style="background: #d9534f;">ลบร้านนี้</button>
+    </div>
+
+    <!-- สำหรับลูกค้าทั่วไป: ข้อความแจ้งว่าไม่มีสิทธิ์ -->
+    <div class="section" id="notAllowedSection">
+      <h3>เฉพาะ admin เท่านั้นที่สามารถลงทะเบียนและลบร้านได้</h3>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwhT4rx7lpxStdwHRxvA2dA7Vgkom3kb_eFfKDC7BVfuFWCQ7YQ6sQaqhlib1lyOQ/exec';
+    const LIFF_ID = '2007213966-9K5wX5Ag';
+    let userId, displayName, pictureUrl, statusMessage;
+    let allowedStores = [], pendingUsers = [];
+
+    // ตรวจสอบ role ผ่าน URL parameter admin=true
+    const urlParams = new URLSearchParams(window.location.search);
+    const isAdmin = urlParams.get('admin') === 'true';
+
+    async function initializeLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        if (!liff.isLoggedIn()) return liff.login();
+        const profile = await liff.getProfile();
+        userId = profile.userId;
+        displayName = profile.displayName;
+        pictureUrl = profile.pictureUrl;
+        statusMessage = profile.statusMessage;
+        document.getElementById("displayName").textContent = displayName;
+        document.getElementById("statusMessage").textContent = statusMessage || "-";
+        document.getElementById("profileImage").src = pictureUrl;
+        
+        if (isAdmin) {
+          await Promise.all([fetchStores(), fetchPendingUsers(), fetchRegisteredStores()]);
+          document.getElementById("pendingUsersSection").style.display = "block";
+          document.getElementById("registerSection").style.display = "block";
+          document.getElementById("editSection").style.display = "block";
+          setupFuzzySearch();
+        } else {
+          document.getElementById("notAllowedSection").style.display = "block";
+        }
+      } catch (err) {
+        console.error("LIFF Init Error", err);
+        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง", "error");
+      } finally {
+        document.getElementById("loader").style.opacity = "0";
+        document.querySelector(".container").style.opacity = "1";
+        setTimeout(() => document.getElementById("loader").style.display = "none", 500);
+      }
+    }
+
+    async function fetchStores() {
+      const res = await fetch(`${SCRIPT_URL}?action=getStores`);
+      const data = await res.json();
+      allowedStores = data.stores || [];
+    }
+
+    async function fetchPendingUsers() {
+      const res = await fetch(`${SCRIPT_URL}?action=getPendingUsers`);
+      const data = await res.json();
+      pendingUsers = (data.pendingUsers || []).filter(u => u.displayName && u.displayName.trim() !== "");
+      const pendingSelect = document.getElementById("pendingUserSelect");
+      pendingSelect.innerHTML = "<option value=''>-- เลือกลูกค้า --</option>";
+      pendingUsers.forEach(user => {
+        const opt = document.createElement("option");
+        opt.value = user.userId;
+        opt.textContent = user.displayName;
+        pendingSelect.appendChild(opt);
+      });
+    }
+
+    async function fetchRegisteredStores() {
+      const res = await fetch(`${SCRIPT_URL}?action=getUserStores`);
+      const data = await res.json();
+      const storeSelect = document.getElementById("registeredStoreSelect");
+      storeSelect.innerHTML = "<option value=''>-- เลือกร้านที่ลงทะเบียน --</option>";
+      // data.stores เป็นอาร์เรย์ของอ็อบเจกต์ { userId, storeName }
+      data.stores.forEach(item => {
+        if (item.storeName && item.storeName.trim() !== "") {
+          const opt = document.createElement("option");
+          // ใช้ delimiter "||" ในการรวม userId กับ storeName
+          opt.value = item.userId + "||" + item.storeName;
+          opt.textContent = item.storeName + " (User: " + item.userId + ")";
+          storeSelect.appendChild(opt);
+        }
+      });
+    }
+
+    function setupFuzzySearch() {
+      const input = document.getElementById("storeSearchInput");
+      const suggestionBox = document.getElementById("suggestionBox");
+      function normalize(text) {
+        return text.toLowerCase().replace(/\s+/g, '').normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      }
+      input.addEventListener("input", () => {
+        const query = normalize(input.value);
+        suggestionBox.innerHTML = "";
+        if (!query) return;
+        const results = allowedStores.filter(name => normalize(name).includes(query)).slice(0,10);
+        results.forEach(match => {
+          const div = document.createElement("div");
+          div.textContent = match;
+          div.addEventListener("click", () => {
+            input.value = match;
+            suggestionBox.innerHTML = "";
+          });
+          suggestionBox.appendChild(div);
+        });
+      });
+      document.addEventListener("click", (e)=>{
+        if (!e.target.closest("#storeSearchInput")) suggestionBox.innerHTML = "";
+      });
+    }
+
+    // เมื่อ admin เลือกลูกค้าใน dropdown ให้แสดงข้อมูลโปรไฟล์
+    document.getElementById("pendingUserSelect").addEventListener("change", () => {
+      const selectedUserId = document.getElementById("pendingUserSelect").value;
+      const user = pendingUsers.find(u => u.userId === selectedUserId);
+      if (user) {
+        document.getElementById("pendingProfileImage").src = user.pictureUrl;
+        document.getElementById("pendingDisplayName").textContent = user.displayName;
+        document.getElementById("pendingUserId").textContent = "UserID: " + user.userId;
+      } else {
+        document.getElementById("pendingProfileImage").src = "";
+        document.getElementById("pendingDisplayName").textContent = "";
+        document.getElementById("pendingUserId").textContent = "";
+      }
+    });
+
+    // ลงทะเบียนร้าน (สำหรับ admin)
+    document.getElementById("registerBtn").addEventListener("click", async () => {
+      if (!isAdmin) {
+        Swal.fire("ไม่มีสิทธิ์", "เฉพาะ admin เท่านั้นที่สามารถลงทะเบียนร้านได้", "warning");
+        return;
+      }
+      const storeName = document.getElementById("storeSearchInput").value.trim();
+      if (!storeName) return Swal.fire("กรุณากรอกชื่อร้าน", "", "warning");
+      if (!allowedStores.includes(storeName)) return Swal.fire("ไม่พบร้านนี้ในระบบ", "กรุณาเลือกจากรายการแนะนำ", "error");
+      
+      const pendingSelect = document.getElementById("pendingUserSelect");
+      const selectedUserId = pendingSelect.value;
+      if (!selectedUserId) return Swal.fire("กรุณาเลือกลูกค้าที่ต้องการลงทะเบียน", "", "warning");
+      const selectedUser = pendingUsers.find(u => u.userId === selectedUserId);
+      if (!selectedUser) return Swal.fire("ไม่พบข้อมูลลูกค้าที่เลือก", "", "error");
+      
+      const payload = {
+        userId: selectedUser.userId,
+        displayName: selectedUser.displayName,
+        pictureUrl: selectedUser.pictureUrl,
+        statusMessage: selectedUser.statusMessage,
+        image: selectedUser.image,
+        storeName: storeName,
+        isAdmin: true
+      };
+      
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        Swal.fire(result.status === "created" ? "ลงทะเบียนสำเร็จ" : "อัปเดตเรียบร้อย", result.message, "success")
+          .then(() => {
+             // reload หน้าเพื่ออัพเดท list
+             window.location.reload();
+          });
+      } catch (error) {
+        console.error("Error during registration:", error);
+        Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถลงทะเบียนร้านได้ กรุณาลองใหม่อีกครั้ง", "error");
+      }
+    });
+
+    // ลบร้าน (สำหรับ admin)
+    document.getElementById("deleteBtn").addEventListener("click", async () => {
+      if (!isAdmin) {
+        Swal.fire("ไม่มีสิทธิ์", "เฉพาะ admin เท่านั้นที่สามารถลบร้านได้", "warning");
+        return;
+      }
+      const regSelect = document.getElementById("registeredStoreSelect");
+      const selectedVal = regSelect.value;
+      if (!selectedVal) return Swal.fire("กรุณาเลือกร้านที่ต้องการลบ", "", "warning");
+      const parts = selectedVal.split("||");
+      const delUserId = parts[0];
+      const storeName = parts[1];
+      
+      const confirmResult = await Swal.fire({
+        icon: "warning",
+        title: "ลบร้านนี้หรือไม่?",
+        text: `คุณแน่ใจหรือไม่ว่าต้องการลบ "${storeName}"?`,
+        showCancelButton: true,
+        confirmButtonText: "ลบเลย",
+        cancelButtonText: "ยกเลิก"
+      });
+      
+      if (confirmResult.isConfirmed) {
+        try {
+          const res = await fetch(`${SCRIPT_URL}?action=deleteStore`, {
+            method: "POST",
+            body: JSON.stringify({ userId: delUserId, storeName })
+          });
+          const result = await res.json();
+          Swal.fire("ลบเรียบร้อย", result.message, "success")
+            .then(() => {
+               // reload หน้าเพื่ออัพเดท list
+               window.location.reload();
+            });
+        } catch (error) {
+          console.error("Error during deletion:", error);
+          Swal.fire("เกิดข้อผิดพลาด", "ไม่สามารถลบร้านได้ กรุณาลองใหม่อีกครั้ง", "error");
+        }
+      }
+    });
+
+    // Flex Message สำหรับการลงทะเบียนร้านใหม่
+    function sendRegistrationFlex(storeName, isCreated) {
+      const titleText = isCreated ? "ลงทะเบียนร้านสำเร็จ" : "อัปเดตร้านเรียบร้อย";
+      const flexMessage = {
+        type: 'flex',
+        altText: titleText,
+        contents: {
+          type: "bubble",
+          header: {
+            type: "box",
+            layout: "vertical",
+            backgroundColor: "#e0f7e9",
+            paddingAll: "12px",
+            contents: [
+              {
+                type: "text",
+                text: titleText,
+                weight: "bold",
+                size: "xl",
+                align: "center",
+                color: "#2d7a32"
+              }
+            ]
+          },
+          hero: {
+            type: "image",
+            url: pictureUrl,
+            size: "full",
+            aspectRatio: "16:9",
+            aspectMode: "fit",
+            margin: "md"
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            spacing: "md",
+            contents: [
+              {
+                type: "text",
+                text: "รายละเอียดร้าน",
+                weight: "bold",
+                size: "lg",
+                color: "#2d7a32"
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ชื่อผู้ใช้:",
+                    size: "sm",
+                    color: "#555555",
+                    flex: 2
+                  },
+                  {
+                    type: "text",
+                    text: displayName,
+                    size: "sm",
+                    color: "#111111",
+                    flex: 4,
+                    wrap: true
+                  }
+                ]
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ร้าน:",
+                    size: "sm",
+                    color: "#555555",
+                    flex: 2
+                  },
+                  {
+                    type: "text",
+                    text: storeName,
+                    size: "sm",
+                    color: "#111111",
+                    flex: 4,
+                    wrap: true
+                  }
+                ]
+              },
+              {
+                type: "text",
+                text: "ขอให้การขายของคุณประสบความสำเร็จ!",
+                size: "sm",
+                color: "#2d7a32",
+                margin: "md"
+              }
+            ]
+          },
+          footer: {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            contents: [
+              {
+                type: "button",
+                style: "primary",
+                color: "#d9534f",
+                action: {
+                  type: "uri",
+                  label: "ลบร้านนี้",
+                  uri: "https://line.me/R/app/2007118277-51kOJ61N"
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      // ยังคงส่ง flex message แล้วปิดหน้าต่าง LIFF (หากต้องการให้ reload ด้วย สามารถปรับตามความเหมาะสม)
+      liff.sendMessages([flexMessage]).then(() => {
+        liff.closeWindow();
+      }).catch((err) => {
+        console.error("liff.sendMessages error:", err);
+        liff.closeWindow();
+      });
+    }
+
+    // Flex Message สำหรับการลบร้าน
+    function sendDeletionFlex(storeName) {
+      const titleText = "ลบร้านสำเร็จ";
+      const flexMessage = {
+        type: 'flex',
+        altText: titleText,
+        contents: {
+          type: "bubble",
+          header: {
+            type: "box",
+            layout: "vertical",
+            backgroundColor: "#fdecea",
+            paddingAll: "12px",
+            contents: [
+              {
+                type: "text",
+                text: titleText,
+                weight: "bold",
+                size: "xl",
+                align: "center",
+                color: "#a94442"
+              }
+            ]
+          },
+          hero: {
+            type: "image",
+            url: pictureUrl,
+            size: "full",
+            aspectRatio: "16:9",
+            aspectMode: "fit",
+            margin: "md"
+          },
+          body: {
+            type: "box",
+            layout: "vertical",
+            spacing: "md",
+            contents: [
+              {
+                type: "text",
+                text: "ข้อมูลร้านที่ถูกลบ",
+                weight: "bold",
+                size: "lg",
+                color: "#a94442"
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ชื่อผู้ใช้:",
+                    size: "sm",
+                    color: "#555555",
+                    flex: 2
+                  },
+                  {
+                    type: "text",
+                    text: displayName,
+                    size: "sm",
+                    color: "#111111",
+                    flex: 4,
+                    wrap: true
+                  }
+                ]
+              },
+              {
+                type: "box",
+                layout: "baseline",
+                spacing: "sm",
+                contents: [
+                  {
+                    type: "text",
+                    text: "ร้าน:",
+                    size: "sm",
+                    color: "#555555",
+                    flex: 2
+                  },
+                  {
+                    type: "text",
+                    text: storeName,
+                    size: "sm",
+                    color: "#111111",
+                    flex: 4,
+                    wrap: true
+                  }
+                ]
+              },
+              {
+                type: "text",
+                text: "เราหวังว่าจะได้บริการคุณอีกในอนาคต!",
+                size: "sm",
+                color: "#a94442",
+                margin: "md"
+              }
+            ]
+          },
+          footer: {
+            type: "box",
+            layout: "vertical",
+            spacing: "sm",
+            contents: [
+              {
+                type: "button",
+                style: "primary",
+                color: "#00c300",
+                action: {
+                  type: "uri",
+                  label: "ลงทะเบียนร้านใหม่",
+                  uri: "https://line.me/R/app/2007118277-51kOJ61N"
+                }
+              }
+            ]
+          }
+        }
+      };
+
+      liff.sendMessages([flexMessage]).then(() => {
+        liff.closeWindow();
+      }).catch((err) => {
+        console.error("liff.sendMessages error:", err);
+        liff.closeWindow();
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", initializeLiff);
+  </script>
+</body>
+</html>
