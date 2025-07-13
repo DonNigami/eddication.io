@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ (SH108 ➝ SH101)</title>
+  <title>รายงานสินค้าโอน SH108 ➝ SH101</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
@@ -31,7 +31,25 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
+    }
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    #searchBox {
+      padding: 8px;
+      width: 300px;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    .datetime {
+      font-size: 14px;
+      color: gray;
     }
     .actions {
       text-align: center;
@@ -52,7 +70,7 @@
     }
     .summary-box {
       display: flex;
-      justify-content: center;
+      justify-content: flex-end;
       gap: 20px;
       flex-wrap: wrap;
       margin-bottom: 20px;
@@ -64,15 +82,6 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       text-align: center;
       min-width: 140px;
-    }
-    #searchBox {
-      display: block;
-      margin: 0 auto 15px auto;
-      padding: 8px;
-      width: 300px;
-      max-width: 100%;
-      border-radius: 8px;
-      border: 1px solid #ccc;
     }
     table {
       width: 100%;
@@ -91,9 +100,7 @@
       font-weight: bold;
       text-align: center;
     }
-    td {
-      text-align: center;
-    }
+    td { text-align: center; }
     td.name { text-align: left; }
     img {
       max-height: 60px;
@@ -105,9 +112,6 @@
       padding: 40px;
       color: #888;
     }
-    @media print {
-      .actions, #searchBox, .theme-toggle { display: none !important; }
-    }
     .theme-toggle {
       position: fixed;
       top: 15px;
@@ -118,19 +122,25 @@
       border-radius: 8px;
       cursor: pointer;
     }
+    @media print {
+      .theme-toggle, .actions, .top-bar { display: none !important; }
+    }
   </style>
 </head>
 <body>
   <div class="theme-toggle" onclick="toggleTheme()">🌓</div>
   <h1>รายงานสินค้าที่ต้องโอนจาก SH108 ➝ SH101</h1>
 
+  <div class="top-bar">
+    <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
+    <div class="datetime" id="currentDatetime"></div>
+  </div>
+
   <div class="actions">
     <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
     <button onclick="window.print()">⬇️ ดาวน์โหลด PDF</button>
     <button onclick="exportExcel()">📁 Export Excel</button>
   </div>
-
-  <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
 
   <div class="summary-box">
     <div>
@@ -216,6 +226,13 @@
       document.getElementById("loading").style.display = "none";
     }
 
+    function exportExcel() {
+      const worksheet = XLSX.utils.json_to_sheet(allItems);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
+      XLSX.writeFile(workbook, "transfer_report.xlsx");
+    }
+
     document.getElementById("searchBox").addEventListener("input", function () {
       const keyword = this.value.toLowerCase();
       const filtered = allItems.filter(item =>
@@ -225,14 +242,16 @@
       renderTable(filtered);
     });
 
-    function exportExcel() {
-      const worksheet = XLSX.utils.json_to_sheet(allItems);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
-      XLSX.writeFile(workbook, "transfer_report.xlsx");
+    function updateDatetime() {
+      const now = new Date();
+      const options = { timeZone: "Asia/Bangkok", year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      document.getElementById("currentDatetime").textContent = now.toLocaleString('th-TH', options);
     }
 
-    window.onload = loadReport;
+    window.onload = () => {
+      loadReport();
+      updateDatetime();
+    };
   </script>
 </body>
 </html>
