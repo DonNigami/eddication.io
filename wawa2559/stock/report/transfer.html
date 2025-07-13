@@ -4,11 +4,26 @@
   <meta charset="UTF-8" />
   <title>รายงานสินค้าโอน SH108 ➝ SH101</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     body {
       font-family: 'Prompt', sans-serif;
-      background: #f9f9f9;
+      background: var(--bg);
+      color: var(--text);
       padding: 20px;
+      transition: 0.3s;
+    }
+    :root {
+      --bg: #f9f9f9;
+      --card: white;
+      --text: #111;
+      --thead: #e3f2fd;
+    }
+    .dark {
+      --bg: #1f1f1f;
+      --card: #333;
+      --text: #f1f1f1;
+      --thead: #444;
     }
     h1 {
       background: #333;
@@ -43,17 +58,26 @@
       margin-bottom: 20px;
     }
     .summary-box div {
-      background: white;
+      background: var(--card);
       padding: 15px 25px;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       text-align: center;
       min-width: 140px;
     }
+    #searchBox {
+      display: block;
+      margin: 0 auto 15px auto;
+      padding: 8px;
+      width: 300px;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: white;
+      background: var(--card);
       border-radius: 10px;
       overflow: hidden;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -61,12 +85,16 @@
     th, td {
       padding: 10px;
       border-bottom: 1px solid #eee;
-      text-align: center;
     }
     th {
-      background: #e3f2fd;
+      background: var(--thead);
       font-weight: bold;
+      text-align: center;
     }
+    td {
+      text-align: center;
+    }
+    td.name { text-align: left; }
     img {
       max-height: 60px;
       object-fit: contain;
@@ -78,17 +106,31 @@
       color: #888;
     }
     @media print {
-      .actions { display: none !important; }
+      .actions, #searchBox, .theme-toggle { display: none !important; }
+    }
+    .theme-toggle {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: #444;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <div class="theme-toggle" onclick="toggleTheme()">🌓</div>
   <h1>รายงานสินค้าที่ต้องโอนจาก SH108 ➝ SH101</h1>
 
   <div class="actions">
     <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
     <button onclick="window.print()">⬇️ ดาวน์โหลด PDF</button>
+    <button onclick="exportExcel()">📁 Export Excel</button>
   </div>
+
+  <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
 
   <div class="summary-box">
     <div>
@@ -120,6 +162,11 @@
 
   <script>
     const API_URL = 'https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer';
+    let allItems = [];
+
+    function toggleTheme() {
+      document.body.classList.toggle('dark');
+    }
 
     async function loadReport() {
       document.getElementById("loading").style.display = "block";
@@ -129,47 +176,60 @@
       try {
         const res = await fetch(API_URL);
         const items = await res.json();
-
-        const filtered = items.filter(item => {
-          const qty = parseInt(item["Vol_Transfer"]);
-          return !isNaN(qty) && qty > 0;
-        });
-
-        const tbody = document.getElementById("dataRows");
-        tbody.innerHTML = "";
-        let totalQty = 0;
-
-        filtered.forEach((item, index) => {
-          const qty = parseInt(item["Vol_Transfer"]) || 0;
-          const stock108 = item["STOCK_SH108"]?.trim() || "-";
-          const stock101 = item["STOCK_SH101"]?.trim() || "-";
-          const imageUrl = item["ภาพสินค้า"]?.trim() || "";
-
-          totalQty += qty;
-
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${item["CODE"]}</td>
-            <td>${item["NAME_1"]}</td>
-            <td>${imageUrl ? `<img src="${imageUrl}" alt="ภาพสินค้า" />` : '-'}</td>
-            <td>${stock108}</td>
-            <td>${stock101}</td>
-            <td>${qty}</td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-        document.getElementById("totalItems").textContent = filtered.length;
-        document.getElementById("totalQty").textContent = totalQty.toLocaleString();
-
-        document.querySelector("table").style.display = "table";
-        document.getElementById("loading").style.display = "none";
-
+        allItems = items.filter(item => parseInt(item["Vol_Transfer"]) > 0);
+        renderTable(allItems);
       } catch (err) {
         document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
         console.error(err);
       }
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById("dataRows");
+      tbody.innerHTML = "";
+      let totalQty = 0;
+
+      items.forEach((item, index) => {
+        const qty = parseInt(item["Vol_Transfer"]) || 0;
+        const stock108 = item["STOCK_SH108"]?.trim() || "-";
+        const stock101 = item["STOCK_SH101"]?.trim() || "-";
+        const imageUrl = item["ภาพสินค้า"]?.trim() || "";
+
+        totalQty += qty;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${item["CODE"]}</td>
+          <td class="name">${item["NAME_1"]}</td>
+          <td>${imageUrl ? `<img src="${imageUrl}" alt="ภาพสินค้า" />` : '-'}</td>
+          <td>${stock108}</td>
+          <td>${stock101}</td>
+          <td>${qty}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("totalItems").textContent = items.length;
+      document.getElementById("totalQty").textContent = totalQty.toLocaleString();
+      document.querySelector("table").style.display = "table";
+      document.getElementById("loading").style.display = "none";
+    }
+
+    document.getElementById("searchBox").addEventListener("input", function () {
+      const keyword = this.value.toLowerCase();
+      const filtered = allItems.filter(item =>
+        item["NAME_1"]?.toLowerCase().includes(keyword) ||
+        item["CODE"]?.toLowerCase().includes(keyword)
+      );
+      renderTable(filtered);
+    });
+
+    function exportExcel() {
+      const worksheet = XLSX.utils.json_to_sheet(allItems);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
+      XLSX.writeFile(workbook, "transfer_report.xlsx");
     }
 
     window.onload = loadReport;
