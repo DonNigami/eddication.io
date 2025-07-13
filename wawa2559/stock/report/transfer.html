@@ -4,9 +4,22 @@
   <meta charset="UTF-8" />
   <title>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ SH108 ➝ SH101</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Prompt&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    :root {
+      --bg: #f4f4f4;
+      --text: #111;
+      --card: #fff;
+      --thead: #e3f2fd;
+      --popup-bg: rgba(0, 0, 0, 0.7);
+    }
+    body.dark {
+      --bg: #1f1f1f;
+      --text: #f1f1f1;
+      --card: #2c2c2c;
+      --thead: #333;
+      --popup-bg: rgba(255, 255, 255, 0.2);
+    }
     body {
       font-family: 'Prompt', sans-serif;
       background: var(--bg);
@@ -14,44 +27,33 @@
       padding: 20px;
       transition: 0.3s;
     }
-    :root {
-      --bg: #f4f4f4;
-      --text: #000;
-      --card: #fff;
-      --thead: #e3f2fd;
-    }
-    .dark {
-      --bg: #121212;
-      --text: #e0e0e0;
-      --card: #1e1e1e;
-      --thead: #333;
-    }
-
     h1 {
       background: #333;
-      color: white;
+      color: #fff;
       padding: 15px;
       border-radius: 10px;
       text-align: center;
       margin-bottom: 10px;
     }
-
-    .datetime, .update-info {
+    .datetime {
       text-align: center;
-      font-weight: bold;
-      margin-bottom: 10px;
       font-size: 16px;
+      font-weight: bold;
       color: var(--text);
     }
-
+    .info-note {
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 15px;
+    }
     .actions, .summary-box {
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-bottom: 15px;
       flex-wrap: wrap;
+      margin-bottom: 15px;
     }
-
     .actions button {
       padding: 10px 18px;
       font-size: 14px;
@@ -64,27 +66,42 @@
     .actions button:hover {
       background-color: #0d47a1;
     }
-
+    .theme-toggle {
+      position: fixed;
+      top: 10px;
+      right: 15px;
+      background: #555;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
     #searchBox {
       padding: 12px;
       width: 100%;
-      max-width: 500px;
+      max-width: 420px;
       margin: 0 auto 15px;
       display: block;
       border-radius: 8px;
       border: 1px solid #ccc;
       font-size: 16px;
+      background: var(--card);
+      color: var(--text);
     }
-
     .summary-box div {
       background: var(--card);
       padding: 15px 25px;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
       text-align: center;
-      min-width: 140px;
+      min-width: 160px;
     }
-
+    .summary-box h2 {
+      margin: 5px 0 0 0;
+      font-size: 24px;
+      font-weight: bold;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -93,10 +110,9 @@
       overflow: hidden;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
     }
-
     th, td {
       padding: 10px;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid #ddd;
       text-align: center;
     }
     td.name {
@@ -105,85 +121,59 @@
     td.qty {
       text-align: right;
     }
-
     th {
       background: var(--thead);
       font-weight: bold;
     }
-
-    tbody tr:nth-child(even) {
-      background: rgba(0, 0, 0, 0.03);
+    tr:nth-child(even) {
+      background-color: rgba(0, 0, 0, 0.03);
     }
-
-    tbody tr:nth-child(odd) {
-      background: rgba(0, 0, 0, 0.08);
-    }
-
-    img {
+    img.thumb {
       max-height: 60px;
-      object-fit: contain;
       cursor: pointer;
+      transition: 0.2s;
     }
-
+    img.thumb:hover {
+      opacity: 0.8;
+    }
     #loading {
       text-align: center;
       font-size: 18px;
-      padding: 40px;
+      padding: 30px;
       color: #888;
     }
-
     #popup {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
-      background: rgba(0, 0, 0, 0.8);
       display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100vw; height: 100vh;
+      background: var(--popup-bg);
       justify-content: center;
       align-items: center;
-      z-index: 1000;
     }
-
     #popup img {
       max-width: 90vw;
       max-height: 90vh;
-      border: 4px solid white;
-      box-shadow: 0 0 25px #fff;
-      border-radius: 12px;
+      border: 6px solid white;
+      border-radius: 8px;
     }
-
     #popup .close-btn {
       position: absolute;
       top: 20px;
       right: 30px;
-      font-size: 32px;
+      font-size: 30px;
       color: white;
       cursor: pointer;
       font-weight: bold;
     }
-
-    .theme-toggle {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      background: #444;
-      color: white;
-      padding: 8px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      z-index: 2000;
-    }
-
-    @media print {
-      .actions, .theme-toggle, #searchBox, .datetime, .update-info { display: none !important; }
-    }
   </style>
 </head>
 <body>
-  <div class="theme-toggle" onclick="toggleTheme()">🌓</div>
-
+  <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
   <h1>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ SH108 ➝ SH101</h1>
   <div class="datetime" id="currentDatetime">-</div>
-  <div class="update-info">📌 ข้อมูลอัปเดท 2 เวลา คือ <strong>14.00-15.00</strong> และ <strong>05.00-06.00</strong> เท่านั้น</div>
+  <div class="info-note"><strong>ข้อมูลอัพเดท 2 เวลา คือ 14.00-15.00 และ 05.00-06.00 น. เท่านั้น</strong></div>
 
   <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
 
@@ -220,25 +210,14 @@
     <tbody id="dataRows"></tbody>
   </table>
 
-  <div id="popup" onclick="hidePopup()">
-    <span class="close-btn" onclick="hidePopup(event)">×</span>
-    <img id="popupImage" src="" alt="ภาพสินค้า">
+  <div id="popup">
+    <span class="close-btn" onclick="closePopup()">×</span>
+    <img id="popupImg" src="" alt="ภาพสินค้าใหญ่" />
   </div>
 
   <script>
     const API_URL = 'https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer';
     let allItems = [];
-
-    function toggleTheme() {
-      document.body.classList.toggle('dark');
-      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
-    }
-
-    function applySavedTheme() {
-      if (localStorage.getItem("theme") === "dark") {
-        document.body.classList.add("dark");
-      }
-    }
 
     function updateDateTime() {
       const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
@@ -254,10 +233,13 @@
       try {
         const res = await fetch(API_URL);
         const items = await res.json();
-        allItems = items.filter(item => 
+
+        allItems = items.filter(item =>
           item["CHECK_TRANSFER"]?.toUpperCase() === "Y" &&
-          parseInt(item["Vol_Transfer"]) > 0
+          parseInt(item["Vol_Transfer"]) > 0 &&
+          item["หมายเหตุ"]?.trim() === "-"
         );
+
         renderTable(allItems);
       } catch (err) {
         document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
@@ -272,8 +254,9 @@
 
       items.forEach((item, index) => {
         const qty = parseInt(item["Vol_Transfer"]) || 0;
-        const imageUrl = item["ภาพสินค้า"]?.trim() || "";
+        const imageUrl = item["ภาพสินค้า"]?.trim();
         const note = item["หมายเหตุ"]?.trim() || "-";
+
         totalQty += qty;
 
         const tr = document.createElement("tr");
@@ -282,7 +265,7 @@
           <td>${item["CODE"]}</td>
           <td class="name">${item["NAME_1"]}</td>
           <td>${note}</td>
-          <td>${imageUrl ? `<img src="${imageUrl}" alt="ภาพสินค้า" onclick="showPopup('${imageUrl}')" />` : '-'}</td>
+          <td>${imageUrl ? `<img src="${imageUrl}" class="thumb" onclick="showPopup('${imageUrl}')">` : '-'}</td>
           <td class="qty">${qty.toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
@@ -298,8 +281,7 @@
       const keyword = this.value.toLowerCase();
       const filtered = allItems.filter(item =>
         item["NAME_1"]?.toLowerCase().includes(keyword) ||
-        item["CODE"]?.toLowerCase().includes(keyword) ||
-        item["หมายเหตุ"]?.toLowerCase().includes(keyword)
+        item["CODE"]?.toLowerCase().includes(keyword)
       );
       renderTable(filtered);
     });
@@ -311,24 +293,29 @@
       XLSX.writeFile(workbook, "transfer_report.xlsx");
     }
 
-    function showPopup(imageUrl) {
-      const popup = document.getElementById("popup");
-      const popupImage = document.getElementById("popupImage");
-      popupImage.src = imageUrl;
-      popup.style.display = "flex";
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
     }
 
-    function hidePopup(event) {
-      if (event) event.stopPropagation();
+    function showPopup(url) {
+      document.getElementById("popupImg").src = url;
+      document.getElementById("popup").style.display = "flex";
+    }
+
+    function closePopup() {
       document.getElementById("popup").style.display = "none";
+      document.getElementById("popupImg").src = "";
     }
 
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") hidePopup();
+    window.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closePopup();
     });
 
     window.onload = () => {
-      applySavedTheme();
+      if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+      }
       loadReport();
       setInterval(updateDateTime, 60000);
     };
