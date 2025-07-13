@@ -2,18 +2,17 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
+  <title>รายงานสินค้าโอน SH108 ➝ SH101</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>รายงานการโอนสินค้า SH108 ➝ SH101</title>
   <style>
     body {
       font-family: 'Prompt', sans-serif;
-      background: #f2f2f2;
-      margin: 0;
+      background: #f9f9f9;
       padding: 20px;
     }
     h1 {
       background: #333;
-      color: #fff;
+      color: white;
       padding: 15px;
       border-radius: 10px;
       text-align: center;
@@ -44,7 +43,7 @@
       margin-bottom: 20px;
     }
     .summary-box div {
-      background: #fff;
+      background: white;
       padding: 15px 25px;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -80,12 +79,10 @@
     }
     @media print {
       .actions { display: none !important; }
-      h1 { margin-top: 0; }
     }
   </style>
 </head>
 <body>
-
   <h1>รายงานสินค้าที่ต้องโอนจาก SH108 ➝ SH101</h1>
 
   <div class="actions">
@@ -110,12 +107,12 @@
     <thead>
       <tr>
         <th>ลำดับ</th>
-        <th>รหัส</th>
+        <th>รหัสสินค้า</th>
         <th>ชื่อสินค้า</th>
         <th>ภาพ</th>
         <th>Stock SH108</th>
         <th>Stock SH101</th>
-        <th>ต้องโอน</th>
+        <th>จำนวนที่ต้องโอน</th>
       </tr>
     </thead>
     <tbody id="dataRows"></tbody>
@@ -133,25 +130,32 @@
         const res = await fetch(API_URL);
         const items = await res.json();
 
-        const filtered = items
-          .filter(item => item.qty > 0)
-          .slice(0, 50); // แสดง 50 รายการ
+        const filtered = items.filter(item => {
+          const qty = parseInt(item["Vol_Transfer"]);
+          return !isNaN(qty) && qty > 0;
+        });
 
         const tbody = document.getElementById("dataRows");
         tbody.innerHTML = "";
         let totalQty = 0;
 
         filtered.forEach((item, index) => {
-          totalQty += item.qty;
+          const qty = parseInt(item["Vol_Transfer"]) || 0;
+          const stock108 = item["STOCK_SH108"]?.trim() || "-";
+          const stock101 = item["STOCK_SH101"]?.trim() || "-";
+          const imageUrl = item["ภาพสินค้า"]?.trim() || "";
+
+          totalQty += qty;
+
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${index + 1}</td>
-            <td>${item.code}</td>
-            <td>${item.name}</td>
-            <td><img src="${item.image}" alt="ภาพสินค้า" /></td>
-            <td>${item.stock108}</td>
-            <td>${item.stock101}</td>
-            <td>${item.qty}</td>
+            <td>${item["CODE"]}</td>
+            <td>${item["NAME_1"]}</td>
+            <td>${imageUrl ? `<img src="${imageUrl}" alt="ภาพสินค้า" />` : '-'}</td>
+            <td>${stock108}</td>
+            <td>${stock101}</td>
+            <td>${qty}</td>
           `;
           tbody.appendChild(tr);
         });
@@ -168,7 +172,7 @@
       }
     }
 
-    loadReport();
+    window.onload = loadReport;
   </script>
 </body>
 </html>
