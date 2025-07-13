@@ -135,7 +135,7 @@
 
         const filtered = items
           .filter(item => item.qty > 0)
-          .slice(0, 50); // จำกัด 50 แถวแรก
+          .slice(0, 50); // แสดง 50 รายการ
 
         const tbody = document.getElementById("dataRows");
         tbody.innerHTML = "";
@@ -172,4 +172,3 @@
   </script>
 </body>
 </html>
-
