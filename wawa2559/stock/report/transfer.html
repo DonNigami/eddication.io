@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>รายงานสินค้าที่ต้องโอน SH108 ➝ SH101</title>
+  <title>รายงานการโอนสินค้า SH108 ➝ SH101</title>
   <style>
     body {
       font-family: 'Prompt', sans-serif;
@@ -78,7 +78,6 @@
       padding: 40px;
       color: #888;
     }
-
     @media print {
       .actions { display: none !important; }
       h1 { margin-top: 0; }
@@ -100,7 +99,7 @@
       <h2 id="totalItems">-</h2>
     </div>
     <div>
-      <div>จำนวนชิ้นที่โอน</div>
+      <div>จำนวนชิ้นที่ต้องโอน</div>
       <h2 id="totalQty">-</h2>
     </div>
   </div>
@@ -111,12 +110,12 @@
     <thead>
       <tr>
         <th>ลำดับ</th>
-        <th>รหัสสินค้า</th>
+        <th>รหัส</th>
         <th>ชื่อสินค้า</th>
-        <th>ภาพสินค้า</th>
+        <th>ภาพ</th>
         <th>Stock SH108</th>
         <th>Stock SH101</th>
-        <th>จำนวนที่ต้องโอน</th>
+        <th>ต้องโอน</th>
       </tr>
     </thead>
     <tbody id="dataRows"></tbody>
@@ -134,41 +133,43 @@
         const res = await fetch(API_URL);
         const items = await res.json();
 
+        const filtered = items
+          .filter(item => item.qty > 0)
+          .slice(0, 50); // จำกัด 50 แถวแรก
+
         const tbody = document.getElementById("dataRows");
         tbody.innerHTML = "";
-
         let totalQty = 0;
 
-        items.forEach((item, index) => {
-          totalQty += parseInt(item.qty);
-
+        filtered.forEach((item, index) => {
+          totalQty += item.qty;
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${index + 1}</td>
             <td>${item.code}</td>
             <td>${item.name}</td>
             <td><img src="${item.image}" alt="ภาพสินค้า" /></td>
-            <td>${item.stock108 || '-'}</td>
-            <td>${item.stock101 || '-'}</td>
+            <td>${item.stock108}</td>
+            <td>${item.stock101}</td>
             <td>${item.qty}</td>
           `;
           tbody.appendChild(tr);
         });
 
-        document.getElementById("totalItems").textContent = items.length;
+        document.getElementById("totalItems").textContent = filtered.length;
         document.getElementById("totalQty").textContent = totalQty.toLocaleString();
 
         document.querySelector("table").style.display = "table";
         document.getElementById("loading").style.display = "none";
 
       } catch (err) {
-        document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ";
-        console.error("Fetch error:", err);
+        document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
+        console.error(err);
       }
     }
 
     loadReport();
   </script>
-
 </body>
 </html>
+
