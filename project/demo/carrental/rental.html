@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Rental-iton5</title>
+    <meta name="description" content="Car Rental-iton5 for LIFF App" />
+    <meta name="author" content="iton5" />
+    <meta property="og:title" content="Car Rental-iton5-thailand" />
+    <meta property="og:description" content="Car Rental-iton5 for LIFF App" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+    <link rel="stylesheet" href="https://bit.ly/fontiton5" type="text/css" charset="utf-8" />
+    <style>
+        :root {
+            --primary-color: #00c6ff;
+            --secondary-color: #0072ff;
+            --accent-color: #f7b733;
+            --danger-color: #f73333;
+            --text-color: #e0e0e0;
+            --bg-color: #0d1117;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.2);
+
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes gradient-animation {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'line_seed_sans_th';
+            background: linear-gradient(-45deg, #0d1117, #1a2a45, #0151b3, #00c6ff);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: var(--glass-bg);
+            padding: 10px;
+            border-radius: 15px;
+            border: 1px solid var(--glass-border);
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-color);
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-family: 'line_seed_sans_th';
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-btn:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        .nav-btn.active,
+        .nav-btn:hover {
+            color: #fff;
+        }
+
+        .nav-btn.active:after,
+        .nav-btn:hover:after {
+            width: 80%;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+        }
+
+        h3 {
+            font-size: 1.4rem;
+        }
+
+        .filter-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .filter-section input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: 'line_seed_sans_th';
+            font-size: 1rem;
+        }
+
+        .filter-section .btn {
+            width: 100%;
+        }
+
+        .car-card,
+        .history-card,
+        .review-card,
+        .terms-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .car-card {
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .car-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 0 25px rgba(0, 198, 255, 0.5);
+        }
+
+        #car-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        #history-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .price {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: -webkit-linear-gradient(var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .price span {
+            font-size: 0.9rem;
+            font-weight: 300;
+            -webkit-text-fill-color: var(--text-color);
+            opacity: 0.7;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'line_seed_sans_th';
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 4px 15px rgba(0, 150, 255, 0.4);
+        }
+
+        .btn-accent {
+            background: linear-gradient(45deg, var(--accent-color), #f7797d);
+            box-shadow: 0 4px 15px rgba(247, 183, 51, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, var(--danger-color), #f7797d);
+            box-shadow: 0 4px 15px rgba(247, 51, 51, 0.4);
+        }
+
+        
+        #detail-page .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        #detail-car-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .spec-list,
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .spec-list li,
+        .feature-list li {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .review-section {
+            margin-top: 30px;
+        }
+
+        .review-card {
+            margin-bottom: 15px;
+        }
+
+        .star-rating {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+
+     
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.6);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-content h2,
+        .modal-content h3 {
+            margin-top: 0;
+        }
+
+        .modal-content .form-group {
+            margin-bottom: 20px;
+        }
+
+        .modal-content label {
+            display: block;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .modal-content input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: 'line_seed_sans_th';
+            font-size: 1rem;
+        }
+
+        #total-price-display {
+            text-align: center;
+            font-size: 1.8rem;
+            margin: 20px 0;
+            font-weight: 700;
+        }
+
+        #total-price-display span {
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            flex-direction: column;
+        }
+
+        .modal-actions .btn {
+            width: 100%;
+        }
+
+        .review-stars {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .review-stars .star {
+            font-size: 2.5rem;
+            color: #e8f409;
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+        }
+
+        .review-stars .star:hover {
+            transform: scale(1.2);
+        }
+
+        .review-stars .star.selected,
+        .review-stars .star.hovered {
+            color: var(--accent-color);
+        }
+
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            font-family: 'line_seed_sans_th';
+            font-size: 1rem;
+            min-height: 100px;
+        }
+
+        #loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+
+
+        .swal2-popup {
+            font-family: 'line_seed_sans_th';
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 1px solid var(--glass-border) !important;
+            border-radius: 20px !important;
+            color: var(--text-color) !important;
+        }
+
+        .swal2-title {
+            color: white !important;
+            font-family: 'line_seed_sans_th';
+        }
+
+       
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 2.8rem;
+            }
+
+            h2 {
+                font-size: 2.2rem;
+            }
+
+            h3 {
+                font-size: 1.6rem;
+            }
+
+            .filter-section {
+                flex-direction: row;
+            }
+
+            .filter-section input {
+                width: auto;
+                flex: 1;
+            }
+
+            .filter-section .btn {
+                width: auto;
+            }
+
+            #detail-page .detail-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            #history-list {
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            }
+
+            .modal-actions {
+                flex-direction: row;
+            }
+
+            .modal-actions .btn {
+                width: auto;
+                flex: 1;
+            }
+
+            .modal-content {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader-container">
+
+        <img style="width: 120px; height: 120px;"
+            src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHNpZHlweWVvYzk5Z3JnNG1uY3F0bXNocWh6bzV4eG1lb2NwMmdobCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rkPHdgA39dIcHqCEcK/giphy.gif"
+            alt="Loading...">
+
+    </div>
+
+
+    <div class="container">
+        <header>
+            <h1 id="welcome-title">Car Rental-iton5</h1>
+            <h3 class="text-2xl font-bold">บริการเช่ารถสุดหรูครบวงจร</h3>
+            <p id="user-greeting">.....</p>
+
+        </header>
+
+        <nav>
+            <button class="nav-btn active" data-page="rental-page">ค้นหารถเช่า</button>
+            <button class="nav-btn" data-page="history-page">ประวัติการเช่า</button>
+            <button class="nav-btn" data-page="terms-page">เงื่อนไขบริการ</button>
+        </nav>
+
+        <main>
+            <div id="rental-page" class="page active">
+                <div class="filter-section">
+                    <input type="text" id="search-date-range" placeholder="เลือกวันที่ต้องการเช่า แล้วกดค้นหา">
+                    <button id="search-btn" class="btn btn-primary">🔍 ค้นหารถว่าง</button>
+                </div>
+                <div id="car-list"></div>
+            </div>
+
+            <div id="history-page" class="page">
+                <div id="history-list"></div>
+            </div>
+
+            <div id="detail-page" class="page"></div>
+
+            <div id="terms-page" class="page">
+                <div class="terms-card">
+                    <h3>เงื่อนไขและข้อตกลงการเช่ารถ</h3>
+                    <p><strong>1. เอกสารที่ต้องใช้:</strong> บัตรประชาชน และ ใบขับขี่ (ตัวจริง)</p>
+                    <p><strong>2. คุณสมบัติผู้เช่า:</strong> ต้องมีอายุ 20 ปีขึ้นไป</p>
+                    <p><strong>3. การชำระเงิน:</strong> ชำระค่าเช่าเต็มจำนวน ณ วันที่ทำสัญญา และมีค่ามัดจำ 5,000 บาท
+                        (ได้รับคืนเมื่อคืนรถในสภาพสมบูรณ์)</p>
+                    <p><strong>4. น้ำมัน:</strong> รับรถเต็มถัง คืนรถเต็มถัง</p>
+                    <p><strong>5. การคืนรถล่าช้า:</strong> มีค่าปรับชั่วโมงละ 300 บาท หากเกิน 4 ชั่วโมงจะคิดเป็นราคาเต็ม
+                        1 วัน</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    
+    <div id="booking-modal" class="modal-overlay"></div>
+    <div id="review-modal" class="modal-overlay"></div>
+
+    <script>
+     
+        const LIFF_ID = "xxxxxxx";
+        const GAS_URL = "https://script.google.com/macros/s/xxxxxx/exec";
+        let userProfile = {}, carsData = [], currentCarDetail = null, bookingDatePicker, searchDatePicker, currentReviewData = {};
+
+       
+        const loader = document.getElementById('loader-container');
+        const allPages = document.querySelectorAll('.page');
+        const userGreeting = document.getElementById('user-greeting');
+        const carListEl = document.getElementById('car-list');
+        const historyListEl = document.getElementById('history-list');
+        const detailPageEl = document.getElementById('detail-page');
+        const bookingModalEl = document.getElementById('booking-modal');
+        const reviewModalEl = document.getElementById('review-modal');
+        const searchBtn = document.getElementById('search-btn');
+        const searchDateRangeInput = document.getElementById('search-date-range');
+
+       
+        async function initializeLiff() {
+            showLoader();
+            try {
+                await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
+                if (!liff.isLoggedIn()) { liff.login({ redirectUri: window.location.href }); return; }
+                userProfile = await liff.getProfile();
+                userGreeting.textContent = `สวัสดี, ${userProfile.displayName}!`;
+                await fetchCars();
+            } catch (error) {
+                console.error('LIFF Init failed', error);
+                userGreeting.textContent = 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้';
+                await fetchCars();
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function fetchCars(startDate = null, endDate = null) {
+            showLoader();
+            carListEl.innerHTML = '';
+            let url = `${GAS_URL}?action=get_cars`;
+            if (startDate && endDate) {
+                url += `&search_start=${startDate}&search_end=${endDate}`;
+            }
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    carsData = result.data;
+                    renderCars(carsData);
+                } else { throw new Error(result.message); }
+            } catch (error) {
+                console.error('Fetch Cars Error:', error);
+                carListEl.innerHTML = `<p style="text-align:center; grid-column: 1 / -1;">เกิดข้อผิดพลาดในการโหลดข้อมูลรถยนต์</p>`;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function fetchHistory() {
+            if (!userProfile.userId) return;
+            showLoader();
+            historyListEl.innerHTML = '';
+            try {
+                const response = await fetch(`${GAS_URL}?action=get_my_history&user_id=${userProfile.userId}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    renderHistory(result.data);
+                } else { throw new Error(result.message); }
+            } catch (error) {
+                console.error('Fetch History Error:', error);
+                historyListEl.innerHTML = `<p style="text-align:center; grid-column: 1 / -1;">เกิดข้อผิดพลาดในการโหลดประวัติ</p>`;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function showPage(pageId) {
+            allPages.forEach(p => p.classList.remove('active'));
+            const pageToShow = document.getElementById(pageId);
+            if (pageToShow) pageToShow.classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.page === pageId);
+            });
+            window.scrollTo(0, 0);
+        }
+
+        function showDetailPage(carId) {
+            showLoader();
+           
+            setTimeout(async () => {
+                try {
+                    const response = await fetch(`${GAS_URL}?action=get_car_details&car_id=${carId}`);
+                    const result = await response.json();
+                    if (result.status !== 'success') throw new Error(result.message);
+                    currentCarDetail = result.data;
+                    renderCarDetail(currentCarDetail);
+                    showPage('detail-page');
+                } catch (e) {
+                    console.error(e);
+                    Swal.fire('ผิดพลาด', 'ไม่สามารถโหลดข้อมูลรถได้', 'error');
+                } finally {
+                    hideLoader();
+                }
+            }, 10);
+        }
+
+       
+        function renderCars(cars) {
+            carListEl.innerHTML = '';
+            if (!cars || cars.length === 0) { carListEl.innerHTML = '<p style="text-align:center; grid-column: 1 / -1;">ไม่พบรถยนต์ที่ว่างในช่วงวันที่คุณเลือก</p>'; return; }
+            cars.forEach(car => {
+                const card = document.createElement('div');
+                card.className = 'car-card';
+                card.setAttribute('onclick', `showDetailPage('${car.id}')`);
+                card.innerHTML = `
+                    <img src="${car.image_url}" alt="${car.name}" style="width:100%; height:180px; object-fit:contain; margin-bottom:15px;"  onerror="this.src='https://placehold.co/400x200/1a2a45/e0e0e0?text=No+Image'">
+                    <h3>${car.name}</h3> <p style="opacity:0.7; margin-top:0;">${car.brand}</p>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto;">
+                        <div class="price">${new Intl.NumberFormat().format(car.price_per_day)} บ.<span>/ วัน</span></div>
+                    </div>`;
+                carListEl.appendChild(card);
+            });
+        }
+
+
+        function renderCarDetail(car) {
+            let specsHtml = '<li>ไม่ระบุ</li>';
+            if (car.specs) {
+                try {
+                    const specs = JSON.parse(car.specs);
+                    specsHtml = `
+                <li><strong>เกียร์:</strong> ${specs.gear || '-'}</li>
+                <li><strong>ที่นั่ง:</strong> ${specs.seats || '-'}</li>
+                <li><strong>เชื้อเพลิง:</strong> ${specs.fuel || '-'}</li>`;
+                } catch (e) {
+                    console.error("Invalid specs JSON", car.specs);
+                }
+            }
+
+            let featuresHtml = '<li>-</li>';
+            if (car.features && car.features.trim() !== '') {
+                featuresHtml = car.features.split(',').map(f => `<li>${f.trim()}</li>`).join('');
+            }
+
+            let avgRating = 0;
+            let reviewsHtml = '<div class="review-card"><p>ยังไม่มีรีวิวสำหรับรถคันนี้</p></div>';
+            if (car.reviews && car.reviews.length > 0) {
+                const totalRating = car.reviews.reduce((acc, r) => acc + Number(r.rating), 0);
+                avgRating = (totalRating / car.reviews.length).toFixed(1);
+                reviewsHtml = car.reviews.map(r => `
+            <div class="review-card">
+                <p><strong>${r.user_name || 'Anonymous'}</strong> 
+                <span class="star-rating">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span></p>
+                <p style="margin-top:5px; margin-bottom: 5px; opacity: 0.9;">${r.comment || '<i>ไม่มีความคิดเห็น</i>'}</p>
+                <small style="opacity:0.7">${formatDate(r.date)}</small>
+            </div>`).join('');
+            }
+
+            detailPageEl.innerHTML = `
+        <button class="btn" style="margin-bottom:20px; background: #444;" onclick="showPage('rental-page')">
+            ‹‹ กลับไปที่รายการ
+        </button>
+
+        <div class="detail-grid">
+            <div>
+                <img id="detail-car-image" src="${car.image_url}" alt="${car.name}" 
+                     onerror="this.src='https://placehold.co/600x400/1a2a45/e0e0e0?text=No+Image'">
+            </div>
+            <div>
+                <h2>${car.name}</h2>
+                <p style="opacity:0.7; margin-top:-10px;">${car.brand}</p>
+                <div class="star-rating" style="font-size:1.2rem; margin-bottom:20px;">
+                    ★ ${avgRating} (${car.reviews.length} รีวิว)
+                </div>
+                <button class="btn btn-primary" style="width:100%; margin-bottom:20px;" onclick="openBookingModal()">
+                    จองรถคันนี้
+                </button>
+                <h3>คุณสมบัติ</h3>
+                <ul class="spec-list">${specsHtml}</ul>
+                <h3>สิ่งอำนวยความสะดวก</h3>
+                <ul class="feature-list">${featuresHtml}</ul>
+            </div>
+        </div>
+
+        <h3 style="margin-top:30px;">แผนที่จุดรับรถ</h3>
+        <div id="map" style="height: 300px; border-radius: 15px; margin-top: 10px;"></div>
+
+        <div class="review-section">
+            <h3>รีวิวล่าสุด</h3>
+            ${reviewsHtml}
+        </div>`;
+
+           
+            setTimeout(() => {
+                if (window.mapInstance) window.mapInstance.remove();
+
+                const lat = car.lat || 13.7563;
+                const lng = car.lng || 100.5018;
+
+                window.mapInstance = L.map('map').setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; Car Rental-iton5'
+                }).addTo(window.mapInstance);
+
+                L.marker([lat, lng]).addTo(window.mapInstance)
+                    .bindPopup(`<b>${car.name}</b><br><a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank">จุดรับรถที่นี่</a>`)
+                    .openPopup();
+
+                
+                const mapBtnContainer = document.createElement('div');
+                mapBtnContainer.innerHTML = `<br>
+      <div style="text-align:center; margin-top: 10px; ">
+        <a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" class="btn btn-accent">
+          🧭 เปิดนำทางใน Google Maps
+        </a>
+      </div>`;
+                document.getElementById('map').after(mapBtnContainer);
+            }, 100);
+            
+        }
+
+        function renderHistory(history) {
+            historyListEl.innerHTML = '';
+            if (!history || history.length === 0) { historyListEl.innerHTML = '<p style="text-align:center; grid-column: 1 / -1;">คุณยังไม่มีประวัติการเช่า</p>'; return; }
+            history.forEach(item => {
+                const card = document.createElement('div');
+                const isPaid = item.payment_status === 'Paid';
+                const endDate = new Date(item.end_date);
+                const canReview = endDate < new Date() && isPaid && item.review_submitted !== 'TRUE';
+                const canCancel = new Date(item.start_date) > new Date();
+
+                let buttonsHtml = '';
+                if (!isPaid) buttonsHtml += `<button class="btn btn-accent" style="flex:1;" onclick="showPayment('${item.rental_id}', '${item.total_price}')">ชำระเงิน</button>`;
+                if (canCancel) buttonsHtml += `<button class="btn btn-danger" style="flex:1;" onclick="confirmCancel('${item.rental_id}')">ยกเลิกจอง</button>`;
+                if (canReview) buttonsHtml += `<button class="btn btn-primary" style="flex:1;" onclick="openReviewModal('${item.rental_id}', '${item.car_id}')">เขียนรีวิว</button>`;
+
+                card.innerHTML = `
+                    <h3>${item.car_name}</h3>
+                    <p><b>รหัสการเช่า:</b> ${item.rental_id}</p>
+                    <p><b>วันที่เช่า:</b> ${formatDate(item.start_date)} - ${formatDate(item.end_date)}</p>
+                    <p><b>ราคารวม:</b> ${new Intl.NumberFormat().format(item.total_price)} บาท</p>
+                    <p><b>สถานะ:</b> <span style="font-weight:bold; color:${isPaid ? '#28a745' : 'var(--accent-color)'}">${isPaid ? 'ชำระเงินแล้ว' : 'รอชำระเงิน'}</span></p>
+                    <div style="display:flex; flex-wrap: wrap; gap:10px; margin-top: 15px;">${buttonsHtml}</div>`;
+                historyListEl.appendChild(card);
+            });
+        }
+
+        
+        function openBookingModal() {
+            if (!currentCarDetail) return;
+            bookingModalEl.innerHTML = `
+                <div class="modal-content">
+                    <h2>เช่ารถ: ${currentCarDetail.name}</h2>
+                    <div class="form-group">
+                        <label for="date-range">เลือกวันเช่า-คืน</label>
+                        <input type="text" id="date-range" placeholder="โปรดเลือกวันที่">
+                    </div>
+                    <div id="total-price-display">0 บ.<span>(0 วัน)</span></div>
+                    <div class="modal-actions">
+                        <button class="btn" style="background: #555;" onclick="closeModal('booking-modal')">ยกเลิก</button>
+                        <button class="btn btn-primary" onclick="processBooking()">ยืนยันการจอง</button>
+                    </div>
+                </div>`;
+
+            
+            const bookings = currentCarDetail.bookings || [];
+            const disabledDates = bookings.map(b => ({ from: b.start, to: b.end }));
+
+            flatpickr.localize({
+                weekdays: {
+                    shorthand: ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+                    longhand: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
+                },
+                months: {
+                    shorthand: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                    longhand: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+                },
+                firstDayOfWeek: 0 
+            });
+
+            bookingDatePicker = flatpickr("#date-range", {
+                mode: "range",
+                minDate: "today",
+                dateFormat: "d-m-Y",
+                disable: disabledDates,
+                onChange: function (selectedDates) {
+                    if (selectedDates.length === 2) {
+                        const [start, end] = selectedDates;
+                        const days = (end.getTime() - start.getTime()) / (1000 * 3600 * 24) + 1;
+                        const total = days * currentCarDetail.price_per_day;
+                        document.getElementById('total-price-display').innerHTML = `${new Intl.NumberFormat().format(total)} บ.<span>(${days} วัน)</span>`;
+                    } else {
+                        document.getElementById('total-price-display').innerHTML = '0 บ.<span>(0 วัน)</span>';
+                    }
+                }
+            });
+
+            bookingModalEl.classList.add('active');
+        }
+
+        function openReviewModal(rentalId, carId) {
+            currentReviewData = { rentalId, carId, rating: 0 };
+            reviewModalEl.innerHTML = `
+                <div class="modal-content">
+                    <h3>เขียนรีวิว</h3>
+                    <div class="review-stars">
+                        ${[1, 2, 3, 4, 5].map(i => `<span class="star" data-value="${i}">☆</span>`).join('')}
+                    </div>
+                    <div class="form-group">
+                        <textarea id="review-comment" placeholder="เล่าประสบการณ์ของคุณ..."></textarea>
+                    </div>
+                    <div class="modal-actions">
+                         <button class="btn" style="background: #555;" onclick="closeModal('review-modal')">ยกเลิก</button>
+                         <button class="btn btn-primary" onclick="submitReview()">ส่งรีวิว</button>
+                    </div>
+                </div>`;
+
+            const stars = reviewModalEl.querySelectorAll('.star');
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    currentReviewData.rating = star.dataset.value;
+                    stars.forEach(s => s.innerHTML = s.dataset.value <= currentReviewData.rating ? '★' : '☆');
+                });
+            });
+            reviewModalEl.classList.add('active');
+        }
+
+        async function submitReview() {
+            if (currentReviewData.rating === 0) {
+                Swal.fire('โปรดทราบ', 'กรุณาให้คะแนนดาวก่อนส่งรีวิว', 'info'); return;
+            }
+            const comment = document.getElementById('review-comment').value;
+            const formData = new URLSearchParams({ action: 'submit_review', rental_id: currentReviewData.rentalId, car_id: currentReviewData.carId, user_id: userProfile.userId, user_name: userProfile.displayName, rating: currentReviewData.rating, comment: comment });
+            showLoader();
+            try {
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status !== 'success') throw new Error(result.message);
+                Swal.fire('สำเร็จ!', 'ขอบคุณสำหรับรีวิวของคุณ', 'success');
+                closeModal('review-modal');
+                await fetchHistory();
+            } catch (error) {
+                Swal.fire('เกิดข้อผิดพลาด', error.message, 'error');
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.classList.remove('active');
+            if (bookingDatePicker) { bookingDatePicker.destroy(); bookingDatePicker = null; }
+        }
+
+       
+        async function processBooking() {
+            const selectedDates = bookingDatePicker.selectedDates;
+            if (selectedDates.length < 2) { Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกวันที่เช่าและวันคืน', 'error'); return; }
+            if (!userProfile.userId) { Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลผู้ใช้', 'error'); return; }
+            const [start, end] = selectedDates;
+            const days = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const totalPrice = days * currentCarDetail.price_per_day;
+            const formData = new URLSearchParams({ action: 'create_booking', car_id: currentCarDetail.id, car_name: currentCarDetail.name, user_id: userProfile.userId, user_name: userProfile.displayName, start_date: start.toISOString().split('T')[0], end_date: end.toISOString().split('T')[0], total_price: totalPrice });
+            showLoader();
+            try {
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    closeModal('booking-modal');
+                    
+                    const searchDates = searchDatePicker.selectedDates;
+                    if (searchDates.length === 2) {
+                        await fetchCars(searchDates[0].toISOString().split('T')[0], searchDates[1].toISOString().split('T')[0]);
+                    } else {
+                        await fetchCars();
+                    }
+                    showPayment(result.data.rental_id, totalPrice);
+                    const flexMessage = JSON.parse(result.body);
+                    sendText([flexMessage]);
+                } else { throw new Error(result.message || 'ไม่สามารถจองได้'); }
+            } catch (error) { Swal.fire('เกิดข้อผิดพลาด', error.message, 'error'); } finally { hideLoader(); }
+        }
+
+        function showPayment(rentalId, amount) {
+            const qrUrl = `https://promptpay.io/xxxxxx/${amount}.png`; // Replace with your PromptPay number
+            Swal.fire({
+                title: 'ชำระเงิน',
+                html: `
+                    <p>สแกน QR Code เพื่อชำระเงิน <b>${new Intl.NumberFormat().format(amount)}</b> บาท</p>
+                    <img src="${qrUrl}" style="width: 250px; height: 250px; display: block; margin:auto;">
+                    <p>รหัสการเช่า: ${rentalId}</p>
+                    <button class="btn btn-primary" style="margin-top: 10px;" onclick="shareLocation('${rentalId}')">
+                        📍 แชร์พิกัดเพื่อส่งมอบรถให้คุณ
+                    </button>
+                    `,
+
+                confirmButtonText: 'ฉันชำระเงินแล้ว', showCancelButton: true, cancelButtonText: 'ชำระภายหลัง', customClass: { popup: 'swal2-popup' }
+            }).then(result => { if (result.isConfirmed) { confirmPayment(rentalId); } });
+        }
+
+        async function shareLocation(rentalId) {
+            if (!navigator.geolocation) {
+                Swal.fire('อุปกรณ์ไม่รองรับ', 'เบราว์เซอร์ของคุณไม่สามารถเข้าถึงตำแหน่งได้', 'error');
+                return;
+            }
+
+            Swal.fire({ title: 'กำลังรับตำแหน่ง...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+            navigator.geolocation.getCurrentPosition(async position => {
+                const lat = position.coords.latitude.toFixed(6);
+                const lng = position.coords.longitude.toFixed(6);
+
+                const formData = new URLSearchParams({
+                    action: "submit_location",
+                    rental_id: rentalId,
+                    user_id: userProfile.userId,
+                    lat,
+                    lng
+                });
+
+                try {
+                    const res = await fetch(GAS_URL, {
+                        method: "POST",
+                        body: formData
+                    });
+                    const result = await res.json();
+                    if (result.status === "success") {
+                        Swal.fire('สำเร็จ!', 'ตำแหน่งของคุณถูกส่งเรียบร้อยแล้ว', 'success');
+                    } else {
+                        throw new Error(result.message || "ส่งตำแหน่งไม่สำเร็จ");
+                    }
+                } catch (err) {
+                    Swal.fire('ผิดพลาด', err.message, 'error');
+                }
+            }, error => {
+                Swal.fire('ไม่สามารถรับตำแหน่งได้', 'โปรดอนุญาตการเข้าถึงตำแหน่งจากเบราว์เซอร์', 'error');
+            });
+        }
+
+
+        async function confirmPayment(rentalId) {
+            showLoader();
+            const formData = new URLSearchParams({ action: 'confirm_payment', rental_id: rentalId });
+            try {
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire('สำเร็จ!', 'รับการชำระเงินเรียบร้อยแล้ว!', 'success');
+                    if (document.getElementById('history-page').classList.contains('active')) { await fetchHistory(); }
+                } else { throw new Error(result.message); }
+            } catch (error) { Swal.fire('เกิดข้อผิดพลาด', error.message, 'error'); } finally { hideLoader(); }
+        }
+
+        function confirmCancel(rentalId) {
+            Swal.fire({
+                title: 'ยืนยันการยกเลิก?', text: "คุณต้องการยกเลิกการจองนี้ใช่หรือไม่", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ยกเลิกเลย!', cancelButtonText: 'ไม่'
+            }).then((result) => { if (result.isConfirmed) { cancelBooking(rentalId); } });
+        }
+
+        async function cancelBooking(rentalId) {
+            showLoader();
+            const formData = new URLSearchParams({ action: 'cancel_booking', rental_id: rentalId, user_id: userProfile.userId });
+            try {
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire('สำเร็จ!', 'การจองของคุณถูกยกเลิกแล้ว', 'success');
+                    await fetchHistory();
+                } else { throw new Error(result.message); }
+            } catch (error) { Swal.fire('เกิดข้อผิดพลาด', error.message, 'error'); } finally { hideLoader(); }
+        }
+
+        
+        const formatDate = (d) => new Date(d).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+        const showLoader = () => loader.style.display = 'flex';
+        const hideLoader = () => loader.style.display = 'none';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            flatpickr.localize({
+                weekdays: {
+                    shorthand: ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'],
+                    longhand: ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
+                },
+                months: {
+                    shorthand: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'],
+                    longhand: ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+                },
+                firstDayOfWeek: 0 
+            });
+
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const pageId = btn.dataset.page;
+                    showPage(pageId);
+                    if (pageId === 'history-page') fetchHistory();
+                });
+            });
+
+            
+            searchDatePicker = flatpickr("#search-date-range", {
+                mode: "range",
+                dateFormat: "d-m-Y"
+            });
+
+            
+            searchBtn.addEventListener('click', () => {
+                const dates = searchDatePicker.selectedDates;
+                if (dates.length === 2) {
+                    fetchCars(
+                        dates[0].toISOString().split('T')[0],
+                        dates[1].toISOString().split('T')[0]
+                    );
+                } else {
+                    Swal.fire('โปรดทราบ', 'กรุณาเลือกทั้งวันที่เริ่มเช่าและวันที่คืนรถ', 'info');
+                }
+            });
+
+          
+            initializeLiff();
+        });
+
+
+        
+        window.showDetailPage = showDetailPage; window.openBookingModal = openBookingModal;
+        window.processBooking = processBooking; window.showPayment = showPayment;
+        window.confirmPayment = confirmPayment; window.confirmCancel = confirmCancel;
+        window.cancelBooking = cancelBooking; window.openReviewModal = openReviewModal;
+        window.submitReview = submitReview; window.closeModal = closeModal;
+        window.showPage = showPage;
+
+        function sendText(text) {
+            if (!liff.isInClient()) {
+                shareTargetPicker(text);
+            } else {
+                sendflex(text);
+            }
+        }
+        function sendflex(text) {
+            liff.sendMessages(text)
+        }
+        function shareTargetPicker(text) {
+            liff.shareTargetPicker(text).then(function (res) {
+                if (res) {
+                    console.log("TargetPicker Success!");
+
+
+                } else {
+
+                    console.log("TargetPicker was closed!");
+                }
+            }).catch(function (error) {
+                window.alert("Failed to send message " + error);
+            });
+        }
+
+    </script>
+</body>
+
+</html>
