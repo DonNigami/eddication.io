@@ -1,25 +1,98 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>รายงานการโอนสินค้า SH108 → SH101</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>รายงานสินค้าที่ต้องโอน SH108 ➝ SH101</title>
   <style>
-    body { font-family: 'Prompt', sans-serif; background: #f9f9f9; padding: 20px; }
-    h1 { background: #555; color: white; padding: 15px; border-radius: 10px; text-align: center; }
-    .summary-box { display: flex; justify-content: center; gap: 30px; margin: 20px 0; }
-    .summary-box div {
-      background: white; padding: 20px; border-radius: 10px; text-align: center;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    body {
+      font-family: 'Prompt', sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
     }
-    table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
-    th { background-color: #e3f2fd; }
-    img { max-height: 60px; }
+    h1 {
+      background: #333;
+      color: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .actions {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    .actions button {
+      margin: 5px;
+      padding: 8px 16px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      background-color: #1976d2;
+      color: white;
+      cursor: pointer;
+    }
+    .actions button:hover {
+      background-color: #0d47a1;
+    }
+    .summary-box {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .summary-box div {
+      background: #fff;
+      padding: 15px 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      min-width: 140px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+    th {
+      background: #e3f2fd;
+      font-weight: bold;
+    }
+    img {
+      max-height: 60px;
+      object-fit: contain;
+    }
+    #loading {
+      text-align: center;
+      font-size: 18px;
+      padding: 40px;
+      color: #888;
+    }
+
+    @media print {
+      .actions { display: none !important; }
+      h1 { margin-top: 0; }
+    }
   </style>
 </head>
 <body>
-  <h1>รายงานสินค้าที่ต้องโอนจาก SH108 → SH101</h1>
+
+  <h1>รายงานสินค้าที่ต้องโอนจาก SH108 ➝ SH101</h1>
+
+  <div class="actions">
+    <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
+    <button onclick="window.print()">⬇️ ดาวน์โหลด PDF</button>
+  </div>
 
   <div class="summary-box">
     <div>
@@ -32,13 +105,17 @@
     </div>
   </div>
 
-  <table>
+  <div id="loading">กำลังโหลดข้อมูล...</div>
+
+  <table style="display:none;">
     <thead>
       <tr>
         <th>ลำดับ</th>
         <th>รหัสสินค้า</th>
         <th>ชื่อสินค้า</th>
         <th>ภาพสินค้า</th>
+        <th>Stock SH108</th>
+        <th>Stock SH101</th>
         <th>จำนวนที่ต้องโอน</th>
       </tr>
     </thead>
@@ -46,34 +123,52 @@
   </table>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzgBA-NGaY7hsie1rbUiA5Ziahxsl8BFgRTZ8H5aoL283dHvhwBchY0qqxgcepHiea-Dw/exec'; // ใส่ Web App URL
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzgBA-NGaY7hsie1rbUiA5Ziahxsl8BFgRTZ8H5aoL283dHvhwBchY0qqxgcepHiea-Dw/exec';
 
     async function loadReport() {
-      const res = await fetch(API_URL);
-      const items = await res.json();
+      document.getElementById("loading").style.display = "block";
+      document.querySelector("table").style.display = "none";
+      document.getElementById("loading").textContent = "กำลังโหลดข้อมูล...";
 
-      let totalQty = 0;
-      const tbody = document.getElementById("dataRows");
-      tbody.innerHTML = '';
+      try {
+        const res = await fetch(API_URL);
+        const items = await res.json();
 
-      items.forEach((item, index) => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${item.code}</td>
-          <td>${item.name}</td>
-          <td><img src="${item.image}" alt="img"></td>
-          <td>${item.qty}</td>
-        `;
-        tbody.appendChild(row);
-        totalQty += parseInt(item.qty);
-      });
+        const tbody = document.getElementById("dataRows");
+        tbody.innerHTML = "";
 
-      document.getElementById("totalItems").textContent = items.length;
-      document.getElementById("totalQty").textContent = totalQty.toLocaleString();
+        let totalQty = 0;
+
+        items.forEach((item, index) => {
+          totalQty += parseInt(item.qty);
+
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${item.code}</td>
+            <td>${item.name}</td>
+            <td><img src="${item.image}" alt="ภาพสินค้า" /></td>
+            <td>${item.stock108 || '-'}</td>
+            <td>${item.stock101 || '-'}</td>
+            <td>${item.qty}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        document.getElementById("totalItems").textContent = items.length;
+        document.getElementById("totalQty").textContent = totalQty.toLocaleString();
+
+        document.querySelector("table").style.display = "table";
+        document.getElementById("loading").style.display = "none";
+
+      } catch (err) {
+        document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ";
+        console.error("Fetch error:", err);
+      }
     }
 
     loadReport();
   </script>
+
 </body>
 </html>
