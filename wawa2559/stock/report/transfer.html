@@ -2,28 +2,31 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>รายงานสินค้าที่ต้องโอน SH108 ➝ SH101</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Prompt&display=swap');
     :root {
       --bg: #f4f4f4;
       --text: #222;
       --row-light: #ffffff;
       --row-dark: #f2f2f2;
-      --table-bg: white;
+      --card-bg: white;
+      --card-text: #000;
     }
     .dark {
       --bg: #121212;
       --text: #f4f4f4;
       --row-light: #2a2a2a;
-      --row-dark: #1c1c1c;
-      --table-bg: #1e1e1e;
+      --row-dark: #1e1e1e;
+      --card-bg: #2b2b2b;
+      --card-text: #fff;
     }
     body {
-      font-family: 'Prompt', sans-serif;
       background: var(--bg);
       color: var(--text);
+      font-family: 'Prompt', sans-serif;
       padding: 20px;
       transition: 0.3s;
     }
@@ -33,109 +36,95 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
-      margin-bottom: 20px;
-    }
-    .datetime {
-      text-align: center;
-      font-size: 16px;
-      font-weight: bold;
       margin-bottom: 10px;
     }
     .note {
-      text-align: center;
       color: red;
+      text-align: center;
       font-weight: bold;
-      margin-bottom: 5px;
+    }
+    .datetime {
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 20px;
     }
     #searchBox {
-      padding: 10px;
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto 15px;
       display: block;
+      margin: 0 auto 20px;
+      padding: 10px;
+      width: 90%;
+      max-width: 500px;
+      font-size: 16px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      font-size: 16px;
     }
     .actions {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
+      text-align: center;
       margin-bottom: 20px;
     }
     .actions button {
-      padding: 10px 18px;
-      font-size: 14px;
+      padding: 10px 15px;
+      margin: 5px;
+      background: #1976d2;
+      color: white;
       border: none;
       border-radius: 6px;
-      background-color: #1976d2;
-      color: white;
       cursor: pointer;
-    }
-    .actions button:hover {
-      background-color: #0d47a1;
     }
     .summary-box {
       display: flex;
       justify-content: center;
       gap: 20px;
       flex-wrap: wrap;
-      margin-bottom: 20px;
+      margin: 20px 0;
     }
     .summary-box div {
-      background: white;
+      background: var(--card-bg);
+      color: var(--card-text);
       padding: 15px 25px;
       border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       min-width: 150px;
       text-align: center;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--table-bg);
-      color: var(--text);
+      background: var(--card-bg);
+      color: var(--card-text);
     }
     th, td {
       padding: 10px;
-      border-bottom: 1px solid #ccc;
       text-align: center;
+      border-bottom: 1px solid #ccc;
     }
     th {
       background: #e3f2fd;
       color: #000;
     }
-    tbody tr:nth-child(even) {
-      background-color: var(--row-dark);
-    }
     tbody tr:nth-child(odd) {
       background-color: var(--row-light);
     }
-    td.name {
-      text-align: left;
+    tbody tr:nth-child(even) {
+      background-color: var(--row-dark);
     }
-    td.qty {
-      text-align: right;
-    }
-    img {
-      height: 50px;
-      cursor: pointer;
-    }
+    td.name { text-align: left; }
+    td.qty { text-align: right; }
+    img { height: 50px; cursor: pointer; }
     #popup {
-      position: fixed;
-      top: 0; left: 0;
+      position: fixed; top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
+      background: rgba(0,0,0,0.85);
       display: none;
       align-items: center;
       justify-content: center;
       z-index: 9999;
     }
     #popup img {
-      max-width: 80%;
-      max-height: 80%;
-      box-shadow: 0 0 10px #fff;
+      max-width: 95vw;
+      max-height: 95vh;
+      box-shadow: 0 0 15px #fff;
     }
     .toggle-theme {
       position: fixed;
@@ -143,7 +132,6 @@
       right: 10px;
       background: #444;
       color: white;
-      border: none;
       padding: 6px 12px;
       border-radius: 6px;
       cursor: pointer;
@@ -152,35 +140,28 @@
   </style>
 </head>
 <body>
-  <button class="toggle-theme" onclick="toggleTheme()">🌓</button>
+  <button class="toggle-theme" onclick="toggleTheme()">🌓 Toggle Theme</button>
 
-  <h1>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ <b>SH108 ➝ SH101</b></h1>
-
+  <h1>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ <strong>SH108 ➝ SH101</strong></h1>
   <div class="note">📅 <strong>ข้อมูลอัพเดท 2 เวลา คือ 14.00–15.00 และ 05.00–06.00 น. เท่านั้น</strong></div>
-  <div class="datetime" id="currentDatetime">-</div>
+  <div class="datetime" id="datetime"></div>
 
   <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า / รหัสสินค้า / หมายเหตุ...">
 
   <div class="actions">
-    <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
+    <button onclick="loadReport()">📥 ดึงข้อมูลใหม่</button>
     <button onclick="window.print()">🖨️ ดาวน์โหลด PDF</button>
     <button onclick="exportExcel()">📁 Export Excel</button>
   </div>
 
   <div class="summary-box">
-    <div>
-      <div>จำนวนรหัสสินค้า</div>
-      <h2 id="totalItems">-</h2>
-    </div>
-    <div>
-      <div>จำนวนชิ้นที่ต้องโอน</div>
-      <h2 id="totalQty">-</h2>
-    </div>
+    <div><div>จำนวนรหัสสินค้า</div><div id="countItems">0</div></div>
+    <div><div>จำนวนที่ต้องโอน</div><div id="countQty">0</div></div>
   </div>
 
-  <div id="loading" style="text-align:center; font-size:16px; padding:20px;">⏳ กำลังโหลดข้อมูล...</div>
+  <div id="loading" style="text-align:center; padding:20px;">⏳ กำลังโหลดข้อมูล...</div>
 
-  <table style="display:none;">
+  <table id="dataTable" style="display:none;">
     <thead>
       <tr>
         <th>ลำดับ</th>
@@ -191,12 +172,10 @@
         <th>จำนวนที่ต้องโอน</th>
       </tr>
     </thead>
-    <tbody id="dataRows"></tbody>
+    <tbody id="tableBody"></tbody>
   </table>
 
-  <div id="popup" onclick="this.style.display='none'">
-    <img id="popupImg" src="">
-  </div>
+  <div id="popup" onclick="closePopup()"><img src=""></div>
 
   <script>
     const API_URL = 'https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer';
@@ -204,94 +183,86 @@
 
     function updateDateTime() {
       const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-      document.getElementById("currentDatetime").textContent = now;
+      document.getElementById("datetime").textContent = now;
     }
 
     async function loadReport() {
       document.getElementById("loading").style.display = "block";
-      document.querySelector("table").style.display = "none";
-      document.getElementById("loading").textContent = "⏳ กำลังโหลดข้อมูล...";
+      document.getElementById("dataTable").style.display = "none";
       updateDateTime();
-
       try {
         const res = await fetch(API_URL);
-        const items = await res.json();
-        allItems = items.filter(item =>
-          item["CHECK_TRANSFER"]?.toUpperCase() === "Y" &&
-          parseInt(item["Vol_Transfer"]) > 0
-        );
+        const data = await res.json();
+        allItems = data.filter(x => x.CHECK_TRANSFER?.toUpperCase() === "Y" && parseInt(x.Vol_Transfer) > 0);
         renderTable(allItems);
-      } catch (err) {
-        document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
-        console.error(err);
+      } catch (e) {
+        document.getElementById("loading").textContent = "❌ โหลดข้อมูลไม่สำเร็จ";
+        console.error(e);
       }
     }
 
-    function renderTable(items) {
-      const tbody = document.getElementById("dataRows");
+    function renderTable(arr) {
+      const tbody = document.getElementById("tableBody");
       tbody.innerHTML = "";
-      let totalQty = 0;
+      let count = 0, totalQty = 0;
 
-      items.forEach((item, index) => {
-        const qty = parseInt(item["Vol_Transfer"]) || 0;
-        totalQty += qty;
-        const note = item["หมายเหตุ"] || "-";
-        const imgURL = item["ภาพสินค้า"]?.trim() || "";
-
+      arr.forEach((item, idx) => {
+        const q = parseInt(item.Vol_Transfer) || 0;
+        totalQty += q; count++;
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${item["CODE"]}</td>
-          <td class="name">${item["NAME_1"]}</td>
-          <td>${note}</td>
-          <td>${imgURL ? `<img src="${imgURL}" onclick="showImage('${imgURL}')" />` : '-'}</td>
-          <td class="qty">${qty.toLocaleString()}</td>
+          <td>${count}</td>
+          <td>${item.CODE}</td>
+          <td class="name">${item.NAME_1}</td>
+          <td>${item["หมายเหตุ"] || "-"}</td>
+          <td>${item["ภาพสินค้า"] ? `<img src="${item["ภาพสินค้า"]}" onclick="showImage(this.src)">` : '-'}</td>
+          <td class="qty">${q.toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
       });
 
-      document.getElementById("totalItems").textContent = items.length;
-      document.getElementById("totalQty").textContent = totalQty.toLocaleString();
-      document.querySelector("table").style.display = "table";
+      document.getElementById("countItems").textContent = count;
+      document.getElementById("countQty").textContent = totalQty.toLocaleString();
       document.getElementById("loading").style.display = "none";
-    }
-
-    function exportExcel() {
-      const worksheet = XLSX.utils.json_to_sheet(allItems);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
-      XLSX.writeFile(workbook, "transfer_report.xlsx");
+      document.getElementById("dataTable").style.display = "table";
     }
 
     function showImage(src) {
-      document.getElementById("popupImg").src = src;
-      document.getElementById("popup").style.display = "flex";
+      const pop = document.getElementById("popup");
+      pop.querySelector("img").src = src;
+      pop.style.display = "flex";
     }
 
-    document.getElementById("searchBox").addEventListener("input", function () {
-      const keyword = this.value.toLowerCase();
-      const filtered = allItems.filter(item =>
-        item["NAME_1"]?.toLowerCase().includes(keyword) ||
-        item["CODE"]?.toLowerCase().includes(keyword) ||
-        item["หมายเหตุ"]?.toLowerCase().includes(keyword)
-      );
-      renderTable(filtered);
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
+    }
+
+    document.getElementById("searchBox").addEventListener("input", () => {
+      const k = document.getElementById("searchBox").value.toLowerCase();
+      renderTable(allItems.filter(x =>
+        x.NAME_1.toLowerCase().includes(k) ||
+        x.CODE.toLowerCase().includes(k) ||
+        (x["หมายเหตุ"]||"").toLowerCase().includes(k)
+      ));
     });
 
-    function toggleTheme() {
-      document.body.classList.toggle("dark");
-      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    function exportExcel() {
+      const sheet = XLSX.utils.json_to_sheet(allItems);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheet, "Transfer");
+      XLSX.writeFile(wb, "transfer_report.xlsx");
     }
 
-    function loadTheme() {
-      const saved = localStorage.getItem("theme");
-      if (saved === "dark") document.body.classList.add("dark");
+    function toggleTheme() {
+      const dm = document.body.classList.toggle("dark");
+      localStorage.setItem("theme", dm ? "dark" : "light");
     }
 
     window.onload = () => {
-      loadTheme();
-      loadReport();
+      if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
+      updateDateTime();
       setInterval(updateDateTime, 60000);
+      loadReport();
     };
   </script>
 </body>
