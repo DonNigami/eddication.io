@@ -39,7 +39,6 @@
       text-align: center;
       font-size: 16px;
       font-weight: bold;
-      color: var(--text);
     }
     .info-note {
       text-align: center;
@@ -47,14 +46,14 @@
       color: #888;
       margin-bottom: 15px;
     }
-    .actions, .summary-box {
+    .actions, .summary-box, .filter-note {
       display: flex;
       justify-content: center;
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 15px;
     }
-    .actions button {
+    .actions button, .filter-note button {
       padding: 10px 18px;
       font-size: 14px;
       border: none;
@@ -63,7 +62,7 @@
       color: white;
       cursor: pointer;
     }
-    .actions button:hover {
+    .actions button:hover, .filter-note button:hover {
       background-color: #0d47a1;
     }
     .theme-toggle {
@@ -131,10 +130,6 @@
     img.thumb {
       max-height: 60px;
       cursor: pointer;
-      transition: 0.2s;
-    }
-    img.thumb:hover {
-      opacity: 0.8;
     }
     #loading {
       text-align: center;
@@ -177,6 +172,12 @@
 
   <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
 
+  <div class="filter-note">
+    <button onclick="applyFilter('-')">✅ แสดงเฉพาะที่มีสินค้าให้โอน</button>
+    <button onclick="applyFilter('non-dash')">❌ แสดงเฉพาะไม่มีสินค้าให้โอน</button>
+    <button onclick="applyFilter('all')">🔁 แสดงทั้งหมด</button>
+  </div>
+
   <div class="actions">
     <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
     <button onclick="window.print()">⬇️ ดาวน์โหลด PDF</button>
@@ -184,14 +185,8 @@
   </div>
 
   <div class="summary-box">
-    <div>
-      <div><strong>จำนวนรหัสสินค้า</strong></div>
-      <h2 id="totalItems">-</h2>
-    </div>
-    <div>
-      <div><strong>จำนวนชิ้นที่ต้องโอน</strong></div>
-      <h2 id="totalQty">-</h2>
-    </div>
+    <div><div><strong>จำนวนรหัสสินค้า</strong></div><h2 id="totalItems">-</h2></div>
+    <div><div><strong>จำนวนชิ้นที่ต้องโอน</strong></div><h2 id="totalQty">-</h2></div>
   </div>
 
   <div id="loading">กำลังโหลดข้อมูล...</div>
@@ -217,7 +212,7 @@
 
   <script>
     const API_URL = 'https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer';
-    let allItems = [];
+    let allItems = [], filteredItems = [], noteFilter = "-";
 
     function updateDateTime() {
       const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
@@ -227,24 +222,31 @@
     async function loadReport() {
       document.getElementById("loading").style.display = "block";
       document.querySelector("table").style.display = "none";
-      document.getElementById("loading").textContent = "กำลังโหลดข้อมูล...";
       updateDateTime();
 
       try {
         const res = await fetch(API_URL);
         const items = await res.json();
-
         allItems = items.filter(item =>
           item["CHECK_TRANSFER"]?.toUpperCase() === "Y" &&
-          parseInt(item["Vol_Transfer"]) > 0 &&
-          item["หมายเหตุ"]?.trim() === "-"
+          parseInt(item["Vol_Transfer"]) > 0
         );
-
-        renderTable(allItems);
+        applyFilter(noteFilter);
       } catch (err) {
         document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
         console.error(err);
       }
+    }
+
+    function applyFilter(filter) {
+      noteFilter = filter;
+      filteredItems = allItems.filter(item => {
+        const note = item["หมายเหตุ"]?.trim() || "";
+        if (filter === "-") return note === "-";
+        if (filter === "non-dash") return note !== "-";
+        return true;
+      });
+      renderTable(filteredItems);
     }
 
     function renderTable(items) {
@@ -254,9 +256,8 @@
 
       items.forEach((item, index) => {
         const qty = parseInt(item["Vol_Transfer"]) || 0;
-        const imageUrl = item["ภาพสินค้า"]?.trim();
+        const img = item["ภาพสินค้า"]?.trim();
         const note = item["หมายเหตุ"]?.trim() || "-";
-
         totalQty += qty;
 
         const tr = document.createElement("tr");
@@ -265,7 +266,7 @@
           <td>${item["CODE"]}</td>
           <td class="name">${item["NAME_1"]}</td>
           <td>${note}</td>
-          <td>${imageUrl ? `<img src="${imageUrl}" class="thumb" onclick="showPopup('${imageUrl}')">` : '-'}</td>
+          <td>${img ? `<img src="${img}" class="thumb" onclick="showPopup('${img}')">` : '-'}</td>
           <td class="qty">${qty.toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
@@ -277,17 +278,8 @@
       document.getElementById("loading").style.display = "none";
     }
 
-    document.getElementById("searchBox").addEventListener("input", function () {
-      const keyword = this.value.toLowerCase();
-      const filtered = allItems.filter(item =>
-        item["NAME_1"]?.toLowerCase().includes(keyword) ||
-        item["CODE"]?.toLowerCase().includes(keyword)
-      );
-      renderTable(filtered);
-    });
-
     function exportExcel() {
-      const worksheet = XLSX.utils.json_to_sheet(allItems);
+      const worksheet = XLSX.utils.json_to_sheet(filteredItems);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
       XLSX.writeFile(workbook, "transfer_report.xlsx");
@@ -308,8 +300,17 @@
       document.getElementById("popupImg").src = "";
     }
 
-    window.addEventListener("keydown", function (e) {
+    window.addEventListener("keydown", e => {
       if (e.key === "Escape") closePopup();
+    });
+
+    document.getElementById("searchBox").addEventListener("input", function () {
+      const keyword = this.value.toLowerCase();
+      const results = filteredItems.filter(item =>
+        item["NAME_1"]?.toLowerCase().includes(keyword) ||
+        item["CODE"]?.toLowerCase().includes(keyword)
+      );
+      renderTable(results);
     });
 
     window.onload = () => {
