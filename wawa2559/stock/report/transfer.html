@@ -17,14 +17,45 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
-    .actions, .summary-box {
+    .notice-box {
+      text-align: center;
+      font-size: 16px;
+      color: #d84315;
+      background: #fff3e0;
+      border: 1px solid #ffccbc;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .datetime {
+      text-align: center;
+      margin-top: -5px;
+      font-size: 18px;
+      color: #333;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #searchBox {
+      padding: 12px;
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto 15px;
+      display: block;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    .actions {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      margin-bottom: 15px;
+      gap: 12px;
       flex-wrap: wrap;
+      margin-bottom: 15px;
     }
     .actions button {
       padding: 10px 18px;
@@ -38,15 +69,12 @@
     .actions button:hover {
       background-color: #0d47a1;
     }
-    #searchBox {
-      padding: 10px;
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto 10px;
-      display: block;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 16px;
+    .summary-box {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
     }
     .summary-box div {
       background: white;
@@ -68,6 +96,7 @@
       padding: 10px;
       border-bottom: 1px solid #eee;
       text-align: center;
+      vertical-align: middle;
     }
     td.name {
       text-align: left;
@@ -89,17 +118,13 @@
       padding: 40px;
       color: #888;
     }
-    .datetime {
-      text-align: center;
-      margin-top: -10px;
-      font-size: 16px;
-      color: #666;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
   <h1>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ SH108 ➝ SH101</h1>
+  <div class="notice-box">
+    📢 ข้อมูลอัปเดท 2 เวลา คือ <strong>14.00–15.00</strong> และ <strong>05.00–06.00 น.</strong> เท่านั้น
+  </div>
   <div class="datetime" id="currentDatetime">-</div>
 
   <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
