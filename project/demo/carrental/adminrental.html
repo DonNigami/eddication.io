@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Car Rental-iton5</title>
+    <meta name="description" content="จัดการระบบเช่ารถ-iton5" />
+    <meta name="author" content="iton5" />
+    <meta property="og:title" content="จัดการระบบเช่ารถ-iton5-thailand" />
+    <meta property="og:description" content="จัดการระบบเช่ารถ-iton5 for LIFF App" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <link rel="stylesheet" href="https://bit.ly/fontiton5" type="text/css" charset="utf-8" />
+    <style>
+        :root {
+            --primary-color: #00c6ff;
+            --secondary-color: #0072ff;
+            --accent-color: #f7b733;
+            --danger-color: #f73333;
+            --text-color: #e0e0e0;
+            --bg-color: #0d1117;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --header-height: 70px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes gradient-animation {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'line_seed_sans_th';
+            background: linear-gradient(-45deg, #0d1117, #1a2a45, #0151b3, #00c6ff);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+            color: var(--text-color);
+            margin: 0;
+            padding-top: var(--header-height);
+        }
+
+        .nav-btn {
+            font-family: 'line_seed_sans_th';
+        }
+
+        .header {
+            background: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 0 20px;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        @media (min-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 280px 1fr;
+            }
+        }
+
+        .sidebar {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 20px;
+            border-radius: 20px;
+            height: auto;
+            display: none;
+        }
+
+        @media (min-width: 1024px) {
+            .sidebar {
+                display: block;
+                height: calc(100vh - var(--header-height) - 40px);
+                position: sticky;
+                top: calc(var(--header-height) + 20px);
+            }
+        }
+
+        .sidebar.active {
+            display: block;
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: 100%;
+            height: calc(100vh - var(--header-height));
+            z-index: 99;
+            border-radius: 0;
+            background: var(--bg-color);
+        }
+
+        .sidebar h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #fff;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar ul li button {
+            width: 100%;
+            background: none;
+            border: none;
+            color: var(--text-color);
+            padding: 15px;
+            text-align: left;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .sidebar ul li button:hover,
+        .sidebar ul li button.active {
+            background: rgba(0, 198, 255, 0.2);
+            color: #fff;
+        }
+
+        .hamburger-menu {
+            display: block;
+        }
+
+        @media (min-width: 1024px) {
+            .hamburger-menu {
+                display: none;
+            }
+        }
+
+        .content {
+            padding: 0;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        @media (min-width: 640px) {
+            .stat-cards {
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            }
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(0, 198, 255, 0.3);
+        }
+
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            opacity: 0.8;
+        }
+
+        .stat-card p {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 25px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        th {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'line_seed_sans_th';
+            color: white;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-image: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .btn-edit {
+            background-image: linear-gradient(45deg, var(--accent-color), #f9a825);
+        }
+
+        .btn-danger {
+            background-image: linear-gradient(45deg, var(--danger-color), #c62828);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background: #1c1c1c;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content input,
+        .modal-content textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            background: #333;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        #loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 17, 23, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .swal2-popup {
+            background: var(--glass-bg) !important;
+            backdrop-filter: blur(20px) !important;
+            border: 1px solid var(--glass-border) !important;
+            border-radius: 20px !important;
+            color: var(--text-color) !important;
+        }
+
+        .swal2-title {
+            color: white !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader-container">
+
+        <img style="width: 120px; height: 120px;"
+            src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHNpZHlweWVvYzk5Z3JnNG1uY3F0bXNocWh6bzV4eG1lb2NwMmdobCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/rkPHdgA39dIcHqCEcK/giphy.gif"
+            alt="Loading...">
+
+    </div>
+
+    <header class="header">
+        <h1>Admin</h1>
+        <button class="hamburger-menu btn btn-primary">เมนู</button>
+    </header>
+
+    <div class="container">
+        <div class="main-grid">
+            <aside class="sidebar">
+                <h2>การจัดการ</h2>
+                <ul>
+                    <li><button class="nav-btn active" data-page="dashboard-page">Dashboard</button></li>
+                    <li><button class="nav-btn" data-page="cars-page">จัดการรถยนต์</button></li>
+                    <li><button class="nav-btn" data-page="rentals-page">จัดการการเช่า</button></li>
+                    <li><button class="nav-btn" data-page="map-page">ตำแหน่งผู้เช่า</button></li>
+                    <li><button class="nav-btn" data-page="receipt-page">ออกใบเสร็จ</button></li>
+
+                </ul>
+            </aside>
+            <main class="content">
+               
+                <section id="dashboard-page" class="page active">
+                    <h1>📈ภาพรวมระบบ</h1>
+                    <div class="stat-cards">
+                        <div class="stat-card">
+                            <h3>รถทั้งหมด</h3>
+                            <p id="stat-total-cars">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>การเช่าทั้งหมด</h3>
+                            <p id="stat-total-rentals">0</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>รายรับรวม</h3>
+                            <p id="stat-total-revenue">0</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>📊รายงานรายรับรายเดือน</h3>
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </section>
+               
+                <section id="cars-page" class="page">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap: wrap; gap: 15px;">
+                        <h1>🚗จัดการรถยนต์</h1>
+                        <button class="btn btn-primary" onclick="openCarModal()">+ เพิ่มรถใหม่</button>
+                    </div>
+                    <div class="card">
+                        <table id="cars-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อรถ</th>
+                                    <th>ราคา/วัน</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <section id="rentals-page" class="page">
+                    <h1>🧭จัดการการเช่า</h1>
+                    <div class="card">
+                        <table id="rentals-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>รถ</th>
+                                    <th>ผู้เช่า</th>
+                                    <th>วันที่</th>
+                                    <th>ราคา</th>
+                                    <th>สถานะ</th>
+                                    <th>แผนที่</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </section>
+                <section id="map-page" class="page">
+                    <h1>📍พิกัดลูกค้าทั้งหมด</h1>
+                    <div id="map-container" style="height: 600px; border-radius: 20px; overflow: hidden;"></div>
+                </section>
+                <section id="receipt-page" class="page">
+                    <h1>📄รายการที่รอออกใบเสร็จ</h1>
+                    <div id="receipt-list" class="grid gap-4"></div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <div id="car-modal" class="modal-overlay"></div>
+
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/xxxxxx/exec";
+        let carsData = [];
+        let revenueChartInstance;
+
+       
+        const sidebar = document.querySelector('.sidebar');
+        const hamburgerMenu = document.querySelector('.hamburger-menu');
+        const loader = document.getElementById('loader-container');
+
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const pageId = btn.dataset.page;
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(pageId).classList.add('active');
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                if (sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+
+                if (pageId === 'dashboard-page') loadDashboardData();
+                if (pageId === 'cars-page') loadCarsData();
+                if (pageId === 'rentals-page') loadRentalsData();
+                if (pageId === 'map-page') loadMapPage();
+                if (pageId === 'receipt-page') loadReceiptList();
+
+
+            });
+        });
+
+        hamburgerMenu.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+
+        const showLoader = () => loader.style.display = 'flex';
+        const hideLoader = () => loader.style.display = 'none';
+
+
+        function loadMapPage() {
+            runAsyncWithLoader(async () => {
+                const res = await fetch(`${GAS_URL}?action=get_all_rentals`);
+                const result = await res.json();
+                if (result.status !== 'success') throw new Error(result.message);
+
+                const data = result.data.filter(d => d.lat && d.lng);
+
+                
+                if (window.mapInstance) {
+                    window.mapInstance.remove();
+                }
+
+               
+                window.mapInstance = L.map('map-container').setView([13.736717, 100.523186], 6);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; Car Rental-iton5'
+                }).addTo(window.mapInstance);
+
+                const heatData = [];
+                data.forEach(d => {
+                    const lat = parseFloat(d.lat);
+                    const lng = parseFloat(d.lng);
+                    const popup = `
+             ผู้เช่า: <b>${d.user_name}</b><br>
+             ยี่ห้อ: ${d.brandCar}<br>
+             รุ่นรถ: ${d.car_name}<br>
+                วันที่: ${new Date(d.booking_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+            `;
+                    L.marker([lat, lng]).addTo(window.mapInstance).bindPopup(popup);
+                    heatData.push([lat, lng, 0.8]);
+                });
+
+                L.heatLayer(heatData, { radius: 25, blur: 15 }).addTo(window.mapInstance);
+            });
+        }
+
+
+        function runAsyncWithLoader(asyncFunc) {
+            showLoader();
+            setTimeout(async () => {
+                try {
+                    await asyncFunc();
+                } catch (error) {
+                    console.error("Async Operation Failed:", error);
+                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.message });
+                } finally {
+                    hideLoader();
+                }
+            }, 50);
+        }
+
+        function loadDashboardData() {
+            runAsyncWithLoader(async () => {
+                const response = await fetch(`${GAS_URL}?action=get_admin_dashboard`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    const data = result.data;
+                    document.getElementById('stat-total-cars').textContent = data.totalCars;
+                    document.getElementById('stat-total-rentals').textContent = data.totalRentals;
+                    document.getElementById('stat-total-revenue').textContent = `${new Intl.NumberFormat().format(data.totalRevenue)} บ.`;
+                    renderRevenueChart(data.monthlyRevenue);
+                } else throw new Error(result.message);
+            });
+        }
+
+        function loadCarsData() {
+            runAsyncWithLoader(async () => {
+                const response = await fetch(`${GAS_URL}?action=get_cars`);
+                const result = await response.json();
+                const tableBody = document.querySelector('#cars-table tbody');
+                tableBody.innerHTML = '';
+                if (result.status === 'success') {
+                    carsData = result.data;
+                    carsData.forEach(car => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                    <td>${car.id}</td>
+                    <td>${car.name}</td>
+                    <td>${new Intl.NumberFormat().format(car.price_per_day)}</td>
+                    <td style="display:flex; gap: 10px;">
+                        <button class="btn btn-edit" onclick="openCarModal('${car.id}')">แก้ไข</button>
+                        <button class="btn btn-danger" onclick="deleteCar('${car.id}')">ลบ</button>
+                    </td>
+                `;
+                        tableBody.appendChild(row);
+                    });
+                } else throw new Error(result.message);
+            });
+        }
+
+        function loadRentalsData() {
+            runAsyncWithLoader(async () => {
+                const response = await fetch(`${GAS_URL}?action=get_all_rentals`);
+                const result = await response.json();
+                const tableBody = document.querySelector('#rentals-table tbody');
+                tableBody.innerHTML = '';
+                if (result.status === 'success') {
+                    result.data.forEach((rental, index) => {
+                        const row = document.createElement('tr');
+                        const startDate = new Date(rental.start_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+
+                        const hasLocation = rental.lat && rental.lng;
+                        const mapId = `map-${index}`;
+
+                        let locationHtml = '';
+                        if (hasLocation) {
+                            locationHtml = `
+            <div id="${mapId}" style="height: 180px; border-radius: 10px; margin-top: 10px;"></div><br>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${rental.lat},${rental.lng}" target="_blank" class="btn btn-primary" style="margin-top: 8px;">🧭 เปิดนำทาง</a>
+        `;
+                        }
+
+                        const isPaid = rental.payment_status === 'Paid';
+                        let actionHtml = '';
+
+                        if (!isPaid) {
+                            actionHtml = `
+        <button class="btn btn-primary" style="margin-top: 8px;" onclick="confirmMarkAsPaid('${rental.rental_id}')">
+            ✔ ยืนยันชำระเงิน
+        </button>`;
+                        }
+
+
+                        row.innerHTML = `
+        <td>${rental.rental_id.substring(5, 15)}...</td>
+        <td>${rental.car_name}</td>
+        <td>${rental.user_name}</td>
+        <td>${startDate}</td>
+        <td>${new Intl.NumberFormat().format(rental.total_price)}</td>
+         <td>
+        <span style="font-weight:bold; color:${isPaid ? '#28a745' : '#f7b733'}">
+            ${isPaid ? 'ชำระเงินแล้ว' : 'รอชำระเงิน'}
+        </span><br>
+        ${actionHtml}
+    </td>
+        <td>
+           
+            ${locationHtml}
+        </td>
+    `;
+
+                        tableBody.appendChild(row);
+
+                        
+                        if (hasLocation) {
+                            setTimeout(() => {
+                                const map = L.map(mapId).setView([parseFloat(rental.lat), parseFloat(rental.lng)], 15);
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    attribution: '&copy; Car Rental-iton5'
+                                }).addTo(map);
+                                L.marker([parseFloat(rental.lat), parseFloat(rental.lng)]).addTo(map)
+                                    .bindPopup(`${rental.car_name}<br>พิกัดจากผู้เช่า`).openPopup();
+                            }, 100);
+                        }
+                    });
+
+                } else throw new Error(result.message);
+            });
+        }
+
+        function confirmMarkAsPaid(rentalId) {
+            Swal.fire({
+                title: 'ยืนยันการชำระเงิน?',
+                text: `คุณแน่ใจหรือไม่ว่าต้องการเปลี่ยนสถานะรายการ ${rentalId} เป็น "ชำระเงินแล้ว"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, เปลี่ยนเลย',
+                cancelButtonText: 'ยกเลิก',
+                customClass: { popup: 'swal2-popup' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    markAsPaid(rentalId);
+                }
+            });
+        }
+
+        function markAsPaid(rentalId) {
+            runAsyncWithLoader(async () => {
+                const formData = new FormData();
+                formData.append('action', 'confirm_payment');
+                formData.append('rental_id', rentalId);
+
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire('สำเร็จ!', 'สถานะการชำระเงินถูกอัปเดตเรียบร้อยแล้ว', 'success');
+                    loadRentalsData(); 
+                } else {
+                    throw new Error(result.message);
+                }
+            });
+        }
+
+        async function loadReceiptList() {
+            runAsyncWithLoader(async () => {
+                const res = await fetch(`${GAS_URL}?action=get_all_rentals`);
+                const result = await res.json();
+                if (result.status !== 'success') throw new Error(result.message);
+
+                const list = document.getElementById('receipt-list');
+                list.innerHTML = '';
+
+                const paidList = result.data.filter(r =>
+                    r.payment_status === 'Paid' && r.receipt_issued !== 'ส่งแล้ว'
+                );
+
+                if (paidList.length === 0) {
+                    list.innerHTML = '<p>❗ไม่มีรายการที่ชำระเงินแล้ว</p>';
+                    return;
+                }
+
+                paidList.forEach(r => {
+                    const div = document.createElement('div');
+                    div.className = 'p-4 bg-white rounded shadow';
+
+                    const isIssued = r.receipt_issued === 'ส่งแล้ว';
+                    const button = isIssued
+                        ? `<button class="btn bg-gray-400 text-white mt-2" disabled>✔ ส่งแล้ว</button>`
+                        : `<button class="btn btn-danger mt-2"
+                           onclick="sendReceipt('${r.rental_id}', '${r.user_id}')"
+                           data-receipt-id="${r.rental_id}">
+                       📤 ส่งใบเสร็จ
+                   </button>`;
+
+                    div.innerHTML = `
+                <h3>${r.user_name}</h3>
+                <p>รถ: ${r.car_name}</p>
+                <p>ช่วงเวลา: ${new Date(r.start_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })} - ${new Date(r.end_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                <p>รวม: ${new Intl.NumberFormat().format(r.total_price)} บาท</p>
+                ${button}
+            `;
+
+                    list.appendChild(div);
+                });
+            });
+        }
+
+
+        async function sendReceipt(rentalId, userId) {
+            const btn = document.querySelector(`[data-receipt-id="${rentalId}"]`);
+            try {
+                Swal.fire({ title: 'กำลังส่งใบเสร็จ...', didOpen: () => Swal.showLoading() });
+
+                const formData = new FormData();
+                formData.append("action", "send_receipt");
+                formData.append("rental_id", rentalId);
+                formData.append("user_id", userId);
+
+                const res = await fetch(GAS_URL, { method: "POST", body: formData });
+                const result = await res.json();
+
+                if (result.status === "success") {
+                    Swal.fire('ส่งสำเร็จ!', 'ใบเสร็จถูกส่งให้ลูกค้าเรียบร้อยแล้ว', 'success');
+                    if (btn) {
+                        btn.textContent = "✔ ส่งแล้ว";
+                        btn.disabled = true;
+                        btn.classList.remove("btn-danger");
+                        btn.classList.add("bg-gray-400", "text-white");
+                    }
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (err) {
+                Swal.fire('ผิดพลาด', err.message || 'ไม่สามารถส่งใบเสร็จได้', 'error');
+            }
+        }
+
+
+
+        function renderRevenueChart(data) {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            if (revenueChartInstance) {
+                revenueChartInstance.destroy();
+            }
+            const labels = Object.keys(data).sort((a, b) => new Date(a) - new Date(b));
+            const values = labels.map(label => data[label]);
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'รายรับ (บาท)',
+                        data: values,
+                        backgroundColor: 'rgba(0, 198, 255, 0.5)',
+                        borderColor: 'rgba(0, 198, 255, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff' } } },
+                    plugins: { legend: { labels: { color: '#fff' } } }
+                }
+            });
+        }
+
+      
+        const carModal = document.getElementById('car-modal');
+        function openCarModal(carId = null) {
+            const car = carId ? carsData.find(c => c.id == carId) : null;
+            const isEdit = car !== null;
+            const escapeAttr = (str) => str ? String(str).replace(/'/g, '&apos;') : '';
+
+            carModal.innerHTML = `
+        <div class="modal-content">
+            <h3>${isEdit ? 'แก้ไขข้อมูลรถ' : 'เพิ่มรถใหม่'}</h3>
+            <form id="car-form">
+                <input type="hidden" name="action" value="${isEdit ? 'edit_car' : 'add_car'}">
+                <input type="text" name="id" placeholder="ID (e.g., 1, 2, 3)" value="${escapeAttr(car?.id)}" ${isEdit ? 'readonly' : ''} required>
+                <input type="text" name="name" placeholder="ชื่อรุ่นรถ" value="${escapeAttr(car?.name)}" required>
+                <input type="text" name="brand" placeholder="ยี่ห้อ" value="${escapeAttr(car?.brand)}" required>
+                <input type="number" name="price_per_day" placeholder="ราคา/วัน" value="${escapeAttr(car?.price_per_day)}" required>
+                <input type="text" name="image_url" placeholder="URL รูปภาพ" value="${escapeAttr(car?.image_url)}">
+                <textarea name="specs" placeholder='ข้อมูล JSON (e.g., {"gear":"Auto"})' rows="3">${car?.specs || ''}</textarea>
+                <input type="text" name="features" placeholder="สิ่งอำนวยความสะดวก (คั่นด้วย ,)" value="${escapeAttr(car?.features)}">
+                <div style="display:flex; gap:10px; margin-top: 10px;">
+                     <button type="button" class="btn" style="background:#555; flex:1;" onclick="closeCarModal()">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">${isEdit ? 'บันทึกการเปลี่ยนแปลง' : 'เพิ่มรถ'}</button>
+                </div>
+            </form>
+        </div>`;
+
+            document.getElementById('car-form').addEventListener('submit', handleCarFormSubmit);
+            carModal.classList.add('active');
+        }
+
+        function closeCarModal() { carModal.classList.remove('active'); }
+
+        function handleCarFormSubmit(event) {
+            event.preventDefault();
+            runAsyncWithLoader(async () => {
+                const formData = new FormData(event.target);
+                const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    Swal.fire('สำเร็จ!', result.message, 'success');
+                    closeCarModal();
+                    loadCarsData();
+                } else throw new Error(result.message);
+            });
+        }
+
+        function deleteCar(id) {
+            Swal.fire({
+                title: 'ยืนยันการลบ?',
+                text: `คุณต้องการลบรถ ID: ${id} ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบเลย',
+                cancelButtonText: 'ยกเลิก',
+                customClass: { popup: 'swal2-popup' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    runAsyncWithLoader(async () => {
+                        const formData = new FormData();
+                        formData.append('action', 'delete_car');
+                        formData.append('id', id);
+                        const response = await fetch(GAS_URL, { method: 'POST', body: formData });
+                        const resJson = await response.json();
+                        if (resJson.status === 'success') {
+                            Swal.fire('สำเร็จ!', resJson.message, 'success');
+                            loadCarsData();
+                        } else throw new Error(resJson.message);
+                    });
+                }
+            });
+        }
+
+ 
+        document.addEventListener('DOMContentLoaded', () => loadDashboardData());
+
+    </script>
+</body>
+
+</html>
