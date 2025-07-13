@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>รายงานการโอนสินค้า SH108 → SH101</title>
+  <style>
+    body { font-family: 'Prompt', sans-serif; background: #f9f9f9; padding: 20px; }
+    h1 { background: #555; color: white; padding: 15px; border-radius: 10px; text-align: center; }
+    .summary-box { display: flex; justify-content: center; gap: 30px; margin: 20px 0; }
+    .summary-box div {
+      background: white; padding: 20px; border-radius: 10px; text-align: center;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; }
+    th, td { padding: 10px; border: 1px solid #ccc; text-align: center; }
+    th { background-color: #e3f2fd; }
+    img { max-height: 60px; }
+  </style>
+</head>
+<body>
+  <h1>รายงานสินค้าที่ต้องโอนจาก SH108 → SH101</h1>
+
+  <div class="summary-box">
+    <div>
+      <div>จำนวนรหัสสินค้า</div>
+      <h2 id="totalItems">-</h2>
+    </div>
+    <div>
+      <div>จำนวนชิ้นที่โอน</div>
+      <h2 id="totalQty">-</h2>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ลำดับ</th>
+        <th>รหัสสินค้า</th>
+        <th>ชื่อสินค้า</th>
+        <th>ภาพสินค้า</th>
+        <th>จำนวนที่ต้องโอน</th>
+      </tr>
+    </thead>
+    <tbody id="dataRows"></tbody>
+  </table>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzgBA-NGaY7hsie1rbUiA5Ziahxsl8BFgRTZ8H5aoL283dHvhwBchY0qqxgcepHiea-Dw/exec'; // ใส่ Web App URL
+
+    async function loadReport() {
+      const res = await fetch(API_URL);
+      const items = await res.json();
+
+      let totalQty = 0;
+      const tbody = document.getElementById("dataRows");
+      tbody.innerHTML = '';
+
+      items.forEach((item, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${item.code}</td>
+          <td>${item.name}</td>
+          <td><img src="${item.image}" alt="img"></td>
+          <td>${item.qty}</td>
+        `;
+        tbody.appendChild(row);
+        totalQty += parseInt(item.qty);
+      });
+
+      document.getElementById("totalItems").textContent = items.length;
+      document.getElementById("totalQty").textContent = totalQty.toLocaleString();
+    }
+
+    loadReport();
+  </script>
+</body>
+</html>
