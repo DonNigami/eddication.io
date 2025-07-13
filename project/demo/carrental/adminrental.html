@@ -4,11 +4,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Car Rental-iton5</title>
-    <meta name="description" content="จัดการระบบเช่ารถ-iton5" />
-    <meta name="author" content="iton5" />
-    <meta property="og:title" content="จัดการระบบเช่ารถ-iton5-thailand" />
-    <meta property="og:description" content="จัดการระบบเช่ารถ-iton5 for LIFF App" />
+    <title>Admin - Car Rental-eddication</title>
+    <meta name="description" content="จัดการระบบเช่ารถ-eddication" />
+    <meta name="author" content="eddication" />
+    <meta property="og:title" content="จัดการระบบเช่ารถ-eddication-thailand" />
+    <meta property="og:description" content="จัดการระบบเช่ารถ-eddication for LIFF App" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-    <link rel="stylesheet" href="https://bit.ly/fontiton5" type="text/css" charset="utf-8" />
+    <link rel="stylesheet" href="https://bit.ly/fonteddication" type="text/css" charset="utf-8" />
     <style>
         :root {
             --primary-color: #00c6ff;
@@ -543,7 +543,7 @@
                 window.mapInstance = L.map('map-container').setView([13.736717, 100.523186], 6);
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; Car Rental-iton5'
+                    attribution: '&copy; Car Rental-eddication'
                 }).addTo(window.mapInstance);
 
                 const heatData = [];
@@ -676,7 +676,7 @@
                             setTimeout(() => {
                                 const map = L.map(mapId).setView([parseFloat(rental.lat), parseFloat(rental.lng)], 15);
                                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                    attribution: '&copy; Car Rental-iton5'
+                                    attribution: '&copy; Car Rental-eddication'
                                 }).addTo(map);
                                 L.marker([parseFloat(rental.lat), parseFloat(rental.lng)]).addTo(map)
                                     .bindPopup(`${rental.car_name}<br>พิกัดจากผู้เช่า`).openPopup();
