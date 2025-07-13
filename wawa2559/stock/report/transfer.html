@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>รายงานสินค้าโอน SH108 ➝ SH101</title>
+  <title>รายงานสินค้าที่ต้องโอน SH108 ➝ SH101</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
@@ -31,19 +31,36 @@
       padding: 15px;
       border-radius: 10px;
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 20px;
     }
-    .top-bar {
+    .theme-toggle {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: #444;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .top-row {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
+      gap: 10px;
       align-items: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
+    }
+    .top-left {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      flex-grow: 1;
     }
     #searchBox {
       padding: 8px;
-      width: 300px;
-      max-width: 100%;
+      width: 280px;
       border-radius: 8px;
       border: 1px solid #ccc;
     }
@@ -51,37 +68,44 @@
       font-size: 14px;
       color: gray;
     }
-    .actions {
+    .summary-box {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .summary-box div {
+      background: var(--card);
+      padding: 10px 15px;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      min-width: 120px;
       text-align: center;
+    }
+    .summary-box h2 {
+      margin: 4px 0 0;
+      font-size: 22px;
+      color: #1976d2;
+    }
+    .actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
       margin-bottom: 15px;
     }
     .actions button {
-      margin: 5px;
-      padding: 8px 16px;
+      padding: 6px 14px;
       font-size: 14px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       background-color: #1976d2;
       color: white;
       cursor: pointer;
     }
     .actions button:hover {
       background-color: #0d47a1;
-    }
-    .summary-box {
-      display: flex;
-      justify-content: flex-end;
-      gap: 20px;
-      flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-    .summary-box div {
-      background: var(--card);
-      padding: 15px 25px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      text-align: center;
-      min-width: 140px;
     }
     table {
       width: 100%;
@@ -100,8 +124,12 @@
       font-weight: bold;
       text-align: center;
     }
-    td { text-align: center; }
-    td.name { text-align: left; }
+    td {
+      text-align: center;
+    }
+    td.name {
+      text-align: left;
+    }
     img {
       max-height: 60px;
       object-fit: contain;
@@ -112,18 +140,8 @@
       padding: 40px;
       color: #888;
     }
-    .theme-toggle {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      background: #444;
-      color: white;
-      padding: 6px 10px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
     @media print {
-      .theme-toggle, .actions, .top-bar { display: none !important; }
+      .theme-toggle, .top-row, .actions { display: none !important; }
     }
   </style>
 </head>
@@ -131,26 +149,27 @@
   <div class="theme-toggle" onclick="toggleTheme()">🌓</div>
   <h1>รายงานสินค้าที่ต้องโอนจาก SH108 ➝ SH101</h1>
 
-  <div class="top-bar">
-    <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
-    <div class="datetime" id="currentDatetime"></div>
+  <div class="top-row">
+    <div class="top-left">
+      <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
+      <div class="datetime" id="currentDatetime">-</div>
+    </div>
+    <div class="summary-box">
+      <div>
+        <div>จำนวนรหัสสินค้า</div>
+        <h2 id="totalItems">-</h2>
+      </div>
+      <div>
+        <div>จำนวนชิ้นที่ต้องโอน</div>
+        <h2 id="totalQty">-</h2>
+      </div>
+    </div>
   </div>
 
   <div class="actions">
     <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
     <button onclick="window.print()">⬇️ ดาวน์โหลด PDF</button>
     <button onclick="exportExcel()">📁 Export Excel</button>
-  </div>
-
-  <div class="summary-box">
-    <div>
-      <div>จำนวนรหัสสินค้า</div>
-      <h2 id="totalItems">-</h2>
-    </div>
-    <div>
-      <div>จำนวนชิ้นที่ต้องโอน</div>
-      <h2 id="totalQty">-</h2>
-    </div>
   </div>
 
   <div id="loading">กำลังโหลดข้อมูล...</div>
@@ -178,6 +197,13 @@
       document.body.classList.toggle('dark');
     }
 
+    function updateDatetime() {
+      const now = new Date();
+      const options = { timeZone: 'Asia/Bangkok', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      const formatted = now.toLocaleString('th-TH', options);
+      document.getElementById("currentDatetime").textContent = formatted;
+    }
+
     async function loadReport() {
       document.getElementById("loading").style.display = "block";
       document.querySelector("table").style.display = "none";
@@ -188,6 +214,7 @@
         const items = await res.json();
         allItems = items.filter(item => parseInt(item["Vol_Transfer"]) > 0);
         renderTable(allItems);
+        updateDatetime();
       } catch (err) {
         document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
         console.error(err);
@@ -215,7 +242,7 @@
           <td>${imageUrl ? `<img src="${imageUrl}" alt="ภาพสินค้า" />` : '-'}</td>
           <td>${stock108}</td>
           <td>${stock101}</td>
-          <td>${qty}</td>
+          <td>${qty.toLocaleString()}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -224,13 +251,6 @@
       document.getElementById("totalQty").textContent = totalQty.toLocaleString();
       document.querySelector("table").style.display = "table";
       document.getElementById("loading").style.display = "none";
-    }
-
-    function exportExcel() {
-      const worksheet = XLSX.utils.json_to_sheet(allItems);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
-      XLSX.writeFile(workbook, "transfer_report.xlsx");
     }
 
     document.getElementById("searchBox").addEventListener("input", function () {
@@ -242,10 +262,11 @@
       renderTable(filtered);
     });
 
-    function updateDatetime() {
-      const now = new Date();
-      const options = { timeZone: "Asia/Bangkok", year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-      document.getElementById("currentDatetime").textContent = now.toLocaleString('th-TH', options);
+    function exportExcel() {
+      const worksheet = XLSX.utils.json_to_sheet(allItems);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Transfer Report");
+      XLSX.writeFile(workbook, "transfer_report.xlsx");
     }
 
     window.onload = () => {
