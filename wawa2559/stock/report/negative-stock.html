@@ -21,14 +21,37 @@
     th { background: #f0f0f0; cursor: pointer; user-select: none; }
     tr:nth-child(even) { background: #fafafa; }
     .negative { color: red; font-weight: bold; }
+    .product-img { width: 40px; height: auto; border-radius: 4px; cursor: zoom-in; }
 
     .sort-asc::after { content: " ▲"; }
     .sort-desc::after { content: " ▼"; }
 
     @media print {
-      .controls, header { display: none; }
+      .controls, header, #imgModal { display: none !important; }
       .container { box-shadow: none; }
-      body { margin: 0; }
+    }
+
+    /* Modal popup image */
+    #imgModal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.8);
+    }
+
+    #imgModal img {
+      display: block;
+      max-width: 80%;
+      max-height: 80%;
+      margin: 5% auto;
+      border-radius: 10px;
+      box-shadow: 0 0 10px #000;
+    }
+
+    #imgModal:active {
+      display: none;
     }
   </style>
 </head>
@@ -61,11 +84,17 @@
           <th onclick="sortTable(0)">ลำดับ</th>
           <th onclick="sortTable(1)">รหัสสินค้า</th>
           <th onclick="sortTable(2)">ชื่อสินค้า</th>
-          <th id="stockHeader" onclick="sortTable(3)">จำนวนสินค้า SH101</th>
+          <th>รูปสินค้า</th>
+          <th id="stockHeader" onclick="sortTable(4)">จำนวนสินค้า SH101</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <!-- Modal Image Viewer -->
+  <div id="imgModal" onclick="this.style.display='none'">
+    <img id="modalImg" src="" alt="ขยายรูป">
   </div>
 
   <script>
@@ -96,7 +125,13 @@
         if (!isNaN(qty) && qty < 0) {
           count++;
           total += qty;
-          filtered.push([count, item.CODE || "-", item.NAME_1 || "-", qty]);
+          filtered.push([
+            count,
+            item.CODE || "-",
+            item.NAME_1 || "-",
+            item["ภาพสินค้า"] || "",
+            qty
+          ]);
         }
       });
 
@@ -110,7 +145,8 @@
           <td>${row[0]}</td>
           <td>${row[1]}</td>
           <td>${row[2]}</td>
-          <td class="negative">${row[3]}</td>
+          <td><img src="${row[3]}" class="product-img" onclick="showImage('${row[3]}')" /></td>
+          <td class="negative">${row[4]}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -118,7 +154,6 @@
       document.getElementById("count").textContent = filtered.length;
       document.getElementById("sum").textContent = total.toLocaleString();
 
-      // Highlight current sort
       updateSortIcons();
     }
 
@@ -130,9 +165,7 @@
 
     function compareValues(a, b, asc) {
       const isNumber = !isNaN(parseFloat(a)) && !isNaN(parseFloat(b));
-      if (isNumber) {
-        return asc ? a - b : b - a;
-      }
+      if (isNumber) return asc ? a - b : b - a;
       return asc
         ? a.toString().localeCompare(b.toString(), 'th')
         : b.toString().localeCompare(a.toString(), 'th');
@@ -152,6 +185,13 @@
       const table = document.getElementById("productTable");
       const wb = XLSX.utils.table_to_book(table, {sheet:"สินค้าติดลบ"});
       XLSX.writeFile(wb, "NegativeStockReport.xlsx");
+    }
+
+    function showImage(src) {
+      const modal = document.getElementById("imgModal");
+      const img = document.getElementById("modalImg");
+      img.src = src;
+      modal.style.display = "block";
     }
 
     fetchData();
