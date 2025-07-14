@@ -5,15 +5,13 @@
   <title>รายงานสินค้าติดลบ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <style>
     body { font-family: 'Sarabun', sans-serif; background: #f2f2f2; margin: 0; padding: 0; }
     header { background: #444; color: white; padding: 20px; text-align: center; font-size: 1.5rem; }
     .container { padding: 20px; max-width: 1200px; margin: auto; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
 
-    .controls { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
-    select, button { padding: 10px; font-size: 1rem; margin-top: 10px; }
+    .controls { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    select, button { padding: 10px; font-size: 1rem; }
 
     .summary-box { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
     .summary { background: #eee; padding: 15px 25px; border-radius: 8px; font-size: 1.2rem; flex: 1; min-width: 200px; }
@@ -23,10 +21,16 @@
     th { background: #f0f0f0; }
     tr:nth-child(even) { background: #fafafa; }
     .negative { color: red; font-weight: bold; }
+
+    @media print {
+      .controls, header { display: none; }
+      .container { box-shadow: none; }
+      body { margin: 0; }
+    }
   </style>
 </head>
 <body>
-  <header>รายงานสินค้าติดลบ</header>
+  <header>รายงานสินค้าติดลบ ประจำวัน</header>
   <div class="container">
     <div class="controls">
       <div>
@@ -38,14 +42,14 @@
       </div>
       <div>
         <button onclick="exportToExcel()">Export Excel</button>
-        <button onclick="exportToPDF()">Export PDF</button>
+        <button onclick="window.print()">พิมพ์ PDF</button>
       </div>
     </div>
 
     <div class="summary-box">
       <div class="summary">📅 วันที่: <span id="date">-</span></div>
-      <div class="summary">📦 รวมสินค้าติดลบ: <span id="count">-</span> รายการ</div>
-      <div class="summary">📉 ยอดรวมติดลบ: <span id="sum">-</span></div>
+      <div class="summary">📦 รายการสินค้าติดลบ: <span id="count">-</span></div>
+      <div class="summary">📉 รวมยอดติดลบ: <span id="sum">-</span></div>
     </div>
 
     <table id="productTable">
@@ -105,14 +109,6 @@
       const table = document.getElementById("productTable");
       const wb = XLSX.utils.table_to_book(table, {sheet:"สินค้าติดลบ"});
       XLSX.writeFile(wb, "NegativeStockReport.xlsx");
-    }
-
-    function exportToPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text("รายงานสินค้าติดลบ", 14, 15);
-      doc.autoTable({ html: '#productTable', startY: 25 });
-      doc.save("NegativeStockReport.pdf");
     }
 
     fetchData();
