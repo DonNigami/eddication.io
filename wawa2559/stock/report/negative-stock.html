@@ -16,11 +16,14 @@
     .summary-box { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
     .summary { background: #eee; padding: 15px 25px; border-radius: 8px; font-size: 1.2rem; flex: 1; min-width: 200px; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; cursor: default; }
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
-    th { background: #f0f0f0; }
+    th { background: #f0f0f0; cursor: pointer; user-select: none; }
     tr:nth-child(even) { background: #fafafa; }
     .negative { color: red; font-weight: bold; }
+
+    .sort-asc::after { content: " ▲"; }
+    .sort-desc::after { content: " ▼"; }
 
     @media print {
       .controls, header { display: none; }
@@ -55,10 +58,10 @@
     <table id="productTable">
       <thead>
         <tr>
-          <th>ลำดับ</th>
-          <th>รหัสสินค้า</th>
-          <th>ชื่อสินค้า</th>
-          <th id="stockHeader">จำนวนสินค้า SH101</th>
+          <th onclick="sortTable(0)">ลำดับ</th>
+          <th onclick="sortTable(1)">รหัสสินค้า</th>
+          <th onclick="sortTable(2)">ชื่อสินค้า</th>
+          <th id="stockHeader" onclick="sortTable(3)">จำนวนสินค้า SH101</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -68,6 +71,7 @@
   <script>
     const SHEET_URL = "https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer";
     let rawData = [];
+    let lastSort = { col: 0, asc: true };
 
     async function fetchData() {
       const res = await fetch(SHEET_URL);
@@ -82,6 +86,8 @@
       const stockHeader = document.getElementById("stockHeader");
       stockHeader.textContent = `จำนวนสินค้า ${warehouse}`;
       tbody.innerHTML = "";
+
+      const filtered = [];
       let count = 0;
       let total = 0;
 
@@ -90,19 +96,56 @@
         if (!isNaN(qty) && qty < 0) {
           count++;
           total += qty;
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${count}</td>
-            <td>${item.CODE || "-"}</td>
-            <td>${item.NAME_1 || "-"}</td>
-            <td class="negative">${qty}</td>
-          `;
-          tbody.appendChild(tr);
+          filtered.push([count, item.CODE || "-", item.NAME_1 || "-", qty]);
         }
       });
 
-      document.getElementById("count").textContent = count;
+      // Apply last sort
+      filtered.sort((a, b) => compareValues(a[lastSort.col], b[lastSort.col], lastSort.asc));
+
+      // render rows
+      filtered.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row[0]}</td>
+          <td>${row[1]}</td>
+          <td>${row[2]}</td>
+          <td class="negative">${row[3]}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("count").textContent = filtered.length;
       document.getElementById("sum").textContent = total.toLocaleString();
+
+      // Highlight current sort
+      updateSortIcons();
+    }
+
+    function sortTable(colIndex) {
+      lastSort.asc = lastSort.col === colIndex ? !lastSort.asc : true;
+      lastSort.col = colIndex;
+      filterTable();
+    }
+
+    function compareValues(a, b, asc) {
+      const isNumber = !isNaN(parseFloat(a)) && !isNaN(parseFloat(b));
+      if (isNumber) {
+        return asc ? a - b : b - a;
+      }
+      return asc
+        ? a.toString().localeCompare(b.toString(), 'th')
+        : b.toString().localeCompare(a.toString(), 'th');
+    }
+
+    function updateSortIcons() {
+      const ths = document.querySelectorAll("th");
+      ths.forEach((th, index) => {
+        th.classList.remove("sort-asc", "sort-desc");
+        if (index === lastSort.col) {
+          th.classList.add(lastSort.asc ? "sort-asc" : "sort-desc");
+        }
+      });
     }
 
     function exportToExcel() {
