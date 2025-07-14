@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>รายงานสินค้าติดลบ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    body { font-family: 'Sarabun', sans-serif; background: #f2f2f2; margin: 0; padding: 0; }
+    header { background: #444; color: white; padding: 20px; text-align: center; font-size: 1.5rem; }
+    .container { padding: 20px; max-width: 1200px; margin: auto; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+    .controls { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; }
+    select, button { padding: 10px; font-size: 1rem; margin-top: 10px; }
+
+    .summary-box { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+    .summary { background: #eee; padding: 15px 25px; border-radius: 8px; font-size: 1.2rem; flex: 1; min-width: 200px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; vertical-align: middle; }
+    th { background: #f0f0f0; }
+    tr:nth-child(even) { background: #fafafa; }
+    .negative { color: red; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>รายงานสินค้าติดลบ</header>
+  <div class="container">
+    <div class="controls">
+      <div>
+        <label for="warehouseSelect">เลือกคลังสินค้า:</label>
+        <select id="warehouseSelect" onchange="filterTable()">
+          <option value="SH101" selected>SH101</option>
+          <option value="SH108">SH108</option>
+        </select>
+      </div>
+      <div>
+        <button onclick="exportToExcel()">Export Excel</button>
+        <button onclick="exportToPDF()">Export PDF</button>
+      </div>
+    </div>
+
+    <div class="summary-box">
+      <div class="summary">📅 วันที่: <span id="date">-</span></div>
+      <div class="summary">📦 รวมสินค้าติดลบ: <span id="count">-</span> รายการ</div>
+      <div class="summary">📉 ยอดรวมติดลบ: <span id="sum">-</span></div>
+    </div>
+
+    <table id="productTable">
+      <thead>
+        <tr>
+          <th>ลำดับ</th>
+          <th>รหัสสินค้า</th>
+          <th>ชื่อสินค้า</th>
+          <th id="stockHeader">จำนวนสินค้า SH101</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const SHEET_URL = "https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer";
+    let rawData = [];
+
+    async function fetchData() {
+      const res = await fetch(SHEET_URL);
+      rawData = await res.json();
+      document.getElementById("date").textContent = new Date().toLocaleDateString("th-TH");
+      filterTable();
+    }
+
+    function filterTable() {
+      const warehouse = document.getElementById("warehouseSelect").value;
+      const tbody = document.querySelector("#productTable tbody");
+      const stockHeader = document.getElementById("stockHeader");
+      stockHeader.textContent = `จำนวนสินค้า ${warehouse}`;
+      tbody.innerHTML = "";
+      let count = 0;
+      let total = 0;
+
+      rawData.forEach(item => {
+        const qty = parseFloat(item[`STOCK_${warehouse}`]);
+        if (!isNaN(qty) && qty < 0) {
+          count++;
+          total += qty;
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${count}</td>
+            <td>${item.CODE || "-"}</td>
+            <td>${item.NAME_1 || "-"}</td>
+            <td class="negative">${qty}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+
+      document.getElementById("count").textContent = count;
+      document.getElementById("sum").textContent = total.toLocaleString();
+    }
+
+    function exportToExcel() {
+      const table = document.getElementById("productTable");
+      const wb = XLSX.utils.table_to_book(table, {sheet:"สินค้าติดลบ"});
+      XLSX.writeFile(wb, "NegativeStockReport.xlsx");
+    }
+
+    function exportToPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("รายงานสินค้าติดลบ", 14, 15);
+      doc.autoTable({ html: '#productTable', startY: 25 });
+      doc.save("NegativeStockReport.pdf");
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>
