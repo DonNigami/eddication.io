@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: "Corporate Blue & Neutral Gray" - A professional and clean palette using shades of blue for key elements and highlights, combined with neutral grays for text and backgrounds to ensure readability and a modern, trustworthy feel. -->
-    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. It starts with a high-level market overview (the "What"), then allows users to explore specific opportunities in a "Deep Dive" section using interactive tabs (the "How"). This is followed by a section on leveraging existing assets ("With What"), a detailed "3-Year Implementation Plan", a conceptual "Customer Group Map" to visualize geographic opportunities, new sections for "CLMV Comparative Trends", "Top-Use Industries (Thailand) List", "Joint Investment Plans with Key Industrial Plants", "PTGLG Transport Route Linkage", and a new "Collaboration with Other Industrial Estates" section, concluding with strategic recommendations. This structure guides the user from general market context to specific, actionable insights relevant to PTGLG, including operational plans, market visualization, regional expansion, and strategic partnerships, enhancing understanding and decision-making. -->
+    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. It starts with a high-level market overview (the "What"), then allows users to explore specific opportunities in a "Deep Dive" section using interactive tabs (the "How"). This is followed by a section on leveraging existing assets ("With What"), a detailed "3-Year Implementation Plan", a conceptual "Customer Group Map" to visualize geographic opportunities, new sections for "CLMV Comparative Trends", "Top-Use Industries (Thailand) List", "Joint Investment Plans with Key Industrial Plants", "PTGLG Transport Route Linkage", "Collaboration with Other Industrial Estates", and a new "Chemical and Hazardous Chemical Transport" section, concluding with strategic recommendations. This structure guides the user from general market context to specific, actionable insights relevant to PTGLG, including operational plans, market visualization, regional expansion, and strategic partnerships, enhancing understanding and decision-making. -->
     <!-- Visualization & Content Choices: 
         1. Market Growth (Line Chart): Goal: Show change over time. Viz: Chart.js Line Chart. Interaction: Hover for tooltips with specific values. Justification: Clearly visualizes the strong upward trend and 7.7% CAGR.
         2. Market Share by Gas (Doughnut Chart): Goal: Show proportions. Viz: Chart.js Doughnut Chart. Interaction: Hover to see percentage share. Justification: Immediately communicates the dominance of Oxygen and the composition of the market.
@@ -24,6 +24,7 @@
         10. Joint Investment Plans: Goal: Outline partnership strategies. Viz: Textual description of approaches. Interaction: None. Justification: Details how to deepen relationships with major clients.
         11. PTGLG Transport Route Linkage: Goal: Show logistical advantages. Viz: Textual explanation of leveraging existing network. Interaction: None. Justification: Highlights operational efficiency and competitive edge.
         12. Collaboration with Other Industrial Estates: Goal: Detail specific collaboration models and mutual benefits. Viz: Textual analysis and a comparative table. Interaction: None. Justification: Provides actionable strategies for expanding market reach through strategic alliances with industrial estate developers.
+        13. Chemical and Hazardous Chemical Transport: Goal: Introduce a new high-value service area. Viz: Textual analysis with market overview, opportunities, and a benefits table. Interaction: None. Justification: Highlights a logical expansion leveraging existing expertise in liquid/gas transport and safety protocols.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -161,19 +162,21 @@
                 <div class="flex-shrink-0">
                     <h1 class="text-xl md:text-2xl font-bold text-slate-800">PTGLG: กลยุทธ์สู่ผู้นำตลาดก๊าซอุตสาหกรรม</h1>
                 </div>
+                <!-- Updated navigation for responsiveness -->
                 <div class="hidden md:block">
-                    <div class="ml-10 flex items-baseline space-x-4">
-                        <a href="#overview" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ภาพรวมตลาด</a>
-                        <a href="#deepdive" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">เจาะลึกโอกาส</a>
-                        <a href="#fleet" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ศักยภาพ Fleet</a>
-                        <a href="#plan" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">แผนดำเนินงาน 3 ปี</a>
-                        <a href="#customer-map" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">แผนที่ลูกค้า</a>
-                        <a href="#clmv-trends" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">แนวโน้ม CLMV</a>
-                        <a href="#top-industries" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">อุตสาหกรรมหลัก</a>
-                        <a href="#joint-investments" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ลงทุนร่วม</a>
-                        <a href="#transport-linkage" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">เชื่อมโยงขนส่ง</a>
-                        <a href="#industrial-estate-collaboration" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ร่วมมือกับนิคมฯ</a>
-                        <a href="#strategy" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">สรุปกลยุทธ์</a>
+                    <div class="ml-4 md:ml-10 flex flex-wrap items-baseline space-x-1 md:space-x-2 lg:space-x-4">
+                        <a href="#overview" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ภาพรวมตลาด</a>
+                        <a href="#deepdive" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">เจาะลึกโอกาส</a>
+                        <a href="#fleet" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ศักยภาพ Fleet</a>
+                        <a href="#plan" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">แผนดำเนินงาน 3 ปี</a>
+                        <a href="#customer-map" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">แผนที่ลูกค้า</a>
+                        <a href="#clmv-trends" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">แนวโน้ม CLMV</a>
+                        <a href="#top-industries" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">อุตสาหกรรมหลัก</a>
+                        <a href="#joint-investments" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ลงทุนร่วม</a>
+                        <a href="#transport-linkage" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">เชื่อมโยงขนส่ง</a>
+                        <a href="#industrial-estate-collaboration" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ร่วมมือกับนิคมฯ</a>
+                        <a href="#chemical-transport" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ขนส่งสารเคมี</a>
+                        <a href="#strategy" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">สรุปกลยุทธ์</a>
                     </div>
                 </div>
             </div>
@@ -543,6 +546,58 @@
                         <tr>
                             <td>**สร้างรายได้ใหม่:** จากการขยายบริการและอาจรวมถึงการร่วมลงทุนในโครงสร้างพื้นฐาน</td>
                             <td>**นวัตกรรมและเทคโนโลยี:** เข้าถึงเทคโนโลยีการขนส่งก๊าซที่ทันสมัย เช่น โครงสร้างพื้นฐานไฮโดรเจน</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="chemical-transport" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">ธุรกิจขนส่งสารเคมีและสารเคมีอันตรายในประเทศไทย</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">โอกาสในการขยายสู่บริการขนส่งที่มีมูลค่าสูงและต้องการความเชี่ยวชาญเฉพาะทาง</p>
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <p class="mb-4">ตลาดการขนส่งสารเคมีและสารเคมีอันตรายในประเทศไทยเป็นภาคส่วนที่มีความสำคัญสูงและมีข้อกำหนดด้านความปลอดภัยและกฎระเบียบที่เข้มงวด การเติบโตของอุตสาหกรรมเคมีภัณฑ์ ปิโตรเคมี และการผลิตต่างๆ เป็นปัจจัยขับเคลื่อนหลักของอุปสงค์ในการขนส่งสารเหล่านี้</p>
+                
+                <h3 class="text-xl font-bold text-blue-700 mb-4">ภาพรวมตลาดและปัจจัยขับเคลื่อน:</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-6">
+                    <li>**การเติบโตของอุตสาหกรรม:** ภาคปิโตรเคมี เคมีภัณฑ์ขั้นปลาย และอุตสาหกรรมที่เกี่ยวข้องยังคงขยายตัวอย่างต่อเนื่อง โดยเฉพาะในพื้นที่ EEC ซึ่งเป็นแหล่งรวมโรงงานผลิตสารเคมีขนาดใหญ่</li>
+                    <li>**กฎระเบียบที่เข้มงวด:** การขนส่งสารเคมีอันตรายอยู่ภายใต้การกำกับดูแลของกรมการขนส่งทางบก กระทรวงอุตสาหกรรม และหน่วยงานอื่นๆ อย่างเข้มงวด ซึ่งรวมถึงข้อกำหนดด้านยานพาหนะ ใบอนุญาตพนักงานขับรถ การติดฉลาก และแผนฉุกเฉิน สิ่งนี้สร้างอุปสรรคในการเข้าสำหรับผู้ประกอบการรายใหม่ แต่เป็นข้อได้เปรียบสำหรับผู้ที่มีความพร้อมและปฏิบัติตามกฎระเบียบอย่างเคร่งครัด</li>
+                    <li>**ความต้องการความปลอดภัยสูง:** ลูกค้าในอุตสาหกรรมเคมีภัณฑ์ให้ความสำคัญสูงสุดกับความปลอดภัยในการขนส่ง เพื่อลดความเสี่ยงต่อชีวิต ทรัพย์สิน และสิ่งแวดล้อม</li>
+                </ul>
+
+                <h3 class="text-xl font-bold text-blue-700 mb-4">โอกาสสำหรับ PTGLG:</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-6">
+                    <li>**ใช้ประโยชน์จาก Fleet และความเชี่ยวชาญ:** PTGLG มี Fleet ขนส่งน้ำมันและ LPG จำนวนมาก รวมถึงรถบรรทุกน้ำเชื่อม ซึ่งแสดงให้เห็นถึงความสามารถในการขนส่งของเหลวและก๊าซ การปรับเปลี่ยนหรือลงทุนเพิ่มเติมในรถบรรทุกที่ได้มาตรฐานสำหรับการขนส่งสารเคมีและสารเคมีอันตรายจะทำได้ง่ายขึ้น</li>
+                    <li>**ประสบการณ์ด้านความปลอดภัย:** การดำเนินงานขนส่งเชื้อเพลิงและก๊าซอุตสาหกรรมของ PTGLG ต้องปฏิบัติตามมาตรฐานความปลอดภัยสูงอยู่แล้ว ซึ่งเป็นพื้นฐานที่ดีในการต่อยอดสู่การขนส่งสารเคมีอันตราย</li>
+                    <li>**การฝึกอบรมเฉพาะทาง:** การลงทุนในการฝึกอบรมพนักงานขับรถและบุคลากรให้ได้รับใบอนุญาตและมีความเชี่ยวชาญในการจัดการสารเคมีอันตราย จะเป็นจุดแข็งสำคัญ</li>
+                    <li>**บริการครบวงจร:** สามารถนำเสนอโซลูชันโลจิสติกส์แบบครบวงจรสำหรับสารเคมี ตั้งแต่การรับ การจัดเก็บชั่วคราว (หากมีคลังสินค้าที่ได้มาตรฐาน) ไปจนถึงการจัดส่ง</li>
+                    <li>**ขยายฐานลูกค้า:** ลูกค้าในอุตสาหกรรมปิโตรเคมี เคมีภัณฑ์ และการผลิตต่างๆ ที่เป็นลูกค้าก๊าซอยู่แล้ว อาจเป็นลูกค้าเป้าหมายสำหรับการขนส่งสารเคมีเพิ่มเติม</li>
+                </ul>
+
+                <h3 class="text-xl font-bold text-blue-700 mb-4">ประโยชน์ที่ได้รับ (PTGLG และลูกค้า):</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>สำหรับ PTGLG</th>
+                            <th>สำหรับลูกค้า</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>**เพิ่มแหล่งรายได้ใหม่:** ขยายสู่ตลาดที่มีมูลค่าสูงและมีความต้องการเฉพาะทาง</td>
+                            <td>**การขนส่งที่ปลอดภัยและได้มาตรฐาน:** ลดความเสี่ยงด้านอุบัติเหตุและผลกระทบต่อสิ่งแวดล้อม</td>
+                        </tr>
+                        <tr>
+                            <td>**กระจายความเสี่ยงทางธุรกิจ:** ลดการพึ่งพารายได้จากธุรกิจหลักเพียงอย่างเดียว</td>
+                            <td>**ปฏิบัติตามกฎระเบียบ:** มั่นใจได้ว่าการขนส่งเป็นไปตามข้อกำหนดทางกฎหมายที่เข้มงวด</td>
+                        </tr>
+                        <tr>
+                            <td>**ใช้ประโยชน์จากสินทรัพย์เดิม:** ปรับใช้ Fleet และความเชี่ยวชาญที่มีอยู่ให้เกิดประโยชน์สูงสุด</td>
+                            <td>**บริการที่เชื่อถือได้และมีประสิทธิภาพ:** ลดความล่าช้าและเพิ่มความมั่นใจในการจัดการซัพพลายเชน</td>
+                        </tr>
+                        <tr>
+                            <td>**เสริมสร้างภาพลักษณ์:** เป็นผู้ให้บริการโลจิสติกส์ที่ครบวงจรและมีความรับผิดชอบสูง</td>
+                            <td>**เข้าถึงผู้เชี่ยวชาญ:** ได้รับบริการจากบุคลากรที่ผ่านการฝึกอบรมเฉพาะทาง</td>
                         </tr>
                     </tbody>
                 </table>
