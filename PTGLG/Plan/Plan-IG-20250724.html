@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>การวิเคราะห์ตลาดก๊าซอุตสาหกรรมและกลยุทธ์สำหรับ PTGLG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Corporate Blue & Neutral Gray" - A professional and clean palette using shades of blue for key elements and highlights, combined with neutral grays for text and backgrounds to ensure readability and a modern, trustworthy feel. -->
+    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. It starts with a high-level market overview (the "What"), then allows users to explore specific opportunities in a "Deep Dive" section using interactive tabs (the "How"). This is followed by a section on leveraging existing assets ("With What"), a detailed "3-Year Implementation Plan", and a conceptual "Customer Group Map" to visualize geographic opportunities, concluding with strategic recommendations. This structure guides the user from general market context to specific, actionable insights relevant to PTGLG, including operational plans and market visualization, enhancing understanding and decision-making. -->
+    <!-- Visualization & Content Choices: 
+        1. Market Growth (Line Chart): Goal: Show change over time. Viz: Chart.js Line Chart. Interaction: Hover for tooltips with specific values. Justification: Clearly visualizes the strong upward trend and 7.7% CAGR.
+        2. Market Share by Gas (Doughnut Chart): Goal: Show proportions. Viz: Chart.js Doughnut Chart. Interaction: Hover to see percentage share. Justification: Immediately communicates the dominance of Oxygen and the composition of the market.
+        3. KPI Cards: Goal: Inform with key stats. Viz: Styled HTML/Tailwind. Interaction: None. Justification: Provides quick, scannable access to the most critical numbers (market size, growth).
+        4. Interactive Tabs (Gas Deep Dive): Goal: Organize detailed content. Viz: HTML/CSS/JS. Interaction: Click to switch content. Justification: Allows for detailed analysis of each major gas type without overwhelming the user with information, linking market drivers directly to PTGLG's opportunities.
+        5. Fleet Opportunity Diagram: Goal: Organize and relate assets to strategy. Viz: Styled HTML/Tailwind Flexbox. Interaction: Clickable cards. Justification: Creates a clear, visual link between PTGLG's physical assets (from the source image) and the strategic growth areas identified in the analysis.
+        6. 3-Year Implementation Plan: Goal: Detail actionable steps. Viz: HTML/CSS formatted lists. Interaction: None (static detailed plan). Justification: Provides concrete next steps aligned with overall strategies.
+        7. Customer Group Map (Conceptual): Goal: Visualize geographic customer concentrations. Viz: Styled HTML/CSS/Tailwind grid with explicit grid-area assignments for conceptual zones, with clickable zone details. Interaction: Click to show details of industries/bases/opportunities in a specific zone. Justification: Overcomes SVG/map library constraints by providing a strategic, not literal, geographical overview of customer opportunities relative to PTGLG bases, focusing on key industrial areas and suggesting regional distribution.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 40vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #2563eb; /* blue-600 */
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .tab-button.active {
+            border-color: #2563eb; /* blue-600 */
+            color: #2563eb;
+            font-weight: 600;
+            border-bottom-width: 3px;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .kpi-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            text-align: center;
+            border-left: 5px solid #3b82f6; /* blue-500 */
+        }
+        /* Map specific styles */
+        .map-grid-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0.75rem;
+            max-width: 800px; /* Adjusted max-width */
+            margin: 0 auto;
+            aspect-ratio: 1 / 1; /* More square-ish for simplicity */
+            padding: 1rem;
+            background-color: #e0f2fe; /* blue-50 */
+            border-radius: 1rem;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
+        }
+        .map-zone {
+            background-color: #f0f9ff; /* blue-50 */
+            border: 1px solid #bfdbfe; /* blue-200 */
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .map-zone:hover {
+            background-color: #dbeafe; /* blue-100 */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .map-zone.active {
+            background-color: #93c5fd; /* blue-300 */
+            border-color: #2563eb; /* blue-600 */
+            color: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .map-zone.active .zone-title,
+        .map-zone.active .industries,
+        .map-zone.active .bases {
+            color: white;
+        }
+
+        /* Specific grid placements to suggest map shape */
+        .map-zone[data-zone="north"] { grid-area: 1 / 2 / 2 / 3; } /* Row 1, Col 2 */
+        .map-zone[data-zone="northeast"] { grid-area: 1 / 3 / 2 / 4; } /* Row 1, Col 3 */
+        .map-zone[data-zone="central"] { grid-area: 2 / 1 / 3 / 3; } /* Row 2, Col 1-2 */
+        .map-zone[data-zone="eec"] { grid-area: 2 / 3 / 3 / 4; } /* Row 2, Col 3 */
+        .map-zone[data-zone="west"] { grid-area: 3 / 1 / 4 / 2; } /* Row 3, Col 1 */
+        .map-zone[data-zone="south"] { grid-area: 3 / 2 / 4 / 4; } /* Row 3, Col 2-3 */
+
+        .zone-detail-card {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl md:text-2xl font-bold text-slate-800">PTGLG: กลยุทธ์สู่ผู้นำตลาดก๊าซอุตสาหกรรม</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ภาพรวมตลาด</a>
+                        <a href="#deepdive" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">เจาะลึกโอกาส</a>
+                        <a href="#fleet" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ศักยภาพ Fleet</a>
+                        <a href="#plan" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">แผนดำเนินงาน 3 ปี</a>
+                        <a href="#customer-map" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">แผนที่ลูกค้า</a>
+                        <a href="#strategy" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">สรุปกลยุทธ์</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <section id="overview" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">ภาพรวมตลาดก๊าซอุตสาหกรรมไทย</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">ตลาดกำลังเติบโตอย่างก้าวกระโดดสู่มูลค่ากว่า 1 พันล้านดอลลาร์สหรัฐฯ สร้างโอกาสมหาศาลสำหรับ PTGLG</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                <div class="kpi-card">
+                    <p class="text-sm font-medium text-slate-500">มูลค่าตลาด (2566)</p>
+                    <p class="text-4xl font-bold text-blue-600">$652.3M</p>
+                </div>
+                <div class="kpi-card">
+                    <p class="text-sm font-medium text-slate-500">คาดการณ์ (2573)</p>
+                    <p class="text-4xl font-bold text-blue-600">$1,093.0M</p>
+                </div>
+                <div class="kpi-card">
+                    <p class="text-sm font-medium text-slate-500">อัตราเติบโต (CAGR)</p>
+                    <p class="text-4xl font-bold text-blue-600">7.7%</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-center">แนวโน้มการเติบโตของตลาด (2566-2573)</h3>
+                    <div class="chart-container">
+                        <canvas id="marketGrowthChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-center">ส่วนแบ่งตลาดตามประเภทก๊าซ (2566)</h3>
+                    <div class="chart-container">
+                        <canvas id="marketShareChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="deepdive" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">เจาะลึกโอกาสทางธุรกิจ</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">สำรวจโอกาสในตลาดก๊าซแต่ละประเภทและแนวทางการเข้าถึงของ PTGLG</p>
+
+            <div class="border-b border-gray-200 mb-6">
+                <nav class="-mb-px flex justify-center space-x-4 sm:space-x-8" aria-label="Tabs">
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-300" data-tab="oxygen">
+                        ออกซิเจน (Oxygen)
+                    </button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-300" data-tab="nitrogen">
+                        ไนโตรเจน (Nitrogen)
+                    </button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-300" data-tab="hydrogen">
+                        ไฮโดรเจน (Hydrogen)
+                    </button>
+                    <button class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:text-blue-600 hover:border-blue-300" data-tab="others">
+                        ก๊าซอื่นๆ
+                    </button>
+                </nav>
+            </div>
+
+            <div id="oxygen" class="content-section bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold text-blue-700 mb-4">ออกซิเจน: ตลาดที่ใหญ่และเติบโตเร็วที่สุด</h3>
+                <p class="mb-4">ครองส่วนแบ่งตลาด 32.98% และคาดว่าจะเติบโตเร็วที่สุด ปัจจัยขับเคลื่อนหลักมาจากภาคการดูแลสุขภาพ (การบำบัดด้วยออกซิเจน) และภาคการผลิต (เหล็ก, โลหะ, แก้ว, อิเล็กทรอนิกส์) ซึ่งมีความต้องการออกซิเจนคุณภาพสูงเพิ่มขึ้นต่อเนื่อง</p>
+                <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-800 p-4 rounded-r-lg">
+                    <h4 class="font-bold">💡 โอกาสสำหรับ PTGLG:</h4>
+                    <p>ด้วยรถขนส่งก๊าซอุตสาหกรรม 67 คัน PTGLG อยู่ในตำแหน่งที่ยอดเยี่ยมในการขยายบริการขนส่งออกซิเจนเหลว (Liquid Oxygen) ไปยังโรงพยาบาลและโรงงานอุตสาหกรรมทั่วประเทศ โดยเฉพาะในเขตพัฒนาระเบียงเศรษฐกิจพิเศษภาคตะวันออก (EEC) ที่มีการลงทุนสูง</p>
+                </div>
+            </div>
+
+            <div id="nitrogen" class="content-section bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold text-green-700 mb-4">ไนโตรเจน: หัวใจของอุตสาหกรรมสมัยใหม่</h3>
+                <p class="mb-4">มีความสำคัญอย่างยิ่งในอุตสาหกรรมอิเล็กทรอนิกส์ (ผลิตแผงวงจรสำหรับ EV, สมาร์ทโฟน), อาหารและเครื่องดื่ม (การถนอมอาหาร) และปิโตรเคมี แนวโน้ม "ไนโตรเจนคาร์บอนต่ำ" กำลังมาแรงเพื่อตอบโจทย์ความยั่งยืน</p>
+                <div class="bg-green-50 border-l-4 border-green-500 text-green-800 p-4 rounded-r-lg">
+                    <h4 class="font-bold">💡 โอกาสสำหรับ PTGLG:</h4>
+                    <p>สร้างความร่วมมือกับผู้ผลิต "ไนโตรเจนคาร์บอนต่ำ" เพื่อเป็นผู้ให้บริการขนส่งหลัก ตอบสนองความต้องการของลูกค้ารายใหญ่อย่าง Delta Electronics และบริษัทในกลุ่มยานยนต์ไฟฟ้าที่ให้ความสำคัญกับซัพพลายเชนสีเขียว</p>
+                </div>
+            </div>
+
+            <div id="hydrogen" class="content-section bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold text-purple-700 mb-4">ไฮโดรเจน: พลังงานแห่งอนาคต</h3>
+                <p class="mb-4">เป็นกุญแจสำคัญสู่เป้าหมายความเป็นกลางทางคาร์บอนของไทย มีการลงทุนมหาศาลจากภาครัฐและเอกชน (เช่น PTT, Toyota) ในการผลิตไฮโดรเจนสีเขียวและสถานีบริการสำหรับรถยนต์ FCEV รวมถึงการใช้ในอุตสาหกรรมเหล็กสีเขียว</p>
+                <div class="bg-purple-50 border-l-4 border-purple-500 text-purple-800 p-4 rounded-r-lg">
+                    <h4 class="font-bold">💡 โอกาสสำหรับ PTGLG:</h4>
+                    <p>ใช้ประโยชน์จากรถบรรทุก EV ที่มีอยู่ 3 คัน เป็นจุดเริ่มต้นในการเข้าสู่ตลาดขนส่งไฮโดรเจน และวางแผนลงทุนในรถบรรทุกที่รองรับการขนส่งไฮโดรเจนโดยเฉพาะ เพื่อก้าวขึ้นเป็นผู้นำในโลจิสติกส์พลังงานสะอาด</p>
+                </div>
+            </div>
+            
+            <div id="others" class="content-section bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-2xl font-bold text-yellow-700 mb-4">ก๊าซอื่นๆ: อาร์กอนและคาร์บอนไดออกไซด์</h3>
+                <p class="mb-4"><strong class="text-yellow-800">อาร์กอน:</strong> เติบโตจากการเป็นตัวเลือกทดแทนฮีเลียมที่มีราคาสูงขึ้น ใช้ในอุตสาหกรรมเชื่อมโลหะและอิเล็กทรอนิกส์ <br><strong class="text-yellow-800">คาร์บอนไดออกไซด์:</strong> ความต้องการเพิ่มขึ้นจากเทคโนโลยีการดักจับและใช้ประโยชน์จากคาร์บอน (CCUS) และการใช้ในอุตสาหกรรมอาหารและเครื่องดื่ม</p>
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-r-lg">
+                    <h4 class="font-bold">💡 โอกาสสำหรับ PTGLG:</h4>
+                    <p>โปรโมทบริการขนส่งอาร์กอนเป็นแพ็กเกจควบคู่กับก๊าซอื่นๆ และพัฒนาบริการขนส่ง CO2 ที่ถูกดักจับจากโรงงานอุตสาหกรรมไปยังแหล่งใช้ประโยชน์ ซึ่งเป็นการเปลี่ยนของเสียให้เป็นรายได้ และสนับสนุนเศรษฐกิจหมุนเวียน</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="fleet" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">การต่อยอดจากศักยภาพ Fleet ทั้งหมด</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">PTGLG มี Fleet รวม 1,189 คัน ซึ่งสามารถนำมาต่อยอดสร้างการเติบโตได้อย่างหลากหลาย</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                    <h4 class="font-bold text-xl text-cyan-700">กลุ่มรถขนส่งก๊าซอุตสาหกรรม (67 คัน)</h4>
+                    <p class="mt-2">เป็นหัวหอกในการบุกตลาดหลัก (ออกซิเจน, ไนโตรเจน) และตลาดเกิดใหม่ (ไฮโดรเจน) เพิ่มประสิทธิภาพเส้นทางและขยายฐานลูกค้าสู่กลุ่มอุตสาหกรรมเป้าหมาย</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                    <h4 class="font-bold text-xl text-rose-700">กลุ่มรถขนส่งน้ำมันและ LPG (1,030 คัน)</h4>
+                    <p class="mt-2">รักษาฐานลูกค้าเดิมและเพิ่มประสิทธิภาพการขนส่งในตลาดน้ำมันและ LPG ที่ยังคงเติบโต พร้อมสำรวจโอกาสในการขนส่งเชื้อเพลิงชีวภาพ (Biofuels) ในอนาคต</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow">
+                    <h4 class="font-bold text-xl text-lime-700">กลุ่มรถ EV (3 คัน) และรถเฉพาะทาง</h4>
+                    <p class="mt-2">ใช้รถ EV เป็นโครงการนำร่องสำหรับ "Green Logistics" โดยเฉพาะการขนส่งไฮโดรเจนและก๊าซคาร์บอนต่ำ ส่วนรถเฉพาะทาง (ขนส่งน้ำเชื่อม, กระดาษ) สามารถขยายบริการสู่ลูกค้าเฉพาะกลุ่มอื่นๆ ได้</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="plan" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">แผนการดำเนินงาน 3 ปี (2568 - 2570)</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">รายละเอียดแผนงานที่สอดคล้องกับกลยุทธ์หลักเพื่อบรรลุเป้าหมายการเติบโต</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-blue-600 mb-4">ปีที่ 1: วางรากฐานและปรับปรุง (2568)</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600">
+                        <li>**Core Market:** ปรับปรุงประสิทธิภาพเส้นทางการขนส่งก๊าซออกซิเจนและไนโตรเจนในพื้นที่ EEC</li>
+                        <li>**Future Growth:** เริ่มต้นโครงการนำร่องการขนส่งไฮโดรเจนด้วยรถ EV 3 คัน</li>
+                        <li>**Optimization:** ติดตั้งและใช้งานระบบ Fleet Management System (FMS) เต็มรูปแบบสำหรับทุก Fleet</li>
+                        <li>**ทีมงาน:** จัดอบรมพนักงานขับรถและทีมบำรุงรักษาสำหรับการจัดการก๊าซชนิดใหม่ (เช่น ไฮโดรเจน)</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-green-600 mb-4">ปีที่ 2: ขยายและสร้างพันธมิตร (2569)</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600">
+                        <li>**Core Market:** ขยายฐานลูกค้าก๊าซอุตสาหกรรมในภาคกลางและตะวันออกเฉียงเหนือ</li>
+                        <li>**Future Growth:** ลงทุนเพิ่มเติมในรถบรรทุกสำหรับขนส่งไฮโดรเจนโดยเฉพาะ 5-10 คัน ตามความต้องการที่เพิ่มขึ้น</li>
+                        <li>**Future Growth:** สร้างพันธมิตรเชิงกลยุทธ์กับผู้ผลิตไฮโดรเจนสีเขียวและไนโตรเจนคาร์บอนต่ำ</li>
+                        <li>**Optimization:** พัฒนา Mobile Application สำหรับลูกค้าในการติดตามการขนส่งและสั่งซื้อ</li>
+                    </ul>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold text-purple-600 mb-4">ปีที่ 3: ผู้นำและนวัตกรรม (2570)</h3>
+                    <ul class="list-disc pl-5 space-y-2 text-slate-600">
+                        <li>**Core Market:** บรรลุเป้าหมายการเพิ่มส่วนแบ่งตลาดในกลุ่มก๊าซออกซิเจนและไนโตรเจน 5%</li>
+                        <li>**Future Growth:** เริ่มศึกษาและทดลองการขนส่งก๊าซชีวภาพ (Biogas) หรือ SAF (Sustainable Aviation Fuel)</li>
+                        <li>**Future Growth:** สร้างสถานีอัดประจุก๊าซไฮโดรเจนขนาดเล็กสำหรับ Fleet ของ PTGLG เอง</li>
+                        <li>**Optimization:** นำ AI และ Big Data มาใช้วิเคราะห์เส้นทางและคาดการณ์ความต้องการแบบ Real-time</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="customer-map" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">แผนที่กลุ่มลูกค้าและฐาน Fleet PTGLG</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">การกระจายตัวของฐาน Fleet ของ PTGLG ช่วยให้เข้าถึงกลุ่มลูกค้าในภาคอุตสาหกรรมหลักได้อย่างมีประสิทธิภาพ</p>
+
+            <div class="map-grid-container">
+                <div class="map-zone" data-zone="north">
+                    <div class="zone-title">ภาคเหนือ</div>
+                    <div class="industries">เกษตรแปรรูป, หัตถกรรม, ท่องเที่ยว</div>
+                    <div class="bases">ฐาน Fleet: เชียงใหม่, พิษณุโลก</div>
+                </div>
+                <div class="map-zone" data-zone="northeast">
+                    <div class="zone-title">ภาคตะวันออกเฉียงเหนือ</div>
+                    <div class="industries">เกษตรกรรม, น้ำตาล, ปิโตรเลียม</div>
+                    <div class="bases">ฐาน Fleet: ขอนแก่น, โคราช, อุดร</div>
+                </div>
+                <div class="map-zone" data-zone="central">
+                    <div class="zone-title">ภาคกลางและปริมณฑล</div>
+                    <div class="industries">อาหาร, อิเล็กทรอนิกส์, การผลิต</div>
+                    <div class="bases">ฐาน Fleet: กทม., ปทุมธานี, หนองแค</div>
+                </div>
+                <div class="map-zone" data-zone="eec">
+                    <div class="zone-title">EEC (Eastern Economic Corridor)</div>
+                    <div class="industries">ปิโตรเคมี, EV, อิเล็กทรอนิกส์</div>
+                    <div class="bases">ฐาน Fleet: ศรีราชา, บางปะกง, มาบข่า</div>
+                </div>
+                <div class="map-zone" data-zone="west">
+                    <div class="zone-title">ภาคตะวันตก</div>
+                    <div class="industries">เกษตรแปรรูป, พลังงาน, กระดาษ</div>
+                    <div class="bases">ฐาน Fleet: ด่านช้าง, สมุทรสงคราม</div>
+                </div>
+                <div class="map-zone" data-zone="south">
+                    <div class="zone-title">ภาคใต้</div>
+                    <div class="industries">ยางพารา, ประมง, ท่องเที่ยว</div>
+                    <div class="bases">ฐาน Fleet: สุราษฎร์ธานี, สงขลา</div>
+                </div>
+            </div>
+
+            <div id="zone-detail" class="zone-detail-card hidden">
+                <h3 class="text-xl font-bold text-slate-800 mb-2" id="zone-detail-title"></h3>
+                <p class="text-slate-600 mb-2" id="zone-detail-industries"></p>
+                <p class="text-slate-500 text-sm" id="zone-detail-bases"></p>
+                <p class="mt-4 font-semibold text-blue-600">💡 โอกาสสำหรับ PTGLG:</p>
+                <p class="text-slate-700" id="zone-detail-opportunity"></p>
+            </div>
+        </section>
+
+        <section id="strategy" class="scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">สรุปกลยุทธ์เพื่อการเติบโต</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">แนวทาง 3 แกนหลักเพื่อผลักดันให้ PTGLG เติบโตอย่างยั่งยืน</p>
+            <div class="space-y-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg flex items-start space-x-4">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl font-bold">1</div>
+                    <div>
+                        <h4 class="font-bold text-xl">ครองตลาดหลัก (Core Market)</h4>
+                        <p>ใช้ Fleet ขนส่งก๊าซอุตสาหกรรมที่มีอยู่บุกตลาดออกซิเจนและไนโตรเจนอย่างเต็มที่ โดยเน้นลูกค้าในกลุ่มการแพทย์, อิเล็กทรอนิกส์ และ EEC</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg flex items-start space-x-4">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-2xl font-bold">2</div>
+                    <div>
+                        <h4 class="font-bold text-xl">ลงทุนในอนาคต (Future Growth)</h4>
+                        <p>วางตำแหน่งเป็นผู้นำ "Green Logistics" โดยเริ่มจากรถ EV ที่มีอยู่และวางแผนลงทุนใน Fleet สำหรับขนส่งไฮโดรเจนและก๊าซคาร์บอนต่ำ สร้างพันธมิตรกับผู้ผลิตพลังงานสะอาด</p>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg flex items-start space-x-4">
+                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-2xl font-bold">3</div>
+                    <div>
+                        <h4 class="font-bold text-xl">เพิ่มประสิทธิภาพสูงสุด (Optimization)</h4>
+                        <p>นำเทคโนโลยีการจัดการ Fleet (Fleet Management System) มาใช้เพื่อเพิ่มประสิทธิภาพ ลดต้นทุน และสร้างความน่าเชื่อถือให้กับบริการขนส่งทั้งหมด ทั้งในกลุ่มก๊าซและน้ำมัน</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto py-4 px-5 text-center">
+            <p>&copy; 2025 PTG Logistics Co., Ltd. การวิเคราะห์นี้จัดทำขึ้นเพื่อเป็นข้อมูลประกอบการพิจารณาเชิงกลยุทธ์</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const marketData = {
+                years: [2023, 2024, 2025, 2026, 2027, 2028, 2029, 2030],
+                revenue: [652.3, 702.5, 756.6, 814.8, 877.5, 945.1, 1018.0, 1093.0]
+            };
+
+            const marketShareData = {
+                labels: ['ออกซิเจน', 'ไนโตรเจน', 'ไฮโดรเจน', 'คาร์บอนไดออกไซด์', 'อื่นๆ'],
+                data: [32.98, 25, 15, 12, 15.02]
+            };
+
+            const lineChartCtx = document.getElementById('marketGrowthChart').getContext('2d');
+            new Chart(lineChartCtx, {
+                type: 'line',
+                data: {
+                    labels: marketData.years,
+                    datasets: [{
+                        label: 'มูลค่าตลาด (ล้าน USD)',
+                        data: marketData.revenue,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.dataset.label}: ${context.parsed.y.toFixed(1)}M USD`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value + 'M';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const doughnutChartCtx = document.getElementById('marketShareChart').getContext('2d');
+            new Chart(doughnutChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: marketShareData.labels,
+                    datasets: [{
+                        label: 'ส่วนแบ่งตลาด',
+                        data: marketShareData.data,
+                        backgroundColor: ['#2563eb', '#16a34a', '#9333ea', '#f59e0b', '#64748b'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.parsed.toFixed(2)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            const tabs = document.querySelectorAll('.tab-button');
+            const sections = document.querySelectorAll('.content-section');
+
+            function activateTab(tabId) {
+                tabs.forEach(tab => {
+                    if (tab.dataset.tab === tabId) {
+                        tab.classList.add('active');
+                    } else {
+                        tab.classList.remove('active');
+                    }
+                });
+
+                sections.forEach(section => {
+                    if (section.id === tabId) {
+                        section.classList.add('active');
+                    } else {
+                        section.classList.remove('active');
+                    }
+                });
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    activateTab(tab.dataset.tab);
+                });
+            });
+
+            activateTab('oxygen');
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const navLinks = document.querySelectorAll('.nav-button');
+            const pageSections = document.querySelectorAll('main > section');
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href').substring(1) === entry.target.id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            pageSections.forEach(section => {
+                observer.observe(section);
+            });
+
+            const mapZones = document.querySelectorAll('.map-zone');
+            const zoneDetailCard = document.getElementById('zone-detail');
+            const zoneDetails = {
+                north: {
+                    title: "ภาคเหนือ",
+                    industries: "เกษตรแปรรูป, หัตถกรรม, ท่องเที่ยว",
+                    bases: "ฐาน Fleet ใกล้เคียง: เชียงใหม่, พิษณุโลก",
+                    opportunity: "ภาคเหนือมีโอกาสในอุตสาหกรรมเกษตรแปรรูปที่ต้องการก๊าซไนโตรเจนและ CO2 รวมถึงการขนส่งก๊าซสำหรับภาคการแพทย์และธุรกิจโรงแรมที่เติบโตจากการท่องเที่ยว"
+                },
+                northeast: {
+                    title: "ภาคตะวันออกเฉียงเหนือ",
+                    industries: "เกษตรกรรม, อุตสาหกรรมน้ำตาล, ปิโตรเลียม (สำรวจและผลิต), โลจิสติกส์",
+                    bases: "ฐาน Fleet ใกล้เคียง: ขอนแก่น, นครราชสีมา, อุดรธานี",
+                    opportunity: "ภาคตะวันออกเฉียงเหนือมีการเติบโตของอุตสาหกรรมเกษตรแปรรูปและพลังงาน โอกาสในการขยายการขนส่งก๊าซออกซิเจนและไนโตรเจนสำหรับโรงงานอุตสาหกรรม และการสนับสนุนการสำรวจปิโตรเลียม"
+                },
+                central: {
+                    title: "ภาคกลางและปริมณฑล",
+                    industries: "อาหารและเครื่องดื่ม, อิเล็กทรอนิกส์, การผลิตทั่วไป, คลังสินค้า, สุขภาพ",
+                    bases: "ฐาน Fleet ใกล้เคียง: กรุงเทพฯ, ปทุมธานี, หนองแค, วังน้อย",
+                    opportunity: "เป็นพื้นที่ที่มีความต้องการก๊าซหลากหลายชนิดสูงจากภาคบริโภคและการผลิต โอกาสในการเป็น Hub ขนส่งก๊าซทุกประเภท รวมถึงการขยายบริการให้แก่โรงพยาบาลและอุตสาหกรรมอาหาร"
+                },
+                eec: {
+                    title: "EEC (Eastern Economic Corridor)",
+                    industries: "ปิโตรเคมี, ยานยนต์ EV, อิเล็กทรอนิกส์, พลังงานสะอาด, การแพทย์",
+                    bases: "ฐาน Fleet ใกล้เคียง: ศรีราชา, บางปะกง, มาบข่า",
+                    opportunity: "EEC คือศูนย์กลางอุตสาหกรรมไฮเทคและฐานการผลิตใหม่ โอกาสในการขยายการขนส่งก๊าซอุตสาหกรรมโดยเฉพาะออกซิเจนสำหรับโรงพยาบาลและโรงงาน และไฮโดรเจนสำหรับ EV และเหล็กสีเขียว"
+                },
+                west: {
+                    title: "ภาคตะวันตก",
+                    industries: "เกษตรแปรรูป, พลังงาน (โรงไฟฟ้า), กระดาษ, อุปโภคบริโภค",
+                    bases: "ฐาน Fleet ใกล้เคียง: ด่านช้าง, สมุทรสงคราม, บางสะพาน",
+                    opportunity: "มีโอกาสในอุตสาหกรรมแปรรูปอาหารที่ต้องการไนโตรเจนและ CO2 รวมถึงการขนส่งก๊าซให้กับโรงไฟฟ้าและโรงงานกระดาษ ใช้ประโยชน์จาก Fleet ขนส่งน้ำมันที่มีอยู่เพื่อขยายบริการในภูมิภาคนี้"
+                },
+                south: {
+                    title: "ภาคใต้",
+                    industries: "ยางพารา, ปาล์มน้ำมัน, ประมง, ท่องเที่ยว, อุตสาหกรรมแปรรูป",
+                    bases: "ฐาน Fleet ใกล้เคียง: สุราษฎร์ธานี, สงขลา",
+                    opportunity: "ภาคใต้มีอุตสาหกรรมเกษตรแปรรูปและประมงที่ต้องการก๊าซ เช่น ไนโตรเจนเพื่อการถนอมอาหาร รวมถึงโอกาสในการขนส่งก๊าซสำหรับภาคการท่องเที่ยวและบริการสุขภาพที่กำลังเติบโต"
+                }
+            };
+
+            mapZones.forEach(zone => {
+                zone.addEventListener('click', () => {
+                    const zoneId = zone.dataset.zone;
+                    const detail = zoneDetails[zoneId];
+
+                    document.getElementById('zone-detail-title').textContent = detail.title;
+                    document.getElementById('zone-detail-industries').textContent = `อุตสาหกรรม: ${detail.industries}`;
+                    document.getElementById('zone-detail-bases').textContent = detail.bases;
+                    document.getElementById('zone-detail-opportunity').textContent = detail.opportunity;
+                    
+                    mapZones.forEach(z => z.classList.remove('active'));
+                    zone.classList.add('active');
+
+                    zoneDetailCard.classList.remove('hidden');
+                    zoneDetailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
