@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: "Corporate Blue & Neutral Gray" - A professional and clean palette using shades of blue for key elements and highlights, combined with neutral grays for text and backgrounds to ensure readability and a modern, trustworthy feel. -->
-    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. It starts with a high-level market overview (the "What"), then allows users to explore specific opportunities in a "Deep Dive" section using interactive tabs (the "How"). This is followed by a section on leveraging existing assets ("With What"), a detailed "3-Year Implementation Plan", and a conceptual "Customer Group Map" to visualize geographic opportunities, new sections for "CLMV Comparative Trends", "Top-Use Industries (Thailand) List", "Joint Investment Plans with Key Industrial Plants", and "PTGLG Transport Route Linkage", concluding with strategic recommendations. This structure guides the user from general market context to specific, actionable insights relevant to PTGLG, including operational plans, market visualization, regional expansion, and strategic partnerships, enhancing understanding and decision-making. -->
+    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. It starts with a high-level market overview (the "What"), then allows users to explore specific opportunities in a "Deep Dive" section using interactive tabs (the "How"). This is followed by a section on leveraging existing assets ("With What"), a detailed "3-Year Implementation Plan", a conceptual "Customer Group Map" to visualize geographic opportunities, new sections for "CLMV Comparative Trends", "Top-Use Industries (Thailand) List", "Joint Investment Plans with Key Industrial Plants", "PTGLG Transport Route Linkage", and a new "Collaboration with Other Industrial Estates" section, concluding with strategic recommendations. This structure guides the user from general market context to specific, actionable insights relevant to PTGLG, including operational plans, market visualization, regional expansion, and strategic partnerships, enhancing understanding and decision-making. -->
     <!-- Visualization & Content Choices: 
         1. Market Growth (Line Chart): Goal: Show change over time. Viz: Chart.js Line Chart. Interaction: Hover for tooltips with specific values. Justification: Clearly visualizes the strong upward trend and 7.7% CAGR.
         2. Market Share by Gas (Doughnut Chart): Goal: Show proportions. Viz: Chart.js Doughnut Chart. Interaction: Hover to see percentage share. Justification: Immediately communicates the dominance of Oxygen and the composition of the market.
@@ -23,6 +23,7 @@
         9. Top-Use Industries (Thailand) List: Goal: Identify key demand sectors. Viz: Simple list with descriptions. Interaction: None. Justification: Pinpoints high-value customer segments.
         10. Joint Investment Plans: Goal: Outline partnership strategies. Viz: Textual description of approaches. Interaction: None. Justification: Details how to deepen relationships with major clients.
         11. PTGLG Transport Route Linkage: Goal: Show logistical advantages. Viz: Textual explanation of leveraging existing network. Interaction: None. Justification: Highlights operational efficiency and competitive edge.
+        12. Collaboration with Other Industrial Estates: Goal: Detail specific collaboration models and mutual benefits. Viz: Textual analysis and a comparative table. Interaction: None. Justification: Provides actionable strategies for expanding market reach through strategic alliances with industrial estate developers.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -131,6 +132,25 @@
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             margin-top: 1.5rem;
         }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #e2e8f0; /* slate-200 */
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: #e0f2fe; /* blue-50 */
+            font-weight: 600;
+            color: #1e3a8a; /* blue-900 */
+        }
+        .comparison-table tr:nth-child(even) {
+            background-color: #f8fafc; /* slate-50 */
+        }
     </style>
 </head>
 <body class="text-slate-700">
@@ -152,6 +172,7 @@
                         <a href="#top-industries" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">อุตสาหกรรมหลัก</a>
                         <a href="#joint-investments" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ลงทุนร่วม</a>
                         <a href="#transport-linkage" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">เชื่อมโยงขนส่ง</a>
+                        <a href="#industrial-estate-collaboration" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">ร่วมมือกับนิคมฯ</a>
                         <a href="#strategy" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-md text-sm font-medium">สรุปกลยุทธ์</a>
                     </div>
                 </div>
@@ -476,6 +497,55 @@
                         <p>พิจารณาการเชื่อมโยงเส้นทางขนส่งจากฐาน Fleet ในภาคตะวันออกเฉียงเหนือ (เช่น ขอนแก่น, อุดร) ไปยังประเทศเพื่อนบ้านในกลุ่ม CLMV (ลาว, กัมพูชา) เพื่อรองรับอุปสงค์ที่กำลังเติบโตในภูมิภาคนี้</p>
                     </li>
                 </ul>
+            </div>
+        </section>
+
+        <section id="industrial-estate-collaboration" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-slate-800 mb-2 text-center">โอกาสในการร่วมมือกับนิคมอุตสาหกรรมอื่นๆ</h2>
+            <p class="text-center text-lg text-slate-500 mb-8">การขยายความร่วมมือกับผู้พัฒนานิคมอุตสาหกรรมอื่นๆ นอกเหนือจาก WHA เพื่อเข้าถึงฐานลูกค้าใหม่และเสริมสร้างตำแหน่งทางการตลาด</p>
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <p class="mb-4">ประเทศไทยมีนิคมอุตสาหกรรมจำนวนมากที่ดำเนินการโดยผู้พัฒนาหลายราย เช่น การนิคมอุตสาหกรรมแห่งประเทศไทย (กนอ. หรือ IEAT), บริษัท สวนอุตสาหกรรมโรจนะ จำกัด (มหาชน), บริษัท อมตะ คอร์ปอเรชัน จำกัด (มหาชน) เป็นต้น การร่วมมือกับนิคมฯ เหล่านี้จะเปิดโอกาสให้ PTGLG เข้าถึงกลุ่มโรงงานและอุตสาหกรรมที่หลากหลายมากขึ้น</p>
+                
+                <h3 class="text-xl font-bold text-blue-700 mb-4">รูปแบบความร่วมมือที่เป็นไปได้:</h3>
+                <ul class="list-disc pl-5 space-y-2 text-slate-600 mb-6">
+                    <li>**การเป็นผู้ให้บริการโลจิสติกส์ก๊าซอุตสาหกรรมหลัก:** เสนอตัวเป็นพันธมิตรด้านการขนส่งก๊าซอุตสาหกรรม (ออกซิเจน, ไนโตรเจน, ไฮโดรเจน, CO2, อาร์กอน) ให้กับโรงงานในนิคมฯ</li>
+                    <li>**การจัดตั้งศูนย์กระจายสินค้า/คลังก๊าซย่อย:** พิจารณาการจัดตั้งจุดบริการขนาดเล็กภายในหรือใกล้เคียงนิคมฯ ที่มีศักยภาพสูง เพื่อเพิ่มความรวดเร็วและลดต้นทุนการส่งมอบ</li>
+                    <li>**การพัฒนาระบบนิเวศพลังงานสะอาด:** ร่วมมือในการพัฒนาโครงสร้างพื้นฐานสำหรับก๊าซแห่งอนาคต เช่น สถานีบริการไฮโดรเจน หรือระบบขนส่งสำหรับโครงการ CCUS</li>
+                    <li>**การนำเสนอโซลูชัน Green Logistics:** โปรโมทบริการขนส่งด้วยรถ EV และโซลูชันด้านความยั่งยืนอื่นๆ เพื่อดึงดูดโรงงานที่ให้ความสำคัญกับสิ่งแวดล้อม</li>
+                    <li>**การลงทุนในหน่วยผลิตก๊าซในสถานที่ (On-site Gas Generation):** สำรวจโอกาสในการร่วมลงทุนกับนิคมฯ หรือลูกค้ารายใหญ่ เพื่อติดตั้งหน่วยผลิตก๊าซภายในพื้นที่นิคมฯ</li>
+                </ul>
+
+                <h3 class="text-xl font-bold text-blue-700 mb-4">ประโยชน์ที่ได้รับจากการร่วมมือ:</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>สำหรับ PTGLG</th>
+                            <th>สำหรับนิคมอุตสาหกรรม / ลูกค้าในนิคมฯ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>**เข้าถึงฐานลูกค้าใหม่:** เปิดตลาดสู่โรงงานจำนวนมากในนิคมฯ ที่ยังไม่เป็นลูกค้าโดยตรง</td>
+                            <td>**เพิ่มมูลค่าบริการนิคมฯ:** มีบริการโลจิสติกส์ก๊าซที่ครบวงจรและเชื่อถือได้ ดึงดูดนักลงทุนใหม่</td>
+                        </tr>
+                        <tr>
+                            <td>**ลดต้นทุนการดำเนินงาน:** การขนส่งแบบรวมศูนย์ในพื้นที่นิคมฯ ช่วยลดระยะทางและเพิ่มประสิทธิภาพ</td>
+                            <td>**ลดต้นทุนและเพิ่มประสิทธิภาพ:** ลูกค้าได้รับก๊าซในราคาที่แข่งขันได้และบริการที่รวดเร็วขึ้น</td>
+                        </tr>
+                        <tr>
+                            <td>**สร้างภาพลักษณ์ผู้นำ Green Logistics:** เสริมความแข็งแกร่งในฐานะผู้ให้บริการโลจิสติกส์ที่ยั่งยืน</td>
+                            <td>**สนับสนุนเป้าหมายความยั่งยืน:** นิคมฯ และลูกค้าสามารถลดการปล่อยคาร์บอนในซัพพลายเชนได้</td>
+                        </tr>
+                        <tr>
+                            <td>**โอกาสเติบโตระยะยาว:** การเชื่อมโยงกับแผนพัฒนาของนิคมฯ สร้างโอกาสทางธุรกิจต่อเนื่อง</td>
+                            <td>**ความมั่นคงด้านอุปทาน:** ลูกค้ามั่นใจได้ว่าจะได้รับก๊าซอย่างต่อเนื่องและมีคุณภาพ</td>
+                        </tr>
+                        <tr>
+                            <td>**สร้างรายได้ใหม่:** จากการขยายบริการและอาจรวมถึงการร่วมลงทุนในโครงสร้างพื้นฐาน</td>
+                            <td>**นวัตกรรมและเทคโนโลยี:** เข้าถึงเทคโนโลยีการขนส่งก๊าซที่ทันสมัย เช่น โครงสร้างพื้นฐานไฮโดรเจน</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
