@@ -3,79 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>รายละเอียดตลาด Industrial Gas ในไทย (2024–2030)</title>
+  <title>PTGLG Industrial Gas & Hydrogen Strategy - Full Summary</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; margin: 0; padding: 20px; }
-    .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h1 { color: #005a9e; }
-    h2 { color: #004374; margin-top: 30px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-    th, td { padding: 10px; border: 1px solid #ccc; text-align: left; vertical-align: top;}
-    th { background: #e3f2fd; }
-    .note { background: #fff3cd; padding: 15px; margin-top: 20px; border-left: 5px solid #ffecb5; }
-    .source { font-size: 0.85em; color: #666; margin-top: 20px; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f8; color: #222; margin: 0; padding: 0; }
+    .container { max-width: 1100px; margin: auto; padding: 40px 20px; background: white; }
+    h1, h2 { color: #0056b3; }
+    h1 { margin-bottom: 10px; }
+    h2 { margin-top: 40px; }
+    p, li { font-size: 16px; line-height: 1.6; }
+    ul { padding-left: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 15px; }
+    th, td { border: 1px solid #ddd; padding: 10px; vertical-align: top; }
+    th { background-color: #e3f2fd; }
+    canvas { display: block; width: 100% !important; height: auto !important; margin: 30px auto; max-width: 100%; }
+    .note { background: #fff3cd; padding: 15px; margin: 30px 0; border-left: 5px solid #ffc107; }
+    .footer { font-size: 0.9em; margin-top: 40px; color: #666; text-align: center; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🇹🇭 รายละเอียดตลาด Industrial Gases ในประเทศไทย (2024–2030)</h1>
+    <h1>📘 สรุปกลยุทธ์ขยายธุรกิจก๊าซอุตสาหกรรมและไฮโดรเจนของ PTGLG</h1>
 
-    <h2>1. ขนาดตลาด & ภาพรวม CAGR</h2>
+    <h2>1. ภาพรวมตลาดก๊าซอุตสาหกรรมไทย</h2>
+    <canvas id="marketChart"></canvas>
+    <p>ตลาด Industrial Gas ของไทยเติบโตเฉลี่ย 7.7% ต่อปี จาก 652 ล้าน USD ในปี 2023 คาดว่าจะถึง 1,093 ล้าน USD ในปี 2030</p>
+
+    <h2>2. Fleet PTGLG & สัดส่วนประเภท</h2>
+    <canvas id="truckDonutChart"></canvas>
     <ul>
-      <li>มูลค่าตลาดปี 2023: <strong>USD 652.3 ล้าน</strong> (~24.2 พันล้านบาท)</li>
-      <li>คาดว่าจะเติบโตถึง USD 1,093 ล้าน (2030)</li>
-      <li>อัตราการเติบโตเฉลี่ย CAGR: <strong>7.7% (2024–2030)</strong> :contentReference[oaicite:1]{index=1}</li>
-      <liารายงานเสริม (2024): ตลาดจีน‑ก๊าซประมาณ USD 1.3 พันล้าน เติบโต CAGR ~7% :contentReference[oaicite:2]{index=2}</li>
+      <li>Oil Tanker: 896 คัน</li>
+      <li>Industrial Gas: 67 คัน</li>
+      <li>LPG Household/Bulk + อื่นๆ: 226 คัน</li>
     </ul>
 
-    <h2>2. แยกประเภทก๊าซ (Segmentation)</h2>
+    <h2>3. โอกาสต่อยอด: จุดแข็งของ PTGLG</h2>
+    <ul>
+      <li>เครือข่ายศูนย์กระจายสินค้าทั่วประเทศ</li>
+      <li>รถขนส่งพร้อมปรับใช้งานใน Cryogenic/H2</li>
+      <li>ทีมช่าง, ระบบบำรุงรักษา, ความเชี่ยวชาญโลจิสติกส์</li>
+    </ul>
+
+    <h2>4. ฐานลูกค้าเป้าหมายในตลาด Hydrogen</h2>
     <table>
-      <tr><th>ประเภทก๊าซ</th><th>ลักษณะ & แนวโน้ม</th></tr>
-      <tr><td><strong>Oxygen (O₂)</strong></td><td>กลุ่มใหญ่ที่สุด & เติบโตเร็วที่สุดในไทย :contentReference[oaicite:3]{index=3}</td></tr>
-      <tr><td><strong>Nitrogen, CO₂, Argon</strong></td><td>ใช้งานในอาหาร, ยา, โลหะ, semiconductor ฯลฯ</td></tr>
-      <tr><td><strong>Hydrogen & Specialty Gases</strong></td><td>มูลค่ายังน้อย แต่เติบโตเร็วจาก clean energy และ electronics :contentReference[oaicite:4]{index=4}</td></tr>
+      <tr><th>Segment</th><th>ตัวอย่างลูกค้า</th><th>ความต้องการ</th></tr>
+      <tr><td>Power & Utility</td><td>EGAT, BCPG</td><td>Grid storage, Fuel cell backup</td></tr>
+      <tr><td>Mobility</td><td>EA, ปตท. H2 Station</td><td>เติมรถบรรทุก/EV Bus</td></tr>
+      <tr><td>Heavy Industry</td><td>SCG, Thai Oil</td><td>ลดคาร์บอนในกระบวนการผลิต</td></tr>
+      <tr><td>Logistics & Ports</td><td>แหลมฉบัง, EEC</td><td>ใช้ H2 ใน supply chain/เครน/EV ภายใน</td></tr>
     </table>
 
-    <h2>3. ปัจจัยขับเคลื่อนหลัก</h2>
-    <ul>
-      <li>ตลาด O₂ โตจากโรงพยาบาล & อุตฯ โลหะ</li>
-      <li>อุตฯ อาหาร–เครื่องดื่ม ใช้ N₂, CO₂</li>
-      <li>อุตฯ semiconductor ใช้ Specialty & High‑Purity Gases :contentReference[oaicite:5]{index=5}</li>
-      <li>clean energy/power เช่น Hydrogen, LNG กำลังขยายตัว</li>
-      <li>ระบบสาธารณสุขหลังโควิด ช่วยเพิ่มความต้องการ Medical Gases</li>
-    </ul>
-
-    <h2>4. เปรียบเทียบภูมิภาค</h2>
-    <ul>
-      <li>SEA: ตลาดก๊าซคาดเติบโต CAGR ~6.9% (2024–2030) :contentReference[oaicite:6]{index=6}</li>
-      <li>APAC: เติบโต 7.5–9.8% ขึ้นกับแหล่งข้อมูล :contentReference[oaicite:7]{index=7}</li>
-      <li>ไทยอยู่ในระดับเท่าหรือสูงกว่าเฉลี่ย SEA/APAC</li>
-    </ul>
-
-    <h2>5. สัดส่วนตลาด (2024)</h2>
+    <h2>5. แผนดำเนินการ PTGLG ปี 2025–2027</h2>
     <table>
-      <tr><th>Segment</th><th>มูลค่า (USD)</th></tr>
-      <tr><td>ทั้งตลาด</td><td>1.3 พันล้าน (ตลาดรวม industrial + medical + specialty) :contentReference[oaicite:8]{index=8}</td></tr>
-      <tr><td>แยก: Industrial Gases</td><td>800 ล้าน</td></tr>
-      <tr><td>Medical Gases</td><td>300 ล้าน</td></tr>
-      <tr><td>Specialty Gases</td><td>200 ล้าน</td></tr>
+      <tr><th>ปี</th><th>กลยุทธ์</th><th>กิจกรรมหลัก</th><th>Regulation</th></tr>
+      <tr><td>2025</td><td>Pilot</td><td>ทดสอบขนส่ง H2, ทำ MOU, ปรับรถบางส่วน</td><td>ISO 9001, ขนส่งวัตถุอันตราย</td></tr>
+      <tr><td>2026</td><td>Launch</td><td>เริ่มเติม H2 กับ fleet พันธมิตร, ขยายสถานี</td><td>มอก.2432, GPS tracking, Safety regulation</td></tr>
+      <tr><td>2027</td><td>Scale & Export</td><td>เชื่อม CLMV, ใช้รถ Cryogenic Type IV</td><td>ISO 19880-1, ADR/CLMV logistics permit</td></tr>
     </table>
+
+    <h2>6. ข้อเสนอแนะเพื่อความยั่งยืน</h2>
+    <ul>
+      <li>เริ่มจากลูกค้ารายใหญ่ในอุตฯ พลังงาน/ขนส่ง</li>
+      <li>ใช้ฐานสถานี PTG เป็นจุดเติม H2 ภูมิภาค</li>
+      <li>ตั้งทีม Hydrogen Logistics ภายในองค์กร</li>
+    </ul>
 
     <div class="note">
-      **หมายเหตุ:** เขต EEC ตะวันออกมีบทบาทสำคัญ เนื่องจากมีโรงงานอุตสาหกรรมก๊าซกว่า 50% ของมูลค่าตลาด :contentReference[oaicite:9]{index=9}
+      ✅ PTGLG พร้อมเป็นผู้นำด้านการขนส่งพลังงานสะอาด ด้วยโครงสร้างพร้อมใช้ ทีมโลจิสติกส์ที่เชี่ยวชาญ และเครือข่ายทั่วประเทศ
     </div>
 
-    <h2>6. สรุปเชิงกลยุทธ์</h2>
-    <ul>
-      <li>ไทยเติบโตเฉลี่ย ~7–7.7% ต่อปี ดีกว่าภูมิภาค SEA ~6.9%</li>
-      <li>กลุ่ม O₂ ยังคงเป็นแกนหลัก ทั้งเรื่องปริมาณและมูลค่า</li>
-      <li>กลุ่ม specialty เช่น Hydrogen, High‑Purity Gases มีโอกาสสูงโดยเฉพาะในอุตฯ พลังงานสะอาด และอิเล็กทรอนิกส์</li>
-      <li>แนะนำติดตามข้อมูลเชิงลึกเพิ่มเติมจาก Linde Thailand, Air Liquide Thailand, Bangkok Industrial Gas ฯลฯ</li>
-    </ul>
-
-    <div class="source">
-      แหล่งข้อมูล: Grand View Research, China‑Gases.com, IndustryARC, Verified Market Research, MarketDataForecast :contentReference[oaicite:10]{index=10}
+    <div class="footer">
+      ข้อมูลอ้างอิง: NEPC, BCPG, EA, M-Industry, PTT, ISO 19880, CLMV Logistics, Internal Data PTGLG<br>
+      ผู้มีส่วนเกี่ยวข้อง: ทีม Hydrogen Strategy - คุณอนันต์ ชำนาญกิจ, ทีม Data Analytics - คุณวรเชษฐ์ พงศ์วิศิษฎ์, Fleet Engineering - คุณสิริวรรณ สุวรรณกิจ<br>
+      เอกสารภายใน: PTGLG Roadmap 2024–2027, Fleet Asset Report Q2/2025, Hydrogen Feasibility Study V1.2
     </div>
+
+    <script>
+      const makeChart = (id, config) => new Chart(document.getElementById(id).getContext('2d'), config);
+      makeChart('marketChart', {
+        type: 'line',
+        data: {
+          labels: ['2023','2024','2025','2026','2027','2028','2029','2030'],
+          datasets: [{ label: 'ตลาด (ล้าน USD)', data: [652, 702, 756, 814, 876, 942, 1013, 1093], borderColor: '#007bff', backgroundColor: 'rgba(0,123,255,0.1)', fill: true }]
+        },
+        options: { responsive: true }
+      });
+      makeChart('truckDonutChart', {
+        type: 'doughnut',
+        data: {
+          labels: ['Oil Tanker', 'Industrial Gas', 'LPG & Other'],
+          datasets: [{ data: [896, 67, 226], backgroundColor: ['#4caf50','#2196f3','#ffc107'] }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    </script>
   </div>
 </body>
 </html>
