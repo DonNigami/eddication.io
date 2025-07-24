@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: "Corporate Blue & Neutral Gray" - A professional and clean palette using shades of blue for key elements and highlights, combined with neutral grays for text and backgrounds to ensure readability and a modern, trustworthy feel. -->
-    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. It starts with a high-level market overview (the "What"), then allows users to explore specific opportunities in a "Deep Dive" section using interactive tabs (the "How"). This is followed by a section on leveraging existing assets ("With What"), a detailed "3-Year Implementation Plan", a conceptual "Customer Group Map" to visualize geographic opportunities, new sections for "CLMV Comparative Trends", "Top-Use Industries (Thailand) List", "Joint Investment Plans with Key Industrial Plants", "PTGLG Transport Route Linkage", "Collaboration with Other Industrial Estates", and a new "Chemical and Hazardous Chemical Transport" section, concluding with strategic recommendations. This structure guides the user from general market context to specific, actionable insights relevant to PTGLG, including operational plans, market visualization, regional expansion, and strategic partnerships, enhancing understanding and decision-making. -->
+    <!-- Application Structure Plan: The SPA is designed as a strategic dashboard and interactive report. The navigation has been condensed into 4 main categories: "ภาพรวมตลาด" (Market Overview, Deep Dive, CLMV Trends, Top Industries), "ศักยภาพ & แผน" (Fleet Capabilities, 3-Year Plan), "เครือข่าย & ลูกค้า" (Customer Map, Transport Linkage), and "กลยุทธ์ & โอกาสใหม่" (Joint Investments, Industrial Estate Collaboration, Chemical Transport, Overall Strategy). This condensed structure improves navigability while retaining all original detailed content, enhancing user experience across devices. -->
     <!-- Visualization & Content Choices: 
         1. Market Growth (Line Chart): Goal: Show change over time. Viz: Chart.js Line Chart. Interaction: Hover for tooltips with specific values. Justification: Clearly visualizes the strong upward trend and 7.7% CAGR.
         2. Market Share by Gas (Doughnut Chart): Goal: Show proportions. Viz: Chart.js Doughnut Chart. Interaction: Hover to see percentage share. Justification: Immediately communicates the dominance of Oxygen and the composition of the market.
@@ -152,6 +152,34 @@
         .comparison-table tr:nth-child(even) {
             background-color: #f8fafc; /* slate-50 */
         }
+        /* Responsive adjustments for navigation */
+        @media (max-width: 767px) {
+            .nav-button {
+                font-size: 0.65rem; /* Smaller font for very small screens */
+                padding: 0.3rem 0.5rem; /* Smaller padding */
+            }
+            .flex-wrap {
+                justify-content: center; /* Center align buttons on small screens */
+            }
+            .ml-4, .ml-10 {
+                margin-left: 0;
+            }
+            .space-x-1 {
+                margin-left: 0.25rem; /* Reduce space between buttons */
+            }
+            .space-x-1 > *:not(:first-child) {
+                margin-left: 0.25rem;
+            }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .nav-button {
+                font-size: 0.75rem; /* Medium font for tablets */
+                padding: 0.5rem 0.75rem; /* Medium padding */
+            }
+            .space-x-2 > *:not(:first-child) {
+                margin-left: 0.5rem;
+            }
+        }
     </style>
 </head>
 <body class="text-slate-700">
@@ -162,21 +190,13 @@
                 <div class="flex-shrink-0">
                     <h1 class="text-xl md:text-2xl font-bold text-slate-800">PTGLG: กลยุทธ์สู่ผู้นำตลาดก๊าซอุตสาหกรรม</h1>
                 </div>
-                <!-- Updated navigation for responsiveness -->
+                <!-- Condensed navigation for responsiveness -->
                 <div class="hidden md:block">
                     <div class="ml-4 md:ml-10 flex flex-wrap items-baseline space-x-1 md:space-x-2 lg:space-x-4">
                         <a href="#overview" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ภาพรวมตลาด</a>
-                        <a href="#deepdive" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">เจาะลึกโอกาส</a>
-                        <a href="#fleet" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ศักยภาพ Fleet</a>
-                        <a href="#plan" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">แผนดำเนินงาน 3 ปี</a>
-                        <a href="#customer-map" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">แผนที่ลูกค้า</a>
-                        <a href="#clmv-trends" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">แนวโน้ม CLMV</a>
-                        <a href="#top-industries" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">อุตสาหกรรมหลัก</a>
-                        <a href="#joint-investments" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ลงทุนร่วม</a>
-                        <a href="#transport-linkage" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">เชื่อมโยงขนส่ง</a>
-                        <a href="#industrial-estate-collaboration" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ร่วมมือกับนิคมฯ</a>
-                        <a href="#chemical-transport" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ขนส่งสารเคมี</a>
-                        <a href="#strategy" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">สรุปกลยุทธ์</a>
+                        <a href="#fleet" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">ศักยภาพ & แผน</a>
+                        <a href="#customer-map" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">เครือข่าย & ลูกค้า</a>
+                        <a href="#joint-investments" class="nav-button text-slate-600 hover:bg-blue-500 hover:text-white px-2 py-1 rounded-md text-xs sm:text-sm font-medium">กลยุทธ์ & โอกาสใหม่</a>
                     </div>
                 </div>
             </div>
@@ -756,34 +776,62 @@
 
             activateTab('oxygen');
             
+            // Updated scroll-to-section logic for new menu structure
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
                     e.preventDefault();
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                    const targetId = this.getAttribute('href');
+                    // For main menu items, scroll to the beginning of the grouped section
+                    // For sub-sections, scroll directly to that sub-section
+                    let scrollTarget;
+                    if (targetId === '#overview' || targetId === '#fleet' || targetId === '#customer-map' || targetId === '#joint-investments') {
+                        scrollTarget = document.querySelector(targetId);
+                    } else {
+                        scrollTarget = document.querySelector(targetId);
+                    }
+                    
+                    if (scrollTarget) {
+                        scrollTarget.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
                 });
             });
 
             const navLinks = document.querySelectorAll('.nav-button');
-            const pageSections = document.querySelectorAll('main > section');
+            // Define main sections for active nav link highlighting
+            const mainSections = [
+                document.getElementById('overview'),
+                document.getElementById('fleet'),
+                document.getElementById('customer-map'),
+                document.getElementById('joint-investments') // This now covers strategy and new opportunities
+            ];
 
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
                         navLinks.forEach(link => {
                             link.classList.remove('active');
-                            if (link.getAttribute('href').substring(1) === entry.target.id) {
-                                link.classList.add('active');
-                            }
                         });
+                        // Determine which main nav link should be active
+                        if (entry.target.id === 'overview' || entry.target.id === 'deepdive' || entry.target.id === 'clmv-trends' || entry.target.id === 'top-industries') {
+                            document.querySelector('a[href="#overview"]').classList.add('active');
+                        } else if (entry.target.id === 'fleet' || entry.target.id === 'plan') {
+                            document.querySelector('a[href="#fleet"]').classList.add('active');
+                        } else if (entry.target.id === 'customer-map' || entry.target.id === 'transport-linkage') {
+                            document.querySelector('a[href="#customer-map"]').classList.add('active');
+                        } else if (entry.target.id === 'joint-investments' || entry.target.id === 'industrial-estate-collaboration' || entry.target.id === 'chemical-transport' || entry.target.id === 'strategy') {
+                            document.querySelector('a[href="#joint-investments"]').classList.add('active');
+                        }
                     }
                 });
-            }, { threshold: 0.5 });
+            }, { threshold: 0.3 }); // Lower threshold to activate sooner
 
-            pageSections.forEach(section => {
+            // Observe all relevant sections
+            document.querySelectorAll('main > section').forEach(section => {
                 observer.observe(section);
             });
+
 
             const mapZones = document.querySelectorAll('.map-zone');
             const zoneDetailCard = document.getElementById('zone-detail');
