@@ -831,6 +831,7 @@
             const sections = document.querySelectorAll('.content-section');
 
             function activateTab(tabId) {
+                // console.log('Activating tab:', tabId); // For debugging
                 tabs.forEach(tab => {
                     if (tab.dataset.tab === tabId) {
                         tab.classList.add('active');
@@ -851,6 +852,16 @@
             // Set initial active tab
             activateTab('oxygen');
             
+            // Re-attach click listeners for tab buttons
+            tabs.forEach(tab => {
+                tab.removeEventListener('click', tabClickHandler); // Remove old listener if any
+                tab.addEventListener('click', tabClickHandler);
+            });
+
+            function tabClickHandler(event) {
+                activateTab(event.currentTarget.dataset.tab);
+            }
+
             // Updated scroll-to-section logic for new menu structure
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
                 anchor.addEventListener('click', function (e) {
