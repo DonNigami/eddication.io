@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ลงทะเบียนร้านค้า</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    input, button {
+      display: block;
+      margin-top: 10px;
+      padding: 10px;
+      width: 100%;
+      max-width: 400px;
+      box-sizing: border-box;
+    }
+    label { margin-top: 15px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>แบบฟอร์มลงทะเบียนร้านค้า</h2>
+  <form id="registerForm">
+    <label>ชื่อ-นามสกุล</label>
+    <input type="text" id="fullname" required>
+
+    <label>ชื่อร้านค้า</label>
+    <input type="text" id="shopname" required>
+
+    <label>เลขประจำตัวผู้เสียภาษี</label>
+    <input type="text" id="taxid" required>
+
+    <button type="submit">บันทึกข้อมูล</button>
+  </form>
+
+  <script>
+    let userId = "";
+
+    async function initializeLiff() {
+      await liff.init({ liffId: "YOUR_LIFF_ID" });
+      if (!liff.isLoggedIn()) liff.login();
+      const profile = await liff.getProfile();
+      userId = profile.userId;
+    }
+
+    document.getElementById("registerForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const fullname = document.getElementById("fullname").value.trim();
+      const shopname = document.getElementById("shopname").value.trim();
+      const taxid = document.getElementById("taxid").value.trim();
+
+      const formData = new FormData();
+      formData.append("action", "register");
+      formData.append("userid", userId);
+      formData.append("fullname", fullname);
+      formData.append("shopname", shopname);
+      formData.append("taxid", taxid);
+
+      const response = await fetch("https://script.google.com/macros/s/PASTE_YOUR_DEPLOYED_WEBAPP_URL/exec", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+      alert(result.message);
+      if (result.status === "success") liff.closeWindow();
+    });
+
+    initializeLiff();
+  </script>
+</body>
+</html>
