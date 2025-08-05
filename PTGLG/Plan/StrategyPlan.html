@@ -18,6 +18,7 @@
         - Report Info: Strategy House -> Goal: Organize/Structure -> Viz: Diagram built with Flexbox/Grid (HTML/Tailwind) -> Interaction: Clickable pillars to expand and show details -> Justification: Makes the core strategic framework interactive and less static. Updated to include hydrogen, biomass, hazardous chemicals, industrial gases, warehouse, international, regional hub, partnership, M&A, and 4PL initiatives, aligning with image_3e3ea0.png and user's requests.
         - Report Info: Financial Projections -> Goal: Show Change/Trends -> Viz: Bar and Line Charts (Chart.js/Canvas) -> Interaction: Tooltips on hover -> Justification: Best practice for visualizing financial forecasts over time. Assumptions and data updated to reflect new business lines, accelerated growth from 2568 H2 onwards, the higher-margin nature of 4PL, and a Net Income target of 600+ MB.
         - Report Info: Roadmap/Timeline -> Goal: Show Process -> Viz: Horizontal Timeline (HTML/CSS) -> Interaction: None, static view -> Justification: Clearly shows the sequence of strategic implementation. Updated with hydrogen, biomass, hazardous chemicals, industrial gases, warehouse, international, regional hub, partnership, M&A, and 4PL milestones from 2568 H2 to 2573.
+        - NEW: TOWS Matrix Analysis -> Goal: Organize/Strategize -> Viz: HTML Table with detailed strategy descriptions -> Interaction: None, for strategic review -> Justification: Provides a structured output of strategic pairings from SWOT, crucial for detailed strategic planning.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -89,12 +90,28 @@
             transition: max-height 0.7s ease-in-out;
         }
         /* Default (Thai) */
-        .lang-en { display: none; }
+        .lang-en { display: none; } 
         .lang-th { display: inline-block; }
 
         /* When English is active */
         body.lang-en-active .lang-en { display: inline-block; }
         body.lang-en-active .lang-th { display: none; }
+
+        .tows-table th, .tows-table td {
+            padding: 0.75rem;
+            border: 1px solid #E5E7EB;
+            vertical-align: top;
+        }
+        .tows-table th {
+            background-color: #F3F4F6;
+            font-weight: 600;
+            text-align: center;
+        }
+        .tows-table td:first-child {
+            background-color: #F3F4F6;
+            font-weight: 600;
+            text-align: center;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -108,6 +125,7 @@
                 <div class="hidden md:flex space-x-6 items-center">
                     <a href="#dashboard" class="text-gray-600 font-medium"><span class="lang-th">ภาพรวม</span><span class="lang-en">Overview</span></a>
                     <a href="#analysis" class="text-gray-600 font-medium"><span class="lang-th">วิเคราะห์สถานการณ์</span><span class="lang-en">Analysis</span></a>
+                    <a href="#tows-matrix" class="text-gray-600 font-medium"><span class="lang-th">TOWS Matrix</span><span class="lang-en">TOWS Matrix</span></a>
                     <a href="#strategy-house" class="text-gray-600 font-medium"><span class="lang-th">Strategy House</span><span class="lang-en">Strategy House</span></a>
                     <a href="#financials" class="text-gray-600 font-medium"><span class="lang-th">ประมาณการ</span><span class="lang-en">Projections</span></a>
                     <a href="#roadmap" class="text-gray-600 font-medium"><span class="lang-th">แผนการดำเนินงาน</span><span class="lang-en">Roadmap</span></a>
@@ -121,6 +139,7 @@
         <div id="mobile-menu" class="hidden md:hidden">
             <a href="#dashboard" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">ภาพรวม</span><span class="lang-en">Overview</span></a>
             <a href="#analysis" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">วิเคราะห์สถานการณ์</span><span class="lang-en">Analysis</span></a>
+            <a href="#tows-matrix" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">TOWS Matrix</span><span class="lang-en">TOWS Matrix</span></a>
             <a href="#strategy-house" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">Strategy House</span><span class="lang-en">Strategy House</span></a>
             <a href="#financials" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">ประมาณการ</span><span class="lang-en">Projections</span></a>
             <a href="#roadmap" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">แผนการดำเนินงาน</span><span class="lang-en">Roadmap</span></a>
@@ -200,7 +219,7 @@
                         <h4 class="text-xl font-bold text-red-800 mb-3"><span class="lang-th">จุดอ่อน (Weaknesses)</span><span class="lang-en">Weaknesses</span></h4>
                         <ul class="space-y-2 list-disc list-inside text-gray-700">
                             <li><span class="lang-th">ประสบการณ์น้อยในอุตสาหกรรมอื่นๆ</span><span class="lang-en">Low experience in other industrial fields.</span></li>
-                            <li><span class="lang-th">การสร้างแบรนด์ (ยังคงถูกมองว่าเป็นธุรกิจขนส่งน้ำมัน)</span><span class="lang-en">Branding (still perceived as oil transport).</span></li>
+                            <li><span class="lang-th">การรับรู้แบรนด์นอกธุรกิจน้ำมันยังจำกัด</span><span class="lang-en">Branding (still perceived as oil transport).</span></li>
                             <li><span class="lang-th">กระบวนการที่ต้องใช้คนจำนวนมากเกินไป</span><span class="lang-en">Too many manual processes.</span></li>
                             <li><span class="lang-th">สถานที่ให้บริการบำรุงรักษาไม่ตรงกับที่ตั้งของลูกค้า</span><span class="lang-en">Site of maintenance services not matching customer's location.</span></li>
                             <li><span class="lang-th">ประสบการณ์น้อยในการดำเนินงาน DC (ศูนย์กระจายสินค้า)</span><span class="lang-en">Low experience in DC operations.</span></li>
@@ -231,7 +250,7 @@
                             <li><span class="lang-th">รถบรรทุกเครื่องยนต์ EURO5 จะเริ่มใช้ในปี 2567 และส่งผลกระทบต่อต้นทุนการลงทุนและต้นทุน AdBlue</span><span class="lang-en">EURO5 engine trucks will apply in 2024 and impact investment and AdBlue costs.</span></li>
                             <li><span class="lang-th">การแข่งขันในตลาดโลจิสติกส์รุนแรงจากผู้เล่นรายใหญ่และรายย่อย</span><span class="lang-en">Intense competition in the logistics market from large and small players.</span></li>
                             <li><span class="lang-th">ต้นทุนการดำเนินงานผันผวน (ราคาน้ำมัน, ค่าแรง)</span><span class="lang-en">Fluctuating operating costs (fuel prices, labor).</span></li>
-                            <li><span class="lang-th">ข้อจำกัดด้านโครงสร้างพื้นฐานและการจราจรในบางพื้นที่</span><span class="lang-en">Infrastructure limitations and traffic congestion in some areas.</span></li>
+                            <li><span class="lang-th">ข้อจำกัดด้านโครงสร้างพื้นฐานและการจราจรติดขัดในบางพื้นที่</span><span class="lang-en">Infrastructure limitations and traffic congestion in some areas.</span></li>
                             <li><span class="lang-th">ความไม่แน่นอนทางเศรษฐกิจที่อาจกระทบปริมาณการขนส่ง</span><span class="lang-en">Economic uncertainty impacting transport volumes.</span></li>
                             <li><span class="lang-th">กฎระเบียบที่เข้มงวดและข้อกำหนดด้านความปลอดภัยสูงสำหรับสารเคมีอันตรายและแก๊สอุตสาหกรรม</span><span class="lang-en">Strict regulations and high safety requirements for hazardous chemicals and industrial gases.</span></li>
                             <li><span class="lang-th">ความเสี่ยงด้านการลงทุนสูงในการพัฒนาคลังสินค้าและยานพาหนะเฉพาะทาง</span><span class="lang-en">High investment risk in developing specialized warehouses and vehicles.</span></li>
@@ -291,6 +310,83 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <section id="tows-matrix" class="mb-20">
+            <h2 class="section-title"><span class="lang-th">การวิเคราะห์ TOWS Matrix</span><span class="lang-en">TOWS Matrix Analysis</span></h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                <span class="lang-th">การวิเคราะห์ TOWS Matrix นี้จะช่วยให้ PTGLG สามารถกำหนดกลยุทธ์ที่ชัดเจน โดยการจับคู่ปัจจัยภายใน (จุดแข็งและจุดอ่อน) กับปัจจัยภายนอก (โอกาสและอุปสรรค) เพื่อสร้างแนวทางการดำเนินงานที่เหมาะสมที่สุด</span>
+                <span class="lang-en">This TOWS Matrix analysis helps PTGLG define clear strategies by matching internal factors (Strengths and Weaknesses) with external factors (Opportunities and Threats) to create the most suitable courses of action.</span>
+            </p>
+            <div class="card p-6 overflow-x-auto">
+                <table class="tows-table w-full border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="w-1/6"></th>
+                            <th class="w-1/2"><span class="lang-th">โอกาส (Opportunities)</span><span class="lang-en">Opportunities</span></th>
+                            <th class="w-1/2"><span class="lang-th">อุปสรรค (Threats)</span><span class="lang-en">Threats</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="w-1/6"><span class="lang-th">**จุดแข็ง (Strengths)**</span><span class="lang-en">**Strengths**</span></td>
+                            <td>
+                                <h5 class="font-bold mb-2 text-green-700"><span class="lang-th">SO Strategies (ใช้จุดแข็งคว้าโอกาส)</span><span class="lang-en">SO Strategies (Leverage Strengths to Seize Opportunities)</span></h5>
+                                <ul class="list-disc list-inside text-sm space-y-1">
+                                    <li><span class="font-bold">SO1:</span> <span class="lang-th">การขยายธุรกิจโลจิสติกส์เฉพาะทางและระหว่างประเทศ:</span> <span class="lang-en">Specialized and International Logistics Expansion:</span> <span class="lang-th">ใช้เครือข่ายทั่วประเทศ (S1) และความเชี่ยวชาญในการขนส่งสินค้าอันตราย (S7) เพื่อขยายบริการขนส่งสารเคมีอันตรายและแก๊สอุตสาหกรรม (O6) ในตลาด AEC/RCEP และการค้าข้ามพรมแดน (O2)</span><span class="lang-en">Leverage nationwide network (S1) and expertise in hazardous goods transport (S7) to expand hazardous chemicals and industrial gases logistics services (O6) in AEC/RCEP markets and cross-border trade (O2).</span></li>
+                                    <li><span class="font-bold">SO2:</span> <span class="lang-th">ผู้นำ 4PL ด้วยนวัตกรรมและแพลตฟอร์ม:</span> <span class="lang-en">4PL Leadership with Innovation & Platform:</span> <span class="lang-th">ใช้ความสามารถด้านนวัตกรรม (S5) และแพลตฟอร์ม PTG ที่แข็งแกร่ง (S6) รวมถึงรากฐาน 3PL (S8) ในการยกระดับสู่การเป็น 4PL (O8) เพื่อตอบสนองความต้องการของลูกค้าสำหรับโซลูชันห่วงโซ่อุปทานแบบครบวงจรในตลาดไทยที่ยังขาดผู้ให้บริการ 4PL ที่แข็งแกร่ง (O9)</span><span class="lang-en">Utilize innovation capabilities (S5) and strong PTG platforms (S6), along with 3PL foundation (S8), to upgrade to 4PL (O8) to meet customer demand for integrated supply chain solutions in the Thai market lacking strong 4PL providers (O9).</span></li>
+                                    <li><span class="font-bold">SO3:</span> <span class="lang-th">บุกตลาดพลังงานสะอาดและ Cold Chain:</span> <span class="lang-en">Penetrate Clean Energy & Cold Chain Markets:</span> <span class="lang-th">ใช้ประสิทธิภาพด้านต้นทุน (S2) และพนักงานขับรถที่ผ่านการฝึกอบรม (S3, S4) เพื่อบุกตลาด Cold Chain (O4) และโลจิสติกส์พลังงานสะอาด (Hydrogen, Biomass) (O5)</span><span class="lang-en">Leverage cost efficiency (S2) and trained drivers (S3, S4) to enter Cold Chain (O4) and clean energy logistics (Hydrogen, Biomass) markets (O5).</span></li>
+                                    <li><span class="font-bold">SO4:</span> <span class="lang-th">พัฒนาคลังสินค้าขนาดใหญ่:</span> <span class="lang-en">Develop Large-Scale Warehousing:</span> <span class="lang-th">ใช้เครือข่ายทั่วประเทศ (S1) และประสิทธิภาพด้านต้นทุน (S2) ในการพัฒนาและบริหารจัดการคลังสินค้าขนาดใหญ่ (O7) เพื่อรองรับการเติบโตของธุรกิจและบริการครบวงจร</span><span class="lang-en">Utilize nationwide network (S1) and cost efficiency (S2) to develop and manage large warehouses (O7) to support business growth and integrated services.</span></li>
+                                </ul>
+                            </td>
+                            <td>
+                                <h5 class="font-bold mb-2 text-red-700"><span class="lang-th">ST Strategies (ใช้จุดแข็งลดอุปสรรค)</span><span class="lang-en">ST Strategies (Leverage Strengths to Mitigate Threats)</span></h5>
+                                <ul class="list-disc list-inside text-sm space-y-1">
+                                    <li><span class="font-bold">ST1:</span> <span class="lang-th">สร้างความน่าเชื่อถือและลดความเสี่ยงด้านความปลอดภัย:</span> <span class="lang-en">Build Trust & Reduce Safety Risks:</span> <span class="lang-th">ใช้ความเชี่ยวชาญในการขนส่งสินค้าอันตราย (S7) และโรงเรียนฝึกอบรม (S4) เพื่อสร้างความน่าเชื่อถือและลดความเสี่ยงด้านภาพลักษณ์เชิงลบจากอุบัติเหตุ (T1) พร้อมปฏิบัติตามกฎระเบียบที่เข้มงวด (T8)</span><span class="lang-en">Utilize expertise in hazardous goods transport (S7) and training school (S4) to build trust and reduce negative brand image risk from accidents (T1), while complying with strict regulations (T8).</span></li>
+                                    <li><span class="font-bold">ST2:</span> <span class="lang-th">แข่งขันในตลาดที่รุนแรงด้วยต้นทุนและเครือข่าย:</span> <span class="lang-en">Compete in Intense Market with Cost & Network:</span> <span class="lang-th">ใช้เครือข่ายทั่วประเทศ (S1) และประสิทธิภาพด้านต้นทุน (S2) พร้อมรากฐาน 3PL ที่แข็งแกร่ง (S8) เพื่อแข่งขันกับ 3PLs รายใหญ่ที่กำลังยกระดับสู่ 4PL (T12) และผู้เล่นรายอื่นๆ ในตลาดที่รุนแรง (T4)</span><span class="lang-en">Leverage nationwide network (S1) and cost efficiency (S2), along with strong 3PL foundation (S8), to compete with large 3PLs upgrading to 4PL (T12) and other players in the intense market (T4).</span></li>
+                                    <li><span class="font-bold">ST3:</span> <span class="lang-th">ลดผลกระทบต้นทุนด้วยนวัตกรรมยานยนต์:</span> <span class="lang-en">Mitigate Cost Impact with Vehicle Innovation:</span> <span class="lang-th">ใช้ความสามารถด้านนวัตกรรม (S5) ในการนำยานยนต์ไฟฟ้า (BEV, FCEV) มาใช้ เพื่อลดผลกระทบจากต้นทุน EURO5 (T3) และความผันผวนของต้นทุนการดำเนินงาน (T5)</span><span class="lang-en">Utilize innovation capabilities (S5) to adopt electric vehicles (BEV, FCEV) to mitigate the impact of EURO5 costs (T3) and fluctuating operating costs (T5).</span></li>
+                                </ul>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="w-1/6"><span class="lang-th">**จุดอ่อน (Weaknesses)**</span><span class="lang-en">**Weaknesses**</span></td>
+                            <td>
+                                <h5 class="font-bold mb-2 text-blue-700"><span class="lang-th">WO Strategies (เอาชนะจุดอ่อนด้วยโอกาส)</span><span class="lang-en">WO Strategies (Overcome Weaknesses with Opportunities)</span></h5>
+                                <ul class="list-disc list-inside text-sm space-y-1">
+                                    <li><span class="font-bold">WO1:</span> <span class="lang-th">ขยายตลาดต่างประเทศและอุตสาหกรรมใหม่ผ่าน 4PL:</span> <span class="lang-en">Expand International & New Industries via 4PL:</span> <span class="lang-th">ลดประสบการณ์ที่น้อยในอุตสาหกรรมอื่น (W1) การรับรู้แบรนด์ที่จำกัด (W2) และขาดประสบการณ์ในตลาดต่างประเทศ (W6) โดยการใช้โอกาสจากบริการโลจิสติกส์สำหรับธุรกิจอื่นๆ (O1) และการขยายตัวสู่ AEC/RCEP (O2) พร้อมนำเสนอโซลูชัน 4PL (O8) เพื่อสร้างความแตกต่าง</span><span class="lang-en">Address low experience in other industries (W1), limited brand recognition (W2), and lack of international experience (W6) by leveraging opportunities from other logistics services (O1) and AEC/RCEP expansion (O2), while offering 4PL solutions (O8) for differentiation.</span></li>
+                                    <li><span class="font-bold">WO2:</span> <span class="lang-en">Develop DC & 4PL with Strategic Investment:</span> <span class="lang-th">แก้ไขประสบการณ์น้อยใน DC (W5) และการขาดแพลตฟอร์ม IT สำหรับ 4PL (W7) โดยใช้โอกาสในการพัฒนาคลังสินค้าขนาดใหญ่ (O7) และช่องว่างในตลาด 4PL ของไทย (O9) ด้วยการลงทุนในระบบ IT และบุคลากร</span><span class="lang-en">Address low DC experience (W5) and lack of 4PL IT platform (W7) by utilizing large warehouse development opportunities (O7) and the gap in Thailand's 4PL market (O9) through IT system and personnel investment.</span></li>
+                                    <li><span class="font-bold">WO3:</span> <span class="lang-th">ปรับปรุงกระบวนการด้วยเทคโนโลยีสำหรับบริการใหม่:</span> <span class="lang-en">Improve Processes with Tech for New Services:</span> <span class="lang-th">ลดกระบวนการที่ใช้คนจำนวนมากเกินไป (W3) โดยการนำเทคโนโลยีและโซลูชัน 4PL (O8) มาใช้เพื่อให้บริการโลจิสติกส์สำหรับธุรกิจอื่นๆ (O1) ที่ต้องการประสิทธิภาพสูง</span><span class="lang-en">Reduce manual processes (W3) by adopting technology and 4PL solutions (O8) to provide high-efficiency logistics services for other businesses (O1).</span></li>
+                                </ul>
+                            </td>
+                            <td>
+                                <h5 class="font-bold mb-2 text-yellow-700"><span class="lang-th">WT Strategies (ลดจุดอ่อนและหลีกเลี่ยงอุปสรรค)</span><span class="lang-en">WT Strategies (Minimize Weaknesses & Avoid Threats)</span></h5>
+                                <ul class="list-disc list-inside text-sm space-y-1">
+                                    <li><span class="font-bold">WT1:</span> <span class="lang-th">สร้างพันธมิตรและ M&A เพื่อเข้าสู่ตลาดต่างประเทศและ 4PL:</span> <span class="lang-en">Form Partnerships & M&A for International & 4PL Entry:</span> <span class="lang-th">แก้ไขการขาดประสบการณ์ในตลาดต่างประเทศ (W6) การขาดแพลตฟอร์ม 4PL (W7) และความสัมพันธ์ 3PL ที่ไม่แข็งแกร่ง (W8) โดยการแสวงหาพันธมิตรและ M&A (T11) เพื่อลดความซับซ้อนของกฎหมายและวัฒนธรรมระหว่างประเทศ (T10) และรับมือกับการแข่งขันจาก 3PLs ที่ยกระดับสู่ 4PL (T12)</span><span class="lang-en">Address lack of international experience (W6), 4PL platform (W7), and weak 3PL relationships (W8) by seeking partnerships and M&A (T11) to mitigate legal/cultural complexities (T10) and compete with upgrading 3PLs (T12).</span></li>
+                                    <li><span class="font-bold">WT2:</span> <span class="lang-th">ลดต้นทุนและเพิ่มประสิทธิภาพด้วยเทคโนโลยี:</span> <span class="lang-en">Reduce Costs & Enhance Efficiency with Technology:</span> <span class="lang-th">ลดกระบวนการที่ใช้คนจำนวนมาก (W3) และประสบการณ์น้อยใน DC (W5) โดยการลงทุนในเทคโนโลยี (T13) เพื่อลดผลกระทบจากข้อจำกัดโครงสร้างพื้นฐาน (T6) และความไม่แน่นอนทางเศรษฐกิจ (T7)</span><span class="lang-en">Reduce manual processes (W3) and low DC experience (W5) by investing in technology (T13) to mitigate infrastructure limitations (T6) and economic uncertainty (T7).</span></li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-12">
+                <h3 class="text-xl font-bold mb-4"><span class="lang-th">คำแนะนำเพิ่มเติมสำหรับการนำไปใช้</span><span class="lang-en">Additional Recommendations for Implementation</span></h3>
+                <p class="text-gray-700 mb-4">
+                    <span class="lang-th">กลยุทธ์ที่ได้จาก TOWS Matrix นี้ควรถูกนำไปผนวกรวมเข้ากับแผนกลยุทธ์หลักของ PTGLG โดยเฉพาะในส่วนของเสาหลัก (Pillars) และแผนการดำเนินงาน (Roadmap) ดังที่ได้ระบุไว้ในเว็บแอปพลิเคชัน</span>
+                    <span class="lang-en">Strategies derived from this TOWS Matrix should be integrated into PTGLG's core strategic plan, particularly within the Pillars and Roadmap sections, as outlined in the web application.</span>
+                </p>
+                <ul class="list-disc list-inside text-gray-700 space-y-2">
+                    <li><span class="font-bold"><span class="lang-th">การลงทุนในเทคโนโลยี:</span><span class="lang-en">Investment in Technology:</span></span> <span class="lang-th">การลงทุนในแพลตฟอร์ม IT ที่แข็งแกร่งและครบวงจรสำหรับ 4PL จะเป็นหัวใจสำคัญในการเอาชนะจุดอ่อนด้านเทคโนโลยีและใช้ประโยชน์จากโอกาส 4PL</span><span class="lang-en">Investing in a robust and comprehensive IT platform for 4PL will be key to overcoming technological weaknesses and capitalizing on 4PL opportunities.</span></li>
+                    <li><span class="font-bold"><span class="lang-th">การพัฒนาบุคลากร:</span><span class="lang-en">Personnel Development:</span></span> <span class="lang-th">การฝึกอบรมและพัฒนาบุคลากรให้มีความเชี่ยวชาญในธุรกิจใหม่ๆ (เช่น โลจิสติกส์พลังงานสะอาด, สารเคมีอันตราย) และการบริหารจัดการ 4PL จะเป็นสิ่งจำเป็น</span><span class="lang-en">Training and developing personnel with expertise in new businesses (e.g., clean energy logistics, hazardous chemicals) and 4PL management will be essential.</span></li>
+                    <li><span class="font-bold"><span class="lang-th">การสร้างพันธมิตร:</span><span class="lang-en">Partnership Building:</span></span> <span class="lang-th">การสร้างและรักษาความสัมพันธ์ที่แข็งแกร่งกับ 3PLs ภายนอก และการแสวงหา M&A ที่เหมาะสม จะช่วยเสริมความแข็งแกร่งและลดความเสี่ยงในการขยายธุรกิจใหม่ๆ</span><span class="lang-en">Building and maintaining strong relationships with external 3PLs and seeking suitable M&A opportunities will strengthen the company and mitigate risks in new business expansion.</span></li>
+                    <li><span class="font-bold"><span class="lang-th">การสื่อสารแบรนด์:</span><span class="lang-en">Brand Communication:</span></span> <span class="lang-th">การปรับปรุงการรับรู้แบรนด์ให้ครอบคลุมธุรกิจที่ไม่ใช่น้ำมันและบริการ 4PL จะเป็นสิ่งสำคัญในการดึงดูดลูกค้าใหม่</span><span class="lang-en">Improving brand perception to encompass non-oil businesses and 4PL services will be crucial for attracting new clients.</span></li>
+                </ul>
+                <p class="text-gray-700 mt-4">
+                    <span class="lang-th">การดำเนินการตามกลยุทธ์เหล่านี้อย่างเป็นระบบ จะช่วยให้ PTGLG บรรลุเป้าหมายทางการเงินและวิสัยทัศน์ "อยู่ดี มีสุข" ในระยะยาวได้อย่างยั่งยืน</span>
+                    <span class="lang-en">Systematic implementation of these strategies will enable PTGLG to achieve its financial goals and "Yoo Dee Mee Sook" vision sustainably in the long term.</span>
+                </p>
             </div>
         </section>
 
@@ -396,7 +492,7 @@
             </div>
         </section>
 
-        <section id="roadmap">
+        <section id="roadmap" class="mb-20">
             <h2 class="section-title"><span class="lang-th">แผนการดำเนินงาน (Implementation Roadmap)</span><span class="lang-en">Implementation Roadmap</span></h2>
             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
                 <span class="lang-th">ไทม์ไลน์สำหรับความคิดริเริ่มหลักในแต่ละปี เพื่อให้แน่ใจว่าเราสามารถบรรลุเป้าหมายเชิงกลยุทธ์ได้ตามแผนที่วางไว้ รวมถึงการก้าวเข้าสู่ธุรกิจพลังงานสะอาดและโลจิสติกส์เฉพาะทาง ตลอดจนการเป็นผู้ให้บริการ 4PL</span>
