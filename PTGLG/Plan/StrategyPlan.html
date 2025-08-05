@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แผนยุทธศาสตร์เชิงโต้ตอบ: บจก. พีทีจี โลจิสติกส์ (2569-2573)</title>
+    <title>แผนยุทธศาสตร์เชิงโต้ตอบ: บจก. พีทีจี โลจิสติกส์ (2568 ครึ่งปีหลัง - 2573)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: PTG Harmony -->
-    <!-- Application Structure Plan: The SPA is designed as an interactive strategic dashboard. It starts with a high-level summary (Vision, Key Goals, Positioning), allowing executives to grasp the core strategy quickly. Users can then dive deeper into specific analyses (SWOT, Winning Zone) via a tabbed interface to prevent cognitive overload from a long scroll. The core of the plan is the 'Strategy House,' presented as an interactive diagram where clicking on pillars reveals detailed initiatives. This is followed by dynamic 'Financial Projections' with Chart.js for clear data visualization and a 'Roadmap' for actionable steps. This structure logically flows from high-level vision to detailed execution, making the complex strategy digestible and engaging for presentation purposes. -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive strategic dashboard. It starts with a high-level summary (Vision, Key Goals, Positioning), allowing executives to grasp the core strategy quickly. Users can then dive deeper into specific analyses (SWOT, Winning Zone) via a tabbed interface to prevent cognitive overload from a long scroll. The core of the plan is the 'Strategy House,' presented as an interactive diagram where clicking on pillars reveals detailed initiatives. This is followed by dynamic 'Financial Projections' with Chart.js for clear data visualization and a 'Roadmap' for actionable steps. This structure logically flows from high-level vision to detailed execution, making the complex strategy digestible and engaging for presentation purposes. The update integrates hydrogen, biomass, hazardous chemicals, industrial gases logistics, new warehouse development, international expansion, regional hubs, domestic partnerships, and M&A into diversification and green leadership pillars, and reflects this in the roadmap and financial assumptions. The key update is the integration of 4PL services across all relevant business areas. This version adds full bilingual support (Thai/English) with a language toggle. -->
     <!-- Visualization & Content Choices: 
         - Report Info: Key Goals (Profit, GP%, Market Share) -> Goal: Inform -> Viz: Interactive Stat Cards (HTML/CSS) -> Interaction: Hover effects -> Justification: Quickly highlights key targets.
-        - Report Info: SWOT Analysis -> Goal: Organize -> Viz: 4-Quadrant Grid (HTML/Tailwind) -> Interaction: Click to reveal details for each point -> Justification: Classic, intuitive layout for strategic analysis.
+        - Report Info: SWOT Analysis -> Goal: Organize -> Viz: 4-Quadrant Grid (HTML/Tailwind) -> Interaction: Click to reveal details for each point -> Justification: Classic, intuitive layout for strategic analysis. Updated to include clean energy, hazardous materials, international opportunities/challenges, and 4PL considerations, directly from image_3e3e66.png.
         - Report Info: Winning Zone (USP) -> Goal: Compare -> Viz: Venn Diagram built with CSS/HTML -> Interaction: Hover to highlight zones and display text -> Justification: Visually represents the competitive landscape effectively without using SVG.
-        - Report Info: Strategy House -> Goal: Organize/Structure -> Viz: Diagram built with Flexbox/Grid (HTML/Tailwind) -> Interaction: Clickable pillars to expand and show details -> Justification: Makes the core strategic framework interactive and less static.
-        - Report Info: Financial Projections -> Goal: Show Change/Trends -> Viz: Bar and Line Charts (Chart.js/Canvas) -> Interaction: Tooltips on hover -> Justification: Best practice for visualizing financial forecasts over time.
-        - Report Info: Roadmap/Timeline -> Goal: Show Process -> Viz: Horizontal Timeline (HTML/CSS) -> Interaction: None, static view -> Justification: Clearly shows the sequence of strategic implementation.
+        - Report Info: Strategy House -> Goal: Organize/Structure -> Viz: Diagram built with Flexbox/Grid (HTML/Tailwind) -> Interaction: Clickable pillars to expand and show details -> Justification: Makes the core strategic framework interactive and less static. Updated to include hydrogen, biomass, hazardous chemicals, industrial gases, warehouse, international, regional hub, partnership, M&A, and 4PL initiatives, aligning with image_3e3ea0.png and user's requests.
+        - Report Info: Financial Projections -> Goal: Show Change/Trends -> Viz: Bar and Line Charts (Chart.js/Canvas) -> Interaction: Tooltips on hover -> Justification: Best practice for visualizing financial forecasts over time. Assumptions and data updated to reflect new business lines, accelerated growth from 2568 H2 onwards, the higher-margin nature of 4PL, and a Net Income target of 600+ MB.
+        - Report Info: Roadmap/Timeline -> Goal: Show Process -> Viz: Horizontal Timeline (HTML/CSS) -> Interaction: None, static view -> Justification: Clearly shows the sequence of strategic implementation. Updated with hydrogen, biomass, hazardous chemicals, industrial gases, warehouse, international, regional hub, partnership, M&A, and 4PL milestones from 2568 H2 to 2573.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -88,6 +88,9 @@
             overflow: hidden;
             transition: max-height 0.7s ease-in-out;
         }
+        /* Ensure lang-en is hidden by default, and lang-th is visible */
+        .lang-en { display: none; } 
+        .lang-th { display: inline-block; }
     </style>
 </head>
 <body class="text-gray-800">
@@ -95,64 +98,68 @@
     <header class="bg-white shadow-md sticky top-0 z-50">
         <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
             <div class="text-2xl font-bold text-ptg-primary">
-                PTGLG Strategy <span class="text-gray-500">2569-2573</span>
+                <span class="lang-th">PTGLG กลยุทธ์</span> <span class="lang-en">PTGLG Strategy</span> <span class="text-gray-500">2568 ครึ่งปีหลัง - 2573</span>
             </div>
-            <div class="hidden md:flex space-x-6 items-center">
-                <a href="#dashboard" class="text-gray-600 font-medium">ภาพรวม</a>
-                <a href="#analysis" class="text-gray-600 font-medium">วิเคราะห์สถานการณ์</a>
-                <a href="#strategy-house" class="text-gray-600 font-medium">Strategy House</a>
-                <a href="#financials" class="text-gray-600 font-medium">ประมาณการ</a>
-                <a href="#roadmap" class="text-gray-600 font-medium">แผนการดำเนินงาน</a>
-            </div>
-            <div class="md:hidden">
-                <button id="mobile-menu-button" class="text-gray-600 focus:outline-none">
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:flex space-x-6 items-center">
+                    <a href="#dashboard" class="text-gray-600 font-medium"><span class="lang-th">ภาพรวม</span><span class="lang-en">Overview</span></a>
+                    <a href="#analysis" class="text-gray-600 font-medium"><span class="lang-th">วิเคราะห์สถานการณ์</span><span class="lang-en">Analysis</span></a>
+                    <a href="#strategy-house" class="text-gray-600 font-medium"><span class="lang-th">Strategy House</span><span class="lang-en">Strategy House</span></a>
+                    <a href="#financials" class="text-gray-600 font-medium"><span class="lang-th">ประมาณการ</span><span class="lang-en">Projections</span></a>
+                    <a href="#roadmap" class="text-gray-600 font-medium"><span class="lang-th">แผนการดำเนินงาน</span><span class="lang-en">Roadmap</span></a>
+                </div>
+                <button id="lang-toggle" class="px-3 py-1 rounded-md bg-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-300 focus:outline-none">EN</button>
+                <button id="mobile-menu-button" class="md:hidden text-gray-600 focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                 </button>
             </div>
         </nav>
         <div id="mobile-menu" class="hidden md:hidden">
-            <a href="#dashboard" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">ภาพรวม</a>
-            <a href="#analysis" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">วิเคราะห์สถานการณ์</a>
-            <a href="#strategy-house" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Strategy House</a>
-            <a href="#financials" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">ประมาณการ</a>
-            <a href="#roadmap" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">แผนการดำเนินงาน</a>
+            <a href="#dashboard" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">ภาพรวม</span><span class="lang-en">Overview</span></a>
+            <a href="#analysis" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">วิเคราะห์สถานการณ์</span><span class="lang-en">Analysis</span></a>
+            <a href="#strategy-house" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">Strategy House</span><span class="lang-en">Strategy House</span></a>
+            <a href="#financials" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">ประมาณการ</span><span class="lang-en">Projections</span></a>
+            <a href="#roadmap" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100"><span class="lang-th">แผนการดำเนินงาน</span><span class="lang-en">Roadmap</span></a>
         </div>
     </header>
 
     <main class="container mx-auto px-6 py-12">
 
         <section id="dashboard" class="mb-20">
-            <h2 class="section-title">ภาพรวมยุทธศาสตร์ (Strategic Dashboard)</h2>
+            <h2 class="section-title"><span class="lang-th">ภาพรวมยุทธศาสตร์ (Strategic Dashboard)</span><span class="lang-en">Strategic Dashboard Overview</span></h2>
             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                นี่คือภาพรวมของทิศทางและเป้าหมายเชิงกลยุทธ์สำหรับ บจก. พีทีจี โลจิสติกส์ ในช่วง 5 ปีข้างหน้า (2569-2573) เพื่อขับเคลื่อนการเติบโตอย่างยั่งยืนและสร้างความได้เปรียบในการแข่งขัน
+                <span class="lang-th">นี่คือภาพรวมของทิศทางและเป้าหมายเชิงกลยุทธ์สำหรับ บจก. พีทีจี โลจิสติกส์ ในช่วง </span><span class="lang-en">This is an overview of the strategic direction and goals for PTG Logistics Co., Ltd. during the </span><span class="font-bold"><span class="lang-th">ครึ่งปีหลัง 2568 ถึง 2573</span><span class="lang-en">second half of 2025 to 2030</span></span><span class="lang-th"> เพื่อขับเคลื่อนการเติบโตอย่างยั่งยืนและสร้างความได้เปรียบในการแข่งขัน รวมถึงการขยายบทบาทในธุรกิจพลังงานสะอาดและโลจิสติกส์เฉพาะทาง</span><span class="lang-en"> to drive sustainable growth and create competitive advantage, including expanding its role in clean energy and specialized logistics businesses.</span>
             </p>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div class="lg:col-span-4 card p-6 text-center bg-ptg-primary text-white">
-                    <h3 class="text-2xl font-semibold mb-2">วิสัยทัศน์องค์รวม</h3>
-                    <p class="text-4xl font-bold">"อยู่ดี มีสุข"</p>
-                    <p class="mt-2 text-gray-200">สร้างการเติบโตที่ยั่งยืน ควบคู่ไปกับการเติมเต็มคุณภาพชีวิตที่ดีให้แก่ลูกค้า คู่ค้า และพนักงาน</p>
+                    <h3 class="text-2xl font-semibold mb-2 text-green-500"><span class="lang-th">วิสัยทัศน์องค์รวม</span><span class="lang-en">Overall Vision</span></h3>
+                    <p class="text-4xl font-bold text-green-500">"อยู่ดี มีสุข"</p>
+                    <p class="mt-4 text-2xl font-bold text-red-500 leading-relaxed">
+                        <span class="lang-th">สร้างการเติบโตที่ยั่งยืน ควบคู่ไปกับการเติมเต็มคุณภาพชีวิตที่ดีให้แก่ลูกค้า คู่ค้า และพนักงาน พร้อมเป็นส่วนหนึ่งของระบบนิเวศพลังงานสะอาด</span>
+                        <span class="lang-en">Drive sustainable growth while enhancing the quality of life for customers, partners, and employees, and be an integral part of the clean energy ecosystem.</span>
+                    </p>
                 </div>
 
                 <div class="card p-6">
-                    <h3 class="font-semibold text-lg mb-2 text-gray-700">เป้าหมาย: กำไรสุทธิ</h3>
-                    <p class="text-3xl font-bold text-ptg-primary">150+ ล้านบาท</p>
-                    <p class="text-sm text-gray-500">ภายในปี 2573</p>
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700"><span class="lang-th">เป้าหมาย: กำไรสุทธิ</span><span class="lang-en">Goal: Net Profit</span></h3>
+                    <p class="text-3xl font-bold text-ptg-primary">600+ <span class="lang-th">ล้านบาท</span><span class="lang-en">MB</span></p>
+                    <p class="text-sm text-gray-500"><span class="lang-th">ภายในปี 2573 และเติบโตต่อเนื่อง</span><span class="lang-en">by 2030 and continuous growth</span></p>
                 </div>
                 <div class="card p-6">
-                    <h3 class="font-semibold text-lg mb-2 text-gray-700">เป้าหมาย: อัตรากำไรขั้นต้น</h3>
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700"><span class="lang-th">เป้าหมาย: อัตรากำไรขั้นต้น</span><span class="lang-en">Goal: Gross Profit Margin</span></h3>
                     <p class="text-3xl font-bold text-ptg-primary">> 15%</p>
-                    <p class="text-sm text-gray-500">รักษาเสถียรภาพและเพิ่มประสิทธิภาพ</p>
+                    <p class="text-sm text-gray-500"><span class="lang-th">รักษาเสถียรภาพและเพิ่มประสิทธิภาพ</span><span class="lang-en">Maintain stability and enhance efficiency</span></p>
                 </div>
                 <div class="lg:col-span-2 card p-6">
-                    <h3 class="font-semibold text-lg mb-2 text-gray-700">การวางตำแหน่งทางการตลาด</h3>
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700"><span class="lang-th">การวางตำแหน่งทางการตลาด</span><span class="lang-en">Market Positioning</span></h3>
                     <div class="flex justify-center items-center h-full">
                         <div class="text-center p-4 bg-ptg-secondary rounded-lg">
                             <p class="font-bold text-ptg-primary text-xl">Commercial Truck</p>
-                            <p class="text-sm text-gray-500">กลุ่มรถบรรทุกเชิงพาณิชย์</p>
+                            <p class="text-sm text-gray-500"><span class="lang-th">กลุ่มรถบรรทุกเชิงพาณิชย์</span><span class="lang-en">Commercial Truck Segment</span></p>
                             <span class="text-2xl font-extrabold text-ptg-accent">&</span>
                             <p class="font-bold text-ptg-primary text-xl">Value for Money</p>
-                            <p class="text-sm text-gray-500">บริการที่คุ้มค่า</p>
+                            <p class="text-sm text-gray-500"><span class="lang-th">บริการที่คุ้มค่า</span><span class="lang-en">Cost-effective service</span></p>
                         </div>
                     </div>
                 </div>
@@ -160,51 +167,74 @@
         </section>
 
         <section id="analysis" class="mb-20">
-            <h2 class="section-title">การวิเคราะห์สถานการณ์เชิงลึก</h2>
+            <h2 class="section-title"><span class="lang-th">การวิเคราะห์สถานการณ์เชิงลึก</span><span class="lang-en">In-depth Situation Analysis</span></h2>
             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                เพื่อกำหนดกลยุทธ์ที่เฉียบคม เราต้องเข้าใจสภาพแวดล้อมทั้งภายในและภายนอกอย่างลึกซึ้ง ส่วนนี้จะแสดงการวิเคราะห์ SWOT และ Winning Zone เพื่อระบุจุดแข็งและโอกาสสำคัญของเรา
+                <span class="lang-th">เพื่อกำหนดกลยุทธ์ที่เฉียบคม เราต้องเข้าใจสภาพแวดล้อมทั้งภายในและภายนอกอย่างลึกซึ้ง ส่วนนี้จะแสดงการวิเคราะห์ SWOT และ Winning Zone เพื่อระบุจุดแข็งและโอกาสสำคัญของเรา</span>
+                <span class="lang-en">To formulate sharp strategies, we must deeply understand both internal and external environments. This section presents SWOT and Winning Zone analyses to identify our key strengths and opportunities.</span>
             </p>
             <div class="flex justify-center mb-8 border-b">
-                <button data-tab="swot" class="tab-button active text-lg font-medium py-2 px-6 border-b-2 border-transparent">SWOT Analysis</button>
-                <button data-tab="winning-zone" class="tab-button text-lg font-medium py-2 px-6 border-b-2 border-transparent">Winning Zone (USP)</button>
+                <button data-tab="swot" class="tab-button active text-lg font-medium py-2 px-6 border-b-2 border-transparent"><span class="lang-th">SWOT Analysis</span><span class="lang-en">SWOT Analysis</span></button>
+                <button data-tab="winning-zone" class="tab-button text-lg font-medium py-2 px-6 border-b-2 border-transparent"><span class="lang-th">Winning Zone (USP)</span><span class="lang-en">Winning Zone (USP)</span></button>
             </div>
 
             <div id="swot-content" class="tab-content active">
                 <div class="grid md:grid-cols-2 gap-6">
                     <div class="card p-6 bg-green-50 border-l-4 border-green-500">
-                        <h4 class="text-xl font-bold text-green-800 mb-3">จุดแข็ง (Strengths)</h4>
+                        <h4 class="text-xl font-bold text-green-800 mb-3"><span class="lang-th">จุดแข็ง (Strengths)</span><span class="lang-en">Strengths</span></h4>
                         <ul class="space-y-2 list-disc list-inside text-gray-700">
-                            <li>การสนับสนุนจากบริษัทแม่ (PTG) ที่แข็งแกร่งและมีเครือข่ายทั่วประเทศ</li>
-                            <li>เป็นผู้ให้บริการที่มีสินทรัพย์ (Fleet) เป็นของตนเอง ควบคุมคุณภาพได้</li>
-                            <li>ความเชี่ยวชาญในการขนส่งเชิงพาณิชย์ (Commercial) โดยเฉพาะเชื้อเพลิง</li>
-                            <li>มีบริการซ่อมบำรุงรถบรรทุกครบวงจร สร้างความน่าเชื่อถือ</li>
+                            <li><span class="lang-th">การครอบคลุมเครือข่ายโลจิสติกส์ทั่วประเทศ</span><span class="lang-en">Extensive nationwide logistics network coverage.</span></li>
+                            <li><span class="lang-th">ประสิทธิภาพด้านต้นทุนโลจิสติกส์</span><span class="lang-en">Logistics cost efficiency.</span></li>
+                            <li><span class="lang-th">มีพนักงานขับรถจากธุรกิจน้ำมันพร้อมรองรับธุรกิจขนส่งสินค้าพิเศษใหม่ๆ</span><span class="lang-en">Available pool of drivers from oil business to support new special cargo business.</span></li>
+                            <li><span class="lang-th">มีโรงเรียนฝึกอบรมพนักงานขับรถของตนเองและร่วมกับพันธมิตร SCG Taksapipat</span><span class="lang-en">Own driver training school and partnership with SCG Taksapipat.</span></li>
+                            <li><span class="lang-th">ความสามารถในการปรับตัวด้านนวัตกรรมโลจิสติกส์ใหม่ๆ เช่น BEV, FCEV หรือ AI (ADAS/DMS)</span><span class="lang-en">New logistics innovation adaptability, e.g., BEV, FCEV, or AI (ADAS/DMS).</span></li>
+                            <li><span class="lang-th">มีแพลตฟอร์มส่งเสริมการขายของ PTG เช่น MEC, 360truck และ FFM</span><span class="lang-en">PTG promoting platforms like MEC, 360truck, and FFM.</span></li>
+                            <li><span class="lang-th">ความเชี่ยวชาญในการขนส่งสินค้าอันตรายและขยายธุรกิจได้ง่ายขึ้น</span><span class="lang-en">Specialization in dangerous goods transportation and easier expansion.</span></li>
+                            <li><span class="lang-th">รากฐานที่แข็งแกร่งในการเป็นผู้ให้บริการ 3PL ซึ่งเป็นพื้นฐานสำคัญสำหรับการยกระดับสู่ 4PL</span><span class="lang-en">Strong foundation as a 3PL provider, a crucial basis for upgrading to 4PL.</span></li>
                         </ul>
                     </div>
                     <div class="card p-6 bg-red-50 border-l-4 border-red-500">
-                        <h4 class="text-xl font-bold text-red-800 mb-3">จุดอ่อน (Weaknesses)</h4>
+                        <h4 class="text-xl font-bold text-red-800 mb-3"><span class="lang-th">จุดอ่อน (Weaknesses)</span><span class="lang-en">Weaknesses</span></h4>
                         <ul class="space-y-2 list-disc list-inside text-gray-700">
-                            <li>การรับรู้แบรนด์นอกธุรกิจน้ำมันยังจำกัด (Not Top of Mind)</li>
-                            <li>อาจพึ่งพิงธุรกิจในเครือมากเกินไป ขาดความคล่องตัวในการหาลูกค้านอก</li>
-                            <li>ภาพลักษณ์ที่ผูกกับ "โลจิสติกส์เชื้อเพลิง" เป็นหลัก</li>
-                            <li>ขาดการมุ่งเน้นในตลาดขนส่งย่อย (Passenger Car/Parcel)</li>
+                            <li><span class="lang-th">ประสบการณ์น้อยในอุตสาหกรรมอื่นๆ</span><span class="lang-en">Low experience in other industrial fields.</span></li>
+                            <li><span class="lang-th">การสร้างแบรนด์ (ยังคงถูกมองว่าเป็นธุรกิจขนส่งน้ำมัน)</span><span class="lang-en">Branding (still perceived as oil transport).</span></li>
+                            <li><span class="lang-th">กระบวนการที่ต้องใช้คนจำนวนมากเกินไป</span><span class="lang-en">Too many manual processes.</span></li>
+                            <li><span class="lang-th">สถานที่ให้บริการบำรุงรักษาไม่ตรงกับที่ตั้งของลูกค้า</span><span class="lang-en">Site of maintenance services not matching customer's location.</span></li>
+                            <li><span class="lang-th">ประสบการณ์น้อยในการดำเนินงาน DC (ศูนย์กระจายสินค้า)</span><span class="lang-en">Low experience in DC operations.</span></li>
+                            <li><span class="lang-th">ขาดประสบการณ์โดยตรงในตลาดโลจิสติกส์ระหว่างประเทศ</span><span class="lang-en">Lack of direct experience in international logistics markets.</span></li>
+                            <li><span class="font-bold text-red-700"><span class="lang-th">ยังขาดความเชี่ยวชาญเชิงลึกและแพลตฟอร์ม IT ที่ครบวงจรสำหรับการเป็นผู้ให้บริการ 4PL เต็มรูปแบบ</span><span class="lang-en">Still lacking in-depth expertise and comprehensive IT platforms for full-fledged 4PL services.</span></span></li>
+                            <li><span class="font-bold text-red-700"><span class="lang-th">ความสัมพันธ์กับ 3PLs ภายนอกยังไม่แข็งแกร่งพอที่จะเป็นผู้ประสานงานหลักในระดับ 4PL</span><span class="lang-en">External 3PL relationships not yet strong enough to act as primary 4PL coordinator.</span></span></li>
                         </ul>
                     </div>
                     <div class="card p-6 bg-blue-50 border-l-4 border-blue-500">
-                        <h4 class="text-xl font-bold text-blue-800 mb-3">โอกาส (Opportunities)</h4>
+                        <h4 class="text-xl font-bold text-blue-800 mb-3"><span class="lang-th">โอกาส (Opportunities)</span><span class="lang-en">Opportunities</span></h4>
                         <ul class="space-y-2 list-disc list-inside text-gray-700">
-                            <li>ตลาด E-commerce และ B2B2C ในไทยเติบโตสูง</li>
-                            <li>การลงทุนโครงสร้างพื้นฐานของภาครัฐ (EEC, Land Bridge)</li>
-                            <li>กระแสความต้องการโลจิสติกส์สีเขียว (Green Logistics) และยานยนต์ไฟฟ้า (EV)</li>
-                            <li>นโยบายขยายธุรกิจ Non-Oil ของ PTG สร้างโอกาสขนส่งสินค้าหลากหลาย</li>
+                            <li><span class="lang-th">บริการโลจิสติกส์สำหรับธุรกิจอื่นๆ</span><span class="lang-en">Logistics services for other businesses.</span></li>
+                            <li><span class="lang-th">การขยายตัวสู่ AEC/RCEP/การค้าข้ามพรมแดน</span><span class="lang-en">Expansion into AEC/RCEP/Cross-border trade.</span></li>
+                            <li><span class="lang-th">ลูกค้า CBAM เช่น มิตรผล, Lin ที่มุ่งเน้น BEV หรือ FCEV</span><span class="lang-en">CBAM customers like Mitrphol, Lin focusing on BEV or FCEV.</span></li>
+                            <li><span class="lang-th">โอกาสธุรกิจ Cold Chain สำหรับ PTG และลูกค้ารายอื่นๆ</span><span class="lang-en">Cold Chain opportunities for PTG and other customers.</span></li>
+                            <li><span class="lang-th">การขยายตัวของตลาดพลังงานสะอาด (Hydrogen, Biomass) และความต้องการโลจิสติกส์เฉพาะทางสำหรับพลังงานหมุนเวียน</span><span class="lang-en">Growth in clean energy (Hydrogen, Biomass) market and demand for specialized logistics for renewables.</span></li>
+                            <li><span class="lang-th">ความต้องการขนส่งและจัดเก็บสารเคมีอันตรายและแก๊สอุตสาหกรรมที่เพิ่มขึ้นตามการเติบโตของภาคอุตสาหกรรม</span><span class="lang-en">Increased demand for hazardous chemicals and industrial gases transport and storage with industrial growth.</span></li>
+                            <li><span class="lang-th">โอกาสในการพัฒนาคลังสินค้าขนาดใหญ่ เพื่อรองรับการเติบโตของธุรกิจและบริการครบวงจร</span><span class="lang-en">Opportunity to develop large warehouses to support business growth and integrated services.</span></li>
+                            <li><span class="font-bold text-blue-700"><span class="lang-th">แนวโน้มของลูกค้าที่ต้องการโซลูชันห่วงโซ่อุปทานแบบครบวงจรและซับซ้อนมากขึ้น (4PL)</span><span class="lang-en">Customer trend towards more integrated and complex supply chain solutions (4PL).</span></span></li>
+                            <li><span class="font-bold text-blue-700"><span class="lang-th">การขาดผู้ให้บริการ 4PL ที่แข็งแกร่งและครบวงจรในตลาดไทย</span><span class="lang-en">Lack of strong and comprehensive 4PL providers in the Thai market.</span></span></li>
                         </ul>
                     </div>
                     <div class="card p-6 bg-yellow-50 border-l-4 border-yellow-500">
-                        <h4 class="text-xl font-bold text-yellow-800 mb-3">อุปสรรค (Threats)</h4>
+                        <h4 class="text-xl font-bold text-yellow-800 mb-3"><span class="lang-th">อุปสรรค (Threats)</span><span class="lang-en">Threats</span></h4>
                         <ul class="space-y-2 list-disc list-inside text-gray-700">
-                            <li>การแข่งขันในตลาดโลจิสติกส์รุนแรงจากผู้เล่นรายใหญ่และรายย่อย</li>
-                            <li>ต้นทุนการดำเนินงานผันผวน (ราคาน้ำมัน, ค่าแรง)</li>
-                            <li>ข้อจำกัดด้านโครงสร้างพื้นฐานและการจราจรในบางพื้นที่</li>
-                            <li>ความไม่แน่นอนทางเศรษฐกิจที่อาจกระทบปริมาณการขนส่ง</li>
+                            <li><span class="lang-th">ภาพลักษณ์แบรนด์เชิงลบจากอุบัติเหตุหากไม่ได้รับการจัดการอย่างเหมาะสม</span><span class="lang-en">Negative brand image from accidents if not properly managed.</span></li>
+                            <li><span class="lang-th">ข้อกำหนด ADR สำหรับรถบรรทุกขนส่งสินค้าอันตรายจะเริ่มใช้ในเดือน ม.ค. 2567</span><span class="lang-en">ADR requirements for dangerous goods trucks will apply from Jan 2024.</span></li>
+                            <li><span class="lang-th">รถบรรทุกเครื่องยนต์ EURO5 จะเริ่มใช้ในปี 2567 และส่งผลกระทบต่อต้นทุนการลงทุนและต้นทุน AdBlue</span><span class="lang-en">EURO5 engine trucks will apply in 2024 and impact investment and AdBlue costs.</span></li>
+                            <li><span class="lang-th">การแข่งขันในตลาดโลจิสติกส์รุนแรงจากผู้เล่นรายใหญ่และรายย่อย</span><span class="lang-en">Intense competition in the logistics market from large and small players.</span></li>
+                            <li><span class="lang-th">ต้นทุนการดำเนินงานผันผวน (ราคาน้ำมัน, ค่าแรง)</span><span class="lang-en">Fluctuating operating costs (fuel prices, labor).</span></li>
+                            <li><span class="lang-th">ข้อจำกัดด้านโครงสร้างพื้นฐานและการจราจรในบางพื้นที่</span><span class="lang-en">Infrastructure limitations and traffic congestion in some areas.</span></li>
+                            <li><span class="lang-th">ความไม่แน่นอนทางเศรษฐกิจที่อาจกระทบปริมาณการขนส่ง</span><span class="lang-en">Economic uncertainty impacting transport volumes.</span></li>
+                            <li><span class="lang-th">กฎระเบียบที่เข้มงวดและข้อกำหนดด้านความปลอดภัยสูงสำหรับสารเคมีอันตรายและแก๊สอุตสาหกรรม</span><span class="lang-en">Strict regulations and high safety requirements for hazardous chemicals and industrial gases.</span></li>
+                            <li><span class="lang-th">ความเสี่ยงด้านการลงทุนสูงในการพัฒนาคลังสินค้าและยานพาหนะเฉพาะทาง</span><span class="lang-en">High investment risk in developing specialized warehouses and vehicles.</span></li>
+                            <li><span class="lang-th">ความซับซ้อนของกฎหมายและวัฒนธรรมในการดำเนินธุรกิจโลจิสติกส์ระหว่างประเทศ</span><span class="lang-en">Complexity of laws and culture in international logistics operations.</span></li>
+                            <li><span class="lang-th">ความท้าทายในการหาพันธมิตรที่เหมาะสมและมีวิสัยทัศน์ที่สอดคล้องกัน</span><span class="lang-en">Challenges in finding suitable partners with aligned visions.</span></li>
+                            <li><span class="font-bold text-yellow-700"><span class="lang-th">การแข่งขันจาก 3PLs รายใหญ่ที่กำลังยกระดับบริการสู่ 4PL</span><span class="lang-en">Competition from large 3PLs upgrading to 4PL services.</span></span></li>
+                            <li><span class="font-bold text-yellow-700"><span class="lang-th">ความต้องการเงินลงทุนสูงในการพัฒนาระบบ IT และบุคลากรสำหรับ 4PL</span><span class="lang-en">High capital expenditure required for 4PL IT system and personnel development.</span></span></li>
                         </ul>
                     </div>
                 </div>
@@ -214,31 +244,46 @@
                 <div class="card p-8">
                     <div class="relative w-full max-w-2xl mx-auto h-96">
                         <div class="absolute top-0 left-1/2 -translate-x-1/2 w-56 h-56 bg-blue-200 rounded-full flex items-center justify-center text-center p-4 opacity-80">
-                            <span class="font-bold text-blue-800">สิ่งที่ลูกค้าต้องการ</span>
+                            <span class="font-bold text-blue-800"><span class="lang-th">สิ่งที่ลูกค้าต้องการ</span><span class="lang-en">Customer Needs</span></span>
                         </div>
                         <div class="absolute bottom-0 left-1/4 -translate-x-1/2 w-56 h-56 bg-green-200 rounded-full flex items-center justify-center text-center p-4 opacity-80">
-                            <span class="font-bold text-green-800">สิ่งที่ PTGLG ทำได้ดี</span>
+                            <span class="font-bold text-green-800"><span class="lang-th">สิ่งที่ PTGLG ทำได้ดี</span><span class="lang-en">What PTGLG Does Well</span></span>
                         </div>
                         <div class="absolute bottom-0 right-1/4 translate-x-1/2 w-56 h-56 bg-yellow-200 rounded-full flex items-center justify-center text-center p-4 opacity-80">
-                            <span class="font-bold text-yellow-800">สิ่งที่คู่แข่งทำได้ดี</span>
+                            <span class="font-bold text-yellow-800"><span class="lang-th">สิ่งที่คู่แข่งทำได้ดี</span><span class="lang-en">What Competitors Do Well</span></span>
                         </div>
                         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10 p-4 rounded-lg">
                             <h5 class="text-2xl font-bold text-ptg-primary mb-2">WINNING ZONE</h5>
-                            <p class="text-sm text-gray-700">ความน่าเชื่อถือสูงในราคาคุ้มค่า สำหรับการขนส่งเชิงพาณิชย์ทั่วประเทศ</p>
+                            <p class="text-sm text-gray-700">
+                                <span class="lang-th">ความน่าเชื่อถือสูงในราคาคุ้มค่า สำหรับการขนส่งเชิงพาณิชย์ทั่วประเทศ</span>
+                                <span class="lang-en">High reliability at value-for-money pricing for nationwide commercial transport.</span>
+                            </p>
                         </div>
                     </div>
                     <div class="mt-8 grid md:grid-cols-3 gap-6 text-center">
                         <div>
                             <h5 class="font-bold text-lg text-ptg-primary">Winning Zone</h5>
-                            <p class="text-sm text-gray-600">บริการที่น่าเชื่อถือ (Reliability) ในราคาที่คุ้มค่า (Value for Money) สำหรับการขนส่งสินค้าเชิงพาณิชย์ โดยอาศัยเครือข่ายและต้นทุนที่ได้เปรียบจากธุรกิจในเครือ</p>
+                            <p class="text-sm text-gray-600">
+                                <span class="lang-th">บริการที่น่าเชื่อถือ (Reliability) ในราคาที่คุ้มค่า (Value for Money) สำหรับการขนส่งสินค้าเชิงพาณิชย์ โดยอาศัยเครือข่ายและต้นทุนที่ได้เปรียบจากธุรกิจในเครือ</span>
+                                <span class="lang-en">Reliable and value-for-money services for commercial transport, leveraging internal network and cost advantages.</span>
+                            </p>
+                            <p class="text-sm text-gray-600 mt-2">
+                                <span class="font-bold text-ptg-accent"><span class="lang-th">การเป็นผู้ประสานงานห่วงโซ่อุปทานแบบครบวงจร (4PL) สำหรับลูกค้าที่ต้องการความซับซ้อนน้อยลงและประสิทธิภาพสูงสุด</span><span class="lang-en">Becoming a comprehensive supply chain orchestrator (4PL) for clients seeking reduced complexity and maximum efficiency.</span></span>
+                            </p>
                         </div>
                         <div>
                             <h5 class="font-bold text-lg text-yellow-600">Losing Zone</h5>
-                            <p class="text-sm text-gray-600">บริการขนส่งระหว่างประเทศครบวงจร หรือการขนส่งพัสดุย่อย (Parcel) ที่คู่แข่งมีความเชี่ยวชาญและเครือข่ายที่แข็งแกร่งกว่า</p>
+                            <p class="text-sm text-gray-600">
+                                <span class="lang-th">บริการขนส่งระหว่างประเทศครบวงจร หรือการขนส่งพัสดุย่อย (Parcel) ที่คู่แข่งมีความเชี่ยวชาญและเครือข่ายที่แข็งแกร่งกว่า</span>
+                                <span class="lang-en">Comprehensive international transport or parcel delivery where competitors have stronger expertise and networks.</span>
+                            </p>
                         </div>
                         <div>
                             <h5 class="font-bold text-lg text-red-600">Risky Zone</h5>
-                            <p class="text-sm text-gray-600">บริการพื้นฐานทั่วไป เช่น การติดตามสถานะ (Tracking) หรือการขนส่งสินค้าเต็มคันรถ (FTL) ซึ่งผู้เล่นทุกรายสามารถทำได้</p>
+                            <p class="text-sm text-gray-600">
+                                <span class="lang-th">บริการพื้นฐานทั่วไป เช่น การติดตามสถานะ (Tracking) หรือการขนส่งสินค้าเต็มคันรถ (FTL) ซึ่งผู้เล่นทุกรายสามารถทำได้</span>
+                                <span class="lang-en">Basic services like tracking or Full Truck Load (FTL) transport, which all players can provide.</span>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -246,78 +291,112 @@
         </section>
 
         <section id="strategy-house" class="mb-20">
-            <h2 class="section-title">Strategy House 2569: "อยู่ดี มีสุข"</h2>
+            <h2 class="section-title"><span class="lang-th">Strategy House 2568 ครึ่งปีหลัง - 2573: "อยู่ดี มีสุข"</span><span class="lang-en">Strategy House 2025 H2 - 2030: "Yoo Dee Mee Sook"</span></h2>
             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                นี่คือโครงสร้างกลยุทธ์ทั้งหมดของเรา ซึ่งประกอบด้วยเป้าหมาย (หลังคา), เสาหลัก (ความคิดริเริ่ม), และรากฐาน (อัตลักษณ์) ที่จะนำพาองค์กรไปสู่ความสำเร็จ
+                <span class="lang-th">นี่คือโครงสร้างกลยุทธ์ทั้งหมดของเรา ซึ่งประกอบด้วยเป้าหมาย (หลังคา), เสาหลัก (ความคิดริเริ่ม), และรากฐาน (อัตลักษณ์) ที่จะนำพาองค์กรไปสู่ความสำเร็จ พร้อมการขยายสู่ธุรกิจพลังงานสะอาดและโลจิสติกส์เฉพาะทาง</span>
+                <span class="lang-en">This is our complete strategic framework, comprising goals (roof), pillars (initiatives), and foundation (identity), that will lead the organization to success, along with expansion into clean energy and specialized logistics businesses.</span>
             </p>
             <div class="card p-8">
                 <div class="border-2 border-gray-300 rounded-lg">
                     <div class="bg-ptg-primary text-white text-center p-4 rounded-t-md">
-                        <h3 class="text-2xl font-bold">เป้าหมายปี 2573 (Vision/Goals)</h3>
-                        <p>Net Profit 150M+ | GP > 15% | Market Leader in Commercial Value Logistics</p>
+                        <h3 class="text-2xl font-bold"><span class="lang-th">เป้าหมายปี 2573 (Vision/Goals)</span><span class="lang-en">2030 Goals (Vision/Goals)</span></h3>
+                        <p>Net Profit 600+ <span class="lang-th">ล้านบาท</span><span class="lang-en">MB</span> | GP > 15% | Market Leader in Commercial Value Logistics</p>
                     </div>
                     <div class="p-6 grid md:grid-cols-3 gap-6">
                         <div class="strategy-pillar card p-4 text-center border-t-4 border-ptg-accent">
-                            <h4 class="text-lg font-bold mb-2">เสาหลักที่ 1: Operational Excellence</h4>
-                            <p class="text-sm text-gray-600">ความเป็นเลิศด้านปฏิบัติการและผู้นำด้านต้นทุน</p>
+                            <h4 class="text-lg font-bold mb-2"><span class="lang-th">เสาหลักที่ 1: Operational Excellence</span><span class="lang-en">Pillar 1: Operational Excellence</span></h4>
+                            <p class="text-sm text-gray-600">
+                                <span class="lang-th">ความเป็นเลิศด้านปฏิบัติการและผู้นำด้านต้นทุน</span>
+                                <span class="lang-en">Operational excellence and cost leadership.</span>
+                            </p>
                             <div class="pillar-details mt-4 text-left text-sm">
                                 <ul class="space-y-2 list-disc list-inside">
-                                    <li>นำเทคโนโลยี AI มาใช้ในการวางแผนเส้นทาง (Route Optimization)</li>
-                                    <li>ใช้ระบบบำรุงรักษาเชิงคาดการณ์ (Predictive Maintenance)</li>
-                                    <li>เพิ่มประสิทธิภาพการใช้เชื้อเพลิงและลดการวิ่งรถเปล่า</li>
+                                    <li><span class="lang-th">นำเทคโนโลยี AI มาใช้ในการวางแผนเส้นทาง (Route Optimization)</span><span class="lang-en">Implement AI for route optimization.</span></li>
+                                    <li><span class="lang-th">ใช้ระบบบำรุงรักษาเชิงคาดการณ์ (Predictive Maintenance)</span><span class="lang-en">Utilize predictive maintenance systems.</span></li>
+                                    <li><span class="lang-th">เพิ่มประสิทธิภาพการใช้เชื้อเพลิงและลดการวิ่งรถเปล่า</span><span class="lang-en">Improve fuel efficiency and reduce empty runs.</span></li>
                                 </ul>
                             </div>
                         </div>
                         <div class="strategy-pillar card p-4 text-center border-t-4 border-ptg-accent">
-                            <h4 class="text-lg font-bold mb-2">เสาหลักที่ 2: Strategic Diversification</h4>
-                            <p class="text-sm text-gray-600">ขยายธุรกิจสู่บริการ Non-Oil ที่เติบโตสูง</p>
+                            <h4 class="text-lg font-bold mb-2"><span class="lang-th">เสาหลักที่ 2: Strategic Diversification & Expansion</span><span class="lang-en">Pillar 2: Strategic Diversification & Expansion</span></h4>
+                            <p class="text-sm text-gray-600">
+                                <span class="lang-th">ขยายธุรกิจสู่บริการ Non-Oil ที่เติบโตสูงและโลจิสติกส์เฉพาะทาง</span>
+                                <span class="lang-en">Expand into high-growth Non-Oil services and specialized logistics.</span>
+                            </p>
                              <div class="pillar-details mt-4 text-left text-sm">
                                 <ul class="space-y-2 list-disc list-inside">
-                                    <li>บุกตลาด Cold Chain Logistics สำหรับธุรกิจอาหารและเครื่องดื่มในเครือ</li>
-                                    <li>พัฒนาโซลูชัน Last-Mile Delivery สำหรับลูกค้า B2B2C</li>
-                                    <li>หาพันธมิตรเพื่อขยายบริการคลังสินค้าและกระจายสินค้า</li>
+                                    <li><span class="lang-th">บุกตลาด Cold Chain Logistics สำหรับธุรกิจอาหารและเครื่องดื่มในเครือ</span><span class="lang-en">Penetrate Cold Chain Logistics for in-group F&B businesses.</span></li>
+                                    <li><span class="lang-th">พัฒนาโซลูชัน Last-Mile Delivery สำหรับลูกค้า B2B2C</span><span class="lang-en">Develop Last-Mile Delivery solutions for B2B2C customers.</span></li>
+                                    <li><span class="lang-th">หาพันธมิตรเพื่อขยายบริการคลังสินค้าและกระจายสินค้า</span><span class="lang-en">Seek partners to expand warehousing and distribution services.</span></li>
+                                    <li><span class="lang-th">ศึกษาและพัฒนาบริการขนส่งสำหรับพลังงานทางเลือกใหม่ (เช่น Hydrogen, Biomass)</span><span class="lang-en">Research and develop transport services for new alternative energies (e.g., Hydrogen, Biomass).</span></li>
+                                    <li><span class="lang-th">สำรวจความร่วมมือกับผู้ผลิต/ผู้ใช้ Hydrogen และ Biomass</span><span class="lang-en">Explore collaborations with Hydrogen and Biomass producers/users.</span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">ขยายบริการขนส่งและคลังสินค้าสำหรับสารเคมีอันตรายและแก๊สอุตสาหกรรม (รวมถึง LPG/LNG) โดยเน้นความปลอดภัยและมาตรฐานสากล</span><span class="lang-en">Expand transport and warehousing services for hazardous chemicals and industrial gases (including LPG/LNG), focusing on safety and international standards.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">พัฒนาและบริหารจัดการคลังสินค้าเฉพาะทางขนาดใหญ่ (เช่น 20,000 ตร.ม. สำหรับสินค้าควบคุมพิเศษและทั่วไป)</span><span class="lang-en">Develop and manage large specialized warehouses (e.g., 20,000 sq.m. for controlled and general goods).</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">สำรวจและเข้าสู่ตลาดขนส่งและคลังสินค้าในต่างประเทศใกล้เคียง (CLMV) เพื่อรองรับการค้าชายแดนและภูมิภาค</span><span class="lang-en">Explore and enter logistics and warehousing markets in neighboring countries (CLMV) to support cross-border and regional trade.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">สร้าง Regional Hub สำหรับการจัดส่งและกระจายสินค้าในภูมิภาคสำคัญของประเทศ</span><span class="lang-en">Establish Regional Hubs for delivery and distribution in key regions of the country.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">แสวงหาและสร้างพันธมิตรเชิงกลยุทธ์กับธุรกิจขนส่งและศูนย์กระจายสินค้า (DC) อื่นๆ ในประเทศ</span><span class="lang-en">Seek and build strategic partnerships with other domestic transport and distribution center (DC) businesses.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">พิจารณาการร่วมทุนและการเข้าซื้อกิจการ (M&A) บริษัทขนส่งที่มีศักยภาพและวิสัยทัศน์สอดคล้องกัน</span><span class="lang-en">Consider joint ventures and mergers & acquisitions (M&A) of potential transport companies with aligned visions.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">ยกระดับสู่การเป็นผู้ให้บริการ 4PL (Fourth-Party Logistics) โดยการนำเสนอโซลูชันการจัดการห่วงโซ่อุปทานแบบครบวงจรในทุกธุรกิจที่เกี่ยวข้อง</span><span class="lang-en">Upgrade to a 4PL (Fourth-Party Logistics) provider by offering comprehensive supply chain management solutions across all relevant businesses.</span></span></li>
                                 </ul>
                             </div>
                         </div>
                         <div class="strategy-pillar card p-4 text-center border-t-4 border-ptg-accent">
-                            <h4 class="text-lg font-bold mb-2">เสาหลักที่ 3: Green & Digital Leadership</h4>
-                            <p class="text-sm text-gray-600">ผู้นำด้านโลจิสติกส์สีเขียวและดิจิทัล</p>
+                            <h4 class="text-lg font-bold mb-2"><span class="lang-th">เสาหลักที่ 3: Green & Digital Leadership</span><span class="lang-en">Pillar 3: Green & Digital Leadership</span></h4>
+                            <p class="text-sm text-gray-600">
+                                <span class="lang-th">ผู้นำด้านโลจิสติกส์สีเขียวและดิจิทัล</span>
+                                <span class="lang-en">Green and digital logistics leadership.</span>
+                            </p>
                              <div class="pillar-details mt-4 text-left text-sm">
                                 <ul class="space-y-2 list-disc list-inside">
-                                    <li>ทยอยเปลี่ยนกองยานพาหนะเป็นรถบรรทุกไฟฟ้า (EV Truck)</li>
-                                    <li>พัฒนา Digital Platform สำหรับลูกค้าเพื่อติดตามสถานะและจัดการข้อมูล</li>
-                                    <li>สร้างแบรนด์ผู้นำด้านโลจิสติกส์ยั่งยืน</li>
+                                    <li><span class="lang-th">ทยอยเปลี่ยนกองยานพาหนะเป็นรถบรรทุกไฟฟ้า (EV Truck)</span><span class="lang-en">Gradually transition fleet to EV trucks.</span></li>
+                                    <li><span class="lang-th">พัฒนา Digital Platform สำหรับลูกค้าเพื่อติดตามสถานะและจัดการข้อมูล</span><span class="lang-en">Develop a digital platform for customers to track status and manage data.</span></li>
+                                    <li><span class="lang-th">สร้างแบรนด์ผู้นำด้านโลจิสติกส์ยั่งยืน</span><span class="lang-en">Build a brand as a leader in sustainable logistics.</span></li>
+                                    <li><span class="lang-th">วางตำแหน่ง PTGLG ในฐานะผู้ให้บริการโลจิสติกส์ที่สนับสนุนการเติบโตของเศรษฐกิจชีวภาพและพลังงานสะอาดของประเทศ</span><span class="lang-en">Position PTGLG as a logistics provider supporting the growth of Thailand's bio-economy and clean energy.</span></li>
+                                    <li><span class="lang-th">นำเทคโนโลยี IoT และ Big Data มาใช้ในการบริหารจัดการคลังสินค้าและยานพาหนะเพื่อเพิ่มประสิทธิภาพและความปลอดภัย</span><span class="lang-en">Implement IoT and Big Data for warehouse and fleet management to enhance efficiency and safety.</span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">พัฒนาระบบ IT และแพลตฟอร์มการบูรณาการข้อมูลเพื่อรองรับการดำเนินงาน 4PL</span><span class="lang-en">Develop IT systems and data integration platforms to support 4PL operations.</span></span></li>
                                 </ul>
                             </div>
                         </div>
                     </div>
                     <div class="bg-gray-800 text-white text-center p-4 rounded-b-md">
-                        <h3 class="text-xl font-bold">รากฐาน (Foundation): อัตลักษณ์แบรนด์ "ลูกค้าคู่คิด" (Customer Partner)</h3>
-                        <p class="text-sm">ส่งมอบบริการที่คุ้มค่า (Value for Money) และเป็นที่ปรึกษาที่ไว้ใจได้</p>
+                        <h3 class="text-xl font-bold"><span class="lang-th">รากฐาน (Foundation): อัตลักษณ์แบรนด์ "ลูกค้าคู่คิด" (Customer Partner)</span><span class="lang-en">Foundation: Brand Identity "Customer Partner"</span></h3>
+                        <p class="text-sm">
+                            <span class="lang-th">ส่งมอบบริการที่คุ้มค่า (Value for Money) และเป็นที่ปรึกษาที่ไว้ใจได้</span>
+                            <span class="lang-en">Deliver value-for-money services and be a trusted advisor.</span>
+                        </p>
                     </div>
                 </div>
             </div>
         </section>
 
         <section id="financials" class="mb-20">
-            <h2 class="section-title">ประมาณการทางการเงิน (2569-2573)</h2>
-             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                การคาดการณ์นี้อ้างอิงจากอัตราการเติบโตของตลาดโลจิสติกส์ไทย และผลกระทบเชิงบวกจากการดำเนินกลยุทธ์ที่วางไว้ โดยมุ่งเน้นการเติบโตของรายได้จากธุรกิจ Non-Oil และการเพิ่มประสิทธิภาพในการทำกำไร
+            <h2 class="section-title"><span class="lang-th">ประมาณการทางการเงิน (2568 ครึ่งปีหลัง - 2573)</span><span class="lang-en">Financial Projections (2025 H2 - 2030)</span></h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                <span class="lang-th">การคาดการณ์นี้อ้างอิงจากอัตราการเติบโตของตลาดโลจิสติกส์ไทย และผลกระทบเชิงบวกจากการดำเนินกลยุทธ์ที่วางไว้ โดยมุ่งเน้นการเติบโตของรายได้จากธุรกิจ Non-Oil, การเพิ่มประสิทธิภาพในการทำกำไร และการขยายสู่ธุรกิจพลังงานสะอาดและโลจิสติกส์เฉพาะทาง รวมถึงการขยายธุรกิจใหม่ๆ และการยกระดับสู่การเป็นผู้ให้บริการ 4PL</span>
+                <span class="lang-en">These projections are based on the growth rate of the Thai logistics market and the positive impact of implemented strategies, focusing on revenue growth from Non-Oil businesses, enhanced profitability, and expansion into clean energy and specialized logistics, including new business expansion and upgrading to a 4PL provider.</span>
             </p>
             <div class="card p-6">
                 <div class="chart-container">
                     <canvas id="revenueChart"></canvas>
                 </div>
                 <div class="mt-6 text-center text-sm text-gray-600">
-                    <p><span class="font-bold">ข้อสมมติฐานหลัก:</span> อัตราการเติบโตของตลาดโลจิสติกส์ไทยเฉลี่ย 6-7% ต่อปี, การเติบโตของธุรกิจ Non-Oil เร่งตัวขึ้น 15-20% ต่อปีจากการขยายบริการ Cold Chain และ B2B2C, และอัตรากำไรขั้นต้นดีขึ้นจากการใช้เทคโนโลยีลดต้นทุน</p>
+                    <p>
+                        <span class="font-bold"><span class="lang-th">ข้อสมมติฐานหลัก:</span><span class="lang-en">Key Assumptions:</span></span>
+                        <span class="lang-th"> อัตราการเติบโตของตลาดโลจิสติกส์ไทยเฉลี่ย 6-7% ต่อปี, การเติบโตของธุรกิจ Non-Oil เร่งตัวขึ้น 15-20% ต่อปีจากการขยายบริการ Cold Chain และ B2B2C, อัตรากำไรขั้นต้นดีขึ้นจากการใช้เทคโนโลยีลดต้นทุน, และรายได้จากการขนส่งพลังงานทางเลือก (Hydrogen, Biomass), สารเคมีอันตราย, แก๊สอุตสาหกรรม, การใช้ประโยชน์จากคลังสินค้าใหม่, การขยายธุรกิจต่างประเทศ, การสร้าง Regional Hub, ผลจาก Partnership/M&A, </span>
+                        <span class="lang-en"> Average Thai logistics market growth rate of 6-7% per year, Non-Oil business growth accelerating by 15-20% per year from Cold Chain and B2B2C service expansion, improved gross profit margin from cost-reducing technology, and revenue from alternative energy transport (Hydrogen, Biomass), hazardous chemicals, industrial gases, utilization of new warehouses, international business expansion, Regional Hub creation, Partnership/M&A outcomes, </span>
+                        <span class="font-bold text-ptg-accent"><span class="lang-th">และบริการ 4PL ที่มีมูลค่าเพิ่มสูง</span><span class="lang-en">and high-value 4PL services</span></span>
+                        <span class="lang-th"> จะเริ่มมีส่วนร่วมในการเติบโตของรายได้ตั้งแต่ครึ่งปีหลัง 2568 เป็นต้นไป</span>
+                        <span class="lang-en"> will contribute to revenue growth starting from H2 2025.</span>
+                    </p>
                 </div>
             </div>
         </section>
 
         <section id="roadmap">
-            <h2 class="section-title">แผนการดำเนินงาน (Implementation Roadmap)</h2>
+            <h2 class="section-title"><span class="lang-th">แผนการดำเนินงาน (Implementation Roadmap)</span><span class="lang-en">Implementation Roadmap</span></h2>
             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
-                ไทม์ไลน์สำหรับความคิดริเริ่มหลักในแต่ละปี เพื่อให้แน่ใจว่าเราสามารถบรรลุเป้าหมายเชิงกลยุทธ์ได้ตามแผนที่วางไว้
+                <span class="lang-th">ไทม์ไลน์สำหรับความคิดริเริ่มหลักในแต่ละปี เพื่อให้แน่ใจว่าเราสามารถบรรลุเป้าหมายเชิงกลยุทธ์ได้ตามแผนที่วางไว้ รวมถึงการก้าวเข้าสู่ธุรกิจพลังงานสะอาดและโลจิสติกส์เฉพาะทาง ตลอดจนการเป็นผู้ให้บริการ 4PL</span>
+                <span class="lang-en">Timeline for key initiatives each year to ensure we achieve strategic goals as planned, including venturing into clean energy and specialized logistics, as well as becoming a 4PL provider.</span>
             </p>
             <div class="relative">
                 <div class="border-l-2 border-ptg-primary absolute h-full top-0 left-1/2 -translate-x-1/2"></div>
@@ -326,11 +405,17 @@
                     <div class="flex md:justify-end">
                         <div class="w-full md:w-10/12">
                             <div class="card p-4">
-                                <p class="text-ptg-primary font-bold">ปี 2569: วางรากฐาน</p>
+                                <p class="text-ptg-primary font-bold"><span class="lang-th">ปี 2568 (ครึ่งปีหลัง): วางรากฐานและสำรวจ</span><span class="lang-en">2025 (H2): Laying Foundation & Exploration</span></p>
                                 <ul class="text-sm list-disc list-inside mt-2">
-                                    <li>นำร่อง Route Optimization Software</li>
-                                    <li>เปิดตัวบริการ Cold Chain สำหรับ PunThai Coffee</li>
-                                    <li>ศึกษาความเป็นไปได้ของ EV Truck</li>
+                                    <li><span class="lang-th">นำร่อง Route Optimization Software</span><span class="lang-en">Pilot Route Optimization Software.</span></li>
+                                    <li><span class="lang-th">เปิดตัวบริการ Cold Chain สำหรับ PunThai Coffee</span><span class="lang-en">Launch Cold Chain services for PunThai Coffee.</span></li>
+                                    <li><span class="lang-th">ศึกษาความเป็นไปได้ของ EV Truck</span><span class="lang-en">Feasibility study for EV Trucks.</span></li>
+                                    <li><span class="lang-th">เริ่มศึกษาความเป็นไปได้ทางธุรกิจสำหรับโลจิสติกส์ Hydrogen และ Biomass</span><span class="lang-en">Begin business feasibility study for Hydrogen and Biomass logistics.</span></li>
+                                    <li><span class="lang-th">วิเคราะห์ตลาดและกฎระเบียบสำหรับโลจิสติกส์สารเคมีอันตราย/แก๊สอุตสาหกรรม</span><span class="lang-en">Market and regulatory analysis for hazardous chemicals/industrial gases logistics.</span></li>
+                                    <li><span class="lang-th">เริ่มออกแบบและขออนุญาตก่อสร้างคลังสินค้าใหม่ 20,000 ตร.ม.</span><span class="lang-en">Start design and permit application for new 20,000 sq.m. warehouse.</span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">วิเคราะห์ตลาดและศักยภาพการขนส่ง/คลังสินค้าในต่างประเทศใกล้เคียง (CLMV)</span><span class="lang-en">Analyze market and potential for transport/warehousing in neighboring countries (CLMV).</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">เริ่มหารือเบื้องต้นกับพันธมิตรขนส่งและ DC ในประเทศ</span><span class="lang-en">Initiate preliminary discussions with domestic transport and DC partners.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">ศึกษาความเป็นไปได้และจัดทำแผนกลยุทธ์สำหรับการเป็นผู้ให้บริการ 4PL</span><span class="lang-en">Feasibility study and strategic planning for becoming a 4PL provider.</span></span></li>
                                 </ul>
                             </div>
                         </div>
@@ -341,11 +426,18 @@
                      <div class="flex">
                         <div class="w-full md:w-10/12">
                             <div class="card p-4">
-                                <p class="text-ptg-primary font-bold">ปี 2570: ขยายผล</p>
+                                <p class="text-ptg-primary font-bold"><span class="lang-th">ปี 2569: ขยายผลและเริ่มลงทุน</span><span class="lang-en">2026: Scaling Up & Initial Investment</span></p>
                                 <ul class="text-sm list-disc list-inside mt-2">
-                                    <li>ใช้ Predictive Maintenance ทั่วทั้ง Fleet</li>
-                                    <li>ขยายบริการ B2B2C ร่วมกับพันธมิตร E-commerce</li>
-                                    <li>จัดซื้อ EV Truck ล็อตแรกสำหรับเส้นทางในเมือง</li>
+                                    <li><span class="lang-th">ใช้ Predictive Maintenance ทั่วทั้ง Fleet</span><span class="lang-en">Implement Predictive Maintenance across the fleet.</span></li>
+                                    <li><span class="lang-th">ขยายบริการ B2B2C ร่วมกับพันธมิตร E-commerce</span><span class="lang-en">Expand B2B2C services with e-commerce partners.</span></li>
+                                    <li><span class="lang-th">จัดซื้อ EV Truck ล็อตแรกสำหรับเส้นทางในเมือง</span><span class="lang-en">Procure first batch of EV trucks for urban routes.</span></li>
+                                    <li><span class="lang-th">จัดทำแผนธุรกิจและโมเดลการลงทุนสำหรับบริการขนส่งพลังงานสะอาด</span><span class="lang-en">Develop business plan and investment model for clean energy transport services.</span></li>
+                                    <li><span class="lang-th">เริ่มก่อสร้างคลังสินค้าใหม่ 20,000 ตร.ม.</span><span class="lang-en">Begin construction of new 20,000 sq.m. warehouse.</span></li>
+                                    <li><span class="lang-th">ฝึกอบรมบุคลากรและเตรียมความพร้อมสำหรับการขนส่งสารเคมีอันตราย/แก๊สอุตสาหกรรม</span><span class="lang-en">Train personnel and prepare for hazardous chemicals/industrial gases transport.</span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">เริ่มโครงการนำร่องการขนส่งสารเคมีอันตราย/แก๊สอุตสาหกรรม</span><span class="lang-en">Launch pilot project for hazardous chemicals/industrial gases transport.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">กำหนดเป้าหมายและเริ่มเจรจา M&A/Joint Venture กับบริษัทขนส่งที่มีศักยภาพ</span><span class="lang-en">Set targets and begin M&A/Joint Venture negotiations with potential transport companies.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">เริ่มสร้าง Regional Hub แห่งแรก</span><span class="lang-en">Begin establishing the first Regional Hub.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">พัฒนาระบบ IT และแพลตฟอร์มเบื้องต้นสำหรับบริการ 4PL</span><span class="lang-en">Develop initial IT systems and platforms for 4PL services.</span></span></li>
                                 </ul>
                             </div>
                         </div>
@@ -354,11 +446,18 @@
                     <div class="flex md:justify-end">
                         <div class="w-full md:w-10/12">
                             <div class="card p-4">
-                                <p class="text-ptg-primary font-bold">ปี 2571: สร้างความแตกต่าง</p>
+                                <p class="text-ptg-primary font-bold"><span class="lang-th">ปี 2570: สร้างความแตกต่างและขยายฐาน</span><span class="lang-en">2027: Differentiation & Base Expansion</span></p>
                                 <ul class="text-sm list-disc list-inside mt-2">
-                                    <li>เปิดตัว Digital Platform V1.0 สำหรับลูกค้า</li>
-                                    <li>ขยายบริการ Cold Chain สู่ลูกค้านอกเครือ</li>
-                                    <li>ได้รับการรับรอง Green Logistics Standard</li>
+                                    <li><span class="lang-th">เปิดตัว Digital Platform V1.0 สำหรับลูกค้า</span><span class="lang-en">Launch Digital Platform V1.0 for customers.</span></li>
+                                    <li><span class="lang-th">ขยายบริการ Cold Chain สู่ลูกค้านอกเครือ</span><span class="lang-en">Expand Cold Chain services to external clients.</span></li>
+                                    <li><span class="lang-th">ได้รับการรับรอง Green Logistics Standard</span><span class="lang-en">Obtain Green Logistics Standard certification.</span></li>
+                                    <li><span class="lang-th">เริ่มโครงการนำร่องการขนส่ง Hydrogen/Biomass ในเส้นทางที่กำหนด</span><span class="lang-en">Launch pilot project for Hydrogen/Biomass transport on designated routes.</span></li>
+                                    <li><span class="lang-th">คลังสินค้าใหม่ 20,000 ตร.ม. เปิดดำเนินการบางส่วน</span><span class="lang-en">New 20,000 sq.m. warehouse partially operational.</span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">ขยายบริการขนส่งสารเคมีอันตราย/แก๊สอุตสาหกรรมสู่ตลาดเชิงพาณิชย์เต็มรูปแบบ</span><span class="lang-en">Expand hazardous chemicals/industrial gases transport services to full commercial market.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">สรุปและเริ่มดำเนินการ M&A/Joint Venture แห่งแรก</span><span class="lang-en">Finalize and initiate first M&A/Joint Venture.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">เริ่มโครงการนำร่องการขนส่งและคลังสินค้าในต่างประเทศ (CLMV)</span><span class="lang-en">Launch pilot project for international transport and warehousing (CLMV).</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">สร้าง Regional Hub แห่งที่สอง</span><span class="lang-en">Establish second Regional Hub.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">เริ่มโครงการนำร่องบริการ 4PL กับลูกค้าเชิงกลยุทธ์รายแรก</span><span class="lang-en">Launch pilot 4PL service project with first strategic client.</span></span></li>
                                 </ul>
                             </div>
                         </div>
@@ -369,11 +468,18 @@
                     <div class="flex">
                         <div class="w-full md:w-10/12">
                             <div class="card p-4">
-                                <p class="text-ptg-primary font-bold">ปี 2572-2573: สู่การเป็นผู้นำ</p>
+                                <p class="text-ptg-primary font-bold"><span class="lang-th">ปี 2571-2573: สู่การเป็นผู้นำและเติบโตอย่างก้าวกระโดด</span><span class="lang-en">2028-2030: Towards Leadership & Exponential Growth</span></p>
                                 <ul class="text-sm list-disc list-inside mt-2">
-                                    <li>ขยาย Fleet EV Truck เป็น 15% ของทั้งหมด</li>
-                                    <li>ยกระดับ Digital Platform ด้วย AI และ Analytics</li>
-                                    <li>ครองตำแหน่งผู้นำด้าน Value for Money Commercial Logistics</li>
+                                    <li><span class="lang-th">ขยาย Fleet EV Truck เป็น 15% ของทั้งหมด</span><span class="lang-en">Expand EV Truck fleet to 15% of total.</span></li>
+                                    <li><span class="lang-th">ยกระดับ Digital Platform ด้วย AI และ Analytics</span><span class="lang-en">Upgrade Digital Platform with AI and Analytics.</span></li>
+                                    <li><span class="lang-th">ครองตำแหน่งผู้นำด้าน Value for Money Commercial Logistics</span><span class="lang-en">Achieve leadership in Value for Money Commercial Logistics.</span></li>
+                                    <li><span class="lang-th">ขยายบริการขนส่ง Hydrogen/Biomass สู่ตลาดเชิงพาณิชย์เต็มรูปแบบ</span><span class="lang-en">Expand Hydrogen/Biomass transport services to full commercial market.</span></li>
+                                    <li><span class="lang-th">คลังสินค้าใหม่ 20,000 ตร.ม. เปิดดำเนินการเต็มรูปแบบและใช้ประโยชน์เต็มที่</span><span class="lang-en">New 20,000 sq.m. warehouse fully operational and utilized.</span></li>
+                                    <li><span class="lang-th">เป็นผู้ให้บริการโลจิสติกส์ชั้นนำสำหรับสารเคมีอันตรายและแก๊สอุตสาหกรรม</span><span class="lang-en">Become a leading logistics provider for hazardous chemicals and industrial gases.</span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">ขยายการดำเนินงานขนส่งและคลังสินค้าในต่างประเทศ (CLMV) อย่างเต็มรูปแบบ</span><span class="lang-en">Fully expand international transport and warehousing operations (CLMV).</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">สร้างเครือข่าย Regional Hub ทั่วประเทศ</span><span class="lang-en">Establish a nationwide network of Regional Hubs.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">แสวงหาโอกาส M&A/Joint Venture เพิ่มเติมเพื่อเสริมความแข็งแกร่งและขยายตลาด</span><span class="lang-en">Seek additional M&A/Joint Venture opportunities to strengthen and expand market share.</span></span></li>
+                                    <li><span class="font-bold text-ptg-accent"><span class="lang-th">ขยายบริการ 4PL สู่ลูกค้าเป้าหมายในวงกว้างและสร้างชื่อเสียงในฐานะผู้นำ 4PL</span><span class="lang-en">Expand 4PL services to a broad target clientele and establish reputation as a 4PL leader.</span></span></li>
                                 </ul>
                             </div>
                         </div>
@@ -387,77 +493,116 @@
 
     <footer class="bg-gray-800 text-white mt-20">
         <div class="container mx-auto px-6 py-4 text-center">
-            <p>&copy; 2025 แผนยุทธศาสตร์ บจก. พีทีจี โลจิสติกส์</p>
+            <p>&copy; 2025 <span class="lang-th">แผนยุทธศาสตร์ บจก. พีทีจี โลจิสติกส์</span><span class="lang-en">PTG Logistics Strategic Plan</span></p>
         </div>
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const mobileMenuButton = document.getElementById('mobile-menu-button');
-            const mobileMenu = document.getElementById('mobile-menu');
+        // Language toggle functionality
+        const langToggleBtn = document.getElementById('lang-toggle');
+        const langElementsTh = document.querySelectorAll('.lang-th');
+        const langElementsEn = document.querySelectorAll('.lang-en');
 
-            mobileMenuButton.addEventListener('click', () => {
-                mobileMenu.classList.toggle('hidden');
+        // Initialize language from localStorage or default to Thai
+        let currentLang = localStorage.getItem('ptglg_lang') || 'th';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('ptglg_lang', lang);
+
+            langElementsTh.forEach(el => {
+                if (lang === 'th') {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
             });
-            
-            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-                anchor.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    mobileMenu.classList.add('hidden');
-                    document.querySelector(this.getAttribute('href')).scrollIntoView({
-                        behavior: 'smooth'
-                    });
+
+            langElementsEn.forEach(el => {
+                if (lang === 'en') {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            langToggleBtn.textContent = lang === 'th' ? 'EN' : 'TH';
+            document.documentElement.lang = lang;
+            updateChartLabels();
+        }
+
+        // Mobile menu functionality
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                mobileMenu.classList.add('hidden');
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
                 });
             });
+        });
 
-            const tabs = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
+        // Tab switching functionality (for SWOT/Winning Zone)
+        const tabs = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-            tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    const target = tab.getAttribute('data-tab');
-                    
-                    tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const target = tab.getAttribute('data-tab');
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
 
-                    tabContents.forEach(content => {
-                        if (content.id === `${target}-content`) {
-                            content.classList.add('active');
-                        } else {
-                            content.classList.remove('active');
-                        }
-                    });
-                });
-            });
-            
-            const pillars = document.querySelectorAll('.strategy-pillar');
-            pillars.forEach(pillar => {
-                pillar.addEventListener('click', () => {
-                    const details = pillar.querySelector('.pillar-details');
-                    if (details.style.maxHeight) {
-                        details.style.maxHeight = null;
+                tabContents.forEach(content => {
+                    if (content.id === `${target}-content`) {
+                        content.classList.add('active');
                     } else {
-                        details.style.maxHeight = details.scrollHeight + "px";
+                        content.classList.remove('active');
                     }
                 });
             });
+        });
+        
+        // Strategy House pillar details toggle
+        const pillars = document.querySelectorAll('.strategy-pillar');
+        pillars.forEach(pillar => {
+            pillar.addEventListener('click', () => {
+                const details = pillar.querySelector('.pillar-details');
+                if (details.style.maxHeight) {
+                    details.style.maxHeight = null;
+                } else {
+                    details.style.maxHeight = details.scrollHeight + "px";
+                }
+            });
+        });
 
+        // Chart.js initialization and update function
+        let revenueChart; // Declare chart variable globally
+
+        function initializeChart() {
             const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-            const revenueChart = new Chart(revenueCtx, {
+            revenueChart = new Chart(revenueCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['2568 (ฐาน)', '2569', '2570', '2571', '2572', '2573'],
+                    labels: ['2568 (ฐาน)', '2568 (H2)', '2569', '2570', '2571', '2572', '2573'],
                     datasets: [{
-                        label: 'รายได้รวม (ล้านบาท)',
-                        data: [2230, 2406, 2623, 2885, 3174, 3491],
+                        label: 'รายได้รวม (ล้านบาท)', // Default Thai
+                        data: [2230, 2400, 3200, 4300, 5600, 7000, 8500],
                         backgroundColor: 'rgba(0, 106, 78, 0.7)',
                         borderColor: 'rgba(0, 106, 78, 1)',
                         borderWidth: 1,
                         yAxisID: 'y',
                     }, {
                         type: 'line',
-                        label: 'อัตรากำไรขั้นต้น (%)',
-                        data: [12.5, 13.0, 13.8, 14.5, 15.0, 15.5],
+                        label: 'อัตรากำไรขั้นต้น (%)', // Default Thai
+                        data: [12.5, 12.8, 14.2, 15.5, 16.5, 17.5, 18.5],
                         backgroundColor: 'rgba(255, 159, 64, 0.2)',
                         borderColor: 'rgba(255, 159, 64, 1)',
                         borderWidth: 2,
@@ -474,7 +619,7 @@
                             position: 'left',
                             title: {
                                 display: true,
-                                text: 'รายได้ (ล้านบาท)'
+                                text: 'รายได้ (ล้านบาท)' // Default Thai
                             }
                         },
                         y1: {
@@ -482,7 +627,7 @@
                             position: 'right',
                             title: {
                                 display: true,
-                                text: 'อัตรากำไรขั้นต้น (%)'
+                                text: 'อัตรากำไรขั้นต้น (%)' // Default Thai
                             },
                             grid: {
                                 drawOnChartArea: false, 
@@ -501,7 +646,7 @@
                                         if(context.dataset.type === 'line') {
                                             label += context.parsed.y + ' %';
                                         } else {
-                                            label += new Intl.NumberFormat('th-TH').format(context.parsed.y) + ' ล้านบาท';
+                                            label += new Intl.NumberFormat('th-TH').format(context.parsed.y) + (currentLang === 'th' ? ' ล้านบาท' : ' MB');
                                         }
                                     }
                                     return label;
@@ -513,7 +658,7 @@
                         },
                         title: {
                             display: true,
-                            text: 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2569-2573)',
+                            text: 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2568 ครึ่งปีหลัง - 2573)', // Default Thai
                             font: {
                                 size: 16
                             }
@@ -521,7 +666,33 @@
                     }
                 }
             });
+            updateChartLabels(); // Call once after initialization to set initial language
+        }
+
+        // Initialize chart and set initial language when DOM is ready
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeChart();
+            setLanguage(currentLang); // Ensure initial language is applied after chart is ready
         });
+
+        function updateChartLabels() {
+            if (!revenueChart) return;
+
+            if (currentLang === 'th') {
+                revenueChart.data.datasets[0].label = 'รายได้รวม (ล้านบาท)';
+                revenueChart.data.datasets[1].label = 'อัตรากำไรขั้นต้น (%)';
+                revenueChart.options.scales.y.title.text = 'รายได้ (ล้านบาท)';
+                revenueChart.options.scales.y1.title.text = 'อัตรากำไรขั้นต้น (%)';
+                revenueChart.options.plugins.title.text = 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2568 ครึ่งปีหลัง - 2573)';
+            } else {
+                revenueChart.data.datasets[0].label = 'Total Revenue (MB)';
+                revenueChart.data.datasets[1].label = 'Gross Profit Margin (%)';
+                revenueChart.options.scales.y.title.text = 'Revenue (MB)';
+                revenueChart.options.scales.y1.title.text = 'Gross Profit Margin (%)';
+                revenueChart.options.plugins.title.text = 'Projected Revenue and Gross Profit Margin (2025 H2 - 2030)';
+            }
+            revenueChart.update();
+        }
     </script>
 </body>
 </html>
