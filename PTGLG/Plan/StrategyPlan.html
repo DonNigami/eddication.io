@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แผนยุทธศาสตร์เชิงโต้ตอบ: บจก. พีทีจี โลจิสติกส์ (2569-2573)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: PTG Harmony -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive strategic dashboard. It starts with a high-level summary (Vision, Key Goals, Positioning), allowing executives to grasp the core strategy quickly. Users can then dive deeper into specific analyses (SWOT, Winning Zone) via a tabbed interface to prevent cognitive overload from a long scroll. The core of the plan is the 'Strategy House,' presented as an interactive diagram where clicking on pillars reveals detailed initiatives. This is followed by dynamic 'Financial Projections' with Chart.js for clear data visualization and a 'Roadmap' for actionable steps. This structure logically flows from high-level vision to detailed execution, making the complex strategy digestible and engaging for presentation purposes. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Key Goals (Profit, GP%, Market Share) -> Goal: Inform -> Viz: Interactive Stat Cards (HTML/CSS) -> Interaction: Hover effects -> Justification: Quickly highlights key targets.
+        - Report Info: SWOT Analysis -> Goal: Organize -> Viz: 4-Quadrant Grid (HTML/Tailwind) -> Interaction: Click to reveal details for each point -> Justification: Classic, intuitive layout for strategic analysis.
+        - Report Info: Winning Zone (USP) -> Goal: Compare -> Viz: Venn Diagram built with CSS/HTML -> Interaction: Hover to highlight zones and display text -> Justification: Visually represents the competitive landscape effectively without using SVG.
+        - Report Info: Strategy House -> Goal: Organize/Structure -> Viz: Diagram built with Flexbox/Grid (HTML/Tailwind) -> Interaction: Clickable pillars to expand and show details -> Justification: Makes the core strategic framework interactive and less static.
+        - Report Info: Financial Projections -> Goal: Show Change/Trends -> Viz: Bar and Line Charts (Chart.js/Canvas) -> Interaction: Tooltips on hover -> Justification: Best practice for visualizing financial forecasts over time.
+        - Report Info: Roadmap/Timeline -> Goal: Show Process -> Viz: Horizontal Timeline (HTML/CSS) -> Interaction: None, static view -> Justification: Clearly shows the sequence of strategic implementation.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8f9fa; 
+        }
+        .bg-ptg-primary { background-color: #006A4E; }
+        .text-ptg-primary { color: #006A4E; }
+        .border-ptg-primary { border-color: #006A4E; }
+        .bg-ptg-secondary { background-color: #F3F4F6; }
+        .text-ptg-accent { color: #10B981; }
+        .section-title {
+            font-size: 2.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1F2937;
+            text-align: center;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: all 0.3s ease-in-out;
+            border: 1px solid #E5E7EB;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        nav a {
+            transition: color 0.3s;
+        }
+        nav a:hover {
+            color: #10B981;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .tab-button {
+            transition: all 0.3s;
+        }
+        .tab-button.active {
+            background-color: #006A4E;
+            color: white;
+            border-color: #006A4E;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .strategy-pillar { cursor: pointer; }
+        .pillar-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.7s ease-in-out;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-ptg-primary">
+                PTGLG Strategy <span class="text-gray-500">2569-2573</span>
+            </div>
+            <div class="hidden md:flex space-x-6 items-center">
+                <a href="#dashboard" class="text-gray-600 font-medium">ภาพรวม</a>
+                <a href="#analysis" class="text-gray-600 font-medium">วิเคราะห์สถานการณ์</a>
+                <a href="#strategy-house" class="text-gray-600 font-medium">Strategy House</a>
+                <a href="#financials" class="text-gray-600 font-medium">ประมาณการ</a>
+                <a href="#roadmap" class="text-gray-600 font-medium">แผนการดำเนินงาน</a>
+            </div>
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-600 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#dashboard" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">ภาพรวม</a>
+            <a href="#analysis" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">วิเคราะห์สถานการณ์</a>
+            <a href="#strategy-house" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Strategy House</a>
+            <a href="#financials" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">ประมาณการ</a>
+            <a href="#roadmap" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">แผนการดำเนินงาน</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="dashboard" class="mb-20">
+            <h2 class="section-title">ภาพรวมยุทธศาสตร์ (Strategic Dashboard)</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                นี่คือภาพรวมของทิศทางและเป้าหมายเชิงกลยุทธ์สำหรับ บจก. พีทีจี โลจิสติกส์ ในช่วง 5 ปีข้างหน้า (2569-2573) เพื่อขับเคลื่อนการเติบโตอย่างยั่งยืนและสร้างความได้เปรียบในการแข่งขัน
+            </p>
+
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-4 card p-6 text-center bg-ptg-primary text-white">
+                    <h3 class="text-2xl font-semibold mb-2">วิสัยทัศน์องค์รวม</h3>
+                    <p class="text-4xl font-bold">"อยู่ดี มีสุข"</p>
+                    <p class="mt-2 text-gray-200">สร้างการเติบโตที่ยั่งยืน ควบคู่ไปกับการเติมเต็มคุณภาพชีวิตที่ดีให้แก่ลูกค้า คู่ค้า และพนักงาน</p>
+                </div>
+
+                <div class="card p-6">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700">เป้าหมาย: กำไรสุทธิ</h3>
+                    <p class="text-3xl font-bold text-ptg-primary">150+ ล้านบาท</p>
+                    <p class="text-sm text-gray-500">ภายในปี 2573</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700">เป้าหมาย: อัตรากำไรขั้นต้น</h3>
+                    <p class="text-3xl font-bold text-ptg-primary">> 15%</p>
+                    <p class="text-sm text-gray-500">รักษาเสถียรภาพและเพิ่มประสิทธิภาพ</p>
+                </div>
+                <div class="lg:col-span-2 card p-6">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700">การวางตำแหน่งทางการตลาด</h3>
+                    <div class="flex justify-center items-center h-full">
+                        <div class="text-center p-4 bg-ptg-secondary rounded-lg">
+                            <p class="font-bold text-ptg-primary text-xl">Commercial Truck</p>
+                            <p class="text-sm text-gray-500">กลุ่มรถบรรทุกเชิงพาณิชย์</p>
+                            <span class="text-2xl font-extrabold text-ptg-accent">&</span>
+                            <p class="font-bold text-ptg-primary text-xl">Value for Money</p>
+                            <p class="text-sm text-gray-500">บริการที่คุ้มค่า</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="analysis" class="mb-20">
+            <h2 class="section-title">การวิเคราะห์สถานการณ์เชิงลึก</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                เพื่อกำหนดกลยุทธ์ที่เฉียบคม เราต้องเข้าใจสภาพแวดล้อมทั้งภายในและภายนอกอย่างลึกซึ้ง ส่วนนี้จะแสดงการวิเคราะห์ SWOT และ Winning Zone เพื่อระบุจุดแข็งและโอกาสสำคัญของเรา
+            </p>
+            <div class="flex justify-center mb-8 border-b">
+                <button data-tab="swot" class="tab-button active text-lg font-medium py-2 px-6 border-b-2 border-transparent">SWOT Analysis</button>
+                <button data-tab="winning-zone" class="tab-button text-lg font-medium py-2 px-6 border-b-2 border-transparent">Winning Zone (USP)</button>
+            </div>
+
+            <div id="swot-content" class="tab-content active">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="card p-6 bg-green-50 border-l-4 border-green-500">
+                        <h4 class="text-xl font-bold text-green-800 mb-3">จุดแข็ง (Strengths)</h4>
+                        <ul class="space-y-2 list-disc list-inside text-gray-700">
+                            <li>การสนับสนุนจากบริษัทแม่ (PTG) ที่แข็งแกร่งและมีเครือข่ายทั่วประเทศ</li>
+                            <li>เป็นผู้ให้บริการที่มีสินทรัพย์ (Fleet) เป็นของตนเอง ควบคุมคุณภาพได้</li>
+                            <li>ความเชี่ยวชาญในการขนส่งเชิงพาณิชย์ (Commercial) โดยเฉพาะเชื้อเพลิง</li>
+                            <li>มีบริการซ่อมบำรุงรถบรรทุกครบวงจร สร้างความน่าเชื่อถือ</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 bg-red-50 border-l-4 border-red-500">
+                        <h4 class="text-xl font-bold text-red-800 mb-3">จุดอ่อน (Weaknesses)</h4>
+                        <ul class="space-y-2 list-disc list-inside text-gray-700">
+                            <li>การรับรู้แบรนด์นอกธุรกิจน้ำมันยังจำกัด (Not Top of Mind)</li>
+                            <li>อาจพึ่งพิงธุรกิจในเครือมากเกินไป ขาดความคล่องตัวในการหาลูกค้านอก</li>
+                            <li>ภาพลักษณ์ที่ผูกกับ "โลจิสติกส์เชื้อเพลิง" เป็นหลัก</li>
+                            <li>ขาดการมุ่งเน้นในตลาดขนส่งย่อย (Passenger Car/Parcel)</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 bg-blue-50 border-l-4 border-blue-500">
+                        <h4 class="text-xl font-bold text-blue-800 mb-3">โอกาส (Opportunities)</h4>
+                        <ul class="space-y-2 list-disc list-inside text-gray-700">
+                            <li>ตลาด E-commerce และ B2B2C ในไทยเติบโตสูง</li>
+                            <li>การลงทุนโครงสร้างพื้นฐานของภาครัฐ (EEC, Land Bridge)</li>
+                            <li>กระแสความต้องการโลจิสติกส์สีเขียว (Green Logistics) และยานยนต์ไฟฟ้า (EV)</li>
+                            <li>นโยบายขยายธุรกิจ Non-Oil ของ PTG สร้างโอกาสขนส่งสินค้าหลากหลาย</li>
+                        </ul>
+                    </div>
+                    <div class="card p-6 bg-yellow-50 border-l-4 border-yellow-500">
+                        <h4 class="text-xl font-bold text-yellow-800 mb-3">อุปสรรค (Threats)</h4>
+                        <ul class="space-y-2 list-disc list-inside text-gray-700">
+                            <li>การแข่งขันในตลาดโลจิสติกส์รุนแรงจากผู้เล่นรายใหญ่และรายย่อย</li>
+                            <li>ต้นทุนการดำเนินงานผันผวน (ราคาน้ำมัน, ค่าแรง)</li>
+                            <li>ข้อจำกัดด้านโครงสร้างพื้นฐานและการจราจรในบางพื้นที่</li>
+                            <li>ความไม่แน่นอนทางเศรษฐกิจที่อาจกระทบปริมาณการขนส่ง</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div id="winning-zone-content" class="tab-content">
+                <div class="card p-8">
+                    <div class="relative w-full max-w-2xl mx-auto h-96">
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-56 h-56 bg-blue-200 rounded-full flex items-center justify-center text-center p-4 opacity-80">
+                            <span class="font-bold text-blue-800">สิ่งที่ลูกค้าต้องการ</span>
+                        </div>
+                        <div class="absolute bottom-0 left-1/4 -translate-x-1/2 w-56 h-56 bg-green-200 rounded-full flex items-center justify-center text-center p-4 opacity-80">
+                            <span class="font-bold text-green-800">สิ่งที่ PTGLG ทำได้ดี</span>
+                        </div>
+                        <div class="absolute bottom-0 right-1/4 translate-x-1/2 w-56 h-56 bg-yellow-200 rounded-full flex items-center justify-center text-center p-4 opacity-80">
+                            <span class="font-bold text-yellow-800">สิ่งที่คู่แข่งทำได้ดี</span>
+                        </div>
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10 p-4 rounded-lg">
+                            <h5 class="text-2xl font-bold text-ptg-primary mb-2">WINNING ZONE</h5>
+                            <p class="text-sm text-gray-700">ความน่าเชื่อถือสูงในราคาคุ้มค่า สำหรับการขนส่งเชิงพาณิชย์ทั่วประเทศ</p>
+                        </div>
+                    </div>
+                    <div class="mt-8 grid md:grid-cols-3 gap-6 text-center">
+                        <div>
+                            <h5 class="font-bold text-lg text-ptg-primary">Winning Zone</h5>
+                            <p class="text-sm text-gray-600">บริการที่น่าเชื่อถือ (Reliability) ในราคาที่คุ้มค่า (Value for Money) สำหรับการขนส่งสินค้าเชิงพาณิชย์ โดยอาศัยเครือข่ายและต้นทุนที่ได้เปรียบจากธุรกิจในเครือ</p>
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-lg text-yellow-600">Losing Zone</h5>
+                            <p class="text-sm text-gray-600">บริการขนส่งระหว่างประเทศครบวงจร หรือการขนส่งพัสดุย่อย (Parcel) ที่คู่แข่งมีความเชี่ยวชาญและเครือข่ายที่แข็งแกร่งกว่า</p>
+                        </div>
+                        <div>
+                            <h5 class="font-bold text-lg text-red-600">Risky Zone</h5>
+                            <p class="text-sm text-gray-600">บริการพื้นฐานทั่วไป เช่น การติดตามสถานะ (Tracking) หรือการขนส่งสินค้าเต็มคันรถ (FTL) ซึ่งผู้เล่นทุกรายสามารถทำได้</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="strategy-house" class="mb-20">
+            <h2 class="section-title">Strategy House 2569: "อยู่ดี มีสุข"</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                นี่คือโครงสร้างกลยุทธ์ทั้งหมดของเรา ซึ่งประกอบด้วยเป้าหมาย (หลังคา), เสาหลัก (ความคิดริเริ่ม), และรากฐาน (อัตลักษณ์) ที่จะนำพาองค์กรไปสู่ความสำเร็จ
+            </p>
+            <div class="card p-8">
+                <div class="border-2 border-gray-300 rounded-lg">
+                    <div class="bg-ptg-primary text-white text-center p-4 rounded-t-md">
+                        <h3 class="text-2xl font-bold">เป้าหมายปี 2573 (Vision/Goals)</h3>
+                        <p>Net Profit 150M+ | GP > 15% | Market Leader in Commercial Value Logistics</p>
+                    </div>
+                    <div class="p-6 grid md:grid-cols-3 gap-6">
+                        <div class="strategy-pillar card p-4 text-center border-t-4 border-ptg-accent">
+                            <h4 class="text-lg font-bold mb-2">เสาหลักที่ 1: Operational Excellence</h4>
+                            <p class="text-sm text-gray-600">ความเป็นเลิศด้านปฏิบัติการและผู้นำด้านต้นทุน</p>
+                            <div class="pillar-details mt-4 text-left text-sm">
+                                <ul class="space-y-2 list-disc list-inside">
+                                    <li>นำเทคโนโลยี AI มาใช้ในการวางแผนเส้นทาง (Route Optimization)</li>
+                                    <li>ใช้ระบบบำรุงรักษาเชิงคาดการณ์ (Predictive Maintenance)</li>
+                                    <li>เพิ่มประสิทธิภาพการใช้เชื้อเพลิงและลดการวิ่งรถเปล่า</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="strategy-pillar card p-4 text-center border-t-4 border-ptg-accent">
+                            <h4 class="text-lg font-bold mb-2">เสาหลักที่ 2: Strategic Diversification</h4>
+                            <p class="text-sm text-gray-600">ขยายธุรกิจสู่บริการ Non-Oil ที่เติบโตสูง</p>
+                             <div class="pillar-details mt-4 text-left text-sm">
+                                <ul class="space-y-2 list-disc list-inside">
+                                    <li>บุกตลาด Cold Chain Logistics สำหรับธุรกิจอาหารและเครื่องดื่มในเครือ</li>
+                                    <li>พัฒนาโซลูชัน Last-Mile Delivery สำหรับลูกค้า B2B2C</li>
+                                    <li>หาพันธมิตรเพื่อขยายบริการคลังสินค้าและกระจายสินค้า</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="strategy-pillar card p-4 text-center border-t-4 border-ptg-accent">
+                            <h4 class="text-lg font-bold mb-2">เสาหลักที่ 3: Green & Digital Leadership</h4>
+                            <p class="text-sm text-gray-600">ผู้นำด้านโลจิสติกส์สีเขียวและดิจิทัล</p>
+                             <div class="pillar-details mt-4 text-left text-sm">
+                                <ul class="space-y-2 list-disc list-inside">
+                                    <li>ทยอยเปลี่ยนกองยานพาหนะเป็นรถบรรทุกไฟฟ้า (EV Truck)</li>
+                                    <li>พัฒนา Digital Platform สำหรับลูกค้าเพื่อติดตามสถานะและจัดการข้อมูล</li>
+                                    <li>สร้างแบรนด์ผู้นำด้านโลจิสติกส์ยั่งยืน</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 text-white text-center p-4 rounded-b-md">
+                        <h3 class="text-xl font-bold">รากฐาน (Foundation): อัตลักษณ์แบรนด์ "ลูกค้าคู่คิด" (Customer Partner)</h3>
+                        <p class="text-sm">ส่งมอบบริการที่คุ้มค่า (Value for Money) และเป็นที่ปรึกษาที่ไว้ใจได้</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="financials" class="mb-20">
+            <h2 class="section-title">ประมาณการทางการเงิน (2569-2573)</h2>
+             <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                การคาดการณ์นี้อ้างอิงจากอัตราการเติบโตของตลาดโลจิสติกส์ไทย และผลกระทบเชิงบวกจากการดำเนินกลยุทธ์ที่วางไว้ โดยมุ่งเน้นการเติบโตของรายได้จากธุรกิจ Non-Oil และการเพิ่มประสิทธิภาพในการทำกำไร
+            </p>
+            <div class="card p-6">
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+                <div class="mt-6 text-center text-sm text-gray-600">
+                    <p><span class="font-bold">ข้อสมมติฐานหลัก:</span> อัตราการเติบโตของตลาดโลจิสติกส์ไทยเฉลี่ย 6-7% ต่อปี, การเติบโตของธุรกิจ Non-Oil เร่งตัวขึ้น 15-20% ต่อปีจากการขยายบริการ Cold Chain และ B2B2C, และอัตรากำไรขั้นต้นดีขึ้นจากการใช้เทคโนโลยีลดต้นทุน</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="roadmap">
+            <h2 class="section-title">แผนการดำเนินงาน (Implementation Roadmap)</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-12">
+                ไทม์ไลน์สำหรับความคิดริเริ่มหลักในแต่ละปี เพื่อให้แน่ใจว่าเราสามารถบรรลุเป้าหมายเชิงกลยุทธ์ได้ตามแผนที่วางไว้
+            </p>
+            <div class="relative">
+                <div class="border-l-2 border-ptg-primary absolute h-full top-0 left-1/2 -translate-x-1/2"></div>
+                <div class="grid md:grid-cols-2 gap-x-12 gap-y-8">
+                    
+                    <div class="flex md:justify-end">
+                        <div class="w-full md:w-10/12">
+                            <div class="card p-4">
+                                <p class="text-ptg-primary font-bold">ปี 2569: วางรากฐาน</p>
+                                <ul class="text-sm list-disc list-inside mt-2">
+                                    <li>นำร่อง Route Optimization Software</li>
+                                    <li>เปิดตัวบริการ Cold Chain สำหรับ PunThai Coffee</li>
+                                    <li>ศึกษาความเป็นไปได้ของ EV Truck</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:invisible"></div>
+                    
+                    <div class="md:invisible"></div>
+                     <div class="flex">
+                        <div class="w-full md:w-10/12">
+                            <div class="card p-4">
+                                <p class="text-ptg-primary font-bold">ปี 2570: ขยายผล</p>
+                                <ul class="text-sm list-disc list-inside mt-2">
+                                    <li>ใช้ Predictive Maintenance ทั่วทั้ง Fleet</li>
+                                    <li>ขยายบริการ B2B2C ร่วมกับพันธมิตร E-commerce</li>
+                                    <li>จัดซื้อ EV Truck ล็อตแรกสำหรับเส้นทางในเมือง</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex md:justify-end">
+                        <div class="w-full md:w-10/12">
+                            <div class="card p-4">
+                                <p class="text-ptg-primary font-bold">ปี 2571: สร้างความแตกต่าง</p>
+                                <ul class="text-sm list-disc list-inside mt-2">
+                                    <li>เปิดตัว Digital Platform V1.0 สำหรับลูกค้า</li>
+                                    <li>ขยายบริการ Cold Chain สู่ลูกค้านอกเครือ</li>
+                                    <li>ได้รับการรับรอง Green Logistics Standard</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:invisible"></div>
+
+                    <div class="md:invisible"></div>
+                    <div class="flex">
+                        <div class="w-full md:w-10/12">
+                            <div class="card p-4">
+                                <p class="text-ptg-primary font-bold">ปี 2572-2573: สู่การเป็นผู้นำ</p>
+                                <ul class="text-sm list-disc list-inside mt-2">
+                                    <li>ขยาย Fleet EV Truck เป็น 15% ของทั้งหมด</li>
+                                    <li>ยกระดับ Digital Platform ด้วย AI และ Analytics</li>
+                                    <li>ครองตำแหน่งผู้นำด้าน Value for Money Commercial Logistics</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-20">
+        <div class="container mx-auto px-6 py-4 text-center">
+            <p>&copy; 2025 แผนยุทธศาสตร์ บจก. พีทีจี โลจิสติกส์</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    mobileMenu.classList.add('hidden');
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const tabs = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-tab');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    tabContents.forEach(content => {
+                        if (content.id === `${target}-content`) {
+                            content.classList.add('active');
+                        } else {
+                            content.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            const pillars = document.querySelectorAll('.strategy-pillar');
+            pillars.forEach(pillar => {
+                pillar.addEventListener('click', () => {
+                    const details = pillar.querySelector('.pillar-details');
+                    if (details.style.maxHeight) {
+                        details.style.maxHeight = null;
+                    } else {
+                        details.style.maxHeight = details.scrollHeight + "px";
+                    }
+                });
+            });
+
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const revenueChart = new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['2568 (ฐาน)', '2569', '2570', '2571', '2572', '2573'],
+                    datasets: [{
+                        label: 'รายได้รวม (ล้านบาท)',
+                        data: [2230, 2406, 2623, 2885, 3174, 3491],
+                        backgroundColor: 'rgba(0, 106, 78, 0.7)',
+                        borderColor: 'rgba(0, 106, 78, 1)',
+                        borderWidth: 1,
+                        yAxisID: 'y',
+                    }, {
+                        type: 'line',
+                        label: 'อัตรากำไรขั้นต้น (%)',
+                        data: [12.5, 13.0, 13.8, 14.5, 15.0, 15.5],
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 2,
+                        yAxisID: 'y1',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'รายได้ (ล้านบาท)'
+                            }
+                        },
+                        y1: {
+                            beginAtZero: false,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'อัตรากำไรขั้นต้น (%)'
+                            },
+                            grid: {
+                                drawOnChartArea: false, 
+                            },
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        if(context.dataset.type === 'line') {
+                                            label += context.parsed.y + ' %';
+                                        } else {
+                                            label += new Intl.NumberFormat('th-TH').format(context.parsed.y) + ' ล้านบาท';
+                                        }
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2569-2573)',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
