@@ -88,9 +88,13 @@
             overflow: hidden;
             transition: max-height 0.7s ease-in-out;
         }
-        /* Ensure lang-en is hidden by default, and lang-th is visible */
-        .lang-en { display: none; } 
+        /* Default (Thai) */
+        .lang-en { display: none; }
         .lang-th { display: inline-block; }
+
+        /* When English is active */
+        body.lang-en-active .lang-en { display: inline-block; }
+        body.lang-en-active .lang-th { display: none; }
     </style>
 </head>
 <body class="text-gray-800">
@@ -498,201 +502,184 @@
     </footer>
 
     <script>
-        // Language toggle functionality
-        const langToggleBtn = document.getElementById('lang-toggle');
-        const langElementsTh = document.querySelectorAll('.lang-th');
-        const langElementsEn = document.querySelectorAll('.lang-en');
+        document.addEventListener('DOMContentLoaded', function () {
+            const langToggleBtn = document.getElementById('lang-toggle');
+            let currentLang = localStorage.getItem('ptglg_lang') || 'th';
+            let revenueChart;
 
-        // Initialize language from localStorage or default to Thai
-        let currentLang = localStorage.getItem('ptglg_lang') || 'th';
+            function setLanguage(lang) {
+                currentLang = lang;
+                localStorage.setItem('ptglg_lang', lang);
 
-        function setLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('ptglg_lang', lang);
-
-            langElementsTh.forEach(el => {
-                if (lang === 'th') {
-                    el.classList.remove('hidden');
-                } else {
-                    el.classList.add('hidden');
-                }
-            });
-
-            langElementsEn.forEach(el => {
                 if (lang === 'en') {
-                    el.classList.remove('hidden');
+                    document.body.classList.add('lang-en-active');
+                    document.documentElement.lang = 'en';
+                    langToggleBtn.textContent = 'TH';
                 } else {
-                    el.classList.add('hidden');
+                    document.body.classList.remove('lang-en-active');
+                    document.documentElement.lang = 'th';
+                    langToggleBtn.textContent = 'EN';
                 }
+                updateChartLabels();
+            }
+
+            langToggleBtn.addEventListener('click', () => {
+                setLanguage(currentLang === 'th' ? 'en' : 'th');
             });
 
-            langToggleBtn.textContent = lang === 'th' ? 'EN' : 'TH';
-            document.documentElement.lang = lang;
-            updateChartLabels();
-        }
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
 
-        // Mobile menu functionality
-        const mobileMenuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-        
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                mobileMenu.classList.add('hidden');
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    mobileMenu.classList.add('hidden');
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
                 });
             });
-        });
 
-        // Tab switching functionality (for SWOT/Winning Zone)
-        const tabs = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
+            const tabs = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const target = tab.getAttribute('data-tab');
-                
-                tabs.forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.getAttribute('data-tab');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
 
-                tabContents.forEach(content => {
-                    if (content.id === `${target}-content`) {
-                        content.classList.add('active');
+                    tabContents.forEach(content => {
+                        if (content.id === `${target}-content`) {
+                            content.classList.add('active');
+                        } else {
+                            content.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            const pillars = document.querySelectorAll('.strategy-pillar');
+            pillars.forEach(pillar => {
+                pillar.addEventListener('click', () => {
+                    const details = pillar.querySelector('.pillar-details');
+                    if (details.style.maxHeight) {
+                        details.style.maxHeight = null;
                     } else {
-                        content.classList.remove('active');
+                        details.style.maxHeight = details.scrollHeight + "px";
                     }
                 });
             });
-        });
-        
-        // Strategy House pillar details toggle
-        const pillars = document.querySelectorAll('.strategy-pillar');
-        pillars.forEach(pillar => {
-            pillar.addEventListener('click', () => {
-                const details = pillar.querySelector('.pillar-details');
-                if (details.style.maxHeight) {
-                    details.style.maxHeight = null;
-                } else {
-                    details.style.maxHeight = details.scrollHeight + "px";
-                }
-            });
-        });
 
-        // Chart.js initialization and update function
-        let revenueChart; // Declare chart variable globally
-
-        function initializeChart() {
-            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-            revenueChart = new Chart(revenueCtx, {
-                type: 'bar',
-                data: {
-                    labels: ['2568 (ฐาน)', '2568 (H2)', '2569', '2570', '2571', '2572', '2573'],
-                    datasets: [{
-                        label: 'รายได้รวม (ล้านบาท)', // Default Thai
-                        data: [2230, 2400, 3200, 4300, 5600, 7000, 8500],
-                        backgroundColor: 'rgba(0, 106, 78, 0.7)',
-                        borderColor: 'rgba(0, 106, 78, 1)',
-                        borderWidth: 1,
-                        yAxisID: 'y',
-                    }, {
-                        type: 'line',
-                        label: 'อัตรากำไรขั้นต้น (%)', // Default Thai
-                        data: [12.5, 12.8, 14.2, 15.5, 16.5, 17.5, 18.5],
-                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
-                        borderColor: 'rgba(255, 159, 64, 1)',
-                        borderWidth: 2,
-                        yAxisID: 'y1',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            position: 'left',
-                            title: {
-                                display: true,
-                                text: 'รายได้ (ล้านบาท)' // Default Thai
+            function initializeChart() {
+                const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+                revenueChart = new Chart(revenueCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['2568 (ฐาน)', '2568 (H2)', '2569', '2570', '2571', '2572', '2573'],
+                        datasets: [{
+                            label: 'รายได้รวม (ล้านบาท)',
+                            data: [2230, 2400, 3200, 4300, 5600, 7000, 8500],
+                            backgroundColor: 'rgba(0, 106, 78, 0.7)',
+                            borderColor: 'rgba(0, 106, 78, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y',
+                        }, {
+                            type: 'line',
+                            label: 'อัตรากำไรขั้นต้น (%)',
+                            data: [12.5, 12.8, 14.2, 15.5, 16.5, 17.5, 18.5],
+                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                            borderColor: 'rgba(255, 159, 64, 1)',
+                            borderWidth: 2,
+                            yAxisID: 'y1',
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'รายได้ (ล้านบาท)'
+                                }
+                            },
+                            y1: {
+                                beginAtZero: false,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'อัตรากำไรขั้นต้น (%)'
+                                },
+                                grid: {
+                                    drawOnChartArea: false, 
+                                },
                             }
                         },
-                        y1: {
-                            beginAtZero: false,
-                            position: 'right',
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            if(context.dataset.type === 'line') {
+                                                label += context.parsed.y + ' %';
+                                            } else {
+                                                label += new Intl.NumberFormat('th-TH').format(context.parsed.y) + (currentLang === 'th' ? ' ล้านบาท' : ' MB');
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            },
+                            legend: {
+                                position: 'top',
+                            },
                             title: {
                                 display: true,
-                                text: 'อัตรากำไรขั้นต้น (%)' // Default Thai
-                            },
-                            grid: {
-                                drawOnChartArea: false, 
-                            },
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                        if(context.dataset.type === 'line') {
-                                            label += context.parsed.y + ' %';
-                                        } else {
-                                            label += new Intl.NumberFormat('th-TH').format(context.parsed.y) + (currentLang === 'th' ? ' ล้านบาท' : ' MB');
-                                        }
-                                    }
-                                    return label;
+                                text: 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2568 ครึ่งปีหลัง - 2573)',
+                                font: {
+                                    size: 16
                                 }
                             }
-                        },
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2568 ครึ่งปีหลัง - 2573)', // Default Thai
-                            font: {
-                                size: 16
-                            }
                         }
                     }
-                }
-            });
-            updateChartLabels(); // Call once after initialization to set initial language
-        }
-
-        // Initialize chart and set initial language when DOM is ready
-        document.addEventListener('DOMContentLoaded', function () {
-            initializeChart();
-            setLanguage(currentLang); // Ensure initial language is applied after chart is ready
-        });
-
-        function updateChartLabels() {
-            if (!revenueChart) return;
-
-            if (currentLang === 'th') {
-                revenueChart.data.datasets[0].label = 'รายได้รวม (ล้านบาท)';
-                revenueChart.data.datasets[1].label = 'อัตรากำไรขั้นต้น (%)';
-                revenueChart.options.scales.y.title.text = 'รายได้ (ล้านบาท)';
-                revenueChart.options.scales.y1.title.text = 'อัตรากำไรขั้นต้น (%)';
-                revenueChart.options.plugins.title.text = 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2568 ครึ่งปีหลัง - 2573)';
-            } else {
-                revenueChart.data.datasets[0].label = 'Total Revenue (MB)';
-                revenueChart.data.datasets[1].label = 'Gross Profit Margin (%)';
-                revenueChart.options.scales.y.title.text = 'Revenue (MB)';
-                revenueChart.options.scales.y1.title.text = 'Gross Profit Margin (%)';
-                revenueChart.options.plugins.title.text = 'Projected Revenue and Gross Profit Margin (2025 H2 - 2030)';
+                });
             }
-            revenueChart.update();
-        }
+
+            function updateChartLabels() {
+                if (!revenueChart) return;
+
+                if (currentLang === 'th') {
+                    revenueChart.data.datasets[0].label = 'รายได้รวม (ล้านบาท)';
+                    revenueChart.data.datasets[1].label = 'อัตรากำไรขั้นต้น (%)';
+                    revenueChart.options.scales.y.title.text = 'รายได้ (ล้านบาท)';
+                    revenueChart.options.scales.y1.title.text = 'อัตรากำไรขั้นต้น (%)';
+                    revenueChart.options.plugins.title.text = 'การคาดการณ์รายได้และอัตรากำไรขั้นต้น (2568 ครึ่งปีหลัง - 2573)';
+                } else {
+                    revenueChart.data.datasets[0].label = 'Total Revenue (MB)';
+                    revenueChart.data.datasets[1].label = 'Gross Profit Margin (%)';
+                    revenueChart.options.scales.y.title.text = 'Revenue (MB)';
+                    revenueChart.options.scales.y1.title.text = 'Gross Profit Margin (%)';
+                    revenueChart.options.plugins.title.text = 'Projected Revenue and Gross Profit Margin (2025 H2 - 2030)';
+                }
+                revenueChart.update();
+            }
+
+            initializeChart();
+            setLanguage(currentLang);
+        });
     </script>
 </body>
 </html>
