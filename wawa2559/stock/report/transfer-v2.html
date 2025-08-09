@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ SH108 ➝ SH101</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root { --bg:#f4f4f4; --text:#111; --card:#fff; --thead:#e3f2fd; --popup-bg:rgba(0,0,0,.7); }
+    body.dark { --bg:#1f1f1f; --text:#f1f1f1; --card:#2c2c2c; --thead:#333; --popup-bg:rgba(255,255,255,.2); }
+    body { font-family:'Prompt',sans-serif; background:var(--bg); color:var(--text); padding:20px; transition:.3s; }
+    h1 { background:#333;color:#fff;padding:15px;border-radius:10px;text-align:center;margin-bottom:10px; }
+    .datetime{ text-align:center;font-size:16px;font-weight:bold;}
+    .info-note{ text-align:center;font-size:14px;color:#888;margin-bottom:15px;}
+    .actions,.summary-box,.filter-note{ display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:15px;}
+    .actions button,.filter-note button{ padding:10px 18px;font-size:14px;border:none;border-radius:6px;background:#1976d2;color:#fff;cursor:pointer;}
+    .actions button:hover,.filter-note button:hover{ background:#0d47a1;}
+    .theme-toggle{ position:fixed;top:10px;right:15px;background:#555;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
+    #searchBox{ padding:12px;width:100%;max-width:420px;margin:0 auto 15px;display:block;border-radius:8px;border:1px solid #ccc;font-size:16px;background:var(--card);color:var(--text);}
+    .summary-box div{ background:var(--card);padding:15px 25px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.1);text-align:center;min-width:160px;}
+    .summary-box h2{ margin:5px 0 0 0;font-size:24px;font-weight:bold;}
+    table{ width:100%;border-collapse:collapse;background:var(--card);border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.1);}
+    th,td{ padding:10px;border-bottom:1px solid #ddd;text-align:center;}
+    td.name{ text-align:left;} td.qty{ text-align:right;}
+    th{ background:var(--thead);font-weight:bold;} tr:nth-child(even){ background:rgba(0,0,0,.03);}
+    img.thumb{ max-height:60px;cursor:pointer;}
+    #loading{ text-align:center;font-size:18px;padding:30px;color:#888;}
+    #popup{ display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:var(--popup-bg);justify-content:center;align-items:center;}
+    #popup img{ max-width:90vw;max-height:90vh;border:6px solid #fff;border-radius:8px;}
+    #popup .close-btn{ position:absolute;top:20px;right:30px;font-size:30px;color:#fff;cursor:pointer;font-weight:bold;}
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+  <h1>รายงานสินค้าที่ต้องโอนเพื่อไปเติมสินค้าให้มีเพียงพอ SH108 ➝ SH101</h1>
+  <div class="datetime" id="currentDatetime">-</div>
+  <div class="info-note"><strong>ข้อมูลอัพเดท 2 เวลา คือ 14.00-15.00 และ 05.00-06.00 น. เท่านั้น</strong></div>
+
+  <input type="text" id="searchBox" placeholder="🔍 ค้นหาสินค้า...">
+
+  <div class="filter-note">
+    <button onclick="applyFilter('-')">✅ แสดงเฉพาะที่มีสินค้าให้โอน</button>
+    <button onclick="applyFilter('non-dash')">❌ แสดงเฉพาะไม่มีสินค้าให้โอน</button>
+    <button onclick="applyFilter('all')">🔁 แสดงทั้งหมด</button>
+  </div>
+
+  <div class="actions">
+    <button onclick="loadReport()">🔄 ดึงข้อมูลใหม่</button>
+    <button onclick="window.print()">⬇️ ดาวน์โหลด PDF</button>
+    <button onclick="exportExcel()">📁 Export Excel</button>
+  </div>
+
+  <div class="summary-box">
+    <div><div><strong>จำนวนรหัสสินค้า</strong></div><h2 id="totalItems">-</h2></div>
+    <div><div><strong>จำนวนชิ้นที่ต้องโอน</strong></div><h2 id="totalQty">-</h2></div>
+  </div>
+
+  <div id="loading">กำลังโหลดข้อมูล...</div>
+
+  <table style="display:none;">
+    <thead>
+      <tr>
+        <th>ลำดับ</th>
+        <th>รหัสสินค้า</th>
+        <th>ชื่อสินค้า</th>
+        <th>หมายเหตุ</th>
+        <th>ภาพ</th>
+        <th>จำนวนที่ต้องโอน</th>
+        <th>แนะนำเติม AI</th>
+      </tr>
+    </thead>
+    <tbody id="dataRows"></tbody>
+  </table>
+
+  <div id="popup">
+    <span class="close-btn" onclick="closePopup()">×</span>
+    <img id="popupImg" src="" alt="ภาพสินค้าใหญ่" />
+  </div>
+
+  <script>
+    const API_URL = 'https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer';
+    let allItems = [], filteredItems = [], noteFilter = "-";
+
+    function updateDateTime() {
+      const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+      document.getElementById("currentDatetime").textContent = now;
+    }
+
+    async function loadReport() {
+      document.getElementById("loading").style.display = "block";
+      document.querySelector("table").style.display = "none";
+      updateDateTime();
+
+      try {
+        const res = await fetch(API_URL);
+        const items = await res.json();
+        allItems = items.filter(item =>
+          item["CHECK_TRANSFER"]?.toUpperCase() === "Y" &&
+          parseInt(item["Vol_Transfer"]) > 0
+        );
+        applyFilter(noteFilter);
+      } catch (err) {
+        document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
+        console.error(err);
+      }
+    }
+
+    function applyFilter(filter) {
+      noteFilter = filter;
+      filteredItems = allItems.filter(item => {
+        const note = (item["หมายเหตุ"] ?? "").toString().trim();
+        if (filter === "-") return note === "-" || note === "";
+        if (filter === "non-dash") return note !== "-" && note !== "";
+        return true;
+      });
+      renderTable(filteredItems);
+    }
+
+    function pickAiText(item) {
+      // รองรับทั้ง "แนะนำเติม AI" (หลัก) และ "แนะนำการเติม AI" (สำรอง)
+      const v1 = (item["แนะนำเติม AI"] ?? "").toString().trim();
+      if (v1) return v1;
+      const v2 = (item["แนะนำการเติม AI"] ?? "").toString().trim();
+      return v2 || "-";
+    }
+
+    function renderTable(items) {
+      const tbody = document.getElementById("dataRows");
+      tbody.innerHTML = "";
+      let totalQty = 0;
+
+      items.forEach((item, index) => {
+        const qty = parseInt(item["Vol_Transfer"]) || 0;
+        const img = (item["ภาพสินค้า"] ?? "").toString().trim();
+        const note = (item["หมายเหตุ"] ?? "-").toString().trim() || "-";
+        const aiSuggest = pickAiText(item);
+        totalQty += qty;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${item["CODE"] ?? ""}</td>
+          <td class="name">${item["NAME_1"] ?? ""}</td>
+          <td>${note}</td>
+          <td>${img ? `<img src="${img}" class="thumb" onclick="showPopup('${img.replace(/'/g,"\\'")}')">` : '-'}</td>
+          <td class="qty">${qty.toLocaleString()}</td>
+          <td>${aiSuggest}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById("totalItems").textContent = items.length;
+      document.getElementById("totalQty").textContent = totalQty.toLocaleString();
+      document.querySelector("table").style.display = "table";
+      document.getElementById("loading").style.display = "none";
+    }
+
+    function exportExcel() {
+      const rows = filteredItems.map(item => ({
+        CODE: item["CODE"],
+        NAME_1: item["NAME_1"],
+        หมายเหตุ: item["หมายเหตุ"],
+        จำนวนที่ต้องโอน: item["Vol_Transfer"],
+        "แนะนำเติม AI": pickAiText(item)
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Transfer Report");
+      XLSX.writeFile(wb, "transfer_report.xlsx");
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    }
+
+    function showPopup(url) {
+      document.getElementById("popupImg").src = url;
+      document.getElementById("popup").style.display = "flex";
+    }
+
+    function closePopup() {
+      document.getElementById("popup").style.display = "none";
+      document.getElementById("popupImg").src = "";
+    }
+
+    window.addEventListener("keydown", e => { if (e.key === "Escape") closePopup(); });
+
+    document.getElementById("searchBox").addEventListener("input", function () {
+      const keyword = this.value.toLowerCase();
+      const results = filteredItems.filter(item =>
+        (item["NAME_1"] ?? "").toLowerCase().includes(keyword) ||
+        (item["CODE"] ?? "").toLowerCase().includes(keyword)
+      );
+      renderTable(results);
+    });
+
+    window.onload = () => {
+      if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
+      loadReport();
+      setInterval(updateDateTime, 60000);
+    };
+  </script>
+</body>
+</html>
