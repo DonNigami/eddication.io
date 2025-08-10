@@ -80,7 +80,12 @@
 
   <script>
     const API_URL = 'https://opensheet.elk.sh/1Mreck6kY85K3eK6WQb-zhRjJO_eIIKCv7LW-krSxE5o/Transfer';
-    let allItems = [], filteredItems = [], noteFilter = "-";
+
+    // เก็บข้อมูลทั้งหมด และชุดที่ผ่านเกณฑ์โอน (ใช้กับปุ่มทั่วไป)
+    let allItems = [];
+    let transferItems = [];
+    let filteredItems = [];
+    let noteFilter = "-";
 
     function updateDateTime() {
       const now = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
@@ -95,10 +100,16 @@
       try {
         const res = await fetch(API_URL);
         const items = await res.json();
-        allItems = items.filter(item =>
+
+        // เก็บทุกแถวไว้ที่ allItems
+        allItems = items;
+
+        // ชุดโหมดปกติ (อิง CHECK_TRANSFER + Vol_Transfer)
+        transferItems = items.filter(item =>
           (item["CHECK_TRANSFER"] ?? "").toString().toUpperCase() === "Y" &&
           parseInt(item["Vol_Transfer"]) > 0
         );
+
         applyFilter(noteFilter);
       } catch (err) {
         document.getElementById("loading").innerText = "❌ ไม่สามารถโหลดข้อมูลได้";
@@ -106,7 +117,7 @@
       }
     }
 
-    // รองรับทั้งชื่อฟิลด์ "แนะนำเติม AI" (หลัก) และ "แนะนำการเติม AI" (สำรอง)
+    // รองรับทั้ง "แนะนำเติม AI" (หลัก) และ "แนะนำการเติม AI" (สำรอง)
     function pickAiText(item) {
       const v1 = (item["แนะนำเติม AI"] ?? "").toString().trim();
       if (v1) return v1;
@@ -118,27 +129,27 @@
     function isAiPositive(item) {
       const txt = pickAiText(item);
       if (!txt || txt === "-") return false;
-      // ดึงเฉพาะตัวเลขเพื่อความยืดหยุ่น เช่น "แนะนำ 12", "12", "12 หน่วย"
+      // ดึงเฉพาะตัวเลข เช่น "12", "แนะนำ 12", "12 หน่วย"
       const num = parseFloat(String(txt).replace(/[^0-9.\-]/g, ""));
       return !isNaN(num) && num > 0;
     }
 
     function applyFilter(filter) {
       noteFilter = filter;
-      filteredItems = allItems.filter(item => {
-        const note = (item["หมายเหตุ"] ?? "").toString().trim();
 
-        if (filter === "-") {
-          return note === "-" || note === "";
-        }
-        if (filter === "non-dash") {
-          return note !== "-" && note !== "";
-        }
-        if (filter === "ai-positive") {
-          return isAiPositive(item);
-        }
-        return true; // 'all'
-      });
+      if (filter === "ai-positive") {
+        // กรองจาก allItems (ไม่สน CHECK_TRANSFER)
+        filteredItems = allItems.filter(isAiPositive);
+      } else {
+        // โหมดปกติใช้ transferItems
+        filteredItems = transferItems.filter(item => {
+          const note = (item["หมายเหตุ"] ?? "").toString().trim();
+          if (filter === "-") return note === "-" || note === "";
+          if (filter === "non-dash") return note !== "-" && note !== "";
+          return true; // 'all'
+        });
+      }
+
       renderTable(filteredItems);
     }
 
@@ -174,6 +185,7 @@
     }
 
     function exportExcel() {
+      // export ตามผลกรองล่าสุดบนจอ
       const rows = filteredItems.map(item => ({
         CODE: item["CODE"],
         NAME_1: item["NAME_1"],
