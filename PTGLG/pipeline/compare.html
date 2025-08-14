@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="th" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แดชบอร์ดวิเคราะห์กลยุทธ์การขนส่งน้ำมันข้ามพรมแดน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutral Tones -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard. The flow is: 1. High-level overview. 2. A detailed, multi-dimensional comparison of Pipeline vs. Road. 3. Interactive exploration of Economic Corridors. 4. The core Hub-and-Spoke strategy. 5. A new, dedicated section on "Strategic Zoning" to detail the practical implementation of the core strategy. 6. A final, actionable guide for trucking operators. This logical progression from high-level strategy to practical implementation (zoning) and stakeholder guidance provides a comprehensive decision-making tool. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Detailed comparison across 4 dimensions. Goal: Compare/Organize. Viz: Structured Card Layout (HTML/CSS). Interaction: Static but clearly organized. Justification: The detailed text requires a structured layout to be readable. Cards for each dimension break the information into logical, thematic chunks.
+        - Report Info: Strategic Zoning. Goal: Explain a concept. Viz: Colored cards and simple icons. Interaction: Static visual aid. Justification: Using distinct colors (Red, Yellow, Green) for the zones provides an immediate visual cue that reinforces the concept, making it easier to understand than text alone.
+        - Report Info: Cost comparison (0.25 vs 0.43 THB/L). Goal: Compare. Viz: Bar Chart (Chart.js). Interaction: Tooltips on hover. Justification: The most effective way to visualize this key quantitative data point.
+        - Report Info: Country-specific analysis. Goal: Organize/Inform. Viz: Tabbed content blocks. Interaction: Click to switch content. Justification: An effective method for managing and presenting regional analysis without cluttering the main view.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #FDFBF8; /* Warm off-white */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: all 0.3s;
+        }
+        .nav-link:hover {
+            color: #0369A1; /* Accent color */
+            transform: translateY(-2px);
+        }
+        .active-tab {
+            background-color: #075985; /* Darker accent */
+            color: white;
+        }
+        .inactive-tab {
+            background-color: #E0E7FF;
+            color: #374151;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <div class="container mx-auto px-4">
+            <nav class="flex justify-between items-center py-4">
+                <h1 class="text-xl md:text-2xl font-bold text-sky-800">Logistics Strategy Hub</h1>
+                <div class="hidden md:flex space-x-6 lg:space-x-8 font-semibold text-gray-600">
+                    <a href="#overview" class="nav-link">ภาพรวม</a>
+                    <a href="#comparison" class="nav-link">เปรียบเทียบเชิงลึก</a>
+                    <a href="#corridors" class="nav-link">ระเบียงเศรษฐกิจ</a>
+                    <a href="#strategy" class="nav-link">บทสรุปเชิงกลยุทธ์</a>
+                    <a href="#zoning" class="nav-link">การจัดการ Zoning</a>
+                    <a href="#operator-guide" class="nav-link text-sky-700">สำหรับผู้ประกอบการฯ</a>
+                </div>
+                <div class="md:hidden">
+                    <select id="mobile-nav" class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5">
+                        <option value="#overview">ภาพรวม</option>
+                        <option value="#comparison">เปรียบเทียบ</option>
+                        <option value="#corridors">ระเบียงเศรษฐกิจ</option>
+                        <option value="#strategy">ยุทธศาสตร์</option>
+                        <option value="#zoning">การจัดการ Zoning</option>
+                        <option value="#operator-guide">สำหรับผู้ประกอบการ</option>
+                    </select>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 md:py-12">
+
+        <!-- Section 1: Overview -->
+        <section id="overview" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">วิเคราะห์ยุทธศาสตร์การขนส่งน้ำมันข้ามพรมแดน</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">เปลี่ยนภูมิทัศน์โลจิสติกส์พลังงานไทยสู่การเป็นศูนย์กลางแห่งอาเซียน</p>
+            </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <h3 class="font-bold text-xl mb-4 text-sky-900">บทสรุปสำหรับผู้บริหาร</h3>
+                <p class="text-gray-700 mb-6">
+                    การขนส่งทางท่อมีข้อได้เปรียบด้านต้นทุนต่อหน่วยที่ต่ำกว่า, ความน่าเชื่อถือสูง, และเป็นมิตรต่อสิ่งแวดล้อม สำหรับการขนส่งปริมาณมากในระยะทางไกล ในขณะที่การขนส่งทางรถยนต์ยังคงจำเป็นอย่างยิ่งยวดจากความยืดหยุ่นและความสามารถในการเข้าถึงพื้นที่ปลายทาง (Last-mile delivery) กลยุทธ์ที่เหมาะสมที่สุดคือการพัฒนาระบบผสมผสานในรูปแบบ "Hub-and-Spoke" โดยใช้ท่อเป็นเส้นเลือดใหญ่ลำเลียงน้ำมันสู่คลังชายแดน และใช้รถยนต์เป็นเครือข่ายกระจายสินค้าข้ามพรมแดนต่อไป อย่างไรก็ตาม ความท้าทายสำคัญคืออุปสรรคด้านกฎระเบียบและการเจรจาระหว่างประเทศ
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div class="bg-sky-50 p-4 rounded-lg">
+                        <p class="text-2xl font-bold text-sky-800">~20,000 ล้านบาท</p>
+                        <p class="text-sm text-sky-700">มูลค่าลงทุนโครงการท่อส่งน้ำมันล่าสุด</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-2xl font-bold text-green-800">>54,000 ตัน CO₂e</p>
+                        <p class="text-sm text-green-700">ปริมาณลดการปล่อยก๊าซเรือนกระจก (โครงการภาคเหนือ)</p>
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-2xl font-bold text-amber-800">~42% ประหยัดกว่า</p>
+                        <p class="text-sm text-amber-700">ต้นทุนขนส่งทางท่อเทียบกับทางรถ (บางปะอิน-พิจิตร)</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: In-depth Comparison -->
+        <section id="comparison" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">เปรียบเทียบเชิงลึก: Road vs. Pipeline</h2>
+                <p class="text-lg text-gray-600">วิเคราะห์ข้อได้เปรียบ-เสียเปรียบใน 4 มิติสำคัญ</p>
+            </div>
+
+            <div class="space-y-8">
+                <!-- Dimension 1: Economics -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><span class="text-3xl mr-3">💰</span>มิติเชิงเศรษฐศาสตร์และการเงิน</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-sky-800 mb-2">💧 การขนส่งทางท่อ</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">CAPEX สูงมาก:</strong> ค่าสำรวจ, ค่าที่ดิน (Right-of-way), ค่าก่อสร้างและสถานี, ระบบควบคุม SCADA</li>
+                                <li><strong class="font-medium">OPEX ต่ำและเสถียร:</strong> ต้นทุนหลักคือค่าไฟฟ้าสำหรับปั๊ม คาดการณ์ง่าย</li>
+                                <li><strong class="font-medium">ประสิทธิภาพระยะยาว:</strong> ต้นทุนต่อลิตร-กิโลเมตรต่ำมากเมื่อดำเนินการเต็มศักยภาพ (Economies of Scale)</li>
+                                <li><strong class="font-medium">ความเสี่ยงเชิงโครงสร้าง:</strong> ความเสี่ยงด้านกฎระเบียบ/การเมือง, ปริมาณขนส่งไม่ถึงจุดคุ้มทุน</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-amber-800 mb-2">🚚 การขนส่งทางรถยนต์</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">CAPEX ต่ำ:</strong> ค่าจัดซื้อรถบรรทุก, ใช้ประโยชน์จากโครงข่ายถนนสาธารณะ</li>
+                                <li><strong class="font-medium">OPEX สูงและผันผวน:</strong> ค่าเชื้อเพลิง (60-70% ของ OPEX), ค่าบำรุงรักษา, ค่าจ้าง</li>
+                                <li><strong class="font-medium">ประสิทธิภาพระยะสั้น:</strong> แข่งขันได้ในปริมาณน้อย ไม่มีภาระต้นทุนคงที่มหาศาล</li>
+                                <li><strong class="font-medium">ความเสี่ยงด้านตลาด:</strong> ความผันผวนของราคาเชื้อเพลิง, การแข่งขันสูง</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dimension 2: Operations -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><span class="text-3xl mr-3">⚙️</span>มิติเชิงปฏิบัติการและโลจิสติกส์</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-sky-800 mb-2">💧 การขนส่งทางท่อ</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">ปริมาณมหาศาล:</strong> ลำเลียงต่อเนื่อง 24/7 (Continuous Flow)</li>
+                                <li><strong class="font-medium">น่าเชื่อถือสูงมาก:</strong> ไม่ขึ้นกับสภาพจราจร, อุบัติเหตุ, หรือสภาพอากาศ</li>
+                                <li><strong class="font-medium">ความยืดหยุ่นต่ำมาก:</strong> สินทรัพย์ถาวร (Fixed Asset) เปลี่ยนเส้นทางไม่ได้</li>
+                                <li><strong class="font-medium">ปลอดภัยสูงสุด:</strong> ระบบปิด (Closed System) ป้องกันการปนเปื้อน/ลักลอบ</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-amber-800 mb-2">🚚 การขนส่งทางรถยนต์</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">จำกัดและเป็นรอบ:</strong> ขึ้นอยู่กับจำนวนรถและชั่วโมงทำงาน (Batch)</li>
+                                <li><strong class="font-medium">น่าเชื่อถือต่ำกว่า:</strong> เสี่ยงจากจราจร, อุบัติเหตุ, กฎระเบียบ, ความล่าช้าที่ด่าน</li>
+                                <li><strong class="font-medium">ยืดหยุ่นสูงสุด:</strong> บริการแบบ Point-to-Point, เหมาะสำหรับ Last-mile delivery</li>
+                                <li><strong class="font-medium">เสี่ยงกว่า:</strong> เสี่ยงลักลอบขโมย, การเจือปน, และอุบัติเหตุรั่วไหล</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dimension 3: Environment & Society -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><span class="text-3xl mr-3">🌳</span>มิติด้านสิ่งแวดล้อมและสังคม</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-sky-800 mb-2">💧 การขนส่งทางท่อ</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">ผลกระทบต่ำ:</strong> ลดการปล่อย CO2, ลดการใช้เชื้อเพลิงฟอสซิล</li>
+                                <li><strong class="font-medium">ปลอดภัยต่อสาธารณะสูง:</strong> ลดอุบัติเหตุบนท้องถนนอย่างมีนัยสำคัญ</li>
+                                <li><strong class="font-medium">ต้องการบุคลากรทักษะสูง:</strong> วิศวกร, เจ้าหน้าที่ควบคุมระบบ (จำนวนน้อย)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-amber-800 mb-2">🚚 การขนส่งทางรถยนต์</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">ผลกระทบสูง:</strong> ปล่อยก๊าซเรือนกระจก, PM2.5, มลพิษทางเสียง, สร้างภาระให้ถนน</li>
+                                <li><strong class="font-medium">ความเสี่ยงต่อสาธารณะสูง:</strong> อุบัติเหตุรถบรรทุกสารไวไฟเป็นความเสี่ยงสำคัญ</li>
+                                <li><strong class="font-medium">ต้องการแรงงานจำนวนมาก:</strong> พนักงานขับรถ, ช่างซ่อม (สร้างงานในวงกว้าง)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dimension 4: Regulation & Geopolitics -->
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><span class="text-3xl mr-3">🌍</span>มิติด้านกฎระเบียบและภูมิรัฐศาสตร์</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div>
+                            <h4 class="font-semibold text-lg text-sky-800 mb-2">💧 การขนส่งทางท่อ</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">ต้องอาศัยข้อตกลงระดับรัฐบาล:</strong> กระบวนการทางการทูตยาวนาน, เกี่ยวข้องกับอธิปไตย</li>
+                                <li><strong class="font-medium">เครื่องมือสร้างพันธะระยะยาว:</strong> สร้างความเชื่อมโยงทางเศรษฐกิจและการเมืองที่เปลี่ยนแปลงได้ยาก</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-lg text-amber-800 mb-2">🚚 การขนส่งทางรถยนต์</h4>
+                            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                                <li><strong class="font-medium">ใช้กรอบความตกลงที่มีอยู่:</strong> แต่เผชิญอุปสรรคเชิงปฏิบัติที่ด่านศุลกากร (เอกสาร, การตรวจสอบ)</li>
+                                <li><strong class="font-medium">เครื่องมือการค้าที่ยืดหยุ่น:</strong> เป็นธุรกรรมที่ปรับเปลี่ยนได้ง่ายตามสภาวะตลาดและการเมือง</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-12 bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <h3 class="text-xl font-bold text-center mb-4">เปรียบเทียบต้นทุนการขนส่งต่อหน่วย (บาท/ลิตร)</h3>
+                <p class="text-center text-gray-600 mb-6">ข้อมูลเปรียบเทียบเส้นทาง บางปะอิน - พิจิตร</p>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: Economic Corridors -->
+        <section id="corridors" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">ระเบียงเศรษฐกิจสู่ประเทศเพื่อนบ้าน</h2>
+                <p class="text-lg text-gray-600">เลือกประเทศเพื่อดูการวิเคราะห์เชิงลึกและศักยภาพ</p>
+            </div>
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="w-full md:w-1/3">
+                    <div class="flex md:flex-col justify-around md:justify-start rounded-lg overflow-hidden">
+                        <button data-target="laos" class="corridor-tab active-tab p-4 text-lg font-semibold w-full text-left transition duration-300">
+                            🇱🇦 สปป.ลาว และจีนตอนใต้
+                            <span class="block text-sm font-normal">(แผนงานก้าวหน้าสูงสุด)</span>
+                        </button>
+                        <button data-target="myanmar" class="corridor-tab inactive-tab p-4 text-lg font-semibold w-full text-left transition duration-300">
+                            🇲🇲 เมียนมา
+                            <span class="block text-sm font-normal">(ความเสี่ยงสูง ผลตอบแทนสูง)</span>
+                        </button>
+                        <button data-target="cambodia" class="corridor-tab inactive-tab p-4 text-lg font-semibold w-full text-left transition duration-300">
+                            🇰🇭 กัมพูชา
+                            <span class="block text-sm font-normal">(โอกาสที่รอการพัฒนา)</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="w-full md:w-2/3">
+                    <div id="corridor-content" class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200 min-h-[300px]">
+                        <!-- Content will be injected here by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Strategy -->
+        <section id="strategy" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">บทสรุปเชิงกลยุทธ์: Hub-and-Spoke Model</h2>
+                <p class="text-lg text-gray-600">ยุทธศาสตร์ผสมผสานเพื่อประสิทธิภาพสูงสุด</p>
+            </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h3 class="font-bold text-xl text-sky-900 mb-4">รูปแบบที่เหมาะสมที่สุด: ศูนย์กลางและเครือข่าย</h3>
+                        <p class="text-gray-700 mb-4">
+                            ยุทธศาสตร์ที่ดีที่สุดไม่ใช่การเลือกระหว่างท่อหรือรถยนต์ แต่เป็นการบูรณาการทั้งสองระบบเข้าด้วยกัน โดยดึงจุดแข็งของแต่ละรูปแบบมาใช้ประโยชน์สูงสุด:
+                        </p>
+                        <ul class="space-y-3">
+                            <li class="flex items-start">
+                                <span class="text-sky-600 text-2xl mr-3">💧</span>
+                                <div>
+                                    <strong class="font-semibold text-gray-800">Hub (ศูนย์กลาง):</strong> ใช้ระบบท่อส่งน้ำมันเป็น "เส้นเลือดใหญ่" ลำเลียงน้ำมันปริมาณมหาศาลด้วยต้นทุนต่ำจากโรงกลั่นไปยังคลังน้ำมันยุทธศาสตร์ชายแดน (เช่น ขอนแก่น, ลำปาง, แม่สอด)
+                                </div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-amber-600 text-2xl mr-3">🚚</span>
+                                <div>
+                                    <strong class="font-semibold text-gray-800">Spoke (เครือข่าย):</strong> ใช้การขนส่งทางรถยนต์เป็น "เส้นเลือดฝอย" ที่มีความยืดหยุ่นสูง ในการกระจายน้ำมันจากคลังชายแดนข้ามพรมแดนไปยังจุดหมายปลายทางสุดท้ายในประเทศเพื่อนบ้าน
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="flex flex-col items-center justify-center bg-slate-50 p-6 rounded-lg">
+                        <div class="text-center mb-4">
+                            <p class="font-bold">โรงกลั่น (ภาคตะวันออก)</p>
+                            <p class="text-5xl">🏭</p>
+                        </div>
+                        <div class="text-sky-500 font-mono text-2xl my-2">||||||||||||||</div>
+                        <div class="text-center font-bold text-sky-800">
+                            <p>ท่อส่งน้ำมัน (Hub)</p>
+                            <p>ต้นทุนต่ำ ปริมาณสูง</p>
+                        </div>
+                        <div class="text-sky-500 font-mono text-2xl my-2">||||||||||||||</div>
+                        <div class="text-center mb-4">
+                            <p class="font-bold">คลังน้ำมันชายแดน</p>
+                            <p class="text-5xl">⛽</p>
+                        </div>
+                        <div class="flex justify-around w-full mt-4">
+                            <div class="text-center text-amber-800">
+                                <p class="font-bold">รถยนต์ (Spoke)</p>
+                                <p class="text-3xl">🚚 ⇢ 🇱🇦</p>
+                            </div>
+                             <div class="text-center text-amber-800">
+                                <p class="font-bold">ยืดหยุ่น</p>
+                                <p class="text-3xl">🚚 ⇢ 🇲🇲</p>
+                            </div>
+                             <div class="text-center text-amber-800">
+                                <p class="font-bold">Last-mile</p>
+                                <p class="text-3xl">🚚 ⇢ 🇰🇭</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 5: Zoning Strategy -->
+        <section id="zoning" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">การจัดการ Zoning เชิงกลยุทธ์</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">บริหารจัดการพื้นที่เพื่อประสิทธิภาพสูงสุดและลดการขนส่งซ้ำซ้อน</p>
+            </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200">
+                <h3 class="font-bold text-xl text-sky-900 mb-4">หลักการ: "Zoning เสริมประสิทธิภาพท่อ" (Pipeline-Complementary Zoning)</h3>
+                <p class="text-gray-700 mb-6">
+                    แนวคิดหลักไม่ใช่การ "ห้าม" รถบรรทุกวิ่ง แต่เป็นการบริหารจัดการเชิงพื้นที่เพื่อลดการขนส่งซ้ำซ้อนในเส้นทางระยะไกลที่ขนานกับแนวท่อ (Long-haul Redundancy) และส่งเสริมให้รถบรรทุกทำหน้าที่ที่ตัวเองทำได้ดีที่สุด คือการกระจายสินค้าในลักษณะ "รัศมี" ออกจากคลังปลายทางของท่อ (Hub) และการขนส่งข้ามพรมแดน
+                </p>
+                
+                <!-- Zoning Cards -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <!-- Zone 1: Red -->
+                    <div class="border-2 border-red-200 bg-red-50 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg text-red-800 mb-2">โซนที่ 1: เขตควบคุมฯ (Red Zone)</h4>
+                        <p class="text-sm text-red-700 mb-3"><strong>พื้นที่:</strong> จังหวัดในแนวท่อส่งน้ำมันโดยตรง (เช่น อยุธยา, ลำปาง, สระบุรี, ขอนแก่น)</p>
+                        <p class="text-sm text-gray-700"><strong>แนวทาง:</strong> จำกัด/ลดแรงจูงใจสำหรับการขนส่งด้วยรถบรรทุกที่วิ่งระยะไกลขนานกับแนวท่อ เพื่อผลักดันให้ไปใช้ระบบท่อ</p>
+                    </div>
+                    <!-- Zone 2: Yellow -->
+                    <div class="border-2 border-amber-200 bg-amber-50 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg text-amber-800 mb-2">โซนที่ 2: เขตกระจายสินค้า (Yellow Zone)</h4>
+                        <p class="text-sm text-amber-700 mb-3"><strong>พื้นที่:</strong> จังหวัดรอบๆ คลังน้ำมันปลายทาง (เช่น เชียงใหม่, อุดรธานี, หนองคาย)</p>
+                        <p class="text-sm text-gray-700"><strong>แนวทาง:</strong> ส่งเสริมและให้แรงจูงใจสูงสุดแก่ผู้ประกอบการที่ใช้รถบรรทุกวิ่งกระจายสินค้าในลักษณะ "รัศมี" จากคลังปลายทาง</p>
+                    </div>
+                    <!-- Zone 3: Green -->
+                    <div class="border-2 border-green-200 bg-green-50 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg text-green-800 mb-2">โซนที่ 3: เขตส่งเสริมส่งออก (Green Zone)</h4>
+                        <p class="text-sm text-green-700 mb-3"><strong>พื้นที่:</strong> จังหวัดชายแดนที่เป็นประตูการค้าสำคัญ (หนองคาย, แม่สอด, อรัญประเทศ)</p>
+                        <p class="text-sm text-gray-700"><strong>แนวทาง:</strong> ให้สิทธิประโยชน์สูงสุดสำหรับผู้ประกอบการที่เชี่ยวชาญการขนส่งข้ามพรมแดน เช่น จัดทำช่องทางพิเศษ (Green Lane)</p>
+                    </div>
+                </div>
+
+                <h3 class="font-bold text-xl text-sky-900 mb-4 mt-8">แนวทางการนำไปปฏิบัติ (Implementation)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-100 p-4 rounded-lg text-center">
+                        <p class="text-4xl mb-2">📡</p>
+                        <h5 class="font-semibold">ใช้ Geofencing</h5>
+                        <p class="text-sm text-gray-600">กำหนดให้รถบรรทุกทุกคันติดตั้ง GPS เพื่อตรวจสอบเส้นทางวิ่งและระบุโซนแบบเรียลไทม์</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg text-center">
+                        <p class="text-4xl mb-2">💸</p>
+                        <h5 class="font-semibold">สร้างแรงจูงใจอัตโนมัติ</h5>
+                        <p class="text-sm text-gray-600">เชื่อมข้อมูล GPS กับระบบภาษีหรือค่าผ่านทาง เพื่อให้/ลดแรงจูงใจอย่างโปร่งใส</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg text-center">
+                        <p class="text-4xl mb-2">⏳</p>
+                        <h5 class="font-semibold">กำหนดช่วงเปลี่ยนผ่าน</h5>
+                        <p class="text-sm text-gray-600">ให้เวลาผู้ประกอบการ (เช่น 2-3 ปี) ในการปรับโมเดลธุรกิจและย้ายสถานีให้สอดคล้องกับ Zoning ใหม่</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 6: Operator Guide -->
+        <section id="operator-guide" class="scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-sky-800 mb-2">แนวทางสำหรับผู้ประกอบการขนส่งทางรถ</h2>
+                <p class="text-lg text-gray-600">การปรับตัวและสร้างความได้เปรียบในยุคใหม่</p>
+            </div>
+            <div class="bg-gradient-to-br from-sky-100 to-indigo-100 p-6 md:p-8 rounded-xl shadow-lg border border-sky-200">
+                <h3 class="font-bold text-xl text-sky-900 mb-4">หากท่านคือบริษัทขนส่งทางรถ: โอกาสไม่ได้หายไป แต่เปลี่ยนรูปแบบ</h3>
+                <p class="mb-6 text-gray-700">การขยายตัวของระบบท่อไม่ใช่ "จุดจบ" แต่เป็น "จุดเปลี่ยน" ของธุรกิจขนส่งทางรถยนต์ การมองการณ์ไกลและปรับตัวอย่างรวดเร็วคือหัวใจสำคัญในการเปลี่ยนความท้าทายให้เป็นโอกาส นี่คือกลยุทธ์ที่ต้องพิจารณา:</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white/70 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg mb-2">1. เปลี่ยนบทบาทเป็นผู้เชี่ยวชาญ "Last-Mile & Cross-Border"</h4>
+                        <p class="text-sm text-gray-600">ยอมรับว่าการขนส่งระยะไกล (Long-haul) เส้นทางหลักจะถูกแทนที่ด้วยท่อ แต่ไม่มีใครแทนที่ความยืดหยุ่นของรถยนต์ได้ ให้มุ่งเน้นการเป็นผู้ให้บริการขนส่งจาก "คลังน้ำมันชายแดน" ไปยังลูกค้าปลายทางในประเทศเพื่อนบ้าน ซึ่งเป็นตลาดที่ระบบท่อเข้าไม่ถึงและมีความต้องการสูง</p>
+                    </div>
+                    <div class="bg-white/70 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg mb-2">2. สร้างพันธมิตรกับผู้ให้บริการท่อส่งน้ำมัน</h4>
+                        <p class="text-sm text-gray-600">เปลี่ยนคู่แข่งให้เป็นคู่ค้า เจรจาทำสัญญาเป็นผู้ขนส่งหลัก (Official Logistics Partner) ให้กับผู้ให้บริการคลังน้ำมันชายแดน (เช่น TPN, FPT) เพื่อรับงานกระจายสินค้าต่อ การมีสัญญาที่แน่นอนจะช่วยสร้างเสถียรภาพด้านรายได้</p>
+                    </div>
+                    <div class="bg-white/70 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg mb-2">3. ยกระดับบริการและความปลอดภัย</h4>
+                        <p class="text-sm text-gray-600">สร้างความแตกต่างด้วยคุณภาพ ใช้เทคโนโลยี GPS Tracking, ระบบบริหารจัดการยานพาหนะ (Fleet Management), และการฝึกอบรมพนักงานขับรถให้มีมาตรฐานความปลอดภัยสูงสุด สิ่งเหล่านี้จะกลายเป็นจุดขายที่สำคัญเมื่อเทียบกับคู่แข่งรายย่อย</p>
+                    </div>
+                    <div class="bg-white/70 p-5 rounded-lg">
+                        <h4 class="font-bold text-lg mb-2">4. ลงทุนในพื้นที่ยุทธศาสตร์ใหม่</h4>
+                        <p class="text-sm text-gray-600">พิจารณาตั้งสถานีหรืออู่ซ่อมบำรุงใกล้กับคลังน้ำมันชายแดนแห่งใหม่ (อ.บ้านไผ่ จ.ขอนแก่น, อ.แม่สอด จ.ตาก) เพื่อลดต้นทุนการเดินทางของรถเปล่าและเพิ่มความคล่องตัวในการให้บริการลูกค้าในพื้นที่เป้าหมาย</p>
+                    </div>
+                </div>
+                 <p class="mt-6 text-center font-semibold text-sky-800">อนาคตของธุรกิจขนส่งทางรถคือการเป็นส่วนหนึ่งของ Ecosystem ที่ใหญ่ขึ้น โดยเปลี่ยนจากการแข่งขันด้านราคาในเส้นทางระยะไกล มาเป็นการแข่งขันด้านคุณภาพบริการ ความน่าเชื่อถือ และความเชี่ยวชาญในการขนส่งข้ามพรมแดนที่ซับซ้อน</p>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-4 py-6 text-center text-sm">
+            <p>&copy; 2025 Strategic Analysis Dashboard. จัดทำขึ้นเพื่อการวิเคราะห์และนำเสนอข้อมูลเชิงกลยุทธ์เท่านั้น</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            const corridorContentData = {
+                laos: {
+                    title: '🇱🇦 สปป.ลาว และจีนตอนใต้',
+                    subtitle: 'แผนงานที่มีความก้าวหน้าสูงสุด',
+                    points: [
+                        '<strong>เส้นทางท่อ:</strong> มีแผนต่อขยายจากคลังน้ำมัน TPN ที่ขอนแก่น ซึ่งได้ลงนาม MOU กับพันธมิตรจากลาวและจีน (CPP) แล้ว มีความเชื่อมโยงกับยุทธศาสตร์ Belt and Road Initiative ของจีน',
+                        '<strong>เส้นทางรถยนต์:</strong> ปัจจุบันใช้ด่านหนองคาย-เวียงจันทน์เป็นหลัก แต่เผชิญความท้าทายด้านกฎระเบียบน้ำหนักและประเภทสินค้าอันตรายของ สปป.ลาว',
+                        '<strong>บริบทเชิงกลยุทธ์:</strong> ลาวเป็นประเทศ Land-linked ที่พึ่งพาการนำเข้าน้ำมันสูง คลังขอนแก่นอยู่ห่างเวียงจันทน์เพียง 250 กม. ทำให้เป็นจุดยุทธศาสตร์ที่ดีที่สุด คาดว่าจะเริ่มส่งออกได้ภายใน มี.ค. 2568'
+                    ]
+                },
+                myanmar: {
+                    title: '🇲🇲 เมียนมา',
+                    subtitle: 'แผนงานที่มีความเสี่ยงสูงและผลตอบแทนสูง',
+                    points: [
+                        '<strong>เส้นทางท่อ:</strong> มีศักยภาพต่อขยายจากท่อภาคเหนือของ FPT มายัง อ.แม่สอด จ.ตาก เพื่อส่งต่อไปยังเมียวดี',
+                        '<strong>เส้นทางรถยนต์:</strong> ด่านแม่สอด-เมียวดีเป็นประตูการค้าสำคัญ แต่ท้าทายจากภูมิประเทศที่เป็นภูเขาและความไม่มั่นคงทางการเมืองภายในเมียนมา',
+                        '<strong>บริบทเชิงกลยุทธ์:</strong> เป็นตลาดใหญ่แต่มีความเสี่ยงสูงจากความขัดแย้งภายในประเทศ ในระยะสั้น-กลาง รูปแบบ "Hub-and-Spoke" (ท่อมาแม่สอด แล้วใช้รถข้ามแดน) เป็นทางเลือกที่เป็นไปได้มากที่สุด'
+                    ]
+                },
+                cambodia: {
+                    title: '🇰🇭 กัมพูชา',
+                    subtitle: 'โอกาสที่รอการพัฒนา',
+                    points: [
+                        '<strong>เส้นทางท่อ:</strong> ยังไม่มีแผนงานที่ชัดเจนในปัจจุบัน หากมีในอนาคตคาดว่าจะต่อขยายจากภาคตะวันออกหรือจากเครือข่าย TPN ไปยังด่านอรัญประเทศ-ปอยเปต',
+                        '<strong>เส้นทางรถยนต์:</strong> เป็นรูปแบบหลักในปัจจุบันผ่านด่านอรัญประเทศ ภาวะขาดแคลนน้ำมันในกัมพูชาล่าสุดสะท้อนถึงอุปสงค์ที่แข็งแกร่ง',
+                        '<strong>บริบทเชิงกลยุทธ์:</strong> เป็นตลาดที่มีศักยภาพ แต่ยังไม่ถูกจัดลำดับความสำคัญเท่าลาวและเมียนมา ถือเป็นโอกาสเติบโตในอนาคตหลังระเบียงเศรษฐกิจหลักถูกพัฒนาแล้ว'
+                    ]
+                }
+            };
+
+            const corridorContentContainer = document.getElementById('corridor-content');
+            const corridorTabs = document.querySelectorAll('.corridor-tab');
+
+            function updateCorridorContent(target) {
+                const data = corridorContentData[target];
+                if (!data) return;
+
+                let contentHTML = `<h3 class="text-2xl font-bold text-gray-800 mb-1">${data.title}</h3>`;
+                contentHTML += `<p class="text-md text-gray-500 font-semibold mb-4">${data.subtitle}</p>`;
+                contentHTML += '<ul class="space-y-3 list-inside">';
+                data.points.forEach(point => {
+                    contentHTML += `<li class="text-gray-700 flex items-start"><span class="text-sky-500 mr-2 mt-1">▶</span><span>${point}</span></li>`;
+                });
+                contentHTML += '</ul>';
+                
+                corridorContentContainer.innerHTML = contentHTML;
+            }
+
+            corridorTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const target = tab.dataset.target;
+                    
+                    corridorTabs.forEach(t => {
+                        t.classList.remove('active-tab');
+                        t.classList.add('inactive-tab');
+                    });
+                    
+                    tab.classList.add('active-tab');
+                    tab.classList.remove('inactive-tab');
+                    
+                    updateCorridorContent(target);
+                });
+            });
+
+            updateCorridorContent('laos');
+
+            const ctx = document.getElementById('costChart').getContext('2d');
+            const costChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['การขนส่งทางท่อ (Pipeline)', 'การขนส่งทางรถยนต์ (Road)'],
+                    datasets: [{
+                        label: 'ต้นทุน (บาท/ลิตร)',
+                        data: [0.25, 0.43],
+                        backgroundColor: [
+                            'rgba(3, 105, 161, 0.7)', // sky-800
+                            'rgba(217, 119, 6, 0.7)'  // amber-600
+                        ],
+                        borderColor: [
+                            'rgb(3, 105, 161)',
+                            'rgb(217, 119, 6)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'บาท/ลิตร'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.raw.toFixed(2)} บาท/ลิตร`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const mobileNav = document.getElementById('mobile-nav');
+            mobileNav.addEventListener('change', (event) => {
+                window.location.hash = event.target.value;
+            });
+
+        });
+    </script>
+</body>
+</html>
