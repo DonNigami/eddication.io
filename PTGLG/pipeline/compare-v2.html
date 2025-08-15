@@ -10,11 +10,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Warm Neutral Tones -->
-    <!-- Application Structure Plan: This final version enhances the previous dashboard by adding a deeper analytical layer. The flow is: 1. Overview with new "Strategic Imperatives". 2. Detailed comparison. 3. Economic Corridors with an added "Strategic Outlook" analysis for each country. 4. Hub-and-Spoke model with "Critical Success Factors". 5. Zoning section with "Strategic Implications". 6. Operator guide. 7. References section restored to its hyperlinked version for direct source verification. This structure transforms the dashboard from a data repository into a true decision-making tool. -->
+    <!-- Application Structure Plan: This final version enhances the previous dashboard by adding a deeper analytical layer. The flow is: 1. Overview. 2. Detailed comparison. 3. Economic Corridors. 4. Hub-and-Spoke model. 5. Zoning section. 6. A new, dedicated "Strategic Action Plan for PTG Group & PTGLG" with a specific timeline. 7. Operator guide. 8. References. This structure provides a complete strategic roadmap from analysis to tailored corporate action. -->
     <!-- Visualization & Content Choices: 
-        - Report Info: Strategic analysis and implications. Goal: Inform/Synthesize. Viz: Styled text blocks and bullet points (HTML/CSS). Interaction: Static. Justification: For qualitative analysis and strategic recommendations, well-structured text is the clearest method.
+        - Report Info: Strategic timeline for PTG. Goal: Organize/Inform. Viz: Timeline layout with cards for each phase (HTML/CSS). Interaction: Static. Justification: A visual timeline is the most intuitive way to present a multi-phase strategic plan, making it easy to understand the sequence and focus of each stage.
         - Report Info: Demand forecasts for CLMV countries. Goal: Show Change/Trend. Viz: Dynamic Line Charts (Chart.js). Interaction: Chart updates on tab click. Justification: Retained as the best way to show time-series data interactively.
-        - Report Info: References. Goal: Inform/Validate. Viz: Ordered List with hyperlinks (HTML). Interaction: Clickable links. Justification: Restoring clickable links improves usability and demonstrates data transparency as requested.
+        - Report Info: References. Goal: Inform/Validate. Viz: Ordered List with hyperlinks (HTML). Interaction: Clickable links. Justification: Clickable links improve usability and demonstrate data transparency.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
@@ -62,10 +62,11 @@
                 <h1 class="text-xl md:text-2xl font-bold text-sky-800">Logistics Strategy Hub</h1>
                 <div class="hidden md:flex flex-wrap justify-center space-x-4 lg:space-x-6 font-semibold text-gray-600">
                     <a href="#overview" class="nav-link">ภาพรวม</a>
-                    <a href="#comparison" class="nav-link">เปรียบเทียบเชิงลึก</a>
+                    <a href="#comparison" class="nav-link">เปรียบเทียบ</a>
                     <a href="#corridors" class="nav-link">ระเบียงเศรษฐกิจ</a>
-                    <a href="#strategy" class="nav-link">บทสรุปเชิงกลยุทธ์</a>
-                    <a href="#zoning" class="nav-link">การจัดการ Zoning</a>
+                    <a href="#strategy" class="nav-link">ยุทธศาสตร์</a>
+                    <a href="#zoning" class="nav-link">Zoning</a>
+                    <a href="#ptg-plan" class="nav-link text-green-700 font-bold">แผนสำหรับ PTG</a>
                     <a href="#operator-guide" class="nav-link">สำหรับผู้ประกอบการฯ</a>
                     <a href="#references" class="nav-link text-sky-700">ข้อมูลอ้างอิง</a>
                 </div>
@@ -75,7 +76,8 @@
                         <option value="#comparison">เปรียบเทียบ</option>
                         <option value="#corridors">ระเบียงเศรษฐกิจ</option>
                         <option value="#strategy">ยุทธศาสตร์</option>
-                        <option value="#zoning">การจัดการ Zoning</option>
+                        <option value="#zoning">Zoning</option>
+                        <option value="#ptg-plan">แผนสำหรับ PTG</option>
                         <option value="#operator-guide">สำหรับผู้ประกอบการ</option>
                         <option value="#references">ข้อมูลอ้างอิง</option>
                     </select>
@@ -175,50 +177,6 @@
                                 <li><strong class="font-medium">น่าเชื่อถือต่ำกว่า:</strong> เสี่ยงจากจราจร, อุบัติเหตุ, กฎระเบียบ, ความล่าช้าที่ด่าน</li>
                                 <li><strong class="font-medium">ยืดหยุ่นสูงสุด:</strong> บริการแบบ Point-to-Point, เหมาะสำหรับ Last-mile delivery</li>
                                 <li><strong class="font-medium">เสี่ยงกว่า:</strong> เสี่ยงลักลอบขโมย, การเจือปน, และอุบัติเหตุรั่วไหล</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dimension 3: Environment & Society -->
-                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><span class="text-3xl mr-3">🌳</span>มิติด้านสิ่งแวดล้อมและสังคม</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                        <div>
-                            <h4 class="font-semibold text-lg text-sky-800 mb-2">💧 การขนส่งทางท่อ</h4>
-                            <ul class="list-disc list-inside space-y-2 text-gray-700">
-                                <li><strong class="font-medium">ผลกระทบต่ำ:</strong> ลดการปล่อย CO2, ลดการใช้เชื้อเพลิงฟอสซิล</li>
-                                <li><strong class="font-medium">ปลอดภัยต่อสาธารณะสูง:</strong> ลดอุบัติเหตุบนท้องถนนอย่างมีนัยสำคัญ</li>
-                                <li><strong class="font-medium">ต้องการบุคลากรทักษะสูง:</strong> วิศวกร, เจ้าหน้าที่ควบคุมระบบ (จำนวนน้อย)</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-lg text-amber-800 mb-2">🚚 การขนส่งทางรถยนต์</h4>
-                            <ul class="list-disc list-inside space-y-2 text-gray-700">
-                                <li><strong class="font-medium">ผลกระทบสูง:</strong> ปล่อยก๊าซเรือนกระจก, PM2.5, มลพิษทางเสียง, สร้างภาระให้ถนน</li>
-                                <li><strong class="font-medium">ความเสี่ยงต่อสาธารณะสูง:</strong> อุบัติเหตุรถบรรทุกสารไวไฟเป็นความเสี่ยงสำคัญ</li>
-                                <li><strong class="font-medium">ต้องการแรงงานจำนวนมาก:</strong> พนักงานขับรถ, ช่างซ่อม (สร้างงานในวงกว้าง)</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dimension 4: Regulation & Geopolitics -->
-                <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><span class="text-3xl mr-3">🌍</span>มิติด้านกฎระเบียบและภูมิรัฐศาสตร์</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                        <div>
-                            <h4 class="font-semibold text-lg text-sky-800 mb-2">💧 การขนส่งทางท่อ</h4>
-                            <ul class="list-disc list-inside space-y-2 text-gray-700">
-                                <li><strong class="font-medium">ต้องอาศัยข้อตกลงระดับรัฐบาล:</strong> กระบวนการทางการทูตยาวนาน, เกี่ยวข้องกับอธิปไตย</li>
-                                <li><strong class="font-medium">เครื่องมือสร้างพันธะระยะยาว:</strong> สร้างความเชื่อมโยงทางเศรษฐกิจและการเมืองที่เปลี่ยนแปลงได้ยาก</li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-lg text-amber-800 mb-2">🚚 การขนส่งทางรถยนต์</h4>
-                            <ul class="list-disc list-inside space-y-2 text-gray-700">
-                                <li><strong class="font-medium">ใช้กรอบความตกลงที่มีอยู่:</strong> แต่เผชิญอุปสรรคเชิงปฏิบัติที่ด่านศุลกากร (เอกสาร, การตรวจสอบ)</li>
-                                <li><strong class="font-medium">เครื่องมือการค้าที่ยืดหยุ่น:</strong> เป็นธุรกรรมที่ปรับเปลี่ยนได้ง่ายตามสภาวะตลาดและการเมือง</li>
                             </ul>
                         </div>
                     </div>
@@ -374,10 +332,84 @@
             </div>
         </section>
 
-        <!-- Section 6: Operator Guide -->
+        <!-- Section 6: PTG Action Plan -->
+        <section id="ptg-plan" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-green-800 mb-2">แผนปฏิบัติการเชิงกลยุทธ์สำหรับ PTG Group & PTGLG</h2>
+                <p class="text-lg text-gray-600">Roadmap สู่การเป็นผู้นำโลจิสติกส์พลังงานข้ามพรมแดน</p>
+            </div>
+            <div class="relative border-l-2 border-green-500 ml-6 md:ml-0 md:border-l-0 md:border-t-2 md:w-full">
+                <!-- Phase 1 -->
+                <div class="mb-10 md:flex md:items-start">
+                    <div class="md:w-1/3 flex-shrink-0 md:text-right md:pr-8">
+                        <div class="absolute -left-4 top-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold md:relative md:left-auto md:top-auto md:float-right md:ml-4">1</div>
+                        <h3 class="text-xl font-bold text-gray-800 mt-10 md:mt-0">Phase 1: เตรียมความพร้อมและชิงความได้เปรียบ</h3>
+                        <p class="text-gray-500 text-sm">(Q4 2568 - Q2 2569)</p>
+                    </div>
+                    <div class="ml-10 md:ml-8 md:w-2/3 md:pl-8 md:border-l-2 border-green-500 bg-white p-6 rounded-lg shadow">
+                        <h4 class="font-semibold text-green-700">PTG Logistics (PTGLG)</h4>
+                        <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                            <li>จัดตั้ง Task Force "Cross-Border Logistics" เพื่อศึกษาและเจรจาธุรกิจใน CLMV</li>
+                            <li>เริ่มเจรจาเป็น **Official Logistics Partner** กับ TPN (คลังขอนแก่น) และ BPT (คลังลำปาง)</li>
+                            <li>นำร่องโครงการ **"Zoning เชิงส่งเสริม"** ในภาคอีสาน โดยให้ราคาขนส่งพิเศษแก่สถานีบริการ PT ที่รับน้ำมันจากคลังขอนแก่น</li>
+                            <li>ยกระดับรถขนส่ง 20% ของ Fleet ที่วิ่งในโซนอีสานด้วยเทคโนโลยีความปลอดภัยขั้นสูง (ADAS, DMS)</li>
+                        </ul>
+                        <h4 class="font-semibold text-green-700 mt-4">PTG Group</h4>
+                        <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                            <li>เปิดโต๊ะเจรจาระดับบริหารกับผู้ค้าน้ำมันรายใหญ่ใน สปป.ลาว และกัมพูชา</li>
+                            <li>ผลักดันภาครัฐ (กรมศุลกากร, กรมธุรกิจพลังงาน) ให้เกิดแนวคิด **"Single Window Customs"** ที่คลังน้ำมันปลายท่อ</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Phase 2 -->
+                <div class="mb-10 md:flex md:items-start">
+                    <div class="md:w-1/3 flex-shrink-0 md:text-right md:pr-8">
+                        <div class="absolute -left-4 top-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold md:relative md:left-auto md:top-auto md:float-right md:ml-4">2</div>
+                        <h3 class="text-xl font-bold text-gray-800 mt-10 md:mt-0">Phase 2: สร้างฐานและขยายเครือข่าย</h3>
+                        <p class="text-gray-500 text-sm">(Q3 2569 - Q4 2570)</p>
+                    </div>
+                    <div class="ml-10 md:ml-8 md:w-2/3 md:pl-8 md:border-l-2 border-green-500 bg-white p-6 rounded-lg shadow">
+                        <h4 class="font-semibold text-green-700">PTG Logistics (PTGLG)</h4>
+                        <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                            <li>**ลงทุนสร้างสถานีบริการและซ่อมบำรุง (Depot) แห่งใหม่** ใกล้คลังน้ำมันขอนแก่น (อ.บ้านไผ่) เพื่อเป็นฐานปฏิบัติการหลัก</li>
+                            <li>ขยายผลโครงการ Zoning ไปยังภาคเหนือ โดยใช้คลังลำปางเป็นศูนย์กลาง</li>
+                            <li>พัฒนาหลักสูตรอบรมพนักงานขับรถเฉพาะทาง "Cross-Border Professional" (เน้นกฎระเบียบ CLMV)</li>
+                        </ul>
+                        <h4 class="font-semibold text-green-700 mt-4">PTG Group</h4>
+                        <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                            <li>**ลงนามสัญญาซื้อขายล่วงหน้า (Forward Contract)** กับพันธมิตรใน สปป.ลาว</li>
+                            <li>เข้าร่วมเป็นคณะทำงานภาคเอกชนกับภาครัฐในการเจรจา G2G ด้านพลังงานกับประเทศเพื่อนบ้าน</li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- Phase 3 -->
+                <div class="md:flex md:items-start">
+                    <div class="md:w-1/3 flex-shrink-0 md:text-right md:pr-8">
+                        <div class="absolute -left-4 top-0 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white font-bold md:relative md:left-auto md:top-auto md:float-right md:ml-4">3</div>
+                        <h3 class="text-xl font-bold text-gray-800 mt-10 md:mt-0">Phase 3: ครองความเป็นผู้นำ</h3>
+                        <p class="text-gray-500 text-sm">(2571 เป็นต้นไป)</p>
+                    </div>
+                    <div class="ml-10 md:ml-8 md:w-2/3 md:pl-8 md:border-l-2 border-green-500 bg-white p-6 rounded-lg shadow">
+                        <h4 class="font-semibold text-green-700">PTG Logistics (PTGLG)</h4>
+                        <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                            <li>เป็น **ผู้ให้บริการขนส่งน้ำมันข้ามแดนอันดับ 1** ในเส้นทางสู่ สปป.ลาว และกัมพูชา</li>
+                            <li>ขยาย Fleet รถขนส่งข้ามแดนให้ครอบคลุม 30% ของปริมาณการส่งออกทั้งหมดของประเทศ</li>
+                            <li>ศึกษาความเป็นไปได้ในการขนส่งหลายรูปแบบ (Multimodal) เช่น การใช้รถไฟจากสระบุรีไปหนองคาย แล้วใช้รถของ PTGLG ข้ามแดน</li>
+                        </ul>
+                        <h4 class="font-semibold text-green-700 mt-4">PTG Group</h4>
+                        <ul class="list-disc list-inside text-sm space-y-2 mt-2">
+                            <li>พิจารณาเป็นแกนนำจัดตั้ง Consortium ร่วมลงทุนใน **"คลังน้ำมันชายแดน"** หากปริมาณการค้าเติบโตตามเป้า</li>
+                            <li>ขยายส่วนแบ่งการตลาดค้าปลีกน้ำมันใน CLMV โดยอาศัยความได้เปรียบด้านต้นทุนโลจิสติกส์</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 7: Operator Guide -->
         <section id="operator-guide" class="mb-16 scroll-mt-24">
             <div class="text-center mb-10">
-                <h2 class="text-3xl md:text-4xl font-bold text-sky-800 mb-2">แนวทางสำหรับผู้ประกอบการขนส่งทางรถ</h2>
+                <h2 class="text-3xl md:text-4xl font-bold text-sky-800 mb-2">แนวทางสำหรับผู้ประกอบการขนส่งทางรถ (ทั่วไป)</h2>
                 <p class="text-lg text-gray-600">การปรับตัวและสร้างความได้เปรียบในยุคใหม่</p>
             </div>
             <div class="bg-gradient-to-br from-sky-100 to-indigo-100 p-6 md:p-8 rounded-xl shadow-lg border border-sky-200">
@@ -405,7 +437,7 @@
             </div>
         </section>
 
-        <!-- Section 7: References -->
+        <!-- Section 8: References -->
         <section id="references" class="mb-16 scroll-mt-24">
             <div class="text-center mb-10">
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">เอกสารและข้อมูลอ้างอิง</h2>
