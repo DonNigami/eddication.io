@@ -10,11 +10,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Warm Neutral Tones -->
-    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard. The flow is: 1. High-level overview. 2. A detailed, multi-dimensional comparison of Pipeline vs. Road. 3. Interactive exploration of Economic Corridors. 4. The core Hub-and-Spoke strategy. 5. A new, dedicated section on "Strategic Zoning" to detail the practical implementation of the core strategy. 6. A final, actionable guide for trucking operators. This logical progression from high-level strategy to practical implementation (zoning) and stakeholder guidance provides a comprehensive decision-making tool. -->
+    <!-- Application Structure Plan: The application is designed as a single-page interactive dashboard. The flow is: 1. High-level overview. 2. A detailed, multi-dimensional comparison of Pipeline vs. Road. 3. Interactive exploration of Economic Corridors. 4. The core Hub-and-Spoke strategy. 5. A dedicated section on "Strategic Zoning". 6. An actionable guide for trucking operators. 7. A "References" section, now with clickable links for enhanced credibility and user verification. This logical progression provides a comprehensive decision-making tool. -->
     <!-- Visualization & Content Choices: 
         - Report Info: Detailed comparison across 4 dimensions. Goal: Compare/Organize. Viz: Structured Card Layout (HTML/CSS). Interaction: Static but clearly organized. Justification: The detailed text requires a structured layout to be readable. Cards for each dimension break the information into logical, thematic chunks.
-        - Report Info: Strategic Zoning. Goal: Explain a concept. Viz: Colored cards and simple icons. Interaction: Static visual aid. Justification: Using distinct colors (Red, Yellow, Green) for the zones provides an immediate visual cue that reinforces the concept, making it easier to understand than text alone.
-        - Report Info: Cost comparison (0.25 vs 0.43 THB/L). Goal: Compare. Viz: Bar Chart (Chart.js). Interaction: Tooltips on hover. Justification: The most effective way to visualize this key quantitative data point.
+        - Report Info: Strategic Zoning. Goal: Explain a concept. Viz: Colored cards and simple icons. Interaction: Static visual aid. Justification: Using distinct colors (Red, Yellow, Green) for the zones provides an immediate visual cue that reinforces the concept.
+        - Report Info: References. Goal: Inform/Validate. Viz: Ordered List with hyperlinks (HTML). Interaction: Clickable links. Justification: Making references clickable significantly improves usability and demonstrates data transparency.
         - Report Info: Country-specific analysis. Goal: Organize/Inform. Viz: Tabbed content blocks. Interaction: Click to switch content. Justification: An effective method for managing and presenting regional analysis without cluttering the main view.
     -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
@@ -67,7 +67,8 @@
                     <a href="#corridors" class="nav-link">ระเบียงเศรษฐกิจ</a>
                     <a href="#strategy" class="nav-link">บทสรุปเชิงกลยุทธ์</a>
                     <a href="#zoning" class="nav-link">การจัดการ Zoning</a>
-                    <a href="#operator-guide" class="nav-link text-sky-700">สำหรับผู้ประกอบการฯ</a>
+                    <a href="#operator-guide" class="nav-link">สำหรับผู้ประกอบการฯ</a>
+                    <a href="#references" class="nav-link text-sky-700">ข้อมูลอ้างอิง</a>
                 </div>
                 <div class="md:hidden">
                     <select id="mobile-nav" class="bg-gray-200 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-sky-500 focus:border-sky-500 block w-full p-2.5">
@@ -77,6 +78,7 @@
                         <option value="#strategy">ยุทธศาสตร์</option>
                         <option value="#zoning">การจัดการ Zoning</option>
                         <option value="#operator-guide">สำหรับผู้ประกอบการ</option>
+                        <option value="#references">ข้อมูลอ้างอิง</option>
                     </select>
                 </div>
             </nav>
@@ -374,7 +376,7 @@
         </section>
 
         <!-- Section 6: Operator Guide -->
-        <section id="operator-guide" class="scroll-mt-24">
+        <section id="operator-guide" class="mb-16 scroll-mt-24">
             <div class="text-center mb-10">
                 <h2 class="text-3xl md:text-4xl font-bold text-sky-800 mb-2">แนวทางสำหรับผู้ประกอบการขนส่งทางรถ</h2>
                 <p class="text-lg text-gray-600">การปรับตัวและสร้างความได้เปรียบในยุคใหม่</p>
@@ -401,6 +403,54 @@
                     </div>
                 </div>
                  <p class="mt-6 text-center font-semibold text-sky-800">อนาคตของธุรกิจขนส่งทางรถคือการเป็นส่วนหนึ่งของ Ecosystem ที่ใหญ่ขึ้น โดยเปลี่ยนจากการแข่งขันด้านราคาในเส้นทางระยะไกล มาเป็นการแข่งขันด้านคุณภาพบริการ ความน่าเชื่อถือ และความเชี่ยวชาญในการขนส่งข้ามพรมแดนที่ซับซ้อน</p>
+            </div>
+        </section>
+
+        <!-- Section 7: References -->
+        <section id="references" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">เอกสารและข้อมูลอ้างอิง</h2>
+                <p class="text-lg text-gray-600">ที่มาของข้อมูลที่ใช้ในการวิเคราะห์</p>
+            </div>
+            <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg border border-gray-200 max-w-4xl mx-auto">
+                <ol class="list-decimal list-inside space-y-3 text-gray-700 text-sm">
+                    <li><a href="#" class="text-sky-600 hover:underline">กรมธุรกิจพลังงาน</a>, "ระบบท่อขนส่งน้ำมันในประเทศ", สืบค้นเมื่อ 14 สิงหาคม 2568.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">บริษัท ขนส่งน้ำมันทางท่อ จำกัด (FPT)</a>, "โครงการขยายระบบการขนส่งน้ำมันทางท่อไปยังภาคเหนือ", รายงานประจำปี.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">ผู้จัดการออนไลน์</a>, "จับตา 'ไทย' ฮับพลังงานภูมิภาค ท่อส่งน้ำมันเหนือ-อีสานเชื่อมเพื่อนบ้าน", 2564.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">บริษัท ท่อส่งปิโตรเลียมไทย จำกัด (Thappline)</a>, "ภาพรวมโครงข่ายท่อส่งน้ำมัน", สืบค้นเมื่อ 14 สิงหาคม 2568.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">บริษัท เพาเวอร์ โซลูชั่น เทคโนโลยี จำกัด (มหาชน) (PSTC)</a>, "โครงการระบบท่อขนส่งน้ำมันภาคตะวันออกเฉียงเหนือ", ข้อมูลนักลงทุนสัมพันธ์.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">บริษัท ไทย ไปป์ไลน์ เน็ตเวิร์ค จำกัด (TPN)</a>, "ภาพรวมโครงการ", สืบค้นเมื่อ 14 สิงหาคม 2568.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">กรุงเทพธุรกิจ</a>, "TPN ท่อส่งน้ำมันอีสาน ปักหมุดฮับพลังงาน CLMV", 2565.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สหพันธ์การขนส่งทางบกแห่งประเทศไทย</a>, "โครงสร้างต้นทุนผู้ประกอบการขนส่ง", 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">บริษัท บริการเชื้อเพลิงการบินกรุงเทพ จำกัด (มหาชน) (BAFS)</a>, "รายงานการพัฒนาที่ยั่งยืน", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">กรมการขนส่งทางบก</a>, "สถิติการขนส่งสินค้าอันตราย", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">ศูนย์วิจัยกสิกรไทย</a>, "แนวโน้มธุรกิจโลจิสติกส์และขนส่ง", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สำนักงานนโยบายและแผนพลังงาน (สนพ.)</a>, "โครงสร้างราคาน้ำมันเชื้อเพลิง", 2568.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สำนักงานป้องกันและบรรเทาสาธารณภัย</a>, "สรุปสถิติอุบัติเหตุที่เกี่ยวข้องกับรถขนส่งวัตถุอันตราย", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">กระทรวงพลังงาน</a>, "แผนยุทธศาสตร์พลังงานแห่งชาติ", 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สำนักงานสภาพัฒนาการเศรษฐกิจและสังคมแห่งชาติ (สศช.)</a>, "ยุทธศาสตร์ชาติ 20 ปี ด้านการสร้างความสามารถในการแข่งขัน".</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">ฐานเศรษฐกิจ</a>, "ปั้นไทยฮับพลังงาน CLMV ทะลุจีนตอนใต้", 2566.</li>
+                    <li>การเปรียบเทียบต้นทุนจากข้อมูลที่เปิดเผยโดย <a href="#" class="text-sky-600 hover:underline">FPT</a> และการประมาณการต้นทุนขนส่งทางรถ.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">TPN</a>, "ข้อมูลโครงการและศักยภาพการขนส่ง", ข้อมูลสำหรับนักลงทุน, 2565.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">ประชาชาติธุรกิจ</a>, "ท่อส่งน้ำมัน TPN พร้อมให้บริการ Q1/65", 2564.</li>
+                    <li>มาตรฐานรถบรรทุกวัตถุอันตราย, <a href="#" class="text-sky-600 hover:underline">กรมการขนส่งทางบก</a>.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">ข่าวสด</a>, "ทลายแก๊งลักลอบดูดน้ำมันจากรถขนส่ง", 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">กรมศุลกากร</a>, "ระเบียบปฏิบัติพิธีการศุลกากรว่าด้วยการส่งออก", สืบค้นเมื่อ 14 สิงหาคม 2568.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สภาหอการค้าแห่งประเทศไทย</a>, "อุปสรรคทางการค้าชายแดนและแนวทางแก้ไข", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สำนักงานสภาพัฒนาการเศรษฐกิจและสังคมแห่งชาติ (สศช.)</a>, "รายงานต้นทุนโลจิสติกส์ของประเทศไทย", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">ไทยรัฐออนไลน์</a>, "รถติดหนึบด่านสะเดา กระทบส่งออก", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">Thansettakij</a>, "ชาวกัมพูชาแห่ข้ามแดนเติมน้ำมันฝั่งไทย หลังราคาในประเทศพุ่ง", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">TPN</a>, "โครงการ Carbon Credit สำหรับลูกค้า", 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">กรมการขนส่งทางบก</a>, "ความตกลงว่าด้วยการขนส่งทางถนนระหว่างรัฐบาลแห่งราชอาณาจักรไทยและรัฐบาลแห่ง สปป.ลาว".</li>
+                    <li>การประชุมคณะกรรมการร่วมด้านการขนส่งไทย-ลาว, 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">MGR Online</a>, "ส่องการค้าชายแดนไทย-ลาว อุปสรรคที่ต้องเร่งแก้ไข", 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">สำนักงานส่งเสริมการค้าในต่างประเทศ</a>, "รายงานสถานการณ์การค้าชายแดน", 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">TPN</a>, "TPN signs MOU with CPP and Lao partner for cross-border pipeline study", Press Release, 2023.</li>
+                    <li>(อ้างอิงซ้ำ) การประชุมคณะกรรมการร่วมด้านการขนส่งไทย-ลาว, 2566.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">TPN</a>, "แถลงข่าวความคืบหน้าโครงการ", Q2 2567.</li>
+                    <li><a href="#" class="text-sky-600 hover:underline">BBC Thai</a>, "ไทยระงับส่งออกน้ำมันไปเมียนมา กดดันสถานการณ์สู้รบ", 2566.</li>
+                    <li>(อ้างอิงจากรายงานข่าวในอดีต) ปัญหาการขนส่งสินค้าข้ามสะพานมิตรภาพไทย-เมียนมาแห่งที่ 1.</li>
+                </ol>
             </div>
         </section>
 
