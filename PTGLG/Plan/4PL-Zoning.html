@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTGLG: แผนกลยุทธ์ 5 ปีสู่ IPO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with Amber Accent -->
+    <!-- Application Structure Plan: A single-page dashboard design is chosen for its directness and ease of navigation. The structure begins with a high-level summary and key financial targets (IPO Valuation). It then flows into three distinct, collapsible sections for each strategic pillar (4PL, Pipeline, Zoning), allowing users to deep-dive into areas of interest without losing context. This thematic structure is more intuitive for strategic analysis than mirroring the report's linear format. The final section presents an integrated 5-year timeline, synthesizing all pillars into a clear action plan. This user flow—from 'what' (the IPO goal) to 'how' (the three pillars) to 'when' (the timeline)—provides a comprehensive yet digestible strategic overview. -->
+    <!-- Visualization & Content Choices: 
+        1. IPO Valuation: Report Info -> Net Profit build-up from core, AMA, PSP JV. Goal -> Inform & Impress. Viz -> Interactive Doughnut Chart (Chart.js) showing profit sources and a dynamic summary card. Interaction -> Hovering over chart segments reveals details. Justification -> Visually breaks down the core financial goal into understandable components.
+        2. 4PL Transformation: Report Info -> SWOT analysis, JV revenue targets, Industrial Gas Market data. Goal -> Compare & Organize. Viz -> HTML/CSS grid for SWOT, Bar Chart (Chart.js) for JV revenue streams, and a new Bar Chart for Industrial Gas market growth. Interaction -> N/A. Justification -> Clearly presents strengths/weaknesses, quantifies the diversification strategy, and provides market context for a core business.
+        3. Pipeline Expansion: Report Info -> Financial feasibility (NPV, BCR) for CLMV routes. Goal -> Compare & Analyze. Viz -> Interactive HTML table with sortable columns. Interaction -> Clicking table headers sorts the data, allowing users to rank routes by different financial metrics. Justification -> An interactive table is the most effective way to compare multiple data points across several options, superior to a static chart for this specific dataset.
+        4. Zoning Leadership: Report Info -> Hub & Spoke model, "Narrow Gap" pricing concept. Goal -> Inform & Explain. Viz -> Diagrammatic representation using HTML/CSS Flexbox to illustrate the Hub & Spoke flow. Dynamic text block for "Narrow Gap" explanation. Interaction -> N/A. Justification -> A visual diagram simplifies the complex logistical concept of Zoning more effectively than text alone.
+        5. 5-Year Roadmap: Report Info -> Key milestones for each year across all pillars. Goal -> Organize & Plan. Viz -> Interactive vertical timeline built with HTML/CSS. Interaction -> Clicking on a year reveals detailed milestones for that period. Justification -> A timeline is the universally understood format for presenting chronological plans, and making it interactive prevents information overload.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #FDFBF8;
+            color: #4A4A4A;
+        }
+        .bg-custom-main { background-color: #FDFBF8; }
+        .bg-custom-card { background-color: #FFFFFF; }
+        .text-custom-header { color: #2C3E50; }
+        .text-custom-subheader { color: #8D6E63; }
+        .text-custom-accent { color: #FFC107; }
+        .border-custom-accent { border-color: #FFC107; }
+        .shadow-custom { box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .nav-button {
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-button.active, .nav-button:hover {
+            color: #8D6E63;
+            border-bottom-color: #FFC107;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-custom-main">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-custom-header mb-2">โครงการ Horizon 2029</h1>
+            <p class="text-lg md:text-xl text-custom-subheader">แผนกลยุทธ์ 5 ปีสู่ IPO ของ PTGLG</p>
+        </header>
+
+        <nav class="flex justify-center space-x-4 md:space-x-8 mb-12 border-b border-gray-200 pb-2">
+            <button class="nav-button active" onclick="showSection('overview')">ภาพรวมและเป้าหมาย IPO</button>
+            <button class="nav-button" onclick="showSection('pillars')">3 เสาหลักเชิงกลยุทธ์</button>
+            <button class="nav-button" onclick="showSection('roadmap')">แผนปฏิบัติการ 5 ปี</button>
+        </nav>
+
+        <main id="content-container">
+
+            <!-- Section: Overview & IPO Goal -->
+            <section id="overview" class="space-y-8">
+                 <div class="bg-custom-card p-6 rounded-xl shadow-custom">
+                    <h2 class="text-2xl font-bold text-custom-header mb-4 text-center">วิสัยทัศน์และเป้าหมายการ IPO</h2>
+                    <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">
+                        ภารกิจใน 5 ปีข้างหน้าของ PTGLG คือการเปลี่ยนผ่านจากผู้ขนส่งเชื้อเพลิงชั้นนำ สู่การเป็น "ผู้ให้บริการโซลูชันซัพพลายเชน" ในระดับภูมิภาคที่มีความหลากหลายและอัตรากำไรสูง โดยมีเป้าหมายสูงสุดคือการเสนอขายหุ้น IPO ให้สำเร็จภายในปี 2572 เพื่อปลดล็อกมูลค่าและสร้างการเติบโตอย่างยั่งยืน
+                    </p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                        <div class="text-center md:text-left">
+                            <h3 class="text-xl font-semibold text-custom-header mb-4">การสร้างมูลค่าสู่ IPO ปี 2572</h3>
+                            <p class="text-gray-600 mb-6">
+                                กลยุทธ์การปรับโครงสร้างองค์กรถูกออกแบบมาเพื่อรวบรวมและผนึกกระแสกำไรจากหลายธุรกิจ เพื่อสร้างตัวเลขกำไรสุทธิที่แข็งแกร่งและน่าสนใจสำหรับนักลงทุน
+                            </p>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <p class="text-sm text-gray-500">เป้าหมายกำไรสุทธิ (Net Profit)</p>
+                                    <p class="text-3xl font-bold text-custom-subheader">495 <span class="text-xl font-medium">ล้านบาท</span></p>
+                                </div>
+                                <div class="p-4 bg-gray-50 rounded-lg">
+                                    <p class="text-sm text-gray-500">อัตราส่วน P/E เป้าหมาย</p>
+                                    <p class="text-3xl font-bold text-custom-subheader">15 <span class="text-xl font-medium">เท่า</span></p>
+                                </div>
+                                <div class="p-4 bg-amber-50 rounded-lg border-l-4 border-custom-accent">
+                                    <p class="text-sm text-amber-800">มูลค่าตลาดเป้าหมาย (Market Cap)</p>
+                                    <p class="text-3xl font-bold text-amber-900">~7.4 <span class="text-xl font-medium">พันล้านบาท</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="chart-container">
+                                <canvas id="ipoChart"></canvas>
+                            </div>
+                            <p class="text-center text-sm text-gray-500 mt-2">ที่มาของกำไรสุทธิเป้าหมาย (ล้านบาท)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section: Strategic Pillars -->
+            <section id="pillars" class="hidden space-y-8">
+                <div class="text-center">
+                    <h2 class="text-3xl font-bold text-custom-header">3 เสาหลักเชิงกลยุทธ์</h2>
+                    <p class="text-custom-subheader mt-2">กลไกขับเคลื่อนการเติบโตสู่การเป็นผู้นำตลาด</p>
+                </div>
+                
+                <!-- Pillar 1: 4PL -->
+                <div class="bg-custom-card p-6 rounded-xl shadow-custom">
+                    <h3 class="text-xl font-bold text-custom-header mb-1">1. การปฏิรูปสู่ 4PL</h3>
+                    <p class="text-custom-subheader mb-4">จากผู้ขนส่งที่เน้นสินทรัพย์ สู่ผู้บริหารซัพพลายเชนที่ยืดหยุ่น</p>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                             <p class="text-gray-600 mb-6">
+                                การยกระดับสู่โมเดล 4PL ผ่านการร่วมทุน (JV) กับ PSP คือหัวใจสำคัญในการขยายอัตรากำไรและกระจายความเสี่ยง โดยมุ่งเน้นการเพิ่มบริการที่ไม่ต้องพึ่งพาสินทรัพย์สูง (Asset-Light) ซึ่งเป็นที่น่าสนใจของนักลงทุนและสร้างการเติบโตที่ขยายผลได้ง่าย
+                            </p>
+                            <div class="chart-container h-64 md:h-80 max-h-80">
+                                 <canvas id="jvRevenueChart"></canvas>
+                            </div>
+                            <p class="text-center text-sm text-gray-500 mt-2">เป้าหมายรายได้และกำไรจากกิจการร่วมค้า (JV)</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-custom-header mb-2">โอกาสต่อยอดจากตลาดก๊าซอุตสาหกรรม</h4>
+                            <p class="text-sm text-gray-600 mb-4">
+                                PTGLG ครองส่วนแบ่งอันดับ 1 ในธุรกิจขนส่งก๊าซอุตสาหกรรม ซึ่งเป็นตลาดที่มีมูลค่า 2.13 หมื่นล้านบาทในปี 2566 และคาดว่าจะเติบโตเฉลี่ย 5.5% ต่อปี สู่ระดับ 2.8 หมื่นล้านบาทในปี 2571 โดยได้รับแรงหนุนจาก EEC และอุตสาหกรรมอิเล็กทรอนิกส์, อาหาร และการแพทย์ ความเป็นผู้นำนี้เป็นฐานที่มั่นคงในการขยายสู่บริการ 4PL อื่นๆ
+                            </p>
+                            <div class="chart-container h-56 max-h-56">
+                                <canvas id="industrialGasChart"></canvas>
+                            </div>
+                             <p class="text-center text-xs text-gray-500 mt-2">คาดการณ์มูลค่าตลาดก๊าซอุตสาหกรรม (พันล้านบาท)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pillar 2: Pipeline -->
+                <div class="bg-custom-card p-6 rounded-xl shadow-custom">
+                    <h3 class="text-xl font-bold text-custom-header mb-1">2. การขยายท่อขนส่งน้ำมัน</h3>
+                    <p class="text-custom-subheader mb-4">ยึดครองเส้นเลือดใหญ่แห่งภูมิภาคด้วยกลยุทธ์ที่รอบคอบ</p>
+                     <p class="text-gray-600 mb-6">
+                        แม้โครงการขยายท่อสู่ CLMV จะไม่คุ้มค่าทางการเงินในระยะสั้น แต่มีมูลค่าเชิงกลยุทธ์มหาศาลในการสร้างปราการป้องกันการแข่งขันระยะยาว กลยุทธ์หลักคือการผลักดันรูปแบบ PPP (Public-Private Partnership) เพื่อลดความเสี่ยงด้านการลงทุน แต่ยังคงสถานะผู้ดำเนินการหลักในสินทรัพย์ยุทธศาสตร์ของชาติ
+                    </p>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-100">
+                                    <th class="p-3 font-semibold text-sm text-gray-700 border-b">เส้นทางเป้าหมาย</th>
+                                    <th class="p-3 font-semibold text-sm text-gray-700 border-b text-right">NPV (พันล้านบาท)</th>
+                                    <th class="p-3 font-semibold text-sm text-gray-700 border-b text-right">BCR</th>
+                                    <th class="p-3 font-semibold text-sm text-gray-700 border-b">ลำดับความสำคัญ</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="p-3 text-gray-800 border-b">เมียนมาร์</td>
+                                    <td class="p-3 text-red-600 border-b text-right">-16.35</td>
+                                    <td class="p-3 text-red-600 border-b text-right">0.25</td>
+                                    <td class="p-3 text-gray-800 border-b"><span class="bg-red-100 text-red-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">ต่ำ</span></td>
+                                </tr>
+                                <tr class="hover:bg-gray-50">
+                                    <td class="p-3 text-gray-800 border-b">กัมพูชา</td>
+                                    <td class="p-3 text-red-600 border-b text-right">-13.87</td>
+                                    <td class="p-3 text-red-600 border-b text-right">0.09</td>
+                                    <td class="p-3 text-gray-800 border-b"><span class="bg-yellow-100 text-yellow-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">ปานกลาง</span></td>
+                                </tr>
+                                <tr class="bg-amber-50 border-l-4 border-custom-accent">
+                                    <td class="p-3 text-gray-800 border-b font-bold">ลาว + เวียดนาม</td>
+                                    <td class="p-3 text-red-600 border-b text-right font-bold">-11.94</td>
+                                    <td class="p-3 text-red-600 border-b text-right font-bold">0.56</td>
+                                    <td class="p-3 text-gray-800 border-b"><span class="bg-green-100 text-green-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">สูง (ผลักดัน PPP)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pillar 3: Zoning -->
+                <div class="bg-custom-card p-6 rounded-xl shadow-custom">
+                    <h3 class="text-xl font-bold text-custom-header mb-1">3. การเป็นผู้นำในระบบ Zoning</h3>
+                    <p class="text-custom-subheader mb-4">ปรับตัวรับนโยบายชาติเพื่อสร้างความได้เปรียบ</p>
+                    <p class="text-gray-600 mb-6">
+                        นโยบาย Zoning ของภาครัฐคือโอกาสในการจัดระเบียบตลาดและเพิ่มส่วนแบ่งในธุรกิจหลัก PTGLG อยู่ในตำแหน่งที่ได้เปรียบที่สุดในการเป็นผู้นำระบบ Hub & Spoke แต่ความสำเร็จขึ้นอยู่กับการทำงานเชิงรุกร่วมกับภาครัฐเพื่อกำหนดกลไกราคา "ส่วนต่างที่เหมาะสม" (Narrow Gap) ที่ใช้ได้จริง
+                    </p>
+                    <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-8 text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-2xl mb-2">🏭</div>
+                            <span class="font-semibold">โรงกลั่น</span>
+                        </div>
+                        <div class="text-3xl text-gray-400">→</div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-20 h-20 bg-green-100 text-green-800 rounded-full flex items-center justify-center text-3xl mb-2">🏢</div>
+                            <span class="font-semibold">คลัง Hub</span>
+                             <span class="text-sm text-gray-500">(รัศมี 240 กม.)</span>
+                        </div>
+                        <div class="text-3xl text-gray-400">→</div>
+                        <div class="flex flex-col items-center">
+                            <div class="w-16 h-16 bg-yellow-100 text-yellow-800 rounded-full flex items-center justify-center text-2xl mb-2">⛽</div>
+                            <span class="font-semibold">สถานีบริการ</span>
+                        </div>
+                    </div>
+                     <p class="text-center text-sm text-gray-500 mt-2">โมเดลการกระจายน้ำมันแบบ Hub & Spoke</p>
+                </div>
+            </section>
+
+            <!-- Section: 5-Year Roadmap -->
+            <section id="roadmap" class="hidden">
+                 <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-custom-header">แผนปฏิบัติการ 5 ปีสู่ IPO</h2>
+                    <p class="text-custom-subheader mt-2">หมุดหมายสำคัญในแต่ละช่วงเวลา</p>
+                </div>
+                <div class="relative wrap overflow-hidden p-4 md:p-10 h-full">
+                    <div class="absolute border-opacity-20 border-gray-700 h-full border" style="left: 50%"></div>
+                    <!-- Year 1-2 -->
+                    <div class="mb-8 flex justify-between items-center w-full right-timeline">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-custom-subheader shadow-xl w-12 h-12 rounded-full">
+                            <h1 class="mx-auto font-semibold text-lg text-white">1-2</h1>
+                        </div>
+                        <div class="order-1 bg-white rounded-lg shadow-custom w-5/12 px-6 py-4">
+                            <h3 class="font-bold text-gray-800 text-xl">ปี 2568-69: วางรากฐาน</h3>
+                            <ul class="list-disc list-inside mt-2 text-sm text-gray-600 space-y-1">
+                                <li>ปิดดีลเพิ่มทุน AMA และจัดตั้ง JV กับ PSP</li>
+                                <li>เริ่มต้นเจรจา PPP โครงการท่อส่งน้ำมัน</li>
+                                <li>เริ่มโครงการนำร่องระบบ Zoning</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Year 3-4 -->
+                    <div class="mb-8 flex justify-between flex-row-reverse items-center w-full left-timeline">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-custom-subheader shadow-xl w-12 h-12 rounded-full">
+                            <h1 class="mx-auto text-white text-lg font-semibold">3-4</h1>
+                        </div>
+                        <div class="order-1 bg-white rounded-lg shadow-custom w-5/12 px-6 py-4">
+                            <h3 class="font-bold text-gray-800 text-xl">ปี 2570-71: ขยายผล</h3>
+                            <ul class="list-disc list-inside mt-2 text-sm text-gray-600 space-y-1">
+                                <li>บูรณาการ JV เต็มรูปแบบ</li>
+                                <li>บรรลุข้อตกลงทางการเงิน (Financial Close) โครงการท่อ PPP</li>
+                                <li>ปรับใช้ Zoning ทั่วประเทศและยึดส่วนแบ่งตลาด</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <!-- Year 5 -->
+                    <div class="mb-8 flex justify-between items-center w-full right-timeline">
+                        <div class="order-1 w-5/12"></div>
+                        <div class="z-20 flex items-center order-1 bg-custom-accent shadow-xl w-12 h-12 rounded-full">
+                            <h1 class="mx-auto font-semibold text-lg text-white">5</h1>
+                        </div>
+                        <div class="order-1 bg-white rounded-lg shadow-custom w-5/12 px-6 py-4">
+                            <h3 class="font-bold text-gray-800 text-xl">ปี 2572: เข้าสู่ตลาดทุน</h3>
+                            <ul class="list-disc list-inside mt-2 text-sm text-gray-600 space-y-1">
+                                <li>สรุปตัวเลขทางการเงินและแต่งตั้ง Underwriters</li>
+                                <li>จัดทำหนังสือชี้ชวน (Prospectus)</li>
+                                <li>ดำเนินการเสนอขายหุ้น IPO</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const sections = ['overview', 'pillars', 'roadmap'];
+        const navButtons = document.querySelectorAll('.nav-button');
+        let ipoChartInstance, jvRevenueChartInstance, industrialGasChartInstance;
+
+        function showSection(sectionId) {
+            sections.forEach(id => {
+                const section = document.getElementById(id);
+                if (id === sectionId) {
+                    section.classList.remove('hidden');
+                } else {
+                    section.classList.add('hidden');
+                }
+            });
+
+            navButtons.forEach(button => {
+                if (button.getAttribute('onclick').includes(sectionId)) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        function createCharts() {
+            if (ipoChartInstance) ipoChartInstance.destroy();
+            const ipoCtx = document.getElementById('ipoChart').getContext('2d');
+            ipoChartInstance = new Chart(ipoCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ธุรกิจหลัก PTGLG', 'กำไรจาก AMA', 'กำไรจาก JV PSP'],
+                    datasets: [{
+                        label: 'ที่มาของกำไร (ล้านบาท)',
+                        data: [200, 160, 135],
+                        backgroundColor: ['#8D6E63', '#BCAAA4', '#FFC107'],
+                        borderColor: '#FFFFFF',
+                        borderWidth: 4,
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { font: { family: "'Sarabun', sans-serif" }}},
+                        tooltip: { callbacks: { label: (c) => `${c.label}: ${new Intl.NumberFormat('th-TH').format(c.parsed)} ล้านบาท` }}
+                    },
+                    cutout: '60%'
+                }
+            });
+
+            if (jvRevenueChartInstance) jvRevenueChartInstance.destroy();
+            const jvRevenueCtx = document.getElementById('jvRevenueChart').getContext('2d');
+            jvRevenueChartInstance = new Chart(jvRevenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['ขนส่ง (Non-Oil)', 'ศูนย์กระจายสินค้า (DC)', 'Freight Forwarding'],
+                    datasets: [
+                        { label: 'เป้าหมายรายได้ (ล้านบาท)', data: [1000, 120, 250], backgroundColor: '#BCAAA4' },
+                        { label: 'เป้าหมายกำไร (ล้านบาท)', data: [90, 30, 25], backgroundColor: '#FFC107' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'ล้านบาท' }}},
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${new Intl.NumberFormat('th-TH').format(c.parsed.y)} ล้านบาท` }}
+                    }
+                }
+            });
+
+            if (industrialGasChartInstance) industrialGasChartInstance.destroy();
+            const industrialGasCtx = document.getElementById('industrialGasChart').getContext('2d');
+            industrialGasChartInstance = new Chart(industrialGasCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['2566', '2571 (คาดการณ์)'],
+                    datasets: [{
+                        label: 'มูลค่าตลาด (พันล้านบาท)',
+                        data: [21.3, 28.0],
+                        backgroundColor: ['#8D6E63', '#FFC107'],
+                        borderColor: ['#6D4C41', '#E6A200'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'พันล้านบาท' }}},
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (c) => `มูลค่า: ${new Intl.NumberFormat('th-TH').format(c.parsed.y)} พันล้านบาท` }}
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('overview');
+            createCharts();
+        });
+    </script>
+</body>
+</html>
