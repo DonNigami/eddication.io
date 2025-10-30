@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTG Logistics - แดชบอร์ดกลยุทธ์ DC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Gray, White, Blue, Red accents) -->
+    <!-- Application Structure Plan: A tabbed SPA (Dashboard, Gap Analysis, Risk, Solutions, Action Plan). This structure is chosen over a linear report to allow the MD (user) to non-linearly analyze the problem, visualize the core conflict (Gap), understand risks, and interactively build a multi-phased solution plan. It mirrors a decision-making process, not a static report. -->
+    <!-- Visualization & Content Choices: 1. Problem KPIs (Dashboard) -> Inform -> HTML/Tailwind Metric Cards -> N/A -> Clear high-level summary. 2. Demand vs. Capacity (Gap) -> Compare/Change -> Chart.js Bar/Line Combo -> Hover for details -> Visually shows the core problem (the 'gap') instantly. 3. Consequences (Risk) -> Organize/Inform -> HTML/Tailwind 'Flow Diagram' (using text/icons/arrows) -> N/A -> Simple, clear causal chain of risks. NO SVG/Mermaid. 4. Solutions (Matrix) -> Organize/Explore -> Interactive HTML/Tailwind Grid -> Click to show details (Pros/Cons) & Add to Plan -> Allows MD to actively explore and select strategies. 5. Chosen Actions (Action Plan) -> Organize/Track -> Dynamic HTML List (JS-driven) -> Add/Remove/Update Status -> Creates a persistent, modifiable output for the MD. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .tab-btn {
+            @apply py-3 px-4 sm:px-6 -mb-px font-medium text-sm sm:text-base text-gray-500 border-b-2 border-transparent transition-colors duration-200 ease-in-out;
+        }
+        .tab-btn.active {
+            @apply text-blue-600 border-blue-600;
+        }
+        .tab-btn:hover {
+            @apply text-blue-500;
+        }
+        .content-section {
+            @apply hidden;
+        }
+        .content-section.active {
+            @apply block;
+        }
+        .kpi-card {
+            @apply bg-white p-6 rounded-lg shadow-md transition-shadow duration-300 hover:shadow-lg;
+        }
+        .kpi-title {
+            @apply text-sm font-medium text-gray-500 truncate;
+        }
+        .kpi-value {
+            @apply mt-1 text-3xl font-semibold text-gray-900;
+        }
+        .solution-card {
+            @apply bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-400;
+        }
+        .solution-card.selected {
+            @apply border-2 border-blue-600 shadow-lg;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+        @media (min-width: 640px) {
+            .chart-container {
+                height: 350px;
+                max-height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900">PTG Logistics</h1>
+            <p class="text-lg text-gray-600">แดชบอร์ดกลยุทธ์การจัดการศูนย์กระจายสินค้า (DC)</p>
+        </header>
+
+        <nav class="border-b border-gray-200 bg-white shadow-sm rounded-t-lg">
+            <div class="flex flex-wrap -mb-px" id="tab-navigation">
+                <button class="tab-btn active" data-tab="dashboard">แดชบอร์ด</button>
+                <button class="tab-btn" data-tab="gap-analysis">การวิเคราะห์ช่องว่าง</button>
+                <button class="tab-btn" data-tab="risk-analysis">การวิเคราะห์ความเสี่ยง</button>
+                <button class="tab-btn" data-tab="solution-matrix">แนวทางการแก้ปัญหา</button>
+                <button class="tab-btn" data-tab="action-plan">แผนปฏิบัติการ</button>
+                <button class="tab-btn" data-tab="transport-4pl">การจัดการขนส่ง (4PL)</button>
+                <button class="tab-btn" data-tab="ptg-ops">PTG Ops (มุมมองขนส่ง)</button>
+            </div>
+        </nav>
+
+        <main class="bg-white p-6 rounded-b-lg shadow-md">
+
+            <div id="dashboard" class="content-section active">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">สรุปสถานการณ์ปัจจุบัน</h2>
+                <p class="mb-6 text-gray-700">
+                    ส่วนนี้คือภาพรวมของสถานการณ์ปัจจุบันที่ PTG Logistics กำลังเผชิญความท้าทายด้านความจุของศูนย์กระจายสินค้า (DC) ซึ่งไม่สอดคล้องกับปริมาณการจัดส่งที่เติบโตอย่างรวดเร็วจาก Max Mart และ Punthai ข้อมูลนี้แสดงให้เห็นถึงความจำเป็นเร่งด่วนในการวางแผนและดำเนินการ
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    <div class="kpi-card border-l-4 border-red-500">
+                        <div class="kpi-title">สถานะ DC</div>
+                        <div class="kpi-value text-red-600">ล่าช้า/จำกัด</div>
+                        <p class="text-sm text-gray-500 mt-2">แผนขยาย DC ไม่เป็นตามกำหนด</p>
+                    </div>
+                    <div class="kpi-card border-l-4 border-yellow-500">
+                        <div class="kpi-title">ปัญหาคอขวด</div>
+                        <div class="kpi-value text-yellow-600">รอคอยนาน</div>
+                        <p class="text-sm text-gray-500 mt-2">กระบวนการที่ DC เดิมมีความแออัด</p>
+                    </div>
+                    <div class="kpi-card border-l-4 border-green-500">
+                        <div class="kpi-title">การเติบโต (ปีนี้)</div>
+                        <div class="kpi-value text-green-600">+20%</div>
+                        <p class="text-sm text-gray-500 mt-2">ยอดจัดส่งสูงขึ้นต่อเนื่อง</p>
+                    </div>
+                    <div class="kpi-card border-l-4 border-blue-500">
+                        <div class="kpi-title">คาดการณ์ (ปีหน้า)</div>
+                        <div class="kpi-value text-blue-600">+15%</div>
+                        <p class="text-sm text-gray-500 mt-2">แนวโน้มยังคงเติบโตสูง</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gap-analysis" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">การวิเคราะห์ช่องว่าง (Demand vs. Capacity)</h2>
+                <p class="mb-6 text-gray-700">
+                    ส่วนนี้แสดงภาพความขัดแย้งหลักระหว่างความสามารถในการรองรับของ DC ปัจจุบัน (เส้นสีแดง) ซึ่งคงที่และมีจำกัด กับปริมาณความต้องการจัดส่งที่เพิ่มขึ้นอย่างก้าวกระโดด (แท่งสีน้ำเงิน) "ช่องว่าง" (Gap) ที่เกิดขึ้นคือความเสี่ยงหลักที่เราต้องจัดการ
+                </p>
+                <div class="chart-container">
+                    <canvas id="gapChart"></canvas>
+                </div>
+            </div>
+
+            <div id="risk-analysis" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">การวิเคราะห์ความเสี่ยง (หากไม่ดำเนินการ)</h2>
+                <p class="mb-6 text-gray-700">
+                    การไม่ดำเนินการใดๆ เพื่อแก้ไขปัญหาคอขวดที่ DC ก่อให้เกิดความเสี่ยงแบบลูกโซ่ แผนภาพด้านล่างแสดงให้เห็นผลกระทบที่อาจเกิดขึ้นหากเรายังคงใช้ DC ที่มีขนาดจำกัดต่อไป ซึ่งส่งผลกระทบโดยตรงต่อลูกค้าหลักของเรา
+                </p>
+                <div class="flex flex-col sm:flex-row sm:justify-around items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                    <div class="text-center p-4 rounded-lg bg-gray-50 border border-gray-200 w-full sm:w-1/3">
+                        <div class="text-4xl mb-2">📦</div>
+                        <h3 class="font-semibold text-gray-800">DC ขนาดจำกัด</h3>
+                        <p class="text-sm text-gray-600">ความสามารถในการรองรับเต็ม</p>
+                    </div>
+                    <div class="text-3xl text-blue-500 font-bold transform rotate-90 sm:rotate-0">→</div>
+                    <div class="text-center p-4 rounded-lg bg-gray-50 border border-gray-200 w-full sm:w-1/3">
+                        <div class="text-4xl mb-2">⏱️</div>
+                        <h3 class="font-semibold text-gray-800">การรอคอยนานขึ้น</h3>
+                        <p class="text-sm text-gray-600">เกิดปัญหาคอขวดในการจัดการ</p>
+                    </div>
+                    <div class="text-3xl text-blue-500 font-bold transform rotate-90 sm:rotate-0">→</div>
+                    <div class="text-center p-4 rounded-lg bg-red-50 border border-red-200 w-full sm:w-1/3">
+                        <div class="text-4xl mb-2">📉</div>
+                        <h3 class="font-semibold text-red-700">ลูกค้าไม่พอใจ</h3>
+                        <p class="text-sm text-red-600">(Max Mart, Punthai) อาจล่าช้า</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="solution-matrix" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">แนวทางการแก้ปัญหา (Solution Matrix)</h2>
+                <p class="mb-6 text-gray-700">
+                    ในส่วนนี้ เราจะสำรวจกลยุทธ์ต่างๆ เพื่อจัดการกับช่องว่างด้านความจุ โดยแบ่งตามระยะเวลา คลิกที่แต่ละแนวทางเพื่อดูรายละเอียด ข้อดี/ข้อเสีย และเลือกแนวทางที่ต้องการเพื่อเพิ่มลงในแผนปฏิบัติการของคุณ
+                </p>
+                <div class="flex flex-col lg:flex-row gap-6">
+                    <div class="lg:w-3/5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <h3 class="font-semibold text-lg text-red-600 mb-3">ระยะสั้น (&lt; 6 เดือน)</h3>
+                                <div class="space-y-3" id="short-term-solutions">
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-yellow-600 mb-3">ระยะกลาง (6-18 เดือน)</h3>
+                                <div class="space-y-3" id="medium-term-solutions">
+                                </div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-green-600 mb-3">ระยะยาว (&gt; 18 เดือน)</h3>
+                                <div class="space-y-3" id="long-term-solutions">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lg:w-2/5">
+                        <div class="bg-gray-50 p-4 rounded-lg shadow-inner min-h-[300px]" id="solution-details">
+                            <h3 class="font-semibold text-lg text-gray-800">เลือกแนวทางเพื่อดูรายละเอียด</h3>
+                            <p class="text-gray-600 mt-2">คลิกที่การ์ดด้านซ้ายเพื่อดูข้อดี ข้อเสีย และปุ่มเพิ่มในแผนปฏิบัติการ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="action-plan" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">แผนปฏิบัติการ (Action Plan)</h2>
+                <p class="mb-6 text-gray-700">
+                    นี่คือแผนปฏิบัติการที่คุณกำหนดเอง แนวทางที่เลือกจาก "แนวทางการแก้ปัญหา" จะปรากฏที่นี่ คุณสามารถติดตามสถานะของแต่ละรายการได้
+                </p>
+                <div id="action-plan-list" class="space-y-3">
+                    <p class="text-gray-500 italic" id="empty-plan-msg">ยังไม่มีรายการในแผนปฏิบัติการ ไปที่แท็บ "แนวทางการแก้ปัญหา" เพื่อเพิ่มรายการ</p>
+                </div>
+            </div>
+
+            <div id="transport-4pl" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">กลยุทธ์การจัดการขนส่ง (4PL)</h2>
+                <p class="mb-6 text-gray-700">
+                    ในฐานะ 4PL นี่คือแผนปฏิบัติการเร่งด่วน 3 ด้านเพื่อใช้ "การขนส่ง" เป็นเครื่องมือแก้ปัญหาคอขวดที่ DC โดยตรง โดยมีเป้าหมายเพื่อลดการรอคอย เพิ่มประสิทธิภาพรถ และลดภาระงานที่ DC หลัก
+                </p>
+                
+                <div class="space-y-6">
+                    
+                    <div class="kpi-card border-l-4 border-blue-500 p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">แผนที่ 1: "De-congest" (ลดความแออัดหน้าลาน)</h3>
+                        <p class="text-sm font-medium text-gray-600 mb-3">ใช้ระบบจองคิวรถ (Dock Scheduling System - YMS) เพื่อแก้ปัญหาการรอคอย</p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li><strong>Week 1-2 (Implement):</strong> นำระบบ YMS มาบังคับใช้ 100% สำหรับรถ Supplier (ขาเข้า) และรถขนส่ง (ขาออก)</li>
+                            <li><strong>Week 3 (Pre-Pick):</strong> ทีม DC ต้องจัดเตรียมออเดอร์ (Max Mart, Punthai) ให้เสร็จ *ก่อน* รถมาถึงตามคิว</li>
+                            <li><strong>KPI (Ongoing):</strong> ลดเวลาจอดรอ (Turnaround Time) จาก >3 ชม. ให้เหลือ <1 ชม. เพื่อเพิ่มรอบรถ</li>
+                        </ul>
+                    </div>
+
+                    <div class="kpi-card border-l-4 border-yellow-500 p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">แผนที่ 2: "Re-structure" (สร้าง Hub ย่อย Cross-Dock)</h3>
+                        <p class="text-sm font-medium text-gray-600 mb-3">สร้าง "จุดขนถ่าย" ขนาดเล็ก (ไม่ใช่ DC เก็บของ) เพื่อเป็นวาล์วระบายความดันให้ DC หลัก</p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li><strong>Week 1-2 (Analyze):</strong> วิเคราะห์เส้นทาง Supplier และ Customer (Max Mart/Punthai) เพื่อหาจุดยุทธศาสตร์</li>
+                            <li><strong>Week 3 (Source):</strong> เช่าพื้นที่ขนาดเล็ก (1,000 ตรม.) ในจุดยุทธศาสตร์ (เช่น วังน้อย) เพื่อตั้ง Hub</li>
+                            <li><strong>Week 4 (Execute):</strong> เริ่มดำเนินการ Bypass สินค้า (เช่น Full Pallet) จาก Supplier ไปยัง Hub ย่อย และส่งต่อไปยังสาขาโดย *ไม่ผ่าน* DC หลัก</li>
+                        </ul>
+                    </div>
+
+                    <div class="kpi-card border-l-4 border-green-500 p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">แผนที่ 3: "Optimize" (บริหารเที่ยวกลับ - Backhauling)</h3>
+                        <p class="text-sm font-medium text-gray-600 mb-3">เปลี่ยน "รถเที่ยวเปล่า" (Empty Miles) ให้เป็น "การขนส่งที่มีประสิทธิภาพ" เพื่อลดต้นทุน</p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li><strong>Phase 1 (Internal):</strong> ให้รถขนส่งตีกลับพร้อม พาเลทเปล่า, ตะกร้า, หรือสินค้า Return จาก Max Mart/Punthai</li>
+                            <li><strong>Phase 2 (External):</strong> หลังจากส่งของที่สาขา ระบบ 4PL จะค้นหา Supplier ของ PTG ที่อยู่ใกล้เคียง เพื่อให้รถไป "รับของ" กลับเข้า DC (Inbound Backhauling)</li>
+                            <li><strong>Phase 3 (Network):</strong> หากไม่มีของ PTG ระบบ 4PL จะ "ขาย" เที่ยวกลับนั้นให้ลูกค้ารายอื่นในเครือข่าย เพื่อสร้างรายได้</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="ptg-ops" class="content-section">
+                <h2 class="text-2xl font-semibold text-blue-700 mb-4">กลยุทธ์ PTG Ops (มุมมองผู้ให้บริการขนส่ง)</h2>
+                <p class="mb-6 text-gray-700">
+                    ในฐานะ PTG ที่เป็นผู้ขนส่งโดยตรง ความท้าทายของเราคือ: 1) รถของเรา (ทั้งรถบริษัทและรถร่วม) ติดรอคอยที่ DC ทำให้ "Truck Utilization" (การใช้ประโยชน์รถ) ต่ำมาก ซึ่งคือ "ต้นทุน" และ "การสูญเสียกำไร" ของเรา 2) รถ Outsource (รถร่วม) จะหนีไปวิ่งงานอื่นที่ได้รอบเยอะกว่าในช่วง High Season
+                </p>
+                <p class="mb-6 text-gray-800 font-medium">
+                    นี่คือแผนปฏิบัติการ 3 ด้านของ PTG เพื่อรักษา P&L และความมั่นคงของ Fleet:
+                </p>
+                
+                <div class="space-y-6">
+                    
+                    <div class="kpi-card border-l-4 border-red-500 p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">แผนที่ 1: ปกป้อง P&L (ลดเวลารอ) ➔ "Drop & Hook"</h3>
+                        <p class="text-sm font-medium text-gray-600 mb-3">เปลี่ยนรูปแบบการทำงาน จาก "รอขนถ่าย" เป็น "สลับตู้/พ่วง" ทันที</p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li><strong>ดำเนินการ (ทันที):</strong> เจรจากับ DC ขอพื้นที่จอดตู้ (Yard) โดยเฉพาะ</li>
+                            <li><strong>กระบวนการใหม่:</strong> รถ PTG (โดยเฉพาะรถพ่วง) เมื่อถึง DC ให้ "สับตู้" (Drop) ตู้ที่เต็มไว้ แล้ว "เกี่ยวตู้" (Hook) ตู้เปล่า (หรือตู้ที่โหลดเสร็จแล้ว) กลับออกมาทันที</li>
+                            <li><strong>ผลลัพธ์:</strong> ลดเวลาจอดรอของ "หัวลาก" และ "คนขับ" จาก 3-5 ชั่วโมง เหลือเพียง 30 นาที คืน Utilization กลับมาให้ PTG โดยทันที (อาจต้องลงทุนตู้/พ่วง เพิ่ม)</li>
+                        </ul>
+                    </div>
+
+                    <div class="kpi-card border-l-4 border-orange-500 p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">แผนที่ 2: รักษา Fleet (จูงใจ Outsource) ➔ "Detention Fee & Priority Lane"</h3>
+                        <p class="text-sm font-medium text-gray-600 mb-3">สร้างความมั่นใจให้รถร่วมว่า "มาวิ่งให้เราคุ้มค่าที่สุด" แม้ DC จะช้า</p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li><strong>เจรจา (เร่งด่วน):</strong> ต้องเจรจา "ค่าเสียเวลา" (Detention Fee) กับทาง DC/บริษัทแม่ หาก DC ทำให้รถเรารอเกินกำหนด (เช่น 2 ชม.) ต้องมีค่าปรับรายชั่วโมง ซึ่งเราจะส่งต่อให้รถร่วม</li>
+                            <li><strong>สร้างแรงจูงใจ (ภายใน):</strong> จัด "Priority Lane" หรือ "ช่องด่วน" ที่ DC (โดยใช้ระบบ YMS) ให้กับรถร่วม "เกรด A" ที่วิ่งงานให้เราสม่ำเสมอ การันตีว่ามาแล้วได้ลงของ/ขึ้นของเร็ว</li>
+                            <li><strong>ผลลัพธ์:</strong> รถร่วมยังอยู่กับเรา เพราะ 1) ได้ค่าเสียเวลา (ถ้าต้องรอ) หรือ 2) ได้รอบเพิ่ม (ถ้าได้ช่องด่วน) ทำให้เราไม่ขาดรถใน High Season</li>
+                        </ul>
+                    </div>
+
+                    <div class="kpi-card border-l-4 border-purple-500 p-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">แผนที่ 3: สร้างบริการใหม่ (ลดการเข้า DC) ➔ "PTG Consolidation Hub"</h3>
+                        <p class="text-sm font-medium text-gray-600 mb-3">เปลี่ยนจาก "ผู้รับจ้างขนส่ง" เป็น "ผู้ให้บริการโซลูชั่น" โดย PTG เปิด Hub เอง</p>
+                        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                            <li><strong>เสนอแผน (เชิงรุก):</strong> PTG เสนอตัว "ลดภาระ" ให้ DC โดยการไปเช่าพื้นที่เล็กๆ (ของเราเอง) นอกเส้นทางหลัก</li>
+                            <li><strong>บริการใหม่:</strong> รถ PTG ไป "ตระเวนรับ" (Milk Run) ของจาก Supplier หลายๆ เจ้า แล้วนำมา "รวม" (Consolidate) ที่ Hub ของเรา ก่อนยิง "รถเต็มคัน" (Full Truck Load) เพียงคันเดียวเข้า DC</li>
+                            <li><strong>ผลลัพธ์:</strong> 1) DC พอใจ (รถเล็กหายไป 10 คัน เหลือรถใหญ่ 1 คัน) 2) PTG ได้กำไรเพิ่ม (จากการให้บริการ Milk Run + Consolidation) 3) เราควบคุมรถและเวลาของเราได้เอง 100%</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.content-section');
+            const tabContainer = document.getElementById('tab-navigation');
+            
+            const solutionData = {
+                's1': { 
+                    name: 'เพิ่มประสิทธิภาพ Layout', 
+                    desc: 'จัดผัง DC เดิมใหม่เพื่อเพิ่ม flow ลดเวลาคอขวด',
+                    pros: ['ต้นทุนต่ำ', 'ทำได้ทันที'],
+                    cons: ['พื้นที่จำกัด', 'อาจกระทบการทำงานช่วงปรับปรุง']
+                },
+                's2': { 
+                    name: 'เพิ่มรอบการทำงาน (24/7)', 
+                    desc: 'ใช้ประโยชน์จาก DC เดิมให้เต็มศักยภาพ 24 ชั่วโมง',
+                    pros: ['เพิ่ม throughput ทันที'],
+                    cons: ['ต้นทุน O/T สูง', 'การจัดการพนักงานซับซ้อน']
+                },
+                's3': { 
+                    name: 'เช่าคลังสินค้าชั่วคราว', 
+                    desc: 'เช่าพื้นที่ภายนอกสำหรับสต็อกสินค้าที่เคลื่อนไหวช้า',
+                    pros: ['เพิ่มพื้นที่จัดเก็บทันที'],
+                    cons: ['เพิ่มความซับซ้อนในการจัดการ', 'ต้นทุนค่าเช่า']
+                },
+                'm1': { 
+                    name: 'ใช้บริการ 3PL', 
+                    desc: 'Outsource การจัดส่งบางส่วน (เช่น Max Mart) ให้ 3PL',
+                    pros: ['ลดภาระงานทันที', 'ยืดหยุ่น'],
+                    cons: ['ควบคุมคุณภาพยาก', 'Margin ลดลง']
+                },
+                'm2': { 
+                    name: 'สร้างส่วนต่อขยาย (Modular)', 
+                    desc: 'สร้างคลังสินค้าสำเร็จรูปต่อเติมจาก DC เดิม',
+                    pros: ['เร็วกว่าสร้างใหม่', 'เพิ่มพื้นที่ของตัวเอง'],
+                    cons: ['ยังต้องใช้เงินลงทุน', 'อาจไม่ใช่การแก้ปัญหาระยะยาว']
+                },
+                'm3': { 
+                    name: 'เร่งรัดแผน DC ใหม่', 
+                    desc: 'เจรจา/ผลักดันผู้เกี่ยวข้องเพื่อเร่งการก่อสร้าง DC ใหม่',
+                    pros: ['แก้ปัญหาที่ต้นเหตุ'],
+                    cons: ['อาจทำไม่ได้', 'ใช้เวลาและพลังงานในการผลักดัน']
+                },
+                'l1': { 
+                    name: 'DC ใหม่เสร็จสมบูรณ์', 
+                    desc: 'ดำเนินการตามแผนเดิมให้เสร็จสิ้น',
+                    pros: ['แก้ปัญหาระยะยาว', 'รองรับการเติบโต'],
+                    cons: ['ใช้เวลานานมาก', 'ต้นทุนสูง']
+                },
+                'l2': { 
+                    name: 'วางแผน Hub ที่ 2', 
+                    desc: 'เริ่มศึกษาความเป็นไปได้ในการสร้าง DC แห่งที่ 2 ในภูมิภาคอื่น',
+                    pros: ['กระจายความเสี่ยง', 'รองรับการเติบโตในอนาคตไกล'],
+                    cons: ['แผนระยะยาวมาก', 'ต้องวิเคราะห์ข้อมูลหนัก']
+                }
+            };
+
+            const solutionsContainer = {
+                'short': document.getElementById('short-term-solutions'),
+                'medium': document.getElementById('medium-term-solutions'),
+                'long': document.getElementById('long-term-solutions')
+            };
+
+            const solutionDetailsPanel = document.getElementById('solution-details');
+            let actionPlan = [];
+            let selectedSolutionCard = null;
+
+            tabContainer.addEventListener('click', (e) => {
+                const targetTab = e.target.closest('.tab-btn');
+                if (!targetTab) return;
+
+                const tabName = targetTab.dataset.tab;
+                
+                tabs.forEach(tab => tab.classList.remove('active'));
+                targetTab.classList.add('active');
+                
+                contents.forEach(content => {
+                    content.classList.remove('active');
+                    if (content.id === tabName) {
+                        content.classList.add('active');
+                    }
+                });
+
+                if (tabName === 'gap-analysis') {
+                    initGapChart();
+                }
+            });
+
+            function initGapChart() {
+                const ctx = document.getElementById('gapChart');
+                if (!ctx) return;
+                
+                if (ctx.chartInstance) {
+                    ctx.chartInstance.destroy();
+                }
+
+                const baseDemand = 100;
+                const currentYearDemand = baseDemand * 1.20;
+                const nextYearDemand = currentYearDemand * 1.15;
+                const capacity = 100;
+
+                ctx.chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['ปีฐาน', 'ปีนี้ (+20%)', 'ปีหน้า (คาดการณ์ +15%)'],
+                        datasets: [
+                            {
+                                label: 'ความต้องการ (Demand)',
+                                data: [baseDemand, currentYearDemand, nextYearDemand],
+                                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1,
+                                order: 2
+                            },
+                            {
+                                label: 'ความจุ DC (Capacity)',
+                                data: [capacity, capacity, capacity],
+                                type: 'line',
+                                borderColor: 'rgba(239, 68, 68, 1)',
+                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                borderWidth: 3,
+                                pointRadius: 0,
+                                fill: false,
+                                tension: 0.1,
+                                order: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'หน่วย (เทียบกับปีฐาน = 100)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                callbacks: {
+                                    footer: function(tooltipItems) {
+                                        if (tooltipItems.length === 2) {
+                                            const demand = tooltipItems[0].raw;
+                                            const cap = tooltipItems[1].raw;
+                                            const gap = demand - cap;
+                                            if (gap > 0) {
+                                                return `ช่องว่าง (Gap): ${gap.toFixed(2)}`;
+                                            }
+                                        }
+                                        return '';
+                                    }
+                                }
+                            },
+                            legend: {
+                                position: 'top',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            function populateSolutions() {
+                solutionsContainer.short.innerHTML = [
+                    createSolutionCard('s1', 'short'),
+                    createSolutionCard('s2', 'short'),
+                    createSolutionCard('s3', 'short')
+                ].join('');
+
+                solutionsContainer.medium.innerHTML = [
+                    createSolutionCard('m1', 'medium'),
+                    createSolutionCard('m2', 'medium'),
+                    createSolutionCard('m3', 'medium')
+                ].join('');
+
+                solutionsContainer.long.innerHTML = [
+                    createSolutionCard('l1', 'long'),
+                    createSolutionCard('l2', 'long')
+                ].join('');
+
+                document.querySelectorAll('.solution-card').forEach(card => {
+                    card.addEventListener('click', () => {
+                        const solutionId = card.dataset.id;
+                        showSolutionDetails(solutionId);
+                        
+                        if (selectedSolutionCard) {
+                            selectedSolutionCard.classList.remove('selected');
+                        }
+                        card.classList.add('selected');
+                        selectedSolutionCard = card;
+                    });
+                });
+            }
+
+            function createSolutionCard(id, type) {
+                const solution = solutionData[id];
+                let colorClass = 'border-gray-200 hover:border-blue-400';
+                if (type === 'short') colorClass = 'border-red-200 hover:border-red-400';
+                if (type === 'medium') colorClass = 'border-yellow-200 hover:border-yellow-400';
+                if (type === 'long') colorClass = 'border-green-200 hover:border-green-400';
+
+                return `
+                    <div class="solution-card p-4 rounded-lg shadow-sm border ${colorClass} cursor-pointer transition-all duration-200" data-id="${id}">
+                        <h4 class="font-semibold text-gray-800">${solution.name}</h4>
+                    </div>
+                `;
+            }
+
+            function showSolutionDetails(id) {
+                const solution = solutionData[id];
+                if (!solution) return;
+
+                const isAdded = actionPlan.some(item => item.id === id);
+
+                solutionDetailsPanel.innerHTML = `
+                    <h3 class="font-semibold text-lg text-blue-700">${solution.name}</h3>
+                    <p class="text-sm text-gray-700 mt-2 mb-4">${solution.desc}</p>
+                    <div class="mb-3">
+                        <h4 class="font-medium text-green-700">ข้อดี:</h4>
+                        <ul class="list-disc list-inside text-sm text-gray-600">
+                            ${solution.pros.map(pro => `<li>${pro}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="mb-4">
+                        <h4 class="font-medium text-red-700">ข้อเสีย:</h4>
+                        <ul class="list-disc list-inside text-sm text-gray-600">
+                            ${solution.cons.map(con => `<li>${con}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <button id="add-to-plan-btn" data-id="${id}" class="w-full px-4 py-2 rounded-md font-medium text-white ${isAdded ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}" ${isAdded ? 'disabled' : ''}>
+                        ${isAdded ? 'เพิ่มในแผนแล้ว' : 'เพิ่มในแผนปฏิบัติการ'}
+                    </button>
+                `;
+
+                document.getElementById('add-to-plan-btn').addEventListener('click', (e) => {
+                    const solutionId = e.target.dataset.id;
+                    if (!actionPlan.some(item => item.id === solutionId)) {
+                        actionPlan.push({ 
+                            id: solutionId, 
+                            name: solutionData[solutionId].name, 
+                            status: 'Pending' 
+                        });
+                        renderActionPlan();
+                        showSolutionDetails(solutionId); 
+                    }
+                });
+            }
+
+            function renderActionPlan() {
+                const listContainer = document.getElementById('action-plan-list');
+                const emptyMsg = document.getElementById('empty-plan-msg');
+
+                if (actionPlan.length === 0) {
+                    listContainer.innerHTML = '';
+                    emptyMsg.style.display = 'block';
+                    return;
+                }
+
+                emptyMsg.style.display = 'none';
+                listContainer.innerHTML = actionPlan.map((item, index) => `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="mb-2 sm:mb-0">
+                            <span class="font-medium text-gray-800">${item.name}</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <select data-index="${index}" class="action-status-select text-sm rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                <option value="Pending" ${item.status === 'Pending' ? 'selected' : ''}>รอดำเนินการ</option>
+                                <option value="In Progress" ${item.status === 'In Progress' ? 'selected' : ''}>กำลังดำเนินการ</option>
+                                <option value="Complete" ${item.status === 'Complete' ? 'selected' : ''}>เสร็จสิ้น</option>
+                            </select>
+                            <button data-index="${index}" class="action-remove-btn text-red-500 hover:text-red-700 text-sm font-medium">ลบ</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.querySelectorAll('.action-status-select').forEach(select => {
+                    select.addEventListener('change', (e) => {
+                        const index = e.target.dataset.index;
+                        actionPlan[index].status = e.target.value;
+                    });
+                });
+
+                document.querySelectorAll('.action-remove-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = e.target.dataset.index;
+                        actionPlan.splice(index, 1);
+                        renderActionPlan();
+                        if (selectedSolutionCard && selectedSolutionCard.dataset.id === actionPlan[index]?.id) {
+                            showSolutionDetails(actionPlan[index].id);
+                        }
+                    });
+                });
+            }
+
+            populateSolutions();
+            initGapChart();
+        });
+    </script>
+
+</body>
+</html>
+
+
