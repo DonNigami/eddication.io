@@ -167,6 +167,16 @@
         background: rgba(26, 188, 156, 0.06);
       }
 
+      .btn-warning {
+        background: #f39c12;
+        background: linear-gradient(135deg, #f39c12, #d35400);
+      }
+
+      .btn-secondary {
+        background: #95a5a6;
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+      }
+
       .summary-card {
         margin-top: 12px;
         padding: 10px 12px;
@@ -258,8 +268,8 @@
       }
 
       .timeline-stop-label {
-        font-size: 0.85rem;
-        font-weight: 700;
+        font-size: 0.9rem;
+        font-weight: 800;
         color: var(--primary-dark);
       }
 
@@ -272,7 +282,7 @@
       }
 
       .timeline-sub {
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         color: var(--text-sub);
         margin-bottom: 2px;
       }
@@ -428,6 +438,17 @@
               </span>
             </div>
             <ul id="timeline" class="timeline"></ul>
+
+            <!-- ปุ่มปิดงาน -->
+            <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+              <button
+                id="btnCloseJob"
+                class="btn-secondary"
+                style="width:100%;"
+              >
+                ปิดงาน (รถพร้อมใช้งาน)
+              </button>
+            </div>
           </div>
 
           <div class="footer-note">
@@ -499,11 +520,23 @@
         const mainEl = document.getElementById('inlineFlexMain');
         const subEl = document.getElementById('inlineFlexSub');
 
-        const isCheckIn = type === 'checkin';
-        const title = isCheckIn ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ';
-        const timeText = isCheckIn
-          ? stop.checkInTime || ''
-          : stop.checkOutTime || '';
+        const labelMap = {
+          checkin: 'Check-in สำเร็จ',
+          fuel: 'ลงน้ำมันสำเร็จ',
+          unload: 'ลงของเสร็จ',
+          review: 'ประเมินสำเร็จ',
+          checkout: 'Check-out สำเร็จ',
+          closejob: 'ปิดงานสำเร็จ',
+        };
+
+        const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
+
+        let timeText = '';
+        if (type === 'checkin') timeText = stop.checkInTime || '';
+        else if (type === 'fuel') timeText = stop.fuelingTime || '';
+        else if (type === 'unload') timeText = stop.unloadDoneTime || '';
+        else if (type === 'review') timeText = stop.reviewedTime || '';
+        else if (type === 'checkout') timeText = stop.checkOutTime || '';
 
         titleEl.textContent = title;
         mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${
@@ -514,7 +547,7 @@
         }${timeText ? ' • เวลา: ' + timeText : ''}`;
 
         container.classList.remove('hide', 'hidden');
-        void container.offsetWidth; // force reflow
+        void container.offsetWidth;
         container.classList.add('show');
 
         if (inlineFlexTimer) {
@@ -534,17 +567,28 @@
       function sendFlexCheckInOut(type, stop) {
         try {
           if (!liff.isInClient()) {
-            // ถ้าเปิดผ่าน browser ปกติ (ไม่ใช่ใน LINE) จะส่งแชทไม่ได้
             return;
           }
 
-          const isCheckIn = type === 'checkin';
-          const title = isCheckIn ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ';
-          const colorBar = isCheckIn ? '#1abc9c' : '#16a085';
+          const labelMap = {
+            checkin: 'Check-in สำเร็จ',
+            checkout: 'Check-out สำเร็จ',
+            fuel: 'ลงน้ำมันสำเร็จ',
+            unload: 'ลงของเสร็จ',
+            review: 'ประเมินสำเร็จ',
+            closejob: 'ปิดงานสำเร็จ',
+          };
 
-          const timeText = isCheckIn
-            ? stop.checkInTime || ''
-            : stop.checkOutTime || '';
+          const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
+          const colorBar =
+            type === 'checkout' || type === 'closejob' ? '#16a085' : '#1abc9c';
+
+          let timeText = '';
+          if (type === 'checkin') timeText = stop.checkInTime || '';
+          else if (type === 'fuel') timeText = stop.fuelingTime || '';
+          else if (type === 'unload') timeText = stop.unloadDoneTime || '';
+          else if (type === 'review') timeText = stop.reviewedTime || '';
+          else if (type === 'checkout') timeText = stop.checkOutTime || '';
 
           const bubble = {
             type: 'bubble',
@@ -715,20 +759,12 @@
 
           const d = json.data;
           const stops = d.stops || [];
-          const shipmentNos = d.shipmentNos || [];
 
           lastStops = stops;
           currentReference = d.referenceNo || keyword;
 
           renderSummary(d);
           renderTimeline(stops);
-
-          if (stops.length === 0) {
-            showInfo(
-              'ไม่พบจุดส่ง',
-              'Reference นี้ไม่มีข้อมูลจุดส่งในระบบ jobdata ครับ'
-            );
-          }
         } catch (err) {
           console.error(err);
           closeLoading();
@@ -743,6 +779,7 @@
         document.getElementById('timelineContainer').classList.add('hidden');
         document.getElementById('summary').innerHTML = '';
         document.getElementById('timeline').innerHTML = '';
+        document.getElementById('closeJobContainer').classList.add('hidden');
         lastStops = [];
       }
 
@@ -785,52 +822,91 @@
         summaryEl.classList.remove('hidden');
       }
 
+      /* ---------- Timeline + ปุ่มแต่ละสเต็ป ---------- */
+
       function renderTimeline(stops) {
         const container = document.getElementById('timelineContainer');
         const ul = document.getElementById('timeline');
+        const closeJobContainer = document.getElementById('closeJobContainer');
         ul.innerHTML = '';
+        closeJobContainer.classList.add('hidden');
 
         if (!stops || stops.length === 0) {
           container.classList.add('hidden');
           return;
         }
 
+        let allCheckout = true;
+
         stops.forEach(function (stop) {
           const hasCheckIn = !!stop.checkInTime;
+          const hasFuel = !!stop.fuelingTime;
+          const hasUnloadDone = !!stop.unloadDoneTime;
+          const hasReviewed = !!stop.reviewedTime;
           const hasCheckOut = !!stop.checkOutTime;
+
+          if (!hasCheckOut) {
+            allCheckout = false;
+          }
 
           const statusLabel = stop.status || '-';
 
           let btnHtml = '';
 
+          // ลำดับปุ่ม
           if (!hasCheckIn) {
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
               'onclick="updateStopStatus(' +
               stop.rowIndex +
-              ', \'IN_PROGRESS\', \'checkin\', ' +
+              ', \'CHECKIN\', \'checkin\', ' +
               stop.seq +
               ')">Check-in</button>';
-          }
-
-          if (hasCheckIn && !hasCheckOut) {
+          } else if (!hasFuel) {
+            btnHtml +=
+              '<button class="btn-small btn-warning" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ', \'FUELING\', \'fuel\', ' +
+              stop.seq +
+              ')">ลงน้ำมัน</button>';
+          } else if (!hasUnloadDone) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ', \'UNLOAD_DONE\', \'unload\', ' +
+              stop.seq +
+              ')">ลงเสร็จ</button>';
+          } else if (!hasReviewed) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ', \'REVIEWED\', \'review\', ' +
+              stop.seq +
+              ')">ประเมิน</button>';
+          } else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
               'onclick="updateStopStatus(' +
               stop.rowIndex +
-              ', \'DONE\', \'checkout\', ' +
+              ', \'CHECKOUT\', \'checkout\', ' +
               stop.seq +
               ')">Check-out</button>';
           }
 
-          let materialsText = '';
+          let materialsBlock = '';
           if (stop.materials && stop.materials.length > 0) {
             const parts = stop.materials.map(function (m) {
               const name = m.materialDesc || m.material || 'สินค้า';
               const qty = m.totalQty || 0;
-              return name + ' ' + qty;
+              return '- ' + name + ' ' + qty;
             });
-            materialsText = parts.join(' • ');
+            materialsBlock =
+              '<div class="materials-text"><b>สินค้า:</b><br>' +
+              parts.join('<br>') +
+              '</div>';
           }
 
           const li = document.createElement('li');
@@ -843,14 +919,14 @@
             'Stop ' +
             stop.seq +
             ' • ' +
-            (stop.destination1 || '-') +
+            (stop.destination2 || '-') +
             '</div>' +
             '<div class="timeline-status">' +
             statusLabel +
             '</div>' +
             '</div>' +
-            '<div class="timeline-sub">' +
-            (stop.destination2 || '') +
+            '<div class="timeline-sub">รหัสสถานี: ' +
+            (stop.destination1 || '-') +
             '</div>' +
             '<div class="timeline-sub"><b>Shipment:</b> ' +
             (stop.shipmentNo || '-') +
@@ -858,20 +934,30 @@
             '<div class="timeline-sub"><b>Check-in:</b> ' +
             (stop.checkInTime || '-') +
             '</div>' +
+            '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
+            (stop.fuelingTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
+            (stop.unloadDoneTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>ประเมิน:</b> ' +
+            (stop.reviewedTime || '-') +
+            '</div>' +
             '<div class="timeline-sub"><b>Check-out:</b> ' +
             (stop.checkOutTime || '-') +
             '</div>' +
-            (materialsText
-              ? '<div class="materials-text"><b>สินค้า:</b> ' +
-                materialsText +
-                '</div>'
-              : '') +
+            materialsBlock +
             '<div style="margin-top:6px;">' +
             btnHtml +
             '</div>' +
             '</div>';
           ul.appendChild(li);
         });
+
+        // ถ้าทุก stop check-out แล้ว → โชว์ปุ่มปิดงาน
+        if (stops.length > 0 && allCheckout) {
+          closeJobContainer.classList.remove('hidden');
+        }
 
         container.classList.remove('hidden');
       }
@@ -947,9 +1033,7 @@
 
           const stopInfo = json.stop || null;
           if (stopInfo) {
-            // การ์ดเด้งในหน้า LIFF
             showInlineFlex(type, stopInfo);
-            // ส่ง Flex เข้าแชท (ถ้าอยู่ใน LINE)
             sendFlexCheckInOut(type, stopInfo);
           }
 
@@ -961,6 +1045,67 @@
           console.error(err);
           closeLoading();
           showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+        }
+      }
+
+      /* ---------- ปิดงาน (รถพร้อมใช้งาน) ---------- */
+
+      async function closeJob() {
+        if (!currentReference) {
+          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
+          return;
+        }
+
+        const confirm = await Swal.fire({
+          icon: 'question',
+          title: 'ยืนยันปิดงาน?',
+          text: 'เมื่อปิดงานแล้ว ระบบจะอัพเดตสถานะว่ารถพร้อมใช้งาน',
+          showCancelButton: true,
+          confirmButtonText: 'ปิดงาน',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+        });
+
+        if (!confirm.isConfirmed) return;
+
+        try {
+          showLoading('กำลังปิดงาน...');
+
+          const url =
+            WEB_APP_URL +
+            '?action=closejob' +
+            '&reference=' +
+            encodeURIComponent(currentReference) +
+            '&userId=' +
+            encodeURIComponent(currentUserId);
+
+          const res = await fetch(url);
+          const json = await res.json();
+
+          closeLoading();
+
+          if (!json.success) {
+            showError(json.message || 'ไม่สามารถปิดงานได้');
+            return;
+          }
+
+          showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
+
+          if (json.stop) {
+            // ถ้า backend ส่ง stop ใด ๆ กลับมา
+            showInlineFlex('closejob', json.stop);
+            sendFlexCheckInOut('closejob', json.stop);
+          }
+
+          // reload ข้อมูล
+          if (currentReference) {
+            document.getElementById('keyword').value = currentReference;
+            await search();
+          }
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการปิดงาน');
         }
       }
 
@@ -980,10 +1125,15 @@
               search();
             }
           });
+
+        document
+          .getElementById('btnCloseJob')
+          .addEventListener('click', closeJob);
       });
 
       window.updateStopStatus = updateStopStatus;
       window.search = search;
+      window.closeJob = closeJob;
     </script>
   </body>
 </html>
