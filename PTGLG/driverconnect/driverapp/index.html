@@ -36,408 +36,452 @@
         color: var(--text-main);
       }
 
-      .app {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 16px;
+      .app-shell {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 12px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 520px;
       }
 
       .card {
         background: var(--card-bg);
         border-radius: var(--border-radius);
-        padding: 14px 14px 16px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        padding: 16px 18px 20px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 12px;
       }
 
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 6px;
-      }
-
       .title {
-        font-size: 1.1rem;
-        font-weight: 600;
+        font-size: 1.2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
 
-      .subtitle {
-        font-size: 0.8rem;
+      .badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(26, 188, 156, 0.1);
+        color: var(--primary-dark);
+      }
+
+      .status-text {
+        font-size: 0.9rem;
         color: var(--text-sub);
+        margin-bottom: 10px;
+      }
+
+      .field-group {
+        margin-bottom: 10px;
       }
 
       label {
+        display: block;
         font-size: 0.8rem;
         color: var(--text-sub);
-        display: block;
         margin-bottom: 4px;
       }
 
       input[type='text'] {
         width: 100%;
-        border-radius: 999px;
-        border: 1px solid #ddd;
-        padding: 8px 12px;
-        font-size: 0.9rem;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #dce2e0;
+        font-size: 0.95rem;
         outline: none;
+        transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+        background: #f7faf9;
       }
 
       input[type='text']:focus {
         border-color: var(--primary);
-        box-shadow: 0 0 0 1px rgba(26, 188, 156, 0.25);
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.18);
       }
 
-      .btn {
+      button {
+        width: 100%;
+        padding: 11px 12px;
+        border-radius: 999px;
+        border: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #ffffff;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border-radius: 999px;
-        border: none;
-        padding: 8px 14px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: transform 0.1s ease, box-shadow 0.1s ease,
-          background 0.1s ease;
+        gap: 8px;
+        transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+          opacity 0.15s;
       }
 
-      .btn:active {
-        transform: translateY(1px);
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(22, 160, 133, 0.28);
+      }
+
+      button:active {
+        transform: translateY(0);
         box-shadow: none;
+        opacity: 0.9;
       }
 
-      .btn-primary {
-        background: var(--primary);
-        color: #fff;
-        box-shadow: 0 3px 8px rgba(26, 188, 156, 0.35);
-      }
-
-      .btn-primary:disabled {
-        background: #b2dfd7;
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
         box-shadow: none;
-        cursor: default;
-      }
-
-      .btn-secondary {
-        background: #fff;
-        color: var(--primary-dark);
-        border: 1px solid var(--primary);
+        transform: none;
       }
 
       .btn-small {
-        font-size: 0.78rem;
-        padding: 4px 9px;
+        width: auto;
+        padding: 10px 16px;
+        font-size: 0.95rem;
         border-radius: 999px;
-        border: none;
-        cursor: pointer;
-        background: #fff;
-        border: 1px solid #ccc;
+        margin: 4px 6px 0 0;
       }
 
-      .btn-small.btn-outline {
-        background: #fff;
+      .btn-outline {
+        background: #ffffff;
         color: var(--primary-dark);
-        border-color: var(--primary);
+        border: 1px solid rgba(26, 188, 156, 0.35);
+        box-shadow: none;
       }
 
-      .btn-small.btn-warning {
+      .btn-outline:hover {
+        background: rgba(26, 188, 156, 0.06);
+      }
+
+      .btn-warning {
         background: #f39c12;
-        color: #fff;
-        border-color: #f39c12;
+        background: linear-gradient(135deg, #f39c12, #d35400);
       }
 
-      .btn-small:disabled {
-        opacity: 0.5;
-        cursor: default;
+      .btn-secondary {
+        background: #95a5a6;
+        background: linear-gradient(135deg, #95a5a6, #7f8c8d);
       }
 
-      .section-header {
-        font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 6px;
+      .summary-card {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #f7faf9;
+        border: 1px solid #e3ebe8;
+        font-size: 0.88rem;
       }
 
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        background: #ecf0f1;
-        color: #555;
-        margin-right: 4px;
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
         margin-bottom: 4px;
       }
 
-      .pill-success {
-        background: #d1f2eb;
-        color: #148f77;
+      .summary-label {
+        color: var(--text-sub);
       }
 
-      .pill-danger {
-        background: #fdecea;
-        color: #c0392b;
+      .summary-value {
+        font-weight: 600;
+      }
+
+      .timeline-container {
+        margin-top: 14px;
+      }
+
+      .timeline-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
 
       .timeline {
-        margin-top: 6px;
+        position: relative;
+        margin: 0;
+        padding: 4px 0 0 20px;
+        list-style: none;
       }
 
-      .stop-card {
-        border-radius: 10px;
-        border: 1px solid #eee;
-        padding: 8px 8px 10px;
-        margin-bottom: 8px;
-        background: #fafafa;
+      .timeline::before {
+        content: '';
+        position: absolute;
+        left: 9px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          rgba(26, 188, 156, 0.6),
+          rgba(26, 188, 156, 0.1)
+        );
       }
 
-      .stop-header {
+      .timeline-item {
+        position: relative;
+        margin-bottom: 14px;
+      }
+
+      .timeline-marker {
+        position: absolute;
+        left: -1px;
+        top: 6px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2px solid var(--primary);
+        box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.15);
+      }
+
+      .timeline-content {
+        margin-left: 14px;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 8px 10px;
+        border: 1px solid #e4ece9;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+      }
+
+      .timeline-header-row {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
         margin-bottom: 4px;
       }
 
-      .stop-title {
+      .timeline-stop-label {
         font-size: 0.9rem;
-        font-weight: 600;
+        font-weight: 800;
+        color: var(--primary-dark);
       }
 
-      .stop-badge {
-        font-size: 0.7rem;
-        padding: 2px 7px;
-        border-radius: 999px;
-        background: #e8f6f3;
-        color: #148f77;
-      }
-
-      .stop-body {
-        font-size: 0.78rem;
-        color: #555;
-      }
-
-      .stop-footer {
-        margin-top: 6px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        align-items: center;
-      }
-
-      .hidden {
-        display: none !important;
-      }
-
-      .badge-status {
+      .timeline-status {
         font-size: 0.75rem;
         padding: 2px 8px;
         border-radius: 999px;
+        background: rgba(22, 160, 133, 0.06);
+        color: var(--primary-dark);
       }
 
-      .badge-status-new {
-        background: #fdf2e9;
-        color: #d35400;
+      .timeline-sub {
+        font-size: 0.82rem;
+        color: var(--text-sub);
+        margin-bottom: 2px;
       }
 
-      .badge-status-done {
-        background: #d1f2eb;
-        color: #148f77;
-      }
-
-      .badge-status-review {
-        background: #ebf5fb;
-        color: #2471a3;
-      }
-
-      .text-muted {
-        color: #888;
-      }
-
-      .alcohol-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-
-      .alcohol-driver {
-        font-size: 0.78rem;
-        padding: 3px 8px;
-        border-radius: 999px;
-        border: 1px solid #ddd;
-      }
-
-      .alcohol-driver.done {
-        background: #d1f2eb;
-        border-color: #16a085;
-        color: #148f77;
+      .materials-text {
+        font-size: 0.8rem;
+        color: #444;
+        margin-top: 4px;
       }
 
       .footer-note {
-        font-size: 0.75rem;
-        color: #999;
+        margin-top: 8px;
+        font-size: 0.78rem;
+        color: var(--text-sub);
         text-align: center;
-        margin-top: 6px;
       }
 
-      @media (max-width: 400px) {
-        .btn {
-          width: 100%;
-          justify-content: center;
+      .hidden {
+        display: none;
+      }
+
+      .inline-flex {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        width: calc(100% - 24px);
+        max-width: 520px;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        border-left: 4px solid var(--primary);
+        padding: 10px 12px 11px;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .inline-flex-bar {
+        width: 42px;
+        height: 4px;
+        border-radius: 99px;
+        background: rgba(26, 188, 156, 0.2);
+        margin: 0 auto 6px;
+      }
+
+      .inline-flex-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 2px;
+        text-align: left;
+      }
+
+      .inline-flex-text {
+        font-size: 0.8rem;
+        color: var(--text-sub);
+        margin-bottom: 2px;
+      }
+
+      .inline-flex-sub {
+        font-size: 0.76rem;
+        color: #555;
+      }
+
+      .inline-flex.show {
+        animation: dropIn 0.35s ease-out forwards;
+      }
+
+      .inline-flex.hide {
+        animation: fadeOutUp 0.25s ease-in forwards;
+      }
+
+      @keyframes dropIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      @keyframes fadeOutUp {
+        from {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-15px);
+        }
+      }
+
+      @media (max-width: 480px) {
+        .card {
+          padding: 14px 14px 18px;
+        }
+        .title {
+          font-size: 1.05rem;
+        }
+        button {
+          font-size: 0.9rem;
         }
       }
     </style>
   </head>
   <body>
-    <div class="app">
-      <!-- ค้นหางาน + ยืนยันรับงาน -->
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <div class="title">ค้นหางาน</div>
-            <div class="subtitle">กรอกเลข Reference ของงานที่ต้องการ</div>
-          </div>
-          <div
-            id="userStatusTag"
-            class="pill"
-            style="display:none;"
-          ></div>
-        </div>
+    <div id="inlineFlex" class="inline-flex hidden">
+      <div class="inline-flex-bar"></div>
+      <div class="inline-flex-title" id="inlineFlexTitle"></div>
+      <div class="inline-flex-text" id="inlineFlexMain"></div>
+      <div class="inline-flex-sub" id="inlineFlexSub"></div>
+    </div>
 
-        <div style="margin-bottom:8px;">
-          <label for="keyword">เลข Reference</label>
-          <input
-            type="text"
-            id="keyword"
-            placeholder="เช่น 1234567890"
-          />
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
-          <button
-            id="btnSearch"
-            class="btn btn-primary"
-          >
-            ค้นหา / ดึงงาน
-          </button>
-          <button
-            id="btnAccept"
-            class="btn btn-secondary"
-            disabled
-          >
-            ยืนยันรับงาน
-          </button>
-        </div>
-
-        <div class="footer-note">
-          เมื่อค้นหางานแล้ว ระบบจะยังไม่บันทึกลงระบบจนกว่าจะกด "ยืนยันรับงาน"
-        </div>
-      </div>
-
-      <!-- สรุปงาน -->
-      <div
-        id="summaryCard"
-        class="card hidden"
-      >
-        <div class="card-header">
-          <div>
-            <div class="title">สรุปงาน</div>
-            <div
-              id="summarySubtitle"
-              class="subtitle"
-            ></div>
-          </div>
-          <div id="summaryStatus"></div>
-        </div>
-
-        <div id="summaryBody"></div>
-      </div>
-
-      <!-- แอลกอฮอล์ -->
-      <div
-        id="alcoholCard"
-        class="card hidden"
-      >
-        <div class="card-header">
-          <div>
-            <div class="title">ตรวจวัดแอลกอฮอล์</div>
-            <div class="subtitle">
-              บันทึกผลการตรวจของพนักงานขับรถตามรายชื่อ
+    <div class="app-shell">
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="title">
+              🚚 Driver Tracking
+              <span class="badge">Online</span>
             </div>
           </div>
-        </div>
 
-        <div id="alcoholBody"></div>
+          <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
 
-        <div style="margin-top:8px;">
-          <button
-            id="btnAlcohol"
-            class="btn btn-secondary"
-          >
-            บันทึกผลแอลกอฮอล์
-          </button>
-        </div>
-      </div>
-
-      <!-- Timeline Stops -->
-      <div
-        id="timelineCard"
-        class="card hidden"
-      >
-        <div class="card-header">
-          <div>
-            <div class="title">ขั้นตอนงาน</div>
-            <div class="subtitle">ตรวจสอบสถานะและอัปเดตแต่ละจุดส่ง</div>
+          <div class="field-group">
+            <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
+            <input
+              id="keyword"
+              type="text"
+              placeholder="กรอกเลข Reference เช่น 2511S15403"
+            />
           </div>
-        </div>
 
-        <div
-          id="timelineBody"
-          class="timeline"
-        ></div>
-
-        <div
-          id="closeJobContainer"
-          class="hidden"
-          style="margin-top:10px;border-top:1px dashed #eee;padding-top:8px;"
-        >
-          <button
-            id="btnCloseJob"
-            class="btn btn-primary"
-          >
-            ปิดงาน / รถพร้อมใช้งาน
+          <button id="btnSearch">
+            <span>ค้นหา / ดึงงาน</span>
           </button>
+
+          <div id="summary" class="summary-card hidden"></div>
+
+          <div
+            id="alcoholContainer"
+            class="summary-card hidden"
+            style="margin-top:10px;"
+          ></div>
+
+          <div id="timelineContainer" class="timeline-container hidden">
+            <div class="timeline-title">
+              เส้นทางส่งสินค้า
+              <span style="font-size:0.8rem;color:var(--text-sub);">
+                (เรียงตามลำดับจุดส่ง)
+              </span>
+            </div>
+            <ul id="timeline" class="timeline"></ul>
+
+            <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+              <button
+                id="btnCloseJob"
+                class="btn-secondary"
+                style="width:100%;"
+              >
+                ปิดงาน (รถพร้อมใช้งาน)
+              </button>
+            </div>
+          </div>
+
+          <div class="footer-note">
+            เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ
+            และส่ง Flex เข้าแชท LINE
+          </div>
         </div>
       </div>
     </div>
 
     <script>
-      // 👇 ใส่ LIFF ID ของจริงตรงนี้
       const LIFF_ID = '2007705394-NGJXjBkn';
-
-      // ใส่ URL ของ Web App (Apps Script) จากฝั่ง server
-      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
+      const WEB_APP_URL =
+        'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
 
       let currentUserId = '';
-      let currentUserStatus = '';
       let currentReference = '';
       let lastStops = [];
+      let inlineFlexTimer = null;
+
       let currentDrivers = [];
       let currentCheckedDrivers = [];
       let alcoholAllDone = false;
       let jobClosed = false;
-      let jobAccepted = false;
 
-      // ---------- SweetAlert Helper ----------
-      function showLoading(text) {
+      function showLoading(message) {
         Swal.fire({
-          title: text || 'กำลังโหลด...',
+          title: message || 'กำลังประมวลผล...',
+          allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
           },
-          allowOutsideClick: false,
-          allowEscapeKey: false,
-          showConfirmButton: false,
         });
       }
 
@@ -445,12 +489,12 @@
         Swal.close();
       }
 
-      function showError(title, text) {
+      function showError(message) {
         Swal.fire({
           icon: 'error',
-          title: title || 'เกิดข้อผิดพลาด',
-          text: text || '',
-          confirmButtonColor: '#e74c3c',
+          title: 'เกิดข้อผิดพลาด',
+          text: message || 'โปรดลองใหม่อีกครั้ง',
+          confirmButtonColor: '#1abc9c',
         });
       }
 
@@ -466,440 +510,238 @@
       function showInfo(title, text) {
         Swal.fire({
           icon: 'info',
-          title: title || '',
+          title: title || 'แจ้งเตือน',
           text: text || '',
-          confirmButtonColor: '#3498db',
+          confirmButtonColor: '#1abc9c',
         });
       }
 
-      // ---------- Geo Helper ----------
-      function getCurrentPositionAsync() {
-        return new Promise((resolve, reject) => {
-          if (!navigator.geolocation) {
-            reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
+      function showInlineFlex(type, stop) {
+        const container = document.getElementById('inlineFlex');
+        const titleEl = document.getElementById('inlineFlexTitle');
+        const mainEl = document.getElementById('inlineFlexMain');
+        const subEl = document.getElementById('inlineFlexSub');
+
+        const labelMap = {
+          checkin: 'Check-in สำเร็จ',
+          fuel: 'ลงน้ำมันสำเร็จ',
+          unload: 'ลงเสร็จสำเร็จ',
+          review: 'ประเมินสำเร็จ',
+          checkout: 'Check-out สำเร็จ',
+          closejob: 'ปิดงานสำเร็จ',
+        };
+
+        const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
+
+        let timeText = '';
+        if (type === 'checkin') timeText = stop.checkInTime || '';
+        else if (type === 'fuel') timeText = stop.fuelingTime || '';
+        else if (type === 'unload') timeText = stop.unloadDoneTime || '';
+        else if (type === 'review') timeText = stop.reviewedTime || '';
+        else if (type === 'checkout') timeText = stop.checkOutTime || '';
+
+        const odoText =
+          type === 'checkin' && stop.checkInOdo
+            ? ` • เลขไมล์: ${stop.checkInOdo}`
+            : '';
+
+        titleEl.textContent = title;
+        mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${
+          stop.shipmentNo || '-'
+        }`;
+        subEl.textContent = `${
+          stop.destination2 || stop.destination1 || 'ปลายทาง'
+        }${timeText ? ' • เวลา: ' + timeText : ''}${odoText}`;
+
+        container.classList.remove('hide', 'hidden');
+        void container.offsetWidth;
+        container.classList.add('show');
+
+        if (inlineFlexTimer) {
+          clearTimeout(inlineFlexTimer);
+        }
+        inlineFlexTimer = setTimeout(() => {
+          container.classList.remove('show');
+          container.classList.add('hide');
+          setTimeout(() => {
+            container.classList.add('hidden');
+          }, 250);
+        }, 4000);
+      }
+
+      function sendFlexCheckInOut(type, stop) {
+        try {
+          if (!liff.isInClient()) {
             return;
           }
 
-          navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(pos),
-            (err) => reject(err),
-            {
-              enableHighAccuracy: true,
-              timeout: 15000,
-              maximumAge: 0,
-            }
-          );
-        });
-      }
-
-      // ---------- Signature Pad ----------
-      function initSwalSignaturePad(canvasId, clearBtnId) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-
-        let drawing = false;
-        let lastX = 0;
-        let lastY = 0;
-
-        function getPos(e) {
-          const rect = canvas.getBoundingClientRect();
-          if (e.touches && e.touches.length > 0) {
-            return {
-              x: e.touches[0].clientX - rect.left,
-              y: e.touches[0].clientY - rect.top,
-            };
-          } else {
-            return {
-              x: e.clientX - rect.left,
-              y: e.clientY - rect.top,
-            };
-          }
-        }
-
-        function start(e) {
-          e.preventDefault();
-          drawing = true;
-          const pos = getPos(e);
-          lastX = pos.x;
-          lastY = pos.y;
-        }
-
-        function move(e) {
-          if (!drawing) return;
-          e.preventDefault();
-          const pos = getPos(e);
-          ctx.beginPath();
-          ctx.moveTo(lastX, lastY);
-          ctx.lineTo(pos.x, pos.y);
-          ctx.stroke();
-          lastX = pos.x;
-          lastY = pos.y;
-        }
-
-        function end(e) {
-          drawing = false;
-        }
-
-        canvas.addEventListener('mousedown', start);
-        canvas.addEventListener('mousemove', move);
-        canvas.addEventListener('mouseup', end);
-        canvas.addEventListener('mouseleave', end);
-
-        canvas.addEventListener('touchstart', start, { passive: false });
-        canvas.addEventListener('touchmove', move, { passive: false });
-        canvas.addEventListener('touchend', end, { passive: false });
-
-        const clearBtn = document.getElementById(clearBtnId);
-        if (clearBtn) {
-          clearBtn.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-          });
-        }
-      }
-
-      // ---------- UI Helpers ----------
-      function clearResult() {
-        currentReference = '';
-        lastStops = [];
-        currentDrivers = [];
-        currentCheckedDrivers = [];
-        alcoholAllDone = false;
-        jobClosed = false;
-        jobAccepted = false;
-
-        document.getElementById('summaryCard').classList.add('hidden');
-        document.getElementById('alcoholCard').classList.add('hidden');
-        document.getElementById('timelineCard').classList.add('hidden');
-        document.getElementById('timelineBody').innerHTML = '';
-        document.getElementById('closeJobContainer').classList.add('hidden');
-
-        updateAcceptButtonState();
-      }
-
-      function updateAcceptButtonState() {
-        const btnAccept = document.getElementById('btnAccept');
-        if (!btnAccept) return;
-
-        if (!currentReference) {
-          btnAccept.disabled = true;
-          btnAccept.textContent = 'ยืนยันรับงาน';
-          return;
-        }
-
-        if (jobClosed) {
-          btnAccept.disabled = true;
-          btnAccept.textContent = 'งานนี้ปิดงานแล้ว';
-          return;
-        }
-
-        if (jobAccepted) {
-          btnAccept.disabled = true;
-          btnAccept.textContent = 'รับงานแล้ว';
-        } else {
-          btnAccept.disabled = false;
-          btnAccept.textContent = 'ยืนยันรับงาน';
-        }
-      }
-
-      function renderSummary(data) {
-        const card = document.getElementById('summaryCard');
-        const subtitle = document.getElementById('summarySubtitle');
-        const body = document.getElementById('summaryBody');
-        const statusDiv = document.getElementById('summaryStatus');
-
-        if (!data) {
-          card.classList.add('hidden');
-          return;
-        }
-
-        card.classList.remove('hidden');
-
-        const ref = data.referenceNo || '';
-        const shipmentNo = data.shipmentNo || '';
-        const totalStops = data.totalStops || 0;
-
-        subtitle.textContent =
-          'Reference: ' +
-          ref +
-          (shipmentNo ? ' • Shipment: ' + shipmentNo : '');
-
-        const alcoholInfo =
-          currentDrivers.length > 0
-            ? `แอลกอฮอล์: ${
-                alcoholAllDone ? 'ตรวจครบแล้ว' : 'ยังตรวจไม่ครบ'
-              } (${currentCheckedDrivers.length}/${currentDrivers.length})`
-            : 'ไม่มีข้อมูลผู้ขับใน shipment';
-
-        body.innerHTML = `
-          <div style="font-size:0.86rem;line-height:1.5;">
-            จำนวนจุดตรวจทั้งหมด: <b>${totalStops}</b><br/>
-            ${alcoholInfo}
-          </div>
-        `;
-
-        let statusHtml = '';
-        if (jobClosed) {
-          statusHtml =
-            '<span class="badge-status badge-status-done">ปิดงานแล้ว</span>';
-        } else if (jobAccepted) {
-          statusHtml =
-            '<span class="badge-status badge-status-review">รับงานแล้ว</span>';
-        } else {
-          statusHtml =
-            '<span class="badge-status badge-status-new">ยังไม่รับงาน</span>';
-        }
-        statusDiv.innerHTML = statusHtml;
-      }
-
-      function renderAlcoholSection() {
-        const card = document.getElementById('alcoholCard');
-        const body = document.getElementById('alcoholBody');
-        const btn = document.getElementById('btnAlcohol');
-
-        if (!currentReference || currentDrivers.length === 0) {
-          card.classList.add('hidden');
-          return;
-        }
-
-        card.classList.remove('hidden');
-
-        const items = currentDrivers
-          .map((name) => {
-            const done = currentCheckedDrivers.includes(name);
-            return `<span class="alcohol-driver ${
-              done ? 'done' : ''
-            }">${name}${done ? ' ✓' : ''}</span>`;
-          })
-          .join('');
-
-        body.innerHTML = `
-          <div class="alcohol-list">
-            ${items}
-          </div>
-          <div class="footer-note" style="margin-top:6px;">
-            ระบบจะอัปเดตรายชื่อที่ตรวจแล้วแบบอัตโนมัติหลังบันทึกผล
-          </div>
-        `;
-
-        btn.disabled = !jobAccepted || jobClosed;
-      }
-
-      function renderTimeline(stops) {
-        const card = document.getElementById('timelineCard');
-        const body = document.getElementById('timelineBody');
-        const closeJobContainer = document.getElementById('closeJobContainer');
-
-        if (!stops || stops.length === 0) {
-          card.classList.add('hidden');
-          body.innerHTML = '';
-          closeJobContainer.classList.add('hidden');
-          return;
-        }
-
-        card.classList.remove('hidden');
-
-        let html = '';
-        let allCheckout = true;
-
-        stops.forEach((stop) => {
-          const isOrigin = !!stop.isOriginStop;
-          const status = stop.status || 'NEW';
-          const hasCheckIn = !!stop.checkInTime;
-          const hasCheckOut = !!stop.checkOutTime;
-          const hasFuel = !!stop.fuelingTime;
-          const hasUnloadDone = !!stop.unloadDoneTime;
-          const hasReviewed = !!stop.reviewedTime;
-
-          if (!hasCheckOut) {
-            allCheckout = false;
+          if (type !== 'checkin' && type !== 'checkout') {
+            return;
           }
 
-          let statusLabel = '';
-          if (status === 'JOB_DONE') {
-            statusLabel =
-              '<span class="badge-status badge-status-done">เสร็จสิ้น</span>';
-          } else if (status === 'REVIEWED') {
-            statusLabel =
-              '<span class="badge-status badge-status-review">ประเมินแล้ว</span>';
-          } else if (status === 'NEW') {
-            statusLabel =
-              '<span class="badge-status badge-status-new">รอเริ่มงาน</span>';
-          } else {
-            statusLabel = `<span class="badge-status badge-status-review">${status}</span>`;
-          }
+          const labelMap = {
+            checkin: 'Check-in สำเร็จ',
+            checkout: 'Check-out สำเร็จ',
+          };
 
-          let subtitle = '';
-          if (isOrigin) {
-            subtitle = 'ต้นทาง (Origin)';
-          } else {
-            subtitle = 'ปลายทาง';
-          }
+          const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
+          const colorBar = type === 'checkout' ? '#16a085' : '#1abc9c';
 
-          const distanceText =
-            stop.distanceKm !== '' && stop.distanceKm != null
-              ? `ระยะทาง: ${stop.distanceKm} กม.`
-              : '';
+          let timeText = '';
+          if (type === 'checkin') timeText = stop.checkInTime || '';
+          else if (type === 'checkout') timeText = stop.checkOutTime || '';
 
-          let btnHtml = '';
+          const bubble = {
+            type: 'bubble',
+            size: 'mega',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              paddingAll: '16px',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  contents: [
+                    { type: 'filler' },
+                    {
+                      type: 'box',
+                      layout: 'vertical',
+                      contents: [],
+                      width: '8px',
+                      backgroundColor: colorBar,
+                      cornerRadius: '999px',
+                      height: '40px',
+                    },
+                  ],
+                },
+                {
+                  type: 'text',
+                  text: title,
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#16a085',
+                  margin: 'md',
+                },
+                {
+                  type: 'text',
+                  text: 'Reference: ' + (stop.referenceNo || '-'),
+                  size: 'sm',
+                  color: '#555555',
+                  wrap: true,
+                  margin: 'sm',
+                },
+                {
+                  type: 'text',
+                  text: 'Shipment: ' + (stop.shipmentNo || '-'),
+                  size: 'sm',
+                  color: '#555555',
+                  wrap: true,
+                  margin: 'xs',
+                },
+                {
+                  type: 'separator',
+                  margin: 'md',
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  margin: 'md',
+                  spacing: 'sm',
+                  contents: [
+                    {
+                      type: 'text',
+                      text:
+                        stop.destination2 ||
+                        stop.destination1 ||
+                        'ปลายทาง',
+                      size: 'md',
+                      weight: 'bold',
+                      wrap: true,
+                    },
+                    {
+                      type: 'text',
+                      text: timeText ? 'เวลา: ' + timeText : '',
+                      size: 'sm',
+                      color: '#555555',
+                      wrap: true,
+                    },
+                    {
+                      type: 'text',
+                      text: 'สถานะล่าสุด: ' + (stop.status || '-'),
+                      size: 'sm',
+                      color: '#555555',
+                      wrap: true,
+                      margin: 'xs',
+                    },
+                  ],
+                },
+              ],
+            },
+            styles: {
+              body: {
+                backgroundColor: '#ffffff',
+              },
+            },
+          };
 
-          if (!jobAccepted || jobClosed) {
-            btnHtml =
-              '<div style="font-size:0.78rem;color:#c0392b;">' +
-              (jobClosed
-                ? 'งานนี้ถูกปิดงานแล้ว'
-                : 'กรุณากดยืนยันรับงานก่อนเริ่มงาน') +
-              '</div>';
-          } else {
-            if (isOrigin) {
-              if (!hasCheckIn) {
-                btnHtml +=
-                  '<button class="btn-small btn-outline" ' +
-                  'onclick="startCheckin(' +
-                  stop.rowIndex +
-                  ', ' +
-                  stop.seq +
-                  ')">Check-in</button>';
-              } else if (!hasCheckOut) {
-                btnHtml +=
-                  '<button class="btn-small" ' +
-                  'onclick="updateStopStatus(' +
-                  stop.rowIndex +
-                  ", 'CHECKOUT', 'checkout', " +
-                  stop.seq +
-                  ')">Check-out</button>';
-              }
-            } else {
-              if (!hasCheckIn) {
-                btnHtml +=
-                  '<button class="btn-small btn-outline" ' +
-                  'onclick="startCheckin(' +
-                  stop.rowIndex +
-                  ', ' +
-                  stop.seq +
-                  ')">Check-in</button>';
-              } else if (!hasFuel) {
-                btnHtml +=
-                  '<button class="btn-small btn-warning" ' +
-                  'onclick="updateStopStatus(' +
-                  stop.rowIndex +
-                  ", 'FUELING', 'fuel', " +
-                  stop.seq +
-                  ')">ลงน้ำมัน</button>';
-              } else if (!hasUnloadDone) {
-                btnHtml +=
-                  '<button class="btn-small btn-outline" ' +
-                  'onclick="updateStopStatus(' +
-                  stop.rowIndex +
-                  ", 'UNLOAD_DONE', 'unload', " +
-                  stop.seq +
-                  ')">ลงเสร็จ</button>';
-              } else if (!hasReviewed) {
-                btnHtml +=
-                  '<button class="btn-small btn-outline" ' +
-                  'onclick="startReview(' +
-                  stop.rowIndex +
-                  ', ' +
-                  stop.seq +
-                  ')">ประเมิน</button>';
-              } else if (!hasCheckOut) {
-                btnHtml +=
-                  '<button class="btn-small" ' +
-                  'onclick="updateStopStatus(' +
-                  stop.rowIndex +
-                  ", 'CHECKOUT', 'checkout', " +
-                  stop.seq +
-                  ')">Check-out</button>';
-              }
-            }
-          }
-
-          const materialsText =
-            stop.materials && stop.materials.length
-              ? stop.materials
-                  .map(
-                    (m) =>
-                      `${m.materialDesc || m.material || ''} (${m.totalQty})`
-                  )
-                  .join(', ')
-              : '';
-
-          html += `
-            <div class="stop-card">
-              <div class="stop-header">
-                <div>
-                  <div class="stop-title">
-                    #${stop.seq}. ${
-            stop.destination2 || stop.destination1 || 'ไม่ระบุปลายทาง'
-          }
-                  </div>
-                  <div class="text-muted" style="font-size:0.75rem;">
-                    ${subtitle}
-                  </div>
-                </div>
-                <div>${statusLabel}</div>
-              </div>
-              <div class="stop-body">
-                ${
-                  distanceText
-                    ? `<div style="margin-bottom:2px;">${distanceText}</div>`
-                    : ''
-                }
-                ${
-                  materialsText
-                    ? `<div style="font-size:0.75rem;color:#777;">สินค้า: ${materialsText}</div>`
-                    : ''
-                }
-                <div style="margin-top:4px;font-size:0.72rem;color:#777;">
-                  Check-in: ${stop.checkInTime || '-'}<br/>
-                  ลงน้ำมัน: ${stop.fuelingTime || '-'}<br/>
-                  ลงเสร็จ: ${stop.unloadDoneTime || '-'}<br/>
-                  ประเมิน: ${stop.reviewedTime || '-'}<br/>
-                  Check-out: ${stop.checkOutTime || '-'}
-                </div>
-              </div>
-              <div class="stop-footer">
-                ${btnHtml}
-              </div>
-            </div>
-          `;
-        });
-
-        body.innerHTML = html;
-
-        if (stops.length > 0 && allCheckout && jobAccepted && !jobClosed) {
-          closeJobContainer.classList.remove('hidden');
-          document.getElementById('btnCloseJob').disabled = false;
-        } else {
-          closeJobContainer.classList.add('hidden');
+          liff
+            .sendMessages([
+              {
+                type: 'flex',
+                altText: title,
+                contents: bubble,
+              },
+            ])
+            .catch(function (err) {
+              console.error('sendMessages error', err);
+            });
+        } catch (err) {
+          console.error('sendFlexCheckInOut error', err);
         }
       }
 
-      // ---------- ค้นหางาน ----------
+      async function initLiff() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          const profile = await liff.getProfile();
+          currentUserId = profile.userId;
+          const statusEl = document.getElementById('status');
+          statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
+        } catch (err) {
+          console.error(err);
+          document.getElementById('status').innerText =
+            'เกิดข้อผิดพลาดในการโหลด LIFF';
+          showError('ไม่สามารถโหลดข้อมูลจาก LIFF ได้');
+        }
+      }
+
       async function search() {
         const keywordInput = document.getElementById('keyword');
-        const keyword = (keywordInput.value || '').trim();
+        const keyword = keywordInput.value.trim();
+        const btn = document.getElementById('btnSearch');
+
         if (!keyword) {
-          showInfo('กรุณากรอกเลข Reference');
+          showInfo('กรุณากรอกเลข Reference', 'กรุณาใส่เลขอ้างอิงงานก่อนค้นหา');
           return;
         }
 
-        const btn = document.getElementById('btnSearch');
         btn.disabled = true;
-        showLoading('กำลังค้นหางาน...');
+        showLoading('กำลังค้นหางานจากระบบ...');
 
         try {
           const url =
             WEB_APP_URL +
-            '?action=search' +
-            '&keyword=' +
+            '?action=search&keyword=' +
             encodeURIComponent(keyword) +
             '&userId=' +
-            encodeURIComponent(currentUserId || '');
+            encodeURIComponent(currentUserId);
 
           const res = await fetch(url);
           const json = await res.json();
@@ -908,7 +750,7 @@
 
           if (!json.success) {
             clearResult();
-            showError('ค้นหาไม่สำเร็จ', json.message || '');
+            showError(json.message || 'ไม่พบข้อมูลงาน');
             return;
           }
 
@@ -932,119 +774,203 @@
             currentDrivers.every((n) => currentCheckedDrivers.includes(n));
 
           jobClosed = !!d.jobClosed;
-          jobAccepted = !!d.isAccepted;
 
           renderSummary(d);
           renderAlcoholSection();
           renderTimeline(stops);
-          updateAcceptButtonState();
         } catch (err) {
           console.error(err);
           closeLoading();
-          clearResult();
-          showError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+          showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
         } finally {
           btn.disabled = false;
-          updateAcceptButtonState();
         }
       }
 
-      // ---------- ยืนยันรับงาน ----------
-      async function acceptJob() {
-        if (!currentReference) {
-          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนยืนยันรับงาน');
+      function clearResult() {
+        document.getElementById('summary').classList.add('hidden');
+        document.getElementById('timelineContainer').classList.add('hidden');
+        document.getElementById('summary').innerHTML = '';
+        document.getElementById('timeline').innerHTML = '';
+        document.getElementById('closeJobContainer').classList.add('hidden');
+        document.getElementById('alcoholContainer').classList.add('hidden');
+        document.getElementById('alcoholContainer').innerHTML = '';
+        lastStops = [];
+        currentDrivers = [];
+        currentCheckedDrivers = [];
+        alcoholAllDone = false;
+        jobClosed = false;
+      }
+
+      function renderSummary(d) {
+        const summaryEl = document.getElementById('summary');
+        const stops = d.stops || [];
+        const shipmentNos = d.shipmentNos || [];
+
+        let shipmentSummary = '-';
+        if (shipmentNos.length === 1) {
+          shipmentSummary = shipmentNos[0];
+        } else if (shipmentNos.length > 1) {
+          shipmentSummary = shipmentNos.join(', ');
+        }
+
+        const totalQtyAll = stops.reduce(function (acc, s) {
+          if (typeof s.totalQty === 'number') return acc + s.totalQty;
+          return acc;
+        }, 0);
+
+        summaryEl.innerHTML = `
+          <div class="summary-row">
+            <span class="summary-label">Reference</span>
+            <span class="summary-value">${d.referenceNo || '-'}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Shipment</span>
+            <span class="summary-value">${shipmentSummary}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">จำนวนจุดส่ง</span>
+            <span class="summary-value">${d.totalStops || stops.length} จุด</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">ปริมาณรวมโดยประมาณ</span>
+            <span class="summary-value">${totalQtyAll || 0}</span>
+          </div>
+        `;
+
+        summaryEl.classList.remove('hidden');
+      }
+
+      function renderAlcoholSection() {
+        const container = document.getElementById('alcoholContainer');
+        if (!container) return;
+
+        if (!currentDrivers || currentDrivers.length === 0) {
+          container.classList.add('hidden');
+          container.innerHTML = '';
           return;
         }
 
-        if (!currentUserId) {
-          showError('ไม่พบ userId จาก LIFF');
-          return;
-        }
+        let html = `
+          <div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
+          <div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:6px;">
+            บันทึกผลแอลกอฮอล์ (ตัวเลข) พร้อมถ่ายรูปหลักฐาน ระบบจะบันทึกพิกัดและเวลาปัจจุบันให้
+          </div>
+        `;
 
-        const btn = document.getElementById('btnAccept');
-        btn.disabled = true;
-        showLoading('กำลังยืนยันรับงาน...');
-
-        try {
-          const url =
-            WEB_APP_URL +
-            '?action=acceptjob' +
-            '&reference=' +
-            encodeURIComponent(currentReference) +
-            '&userId=' +
-            encodeURIComponent(currentUserId);
-
-          const res = await fetch(url);
-          const json = await res.json();
-
-          closeLoading();
-
-          if (!json.success) {
-            showError(json.message || 'ไม่สามารถยืนยันรับงานได้');
-            updateAcceptButtonState();
-            return;
+        currentDrivers.forEach((name) => {
+          const checked = currentCheckedDrivers.includes(name);
+          if (checked) {
+            html += `
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${name}</span>
+                <button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>
+              </div>
+            `;
+          } else {
+            const safeName = name.replace(/'/g, "\\'");
+            html += `
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${name}</span>
+                <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
+                  บันทึกผลแอลกอฮอล์
+                </button>
+              </div>
+            `;
           }
+        });
 
-          const d = json.data || {};
-          const stops = d.stops || [];
+        alcoholAllDone =
+          currentDrivers.length > 0 &&
+          currentDrivers.every((n) => currentCheckedDrivers.includes(n));
 
-          lastStops = stops;
-          currentReference = d.referenceNo || currentReference;
-
-          currentDrivers =
-            (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
-            [];
-          currentCheckedDrivers =
-            (d.alcohol &&
-              Array.isArray(d.alcohol.checkedDrivers) &&
-              d.alcohol.checkedDrivers) ||
-            [];
-          currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
-          alcoholAllDone =
-            currentDrivers.length > 0 &&
-            currentDrivers.every((n) => currentCheckedDrivers.includes(n));
-
-          jobClosed = !!d.jobClosed;
-          jobAccepted = !!d.isAccepted;
-
-          renderSummary(d);
-          renderAlcoholSection();
-          renderTimeline(stops);
-          updateAcceptButtonState();
-
-          showSuccess('ยืนยันรับงานสำเร็จ', 'คุณสามารถเริ่มดำเนินงานได้แล้ว');
-        } catch (err) {
-          console.error(err);
-          closeLoading();
-          showError('เกิดข้อผิดพลาดในการยืนยันรับงาน');
-          updateAcceptButtonState();
+        if (alcoholAllDone) {
+          html += `
+            <div style="margin-top:4px;font-size:0.78rem;color:var(--primary-dark);">
+              ✅ ตรวจแอลกอฮอล์ครบทุกคนแล้ว สามารถเริ่มงานได้
+            </div>
+          `;
+        } else {
+          html += `
+            <div style="margin-top:4px;font-size:0.78rem;color:#c0392b;">
+              ⚠️ ยังตรวจแอลกอฮอล์ไม่ครบทุกคน
+            </div>
+          `;
         }
+
+        container.innerHTML = html;
+        container.classList.remove('hidden');
       }
 
-      // ---------- Check-in ----------
-      async function startCheckin(rowIndex, seq) {
-        if (!rowIndex) return;
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result || '';
+            const base64 = result.toString().split(',')[1] || '';
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
 
-        const { value: odo } = await Swal.fire({
-          title: `Check-in จุดที่ ${seq}`,
-          input: 'text',
-          inputLabel: 'เลขไมล์ปัจจุบันของรถ',
-          inputPlaceholder: 'เช่น 123456',
+      async function doAlcoholCheck(driverName) {
+        if (!currentReference) {
+          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+          return;
+        }
+
+        const { value: formValues } = await Swal.fire({
+          title: 'บันทึกผลแอลกอฮอล์',
+          html: `
+            <div style="text-align:left;">
+              <label style="font-size:0.8rem;color:#555;">ชื่อคนขับ</label>
+              <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${driverName}</div>
+
+              <label style="font-size:0.8rem;color:#555;">ปริมาณแอลกอฮอล์ (มก./ลิตรลมหายใจ)</label>
+              <input id="swalAlcoholValue" type="number" min="0" step="0.01"
+                class="swal2-input" placeholder="เช่น 0.00"
+                style="width:100%;margin:4px 0 10px;">
+
+              <label style="font-size:0.8rem;color:#555;">ถ่ายรูปหลักฐาน</label>
+              <input id="swalAlcoholImage" type="file" accept="image/*" capture="environment"
+                style="margin-top:4px;font-size:0.8rem;">
+            </div>
+          `,
+          focusConfirm: false,
           showCancelButton: true,
-          confirmButtonText: 'เริ่ม Check-in',
+          confirmButtonText: 'บันทึกผล',
           cancelButtonText: 'ยกเลิก',
-          inputValidator: (value) => {
-            if (!value) {
-              return 'กรุณากรอกเลขไมล์ก่อน Check-in';
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const val = document
+              .getElementById('swalAlcoholValue')
+              .value.trim();
+            const file = document.getElementById('swalAlcoholImage').files[0];
+
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
+              return false;
             }
-            if (!/^\d+(\.\d+)?$/.test(value)) {
-              return 'เลขไมล์ต้องเป็นตัวเลข';
+            if (isNaN(parseFloat(val))) {
+              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
+              return false;
             }
-            return null;
+            if (!file) {
+              Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
+              return false;
+            }
+
+            return { alcoholValue: val, file: file };
           },
         });
 
-        if (!odo) return;
+        if (!formValues) {
+          return;
+        }
+
+        const { alcoholValue, file } = formValues;
 
         try {
           showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
@@ -1064,127 +990,114 @@
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
 
-          showLoading('กำลังอัปเดตสถานะ...');
+          const base64 = await fileToBase64(file);
 
-          const url =
-            WEB_APP_URL +
-            '?action=updatestop' +
-            '&rowIndex=' +
-            encodeURIComponent(rowIndex) +
-            '&status=' +
-            encodeURIComponent('CHECKIN') +
-            '&type=' +
-            encodeURIComponent('checkin') +
-            '&userId=' +
-            encodeURIComponent(currentUserId || '') +
-            '&lat=' +
-            encodeURIComponent(lat) +
-            '&lng=' +
-            encodeURIComponent(lng) +
-            '&odo=' +
-            encodeURIComponent(odo);
+          showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
 
-          const res = await fetch(url);
+          const formData = new URLSearchParams();
+          formData.append('action', 'uploadAlcohol');
+          formData.append('reference', currentReference);
+          formData.append('driverName', driverName);
+          formData.append('userId', currentUserId);
+          formData.append('alcoholValue', alcoholValue);
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
+          formData.append('imageBase64', base64);
+
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: formData,
+          });
+
           const json = await res.json();
+
           closeLoading();
 
           if (!json.success) {
-            showError('อัปเดตไม่สำเร็จ', json.message || '');
+            showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
             return;
           }
 
-          if (json.stop) {
-            showInlineFlex('checkin', json.stop);
+          if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
+            currentCheckedDrivers = [...new Set(json.checkedDrivers)];
+          } else {
+            currentCheckedDrivers = [
+              ...new Set(currentCheckedDrivers.concat([driverName])),
+            ];
           }
 
-          if (currentReference) {
-            document.getElementById('keyword').value = currentReference;
-            await search();
-          }
+          renderAlcoholSection();
+          showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
         } catch (err) {
           console.error(err);
           closeLoading();
-          showError('เกิดข้อผิดพลาดในการอัปเดต');
+          showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
         }
       }
 
-      // ---------- อัปเดตสถานะแบบทั่วไป (Fuel / Unload / Review / Checkout) ----------
-      async function updateStopStatus(rowIndex, newStatus, actionType, seq) {
-        if (!rowIndex || !newStatus || !actionType) return;
+      function initSwalSignaturePad(canvasId, clearBtnId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
 
-        const confirm = await Swal.fire({
-          title: 'ยืนยันการอัปเดต',
-          text: `คุณต้องการอัปเดตจุดที่ ${seq} เป็นสถานะ "${newStatus}" หรือไม่?`,
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonText: 'ยืนยัน',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-        });
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
 
-        if (!confirm.isConfirmed) return;
-
-        try {
-          showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
-
-          let pos;
-          try {
-            pos = await getCurrentPositionAsync();
-          } catch (err) {
-            console.error(err);
-            closeLoading();
-            showError(
-              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-            );
-            return;
+        const getPos = (e) => {
+          const rect = canvas.getBoundingClientRect();
+          if (e.touches && e.touches.length > 0) {
+            return {
+              x: e.touches[0].clientX - rect.left,
+              y: e.touches[0].clientY - rect.top,
+            };
           }
+          return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          };
+        };
 
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
+        const startDraw = (e) => {
+          e.preventDefault();
+          drawing = true;
+          const pos = getPos(e);
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+        };
 
-          showLoading('กำลังอัปเดตสถานะ...');
+        const draw = (e) => {
+          if (!drawing) return;
+          e.preventDefault();
+          const pos = getPos(e);
+          ctx.lineTo(pos.x, pos.y);
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        };
 
-          const url =
-            WEB_APP_URL +
-            '?action=updatestop' +
-            '&rowIndex=' +
-            encodeURIComponent(rowIndex) +
-            '&status=' +
-            encodeURIComponent(newStatus) +
-            '&type=' +
-            encodeURIComponent(actionType) +
-            '&userId=' +
-            encodeURIComponent(currentUserId || '') +
-            '&lat=' +
-            encodeURIComponent(lat) +
-            '&lng=' +
-            encodeURIComponent(lng);
+        const endDraw = (e) => {
+          if (!drawing) return;
+          e.preventDefault();
+          drawing = false;
+        };
 
-          const res = await fetch(url);
-          const json = await res.json();
-          closeLoading();
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', endDraw);
 
-          if (!json.success) {
-            showError('อัปเดตไม่สำเร็จ', json.message || '');
-            return;
-          }
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', endDraw, { passive: false });
 
-          if (json.stop) {
-            showInlineFlex(actionType, json.stop);
-          }
-
-          if (currentReference) {
-            document.getElementById('keyword').value = currentReference;
-            await search();
-          }
-        } catch (err) {
-          console.error(err);
-          closeLoading();
-          showError('เกิดข้อผิดพลาดในการอัปเดต');
+        const clearBtn = document.getElementById(clearBtnId);
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          });
         }
       }
 
-      // ---------- ประเมิน + เซ็น ----------
       async function startReview(rowIndex, seq) {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
@@ -1203,35 +1116,18 @@
                 ปลายทาง: <b>${destName}</b>
               </div>
 
-              <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน</label>
-              <input id="swalReceiverName" type="text"
-                class="swal2-input"
-                placeholder="เช่น คุณสมชาย"
-                style="width:100%;margin:4px 0 8px;">
-
-              <label style="font-size:0.8rem;color:#555;">ตำแหน่งผู้รับน้ำมัน / ผู้ประเมิน</label>
-              <input id="swalReceiverPosition" type="text"
-                class="swal2-input"
-                placeholder="เช่น หัวหน้าสถานี, ผู้จัดการ"
-                style="width:100%;margin:4px 0 10px;">
-
               <label style="font-size:0.8rem;color:#555;">ระดับความพึงพอใจ</label>
-              <div id="reviewScoreGroup"
-                  style="display:flex;gap:6px;margin:6px 0 10px;flex-wrap:wrap;">
-                <button type="button" class="rating-chip" data-value="น้อย"
-                  style="flex:1;min-width:0;padding:6px 4px;border-radius:999px;border:1px solid #ccc;background:#fff;font-size:0.8rem;">
-                  น้อย
-                </button>
-                <button type="button" class="rating-chip" data-value="ปานกลาง"
-                  style="flex:1;min-width:0;padding:6px 4px;border-radius:999px;border:1px solid #ccc;background:#fff;font-size:0.8rem;">
-                  ปานกลาง
-                </button>
-                <button type="button" class="rating-chip" data-value="มาก"
-                  style="flex:1;min-width:0;padding:6px 4px;border-radius:999px;border:1px solid #ccc;background:#fff;font-size:0.8rem;">
-                  มาก
-                </button>
+              <div style="margin:4px 0 10px;font-size:0.85rem;">
+                <label style="margin-right:10px;">
+                  <input type="radio" name="reviewScore" value="น้อย"> น้อย
+                </label>
+                <label style="margin-right:10px;">
+                  <input type="radio" name="reviewScore" value="ปานกลาง"> ปานกลาง
+                </label>
+                <label>
+                  <input type="radio" name="reviewScore" value="มาก"> มาก
+                </label>
               </div>
-              <input type="hidden" id="reviewScoreHidden" value="">
 
               <label style="font-size:0.8rem;color:#555;">ลายเซ็นผู้รับสินค้า</label>
               <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-top:4px;">
@@ -1245,22 +1141,6 @@
           `,
           didOpen: () => {
             initSwalSignaturePad('signCanvas', 'btnClearSign');
-
-            const chips = document.querySelectorAll('.rating-chip');
-            const hidden = document.getElementById('reviewScoreHidden');
-            chips.forEach((chip) => {
-              chip.addEventListener('click', () => {
-                chips.forEach((c) => {
-                  c.style.background = '#fff';
-                  c.style.color = '#333';
-                  c.style.borderColor = '#ccc';
-                });
-                chip.style.background = '#16a085';
-                chip.style.color = '#fff';
-                chip.style.borderColor = '#16a085';
-                hidden.value = chip.getAttribute('data-value') || '';
-              });
-            });
           },
           focusConfirm: false,
           showCancelButton: true,
@@ -1268,27 +1148,10 @@
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#1abc9c',
           preConfirm: () => {
-            const receiverName = document
-              .getElementById('swalReceiverName')
-              .value.trim();
-            const receiverPosition = document
-              .getElementById('swalReceiverPosition')
-              .value.trim();
-            const score = document
-              .getElementById('reviewScoreHidden')
-              .value.trim();
-
-            if (!receiverName) {
-              Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
-              return false;
-            }
-            if (!receiverPosition) {
-              Swal.showValidationMessage(
-                'กรุณากรอกตำแหน่งผู้รับน้ำมัน/ผู้ประเมิน'
-              );
-              return false;
-            }
-            if (!score) {
+            const radio = document.querySelector(
+              'input[name="reviewScore"]:checked'
+            );
+            if (!radio) {
               Swal.showValidationMessage('กรุณาเลือกระดับความพึงพอใจ');
               return false;
             }
@@ -1300,9 +1163,7 @@
             }
 
             return {
-              score,
-              receiverName,
-              receiverPosition,
+              score: radio.value,
               signatureDataUrl: dataUrl,
             };
           },
@@ -1312,8 +1173,7 @@
           return;
         }
 
-        const { score, receiverName, receiverPosition, signatureDataUrl } =
-          formValues;
+        const { score, signatureDataUrl } = formValues;
 
         try {
           showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
@@ -1335,25 +1195,27 @@
 
           showLoading('กำลังบันทึกการประเมิน...');
 
-          const payload = {
-            action: 'uploadReview',
-            reference: currentReference,
-            rowIndex: rowIndex,
-            userId: currentUserId,
-            score: score,
-            receiverName: receiverName,
-            receiverPosition: receiverPosition,
-            lat: lat,
-            lng: lng,
-            signatureBase64: signatureDataUrl,
-          };
+          // แยก base64 ออกจาก dataURL (ถ้ามี)
+          let signatureBase64 = '';
+          if (signatureDataUrl && typeof signatureDataUrl === 'string') {
+            const parts = signatureDataUrl.split(',');
+            signatureBase64 = parts[1] || '';
+          }
+
+          // ส่งแบบ URLSearchParams เพื่อลดปัญหา CORS / preflight
+          const formData = new URLSearchParams();
+          formData.append('action', 'uploadReview');
+          formData.append('reference', currentReference);
+          formData.append('rowIndex', String(rowIndex));
+          formData.append('userId', currentUserId);
+          formData.append('score', score);
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
+          formData.append('signatureBase64', signatureBase64);
 
           const res = await fetch(WEB_APP_URL, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
+            body: formData,
           });
           const json = await res.json();
 
@@ -1381,67 +1243,257 @@
         }
       }
 
-      // ---------- บันทึกผลแอลกอฮอล์ ----------
-      async function startAlcohol() {
-        if (!currentReference || currentDrivers.length === 0) {
-          showInfo('ไม่มีข้อมูลผู้ขับ', 'ไม่พบรายชื่อผู้ตรวจแอลกอฮอล์');
+      function renderTimeline(stops) {
+        const container = document.getElementById('timelineContainer');
+        const ul = document.getElementById('timeline');
+        const closeJobContainer = document.getElementById('closeJobContainer');
+        ul.innerHTML = '';
+        closeJobContainer.classList.add('hidden');
+
+        if (!stops || stops.length === 0) {
+          container.classList.add('hidden');
+          return;
+        }
+
+        let allCheckout = true;
+
+        stops.forEach(function (stop) {
+          const hasCheckIn = !!stop.checkInTime;
+          const hasFuel = !!stop.fuelingTime;
+          const hasUnloadDone = !!stop.unloadDoneTime;
+          const hasReviewed = !!stop.reviewedTime;
+          const hasCheckOut = !!stop.checkOutTime;
+          const isOrigin = !!stop.isOriginStop;
+
+          if (!hasCheckOut) {
+            allCheckout = false;
+          }
+
+          const statusLabel = stop.status || '-';
+
+          let btnHtml = '';
+
+          if (isOrigin) {
+            if (!hasCheckIn) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="startCheckin(' +
+                stop.rowIndex +
+                ', ' +
+                stop.seq +
+                ')">Check-in</button>';
+            } else if (!hasCheckOut) {
+              btnHtml +=
+                '<button class="btn-small" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'CHECKOUT', 'checkout', " +
+                stop.seq +
+                ')">Check-out</button>';
+            }
+          } else {
+            if (!hasCheckIn) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="startCheckin(' +
+                stop.rowIndex +
+                ', ' +
+                stop.seq +
+                ')">Check-in</button>';
+            } else if (!hasFuel) {
+              btnHtml +=
+                '<button class="btn-small btn-warning" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'FUELING', 'fuel', " +
+                stop.seq +
+                ')">ลงน้ำมัน</button>';
+            } else if (!hasUnloadDone) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'UNLOAD_DONE', 'unload', " +
+                stop.seq +
+                ')">ลงเสร็จ</button>';
+            } else if (!hasReviewed) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="startReview(' +
+                stop.rowIndex +
+                ', ' +
+                stop.seq +
+                ')">ประเมิน</button>';
+            } else if (!hasCheckOut) {
+              btnHtml +=
+                '<button class="btn-small" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'CHECKOUT', 'checkout', " +
+                stop.seq +
+                ')">Check-out</button>';
+            }
+          }
+
+          let materialsBlock = '';
+          if (stop.materials && stop.materials.length > 0) {
+            const parts = stop.materials.map(function (m) {
+              const name = m.materialDesc || m.material || 'สินค้า';
+              const qty = m.totalQty || 0;
+              return '- ' + name + ' ' + qty;
+            });
+            materialsBlock =
+              '<div class="materials-text"><b>สินค้า:</b><br>' +
+              parts.join('<br>') +
+              '</div>';
+          }
+
+          const distanceText =
+            stop.distanceKm !== undefined &&
+            stop.distanceKm !== null &&
+            stop.distanceKm !== ''
+              ? stop.distanceKm
+              : '-';
+
+          const odoText =
+            stop.checkInOdo !== undefined &&
+            stop.checkInOdo !== null &&
+            stop.checkInOdo !== ''
+              ? stop.checkInOdo
+              : '-';
+
+          const li = document.createElement('li');
+          li.className = 'timeline-item';
+          li.innerHTML =
+            '<span class="timeline-marker"></span>' +
+            '<div class="timeline-content">' +
+            '<div class="timeline-header-row">' +
+            '<div class="timeline-stop-label">' +
+            'Stop ' +
+            stop.seq +
+            ' • ' +
+            (stop.destination2 || '-') +
+            '</div>' +
+            '<div class="timeline-status">' +
+            statusLabel +
+            '</div>' +
+            '</div>' +
+            '<div class="timeline-sub">รหัสสถานี: ' +
+            (stop.destination1 || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>Shipment:</b> ' +
+            (stop.shipmentNo || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>Distance (ระบบ):</b> ' +
+            distanceText +
+            '</div>' +
+            '<div class="timeline-sub"><b>Check-in:</b> ' +
+            (stop.checkInTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>เลขไมล์ Check-in:</b> ' +
+            odoText +
+            '</div>' +
+            '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
+            (stop.fuelingTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
+            (stop.unloadDoneTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>ประเมิน:</b> ' +
+            (stop.reviewedTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>Check-out:</b> ' +
+            (stop.checkOutTime || '-') +
+            '</div>' +
+            materialsBlock +
+            '<div style="margin-top:6px;">' +
+            btnHtml +
+            '</div>' +
+            '</div>';
+          ul.appendChild(li);
+        });
+
+        if (stops.length > 0 && allCheckout && !jobClosed) {
+          closeJobContainer.classList.remove('hidden');
+          document.getElementById('btnCloseJob').disabled = false;
+        } else {
+          closeJobContainer.classList.add('hidden');
+        }
+
+        container.classList.remove('hidden');
+      }
+
+      function getCurrentPositionAsync() {
+        return new Promise(function (resolve, reject) {
+          if (!navigator.geolocation) {
+            reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(
+            function (pos) {
+              resolve(pos);
+            },
+            function (err) {
+              reject(err);
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          );
+        });
+      }
+
+      async function startCheckin(rowIndex, seq) {
+        if (
+          currentDrivers.length > 0 &&
+          !(
+            currentDrivers.length > 0 &&
+            currentDrivers.every((n) => currentCheckedDrivers.includes(n))
+          )
+        ) {
+          showInfo(
+            'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
+            'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
+          );
           return;
         }
 
         const { value: formValues } = await Swal.fire({
-          title: 'บันทึกผลตรวจแอลกอฮอล์',
+          icon: 'question',
+          title: 'กรอกเลขไมล์รถ',
           html: `
             <div style="text-align:left;">
-              <label style="font-size:0.8rem;color:#555;">เลือกพนักงานขับ</label>
-              <select id="swalDriver" class="swal2-select" style="width:100%;margin-bottom:8px;">
-                ${currentDrivers
-                  .map((d) => `<option value="${d}">${d}</option>`)
-                  .join('')}
-              </select>
-
-              <label style="font-size:0.8rem;color:#555;">ค่าปริมาณแอลกอฮอล์ (mg%)</label>
-              <input id="swalAlcoholValue" type="text"
+              <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+              <input id="swalOdoInput" type="number" inputmode="numeric"
                 class="swal2-input"
-                placeholder="เช่น 0.00"
-                style="width:100%;margin:4px 0 4px;">
-              <div style="font-size:0.72rem;color:#888;">
-                * ขณะนี้ระบบจะบันทึกเฉพาะตัวเลข โดยไม่แนบรูป
-              </div>
+                placeholder="เช่น 123456"
+                style="width:100%;margin:6px 0 4px;">
             </div>
           `,
           focusConfirm: false,
           showCancelButton: true,
-          confirmButtonText: 'บันทึก',
+          confirmButtonText: 'ยืนยัน Check-in',
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#1abc9c',
           preConfirm: () => {
-            const driverName = document
-              .getElementById('swalDriver')
-              .value.trim();
-            const alcoholValue = document
-              .getElementById('swalAlcoholValue')
-              .value.trim();
-
-            if (!driverName) {
-              Swal.showValidationMessage('กรุณาเลือกรายชื่อพนักงานขับ');
+            const val = document.getElementById('swalOdoInput').value.trim();
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
               return false;
             }
-            if (!alcoholValue || isNaN(parseFloat(alcoholValue))) {
-              Swal.showValidationMessage('กรุณากรอกค่าปริมาณแอลกอฮอล์เป็นตัวเลข');
-              return false;
-            }
-
-            return {
-              driverName,
-              alcoholValue,
-            };
+            return { odo: val };
           },
         });
 
-        if (!formValues) return;
+        if (!formValues) {
+          return;
+        }
 
+        const { odo } = formValues;
+        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+      }
+
+      async function updateStopStatus(rowIndex, newStatus, type, seq, odo) {
         try {
-          showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
+          showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
 
           let pos;
           try {
@@ -1458,102 +1510,104 @@
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
 
-          showLoading('กำลังบันทึกผลแอลกอฮอล์...');
+          showLoading('กำลังอัปเดตสถานะจุดส่ง...');
 
-          const payload = {
-            action: 'uploadAlcohol',
-            reference: currentReference,
-            driverName: formValues.driverName,
-            alcoholValue: formValues.alcoholValue,
-            userId: currentUserId,
-            lat: lat,
-            lng: lng,
-            imageBase64: '', // ตอนนี้ยังไม่ส่งรูป
-          };
+          let url =
+            WEB_APP_URL +
+            '?action=updatestop' +
+            '&rowIndex=' +
+            encodeURIComponent(rowIndex) +
+            '&status=' +
+            encodeURIComponent(newStatus) +
+            '&type=' +
+            encodeURIComponent(type) +
+            '&userId=' +
+            encodeURIComponent(currentUserId) +
+            '&lat=' +
+            encodeURIComponent(lat) +
+            '&lng=' +
+            encodeURIComponent(lng);
 
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
-          });
+          if (type === 'checkin') {
+            url += '&odo=' + encodeURIComponent(odo || '');
+          }
+
+          const res = await fetch(url);
           const json = await res.json();
 
           closeLoading();
 
           if (!json.success) {
-            showError(json.message || 'บันทึกผลแอลกอฮอล์ไม่สำเร็จ');
+            showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
             return;
           }
 
-          if (json.checkedDrivers) {
-            currentCheckedDrivers = json.checkedDrivers;
-            alcoholAllDone =
-              currentDrivers.length > 0 &&
-              currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+          showSuccess('อัปเดตสำเร็จ', json.message || 'อัปเดตสถานะเรียบร้อย');
+
+          const stopInfo = json.stop || null;
+          if (stopInfo) {
+            showInlineFlex(type, stopInfo);
+            sendFlexCheckInOut(type, stopInfo);
           }
 
-          renderSummary({
-            referenceNo: currentReference,
-            shipmentNo:
-              (lastStops[0] && lastStops[0].shipmentNo) || '',
-            totalStops: lastStops.length,
-          });
-          renderAlcoholSection();
-
-          showSuccess('บันทึกสำเร็จ', 'บันทึกผลตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+          if (currentReference) {
+            document.getElementById('keyword').value = currentReference;
+            await search();
+          }
         } catch (err) {
           console.error(err);
           closeLoading();
-          showError('เกิดข้อผิดพลาดในการบันทึกผลแอลกอฮอล์');
+          showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
         }
       }
 
-      // ---------- ปิดงาน ----------
       async function closeJob() {
         if (!currentReference) {
-          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
           return;
         }
 
-        const confirm = await Swal.fire({
-          title: 'ยืนยันการปิดงาน',
-          text: 'เมื่อปิดงานแล้ว ระบบจะถือว่ารถพร้อมใช้งานต่อไป',
-          icon: 'warning',
+        const confirmResult = await Swal.fire({
+          icon: 'question',
+          title: 'ยืนยันปิดงาน?',
+          text: 'เมื่อปิดงานแล้ว ระบบจะอัพเดตสถานะว่ารถพร้อมใช้งาน',
           showCancelButton: true,
           confirmButtonText: 'ปิดงาน',
           cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#e67e22',
+          confirmButtonColor: '#1abc9c',
         });
 
-        if (!confirm.isConfirmed) return;
-
-        const btn = document.getElementById('btnCloseJob');
-        btn.disabled = true;
-        showLoading('กำลังปิดงาน...');
+        if (!confirmResult.isConfirmed) return;
 
         try {
+          showLoading('กำลังปิดงาน...');
+
           const url =
             WEB_APP_URL +
             '?action=closejob' +
             '&reference=' +
             encodeURIComponent(currentReference) +
             '&userId=' +
-            encodeURIComponent(currentUserId || '');
+            encodeURIComponent(currentUserId);
 
           const res = await fetch(url);
           const json = await res.json();
+
           closeLoading();
 
           if (!json.success) {
-            showError('ปิดงานไม่สำเร็จ', json.message || '');
-            btn.disabled = false;
+            showError(json.message || 'ไม่สามารถปิดงานได้');
             return;
           }
 
+          showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
+
           jobClosed = true;
-          jobAccepted = true;
+          const closeContainer = document.getElementById('closeJobContainer');
+          const closeBtn = document.getElementById('btnCloseJob');
+          if (closeBtn) closeBtn.disabled = true;
+          if (closeContainer) closeContainer.classList.add('hidden');
+
           if (json.stop) {
             showInlineFlex('closejob', json.stop);
           }
@@ -1562,64 +1616,40 @@
             document.getElementById('keyword').value = currentReference;
             await search();
           }
-
-          showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานต่อไปแล้ว');
         } catch (err) {
           console.error(err);
           closeLoading();
           showError('เกิดข้อผิดพลาดในการปิดงาน');
-          btn.disabled = false;
         }
       }
 
-      // ---------- แสดง inline flex (ตอนนี้ให้ popup แทน) ----------
-      function showInlineFlex(actionType, stop) {
-        // สามารถต่อยอดเรียก LINE Flex จาก LIFF ได้ภายหลัง
-        console.log('Inline flex:', actionType, stop);
-      }
-
-      // ---------- LIFF Init ----------
-      async function initLiff() {
-        try {
-          await liff.init({ liffId: LIFF_ID });
-
-          if (!liff.isLoggedIn()) {
-            liff.login();
-            return;
-          }
-
-          const profile = await liff.getProfile();
-          currentUserId = profile.userId || '';
-
-          // แสดงสถานะ user (จะอัปเดตอีกทีหลังค้นหา)
-          const tag = document.getElementById('userStatusTag');
-          tag.style.display = 'inline-flex';
-          tag.textContent = 'กำลังตรวจสอบสิทธิ์...';
-
-          // ยิง search แบบไม่ keyword เพื่อ update status ก็ไม่จำเป็น
-          // แต่เราจะอัปเดตเมื่อค้นหางานครั้งแรก
-
-          document
-            .getElementById('btnSearch')
-            .addEventListener('click', search);
-          document
-            .getElementById('btnAccept')
-            .addEventListener('click', acceptJob);
-          document
-            .getElementById('btnCloseJob')
-            .addEventListener('click', closeJob);
-          document
-            .getElementById('btnAlcohol')
-            .addEventListener('click', startAlcohol);
-        } catch (err) {
-          console.error(err);
-          showError('ไม่สามารถเริ่มต้น LIFF ได้', String(err));
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', function () {
         initLiff();
+
+        document
+          .getElementById('btnSearch')
+          .addEventListener('click', search);
+
+        document
+          .getElementById('keyword')
+          .addEventListener('keyup', function (e) {
+            if (e.key === 'Enter') {
+              search();
+            }
+          });
+
+        document
+          .getElementById('btnCloseJob')
+          .addEventListener('click', closeJob);
       });
+
+      window.updateStopStatus = updateStopStatus;
+      window.search = search;
+      window.closeJob = closeJob;
+      window.startCheckin = startCheckin;
+      window.doAlcoholCheck = doAlcoholCheck;
+      window.getCurrentPositionAsync = getCurrentPositionAsync;
+      window.startReview = startReview;
     </script>
   </body>
 </html>
