@@ -1,1 +1,335 @@
-xxx
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <title>Driver Tracking</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 16px;
+      }
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+      }
+      input[type='text'] {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 16px;
+      }
+      .error {
+        color: red;
+        margin-bottom: 8px;
+      }
+      .summary-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+      }
+      .timeline {
+        position: relative;
+        margin: 0;
+        padding: 0 0 0 20px;
+        list-style: none;
+      }
+      .timeline::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #ccc;
+      }
+      .timeline-item {
+        position: relative;
+        margin-bottom: 16px;
+        padding-left: 8px;
+      }
+      .timeline-marker {
+        position: absolute;
+        left: -2px;
+        top: 4px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #4caf50;
+      }
+      .timeline-content {
+        margin-left: 12px;
+        background: #f9f9f9;
+        border-radius: 6px;
+        padding: 8px 10px;
+      }
+      .timeline-title {
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      .timeline-sub {
+        font-size: 0.9em;
+        color: #555;
+      }
+      .btn-small {
+        display: inline-block;
+        padding: 6px 10px;
+        margin: 4px 4px 0 0;
+        font-size: 0.85em;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>รับงาน / Tracking</h2>
+      <div id="status"></div>
+
+      <label for="keyword">เลขรับงาน (Shipment / Reference)</label>
+      <input id="keyword" type="text" placeholder="กรอกเลขรับงาน" />
+      <button id="btnSearch">ค้นหา</button>
+
+      <div id="message" class="error"></div>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      // TODO: แก้ให้ตรงของจริง
+      const LIFF_ID = '2007705394-NGJXjBkn';
+      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec'; // appscript
+
+      let currentUserId = '';
+
+      async function initLiff() {
+        try {
+          await liff.init({ liffId: LIFF_ID });
+
+          if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+          }
+
+          const profile = await liff.getProfile();
+          currentUserId = profile.userId;
+          document.getElementById('status').innerText =
+            'สวัสดีคุณ ' + profile.displayName;
+        } catch (err) {
+          console.error(err);
+          document.getElementById('status').innerText =
+            'เกิดข้อผิดพลาดในการโหลด LIFF';
+        }
+      }
+
+      async function search() {
+        const keyword = document.getElementById('keyword').value.trim();
+        const msgEl = document.getElementById('message');
+        const resultEl = document.getElementById('result');
+
+        msgEl.textContent = '';
+        resultEl.innerHTML = '';
+
+        if (!keyword) {
+          msgEl.textContent = 'กรุณาใส่เลขรับงาน';
+          return;
+        }
+
+        msgEl.textContent = 'กำลังค้นหา...';
+
+        try {
+          const url =
+            WEB_APP_URL +
+            '?action=search&keyword=' +
+            encodeURIComponent(keyword) +
+            '&userId=' +
+            encodeURIComponent(currentUserId);
+
+          const res = await fetch(url);
+          const json = await res.json();
+
+          if (!json.success) {
+            msgEl.textContent = json.message || 'ไม่พบข้อมูล';
+            return;
+          }
+
+          msgEl.textContent = '';
+
+          const d = json.data;
+          const stops = d.stops || [];
+          const shipmentNos = d.shipmentNos || [];
+
+          let shipmentSummary = '-';
+          if (shipmentNos.length === 1) {
+            shipmentSummary = shipmentNos[0];
+          } else if (shipmentNos.length > 1) {
+            shipmentSummary = shipmentNos.join(', ');
+          }
+
+          let html = '';
+
+          html += `
+            <div class="summary-card">
+              <div><b>Reference:</b> ${d.referenceNo || '-'}</div>
+              <div><b>Shipment(s):</b> ${shipmentSummary}</div>
+              <div><b>จำนวนจุดส่ง:</b> ${d.totalStops || stops.length} จุด</div>
+            </div>
+          `;
+
+          if (stops.length > 0) {
+            html += `<ul class="timeline">`;
+
+            stops.forEach((stop) => {
+              const hasCheckIn = !!stop.checkInTime;
+              const hasCheckOut = !!stop.checkOutTime;
+
+              let btnHtml = '';
+
+              // stop.destination1 = shipToCode (ZS026)
+              // stop.destination2 = shipToName (PTC-STA-เมืองเพชรบูรณ์)
+              if (!hasCheckIn) {
+                btnHtml += `
+                  <button class="btn-small"
+                    onclick="updateStopStatus(${stop.rowIndex}, 'IN_PROGRESS', 'checkin')">
+                    เช็คอิน
+                  </button>
+                `;
+              }
+
+              if (hasCheckIn && !hasCheckOut) {
+                btnHtml += `
+                  <button class="btn-small"
+                    onclick="updateStopStatus(${stop.rowIndex}, 'DONE', 'checkout')">
+                    ส่งสำเร็จ
+                  </button>
+                `;
+              }
+
+              html += `
+                <li class="timeline-item">
+                  <span class="timeline-marker"></span>
+                  <div class="timeline-content">
+                    <div class="timeline-title">
+                      Stop ${stop.seq} – Shipment: ${stop.shipmentNo || '-'}
+                    </div>
+                    <div class="timeline-sub">
+                      <b>รหัสสถานี:</b> ${stop.destination1 || '-'}
+                    </div>
+                    ${
+                      stop.destination2
+                        ? `<div class="timeline-sub"><b>ชื่อสถานี:</b> ${stop.destination2}</div>`
+                        : ''
+                    }
+                    <div class="timeline-sub">
+                      <b>สถานะ:</b> ${stop.status || '-'}
+                    </div>
+                    <div class="timeline-sub">
+                      <b>เช็คอิน:</b> ${stop.checkInTime || '-'}
+                    </div>
+                    <div class="timeline-sub">
+                      <b>เช็คเอาต์:</b> ${stop.checkOutTime || '-'}
+                    </div>
+                    <div style="margin-top:4px;">
+                      ${btnHtml}
+                    </div>
+                  </div>
+                </li>
+              `;
+            });
+
+            html += `</ul>`;
+          }
+
+          resultEl.innerHTML = html;
+        } catch (err) {
+          console.error(err);
+          msgEl.textContent = 'เกิดข้อผิดพลาดในการค้นหา';
+        }
+      }
+
+      function getCurrentPositionAsync() {
+        return new Promise((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve(pos),
+            (err) => reject(err),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          );
+        });
+      }
+
+      async function updateStopStatus(rowIndex, newStatus, type) {
+        const msgEl = document.getElementById('message');
+        msgEl.textContent = 'กำลังอ่านพิกัดจากอุปกรณ์...';
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error(err);
+          msgEl.textContent =
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง';
+          return;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        msgEl.textContent = 'กำลังอัปเดตสถานะ...';
+
+        try {
+          const url =
+            WEB_APP_URL +
+            '?action=updatestop' +
+            '&rowIndex=' +
+            encodeURIComponent(rowIndex) +
+            '&status=' +
+            encodeURIComponent(newStatus) +
+            '&type=' +
+            encodeURIComponent(type) +
+            '&userId=' +
+            encodeURIComponent(currentUserId) +
+            '&lat=' +
+            encodeURIComponent(lat) +
+            '&lng=' +
+            encodeURIComponent(lng);
+
+          const res = await fetch(url);
+          const json = await res.json();
+
+          if (!json.success) {
+            msgEl.textContent = json.message || 'อัปเดตสถานะไม่สำเร็จ';
+            return;
+          }
+
+          msgEl.textContent = 'อัปเดตสำเร็จ ✔️';
+
+          const keyword = document.getElementById('keyword').value.trim();
+          if (keyword) {
+            await search();
+          }
+        } catch (err) {
+          console.error(err);
+          msgEl.textContent = 'เกิดข้อผิดพลาดในการอัปเดตสถานะ';
+        }
+      }
+
+      document
+        .getElementById('btnSearch')
+        .addEventListener('click', search);
+      document.addEventListener('DOMContentLoaded', initLiff);
+
+      // export ให้เรียกจาก onclick ได้
+      window.updateStopStatus = updateStopStatus;
+      window.search = search;
+    </script>
+  </body>
+</html>
