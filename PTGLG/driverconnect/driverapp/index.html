@@ -277,16 +277,6 @@
         margin-bottom: 2px;
       }
 
-      .pill {
-        display: inline-block;
-        margin-top: 4px;
-        padding: 3px 7px;
-        font-size: 0.75rem;
-        border-radius: 999px;
-        background: rgba(26, 188, 156, 0.08);
-        color: var(--primary-dark);
-      }
-
       .materials-text {
         font-size: 0.8rem;
         color: #444;
@@ -304,6 +294,81 @@
         display: none;
       }
 
+      /* Inline "Flex-style" notification */
+      .inline-flex {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        width: calc(100% - 24px);
+        max-width: 520px;
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        border-left: 4px solid var(--primary);
+        padding: 10px 12px 11px;
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .inline-flex-bar {
+        width: 42px;
+        height: 4px;
+        border-radius: 99px;
+        background: rgba(26, 188, 156, 0.2);
+        margin: 0 auto 6px;
+      }
+
+      .inline-flex-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 2px;
+        text-align: left;
+      }
+
+      .inline-flex-text {
+        font-size: 0.8rem;
+        color: var(--text-sub);
+        margin-bottom: 2px;
+      }
+
+      .inline-flex-sub {
+        font-size: 0.76rem;
+        color: #555;
+      }
+
+      .inline-flex.show {
+        animation: dropIn 0.35s ease-out forwards;
+      }
+
+      .inline-flex.hide {
+        animation: fadeOutUp 0.25s ease-in forwards;
+      }
+
+      @keyframes dropIn {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      @keyframes fadeOutUp {
+        from {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(-50%) translateY(-15px);
+        }
+      }
+
       @media (max-width: 480px) {
         .card {
           padding: 14px 14px 18px;
@@ -318,6 +383,14 @@
     </style>
   </head>
   <body>
+    <!-- การ์ดแจ้งเตือนแบบ Flex หล่นลงมา (ในหน้า LIFF เอง) -->
+    <div id="inlineFlex" class="inline-flex hidden">
+      <div class="inline-flex-bar"></div>
+      <div class="inline-flex-title" id="inlineFlexTitle"></div>
+      <div class="inline-flex-text" id="inlineFlexMain"></div>
+      <div class="inline-flex-sub" id="inlineFlexSub"></div>
+    </div>
+
     <div class="app-shell">
       <div class="container">
         <div class="card">
@@ -358,19 +431,22 @@
           </div>
 
           <div class="footer-note">
-            เมื่อ Check-in / Check-out สำเร็จ ระบบจะส่ง Flex Message เข้าแชทให้ด้วย
+            เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ
+            และส่ง Flex เข้าแชท LINE
           </div>
         </div>
       </div>
     </div>
 
     <script>
-      // TODO: แก้ให้ตรงของจริง
       const LIFF_ID = '2007705394-NGJXjBkn';
-      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec'; 
+      const WEB_APP_URL =
+        'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec';
+
       let currentUserId = '';
       let currentReference = '';
-      let lastStops = []; // เก็บ stops จากการค้นหาล่าสุด เพื่อใช้ตอนส่ง Flex
+      let lastStops = [];
+      let inlineFlexTimer = null;
 
       /* ---------- SweetAlert Helpers ---------- */
 
@@ -415,6 +491,171 @@
         });
       }
 
+      /* ---------- Inline Flex-style Notification ---------- */
+
+      function showInlineFlex(type, stop) {
+        const container = document.getElementById('inlineFlex');
+        const titleEl = document.getElementById('inlineFlexTitle');
+        const mainEl = document.getElementById('inlineFlexMain');
+        const subEl = document.getElementById('inlineFlexSub');
+
+        const isCheckIn = type === 'checkin';
+        const title = isCheckIn ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ';
+        const timeText = isCheckIn
+          ? stop.checkInTime || ''
+          : stop.checkOutTime || '';
+
+        titleEl.textContent = title;
+        mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${
+          stop.shipmentNo || '-'
+        }`;
+        subEl.textContent = `${
+          stop.destination2 || stop.destination1 || 'ปลายทาง'
+        }${timeText ? ' • เวลา: ' + timeText : ''}`;
+
+        container.classList.remove('hide', 'hidden');
+        void container.offsetWidth; // force reflow
+        container.classList.add('show');
+
+        if (inlineFlexTimer) {
+          clearTimeout(inlineFlexTimer);
+        }
+        inlineFlexTimer = setTimeout(() => {
+          container.classList.remove('show');
+          container.classList.add('hide');
+          setTimeout(() => {
+            container.classList.add('hidden');
+          }, 250);
+        }, 4000);
+      }
+
+      /* ---------- Flex Message ส่งเข้าแชทเมื่อ Check-in / Check-out ---------- */
+
+      function sendFlexCheckInOut(type, stop) {
+        try {
+          if (!liff.isInClient()) {
+            // ถ้าเปิดผ่าน browser ปกติ (ไม่ใช่ใน LINE) จะส่งแชทไม่ได้
+            return;
+          }
+
+          const isCheckIn = type === 'checkin';
+          const title = isCheckIn ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ';
+          const colorBar = isCheckIn ? '#1abc9c' : '#16a085';
+
+          const timeText = isCheckIn
+            ? stop.checkInTime || ''
+            : stop.checkOutTime || '';
+
+          const bubble = {
+            type: 'bubble',
+            size: 'mega',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              paddingAll: '16px',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  contents: [
+                    { type: 'filler' },
+                    {
+                      type: 'box',
+                      layout: 'vertical',
+                      contents: [],
+                      width: '8px',
+                      backgroundColor: colorBar,
+                      cornerRadius: '999px',
+                      height: '40px',
+                    },
+                  ],
+                },
+                {
+                  type: 'text',
+                  text: title,
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#16a085',
+                  margin: 'md',
+                },
+                {
+                  type: 'text',
+                  text: 'Reference: ' + (stop.referenceNo || '-'),
+                  size: 'sm',
+                  color: '#555555',
+                  wrap: true,
+                  margin: 'sm',
+                },
+                {
+                  type: 'text',
+                  text: 'Shipment: ' + (stop.shipmentNo || '-'),
+                  size: 'sm',
+                  color: '#555555',
+                  wrap: true,
+                  margin: 'xs',
+                },
+                {
+                  type: 'separator',
+                  margin: 'md',
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  margin: 'md',
+                  spacing: 'sm',
+                  contents: [
+                    {
+                      type: 'text',
+                      text:
+                        stop.destination2 ||
+                        stop.destination1 ||
+                        'ปลายทาง',
+                      size: 'md',
+                      weight: 'bold',
+                      wrap: true,
+                    },
+                    {
+                      type: 'text',
+                      text: timeText ? 'เวลา: ' + timeText : '',
+                      size: 'sm',
+                      color: '#555555',
+                      wrap: true,
+                    },
+                    {
+                      type: 'text',
+                      text: 'สถานะล่าสุด: ' + (stop.status || '-'),
+                      size: 'sm',
+                      color: '#555555',
+                      wrap: true,
+                      margin: 'xs',
+                    },
+                  ],
+                },
+              ],
+            },
+            styles: {
+              body: {
+                backgroundColor: '#ffffff',
+              },
+            },
+          };
+
+          liff
+            .sendMessages([
+              {
+                type: 'flex',
+                altText: title,
+                contents: bubble,
+              },
+            ])
+            .catch(function (err) {
+              console.error('sendMessages error', err);
+            });
+        } catch (err) {
+          console.error('sendFlexCheckInOut error', err);
+        }
+      }
+
       /* ---------- LIFF Init ---------- */
 
       async function initLiff() {
@@ -430,7 +671,6 @@
           currentUserId = profile.userId;
           const statusEl = document.getElementById('status');
           statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
-
         } catch (err) {
           console.error(err);
           document.getElementById('status').innerText =
@@ -518,7 +758,7 @@
           shipmentSummary = shipmentNos.join(', ');
         }
 
-        const totalQtyAll = stops.reduce((acc, s) => {
+        const totalQtyAll = stops.reduce(function (acc, s) {
           if (typeof s.totalQty === 'number') return acc + s.totalQty;
           return acc;
         }, 0);
@@ -555,77 +795,81 @@
           return;
         }
 
-        stops.forEach((stop) => {
+        stops.forEach(function (stop) {
           const hasCheckIn = !!stop.checkInTime;
           const hasCheckOut = !!stop.checkOutTime;
 
-          let statusLabel = stop.status || '-';
+          const statusLabel = stop.status || '-';
 
-          // ปุ่ม Check-in / Check-out
           let btnHtml = '';
 
           if (!hasCheckIn) {
-            btnHtml += `
-              <button class="btn-small btn-outline"
-                onclick="updateStopStatus(${stop.rowIndex}, 'IN_PROGRESS', 'checkin', ${stop.seq})">
-                Check-in
-              </button>
-            `;
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ', \'IN_PROGRESS\', \'checkin\', ' +
+              stop.seq +
+              ')">Check-in</button>';
           }
 
           if (hasCheckIn && !hasCheckOut) {
-            btnHtml += `
-              <button class="btn-small"
-                onclick="updateStopStatus(${stop.rowIndex}, 'DONE', 'checkout', ${stop.seq})">
-                Check-out
-              </button>
-            `;
+            btnHtml +=
+              '<button class="btn-small" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ', \'DONE\', \'checkout\', ' +
+              stop.seq +
+              ')">Check-out</button>';
           }
 
-          // materials summary (text)
           let materialsText = '';
           if (stop.materials && stop.materials.length > 0) {
-            const parts = stop.materials.map((m) => {
+            const parts = stop.materials.map(function (m) {
               const name = m.materialDesc || m.material || 'สินค้า';
               const qty = m.totalQty || 0;
-              return `${name} ${qty}`;
+              return name + ' ' + qty;
             });
             materialsText = parts.join(' • ');
           }
 
           const li = document.createElement('li');
           li.className = 'timeline-item';
-          li.innerHTML = `
-            <span class="timeline-marker"></span>
-            <div class="timeline-content">
-              <div class="timeline-header-row">
-                <div class="timeline-stop-label">
-                  Stop ${stop.seq} • ${stop.destination1 || '-'}
-                </div>
-                <div class="timeline-status">${statusLabel}</div>
-              </div>
-              <div class="timeline-sub">
-                ${stop.destination2 || ''}
-              </div>
-              <div class="timeline-sub">
-                <b>Shipment:</b> ${stop.shipmentNo || '-'}
-              </div>
-              <div class="timeline-sub">
-                <b>Check-in:</b> ${stop.checkInTime || '-'}
-              </div>
-              <div class="timeline-sub">
-                <b>Check-out:</b> ${stop.checkOutTime || '-'}
-              </div>
-              ${
-                materialsText
-                  ? `<div class="materials-text"><b>สินค้า:</b> ${materialsText}</div>`
-                  : ''
-              }
-              <div style="margin-top:6px;">
-                ${btnHtml}
-              </div>
-            </div>
-          `;
+          li.innerHTML =
+            '<span class="timeline-marker"></span>' +
+            '<div class="timeline-content">' +
+            '<div class="timeline-header-row">' +
+            '<div class="timeline-stop-label">' +
+            'Stop ' +
+            stop.seq +
+            ' • ' +
+            (stop.destination1 || '-') +
+            '</div>' +
+            '<div class="timeline-status">' +
+            statusLabel +
+            '</div>' +
+            '</div>' +
+            '<div class="timeline-sub">' +
+            (stop.destination2 || '') +
+            '</div>' +
+            '<div class="timeline-sub"><b>Shipment:</b> ' +
+            (stop.shipmentNo || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>Check-in:</b> ' +
+            (stop.checkInTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>Check-out:</b> ' +
+            (stop.checkOutTime || '-') +
+            '</div>' +
+            (materialsText
+              ? '<div class="materials-text"><b>สินค้า:</b> ' +
+                materialsText +
+                '</div>'
+              : '') +
+            '<div style="margin-top:6px;">' +
+            btnHtml +
+            '</div>' +
+            '</div>';
           ul.appendChild(li);
         });
 
@@ -635,14 +879,18 @@
       /* ---------- Geolocation & Update Stop ---------- */
 
       function getCurrentPositionAsync() {
-        return new Promise((resolve, reject) => {
+        return new Promise(function (resolve, reject) {
           if (!navigator.geolocation) {
             reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
             return;
           }
           navigator.geolocation.getCurrentPosition(
-            (pos) => resolve(pos),
-            (err) => reject(err),
+            function (pos) {
+              resolve(pos);
+            },
+            function (err) {
+              reject(err);
+            },
             { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
           );
         });
@@ -695,16 +943,16 @@
             return;
           }
 
-          // แจ้งเตือนสำเร็จ
           showSuccess('อัปเดตสำเร็จ', json.message || 'อัปเดตสถานะเรียบร้อย');
 
-          // ส่ง Flex Message เข้าแชท
           const stopInfo = json.stop || null;
           if (stopInfo) {
+            // การ์ดเด้งในหน้า LIFF
+            showInlineFlex(type, stopInfo);
+            // ส่ง Flex เข้าแชท (ถ้าอยู่ใน LINE)
             sendFlexCheckInOut(type, stopInfo);
           }
 
-          // refresh timeline ด้วย reference เดิม
           if (currentReference) {
             document.getElementById('keyword').value = currentReference;
             await search();
@@ -716,133 +964,9 @@
         }
       }
 
-      /* ---------- Flex Message เมื่อ Check-in / Check-out ---------- */
-
-      function sendFlexCheckInOut(type, stop) {
-        try {
-          if (!liff.isInClient()) {
-            // ใช้งานผ่าน browser ปกติ (ไม่ใช่ใน LINE) → ส่ง Flex ไม่ได้
-            return;
-          }
-
-          const isCheckIn = type === 'checkin';
-          const title = isCheckIn ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ';
-          const colorBar = isCheckIn ? '#1abc9c' : '#16a085';
-
-          const timeText = isCheckIn
-            ? stop.checkInTime || ''
-            : stop.checkOutTime || '';
-
-          const bubble = {
-            type: 'bubble',
-            size: 'mega',
-            body: {
-              type: 'box',
-              layout: 'vertical',
-              paddingAll: '16px',
-              contents: [
-                {
-                  type: 'box',
-                  layout: 'baseline',
-                  contents: [
-                    {
-                      type: 'filler',
-                    },
-                    {
-                      type: 'box',
-                      layout: 'vertical',
-                      contents: [],
-                      width: '8px',
-                      backgroundColor: colorBar,
-                      cornerRadius: '999px',
-                      height: '40px',
-                    },
-                  ],
-                },
-                {
-                  type: 'text',
-                  text: title,
-                  weight: 'bold',
-                  size: 'lg',
-                  color: '#16a085',
-                  margin: 'md',
-                },
-                {
-                  type: 'text',
-                  text: `Reference: ${stop.referenceNo || '-'}`,
-                  size: 'sm',
-                  color: '#555555',
-                  wrap: true,
-                  margin: 'sm',
-                },
-                {
-                  type: 'text',
-                  text: `Shipment: ${stop.shipmentNo || '-'}`,
-                  size: 'sm',
-                  color: '#555555',
-                  wrap: true,
-                  margin: 'xs',
-                },
-                {
-                  type: 'separator',
-                  margin: 'md',
-                },
-                {
-                  type: 'box',
-                  layout: 'vertical',
-                  margin: 'md',
-                  spacing: 'sm',
-                  contents: [
-                    {
-                      type: 'text',
-                      text: stop.destination2 || stop.destination1 || 'ปลายทาง',
-                      size: 'md',
-                      weight: 'bold',
-                      wrap: true,
-                    },
-                    {
-                      type: 'text',
-                      text: timeText ? `เวลา: ${timeText}` : '',
-                      size: 'sm',
-                      color: '#555555',
-                      wrap: true,
-                    },
-                    {
-                      type: 'text',
-                      text: `สถานะล่าสุด: ${stop.status || '-'}`,
-                      size: 'sm',
-                      color: '#555555',
-                      wrap: true,
-                      margin: 'xs',
-                    },
-                  ],
-                },
-              ],
-            },
-            styles: {
-              body: {
-                backgroundColor: '#ffffff',
-              },
-            },
-          };
-
-          liff.sendMessages([
-            {
-              type: 'flex',
-              altText: title,
-              contents: bubble,
-            },
-          ]).catch((err) => {
-            console.error('sendMessages error', err);
-          });
-        } catch (err) {
-          console.error('sendFlexCheckInOut error', err);
-        }
-      }
-
       /* ---------- Event Binding ---------- */
 
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', function () {
         initLiff();
 
         document
@@ -851,14 +975,13 @@
 
         document
           .getElementById('keyword')
-          .addEventListener('keyup', (e) => {
+          .addEventListener('keyup', function (e) {
             if (e.key === 'Enter') {
               search();
             }
           });
       });
 
-      // export ให้เรียกจาก onclick ได้
       window.updateStopStatus = updateStopStatus;
       window.search = search;
     </script>
