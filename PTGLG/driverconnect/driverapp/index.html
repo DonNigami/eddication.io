@@ -462,7 +462,7 @@
     <script>
       const LIFF_ID = '2007705394-NGJXjBkn';
       const WEB_APP_URL =
-        'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec'; // แก้เป็น URL ของ Web App จริง
+        'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec';
 
       let currentUserId = '';
       let currentReference = '';
@@ -538,13 +538,18 @@
         else if (type === 'review') timeText = stop.reviewedTime || '';
         else if (type === 'checkout') timeText = stop.checkOutTime || '';
 
+        const odoText =
+          type === 'checkin' && stop.checkInOdo
+            ? ` • เลขไมล์: ${stop.checkInOdo}`
+            : '';
+
         titleEl.textContent = title;
         mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${
           stop.shipmentNo || '-'
         }`;
         subEl.textContent = `${
           stop.destination2 || stop.destination1 || 'ปลายทาง'
-        }${timeText ? ' • เวลา: ' + timeText : ''}`;
+        }${timeText ? ' • เวลา: ' + timeText : ''}${odoText}`;
 
         container.classList.remove('hide', 'hidden');
         void container.offsetWidth;
@@ -852,11 +857,12 @@
 
           // Flow: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out
           if (!hasCheckIn) {
+            // ใช้ startCheckin เพื่อ popup ขอเลขไมล์
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
-              'onclick="updateStopStatus(' +
+              'onclick="startCheckin(' +
               stop.rowIndex +
-              ', \'CHECKIN\', \'checkin\', ' +
+              ', ' +
               stop.seq +
               ')">Check-in</button>';
           } else if (!hasFuel) {
@@ -864,7 +870,7 @@
               '<button class="btn-small btn-warning" ' +
               'onclick="updateStopStatus(' +
               stop.rowIndex +
-              ', \'FUELING\', \'fuel\', ' +
+              ", 'FUELING', 'fuel', " +
               stop.seq +
               ')">ลงน้ำมัน</button>';
           } else if (!hasUnloadDone) {
@@ -872,7 +878,7 @@
               '<button class="btn-small btn-outline" ' +
               'onclick="updateStopStatus(' +
               stop.rowIndex +
-              ', \'UNLOAD_DONE\', \'unload\', ' +
+              ", 'UNLOAD_DONE', 'unload', " +
               stop.seq +
               ')">ลงเสร็จ</button>';
           } else if (!hasReviewed) {
@@ -880,7 +886,7 @@
               '<button class="btn-small btn-outline" ' +
               'onclick="updateStopStatus(' +
               stop.rowIndex +
-              ', \'REVIEWED\', \'review\', ' +
+              ", 'REVIEWED', 'review', " +
               stop.seq +
               ')">ประเมิน</button>';
           } else if (!hasCheckOut) {
@@ -888,7 +894,7 @@
               '<button class="btn-small" ' +
               'onclick="updateStopStatus(' +
               stop.rowIndex +
-              ', \'CHECKOUT\', \'checkout\', ' +
+              ", 'CHECKOUT', 'checkout', " +
               stop.seq +
               ')">Check-out</button>';
           }
@@ -905,6 +911,16 @@
               parts.join('<br>') +
               '</div>';
           }
+
+          const distanceText =
+            stop.distanceKm !== undefined && stop.distanceKm !== null && stop.distanceKm !== ''
+              ? stop.distanceKm
+              : '-';
+
+          const odoText =
+            stop.checkInOdo !== undefined && stop.checkInOdo !== null && stop.checkInOdo !== ''
+              ? stop.checkInOdo
+              : '-';
 
           const li = document.createElement('li');
           li.className = 'timeline-item';
@@ -928,8 +944,14 @@
             '<div class="timeline-sub"><b>Shipment:</b> ' +
             (stop.shipmentNo || '-') +
             '</div>' +
+            '<div class="timeline-sub"><b>Distance (ระบบ):</b> ' +
+            distanceText +
+            '</div>' +
             '<div class="timeline-sub"><b>Check-in:</b> ' +
             (stop.checkInTime || '-') +
+            '</div>' +
+            '<div class="timeline-sub"><b>เลขไมล์ Check-in:</b> ' +
+            odoText +
             '</div>' +
             '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
             (stop.fuelingTime || '-') +
@@ -978,7 +1000,35 @@
         });
       }
 
-      async function updateStopStatus(rowIndex, newStatus, type, seq) {
+      // wrapper ใช้เฉพาะตอน Check-in → ขอเลขไมล์
+      async function startCheckin(rowIndex, seq) {
+        const { value: odo } = await Swal.fire({
+          icon: 'question',
+          title: 'กรอกเลขไมล์รถ',
+          text: 'โปรดกรอกเลขไมล์รถ ณ เวลาที่ Check-in',
+          input: 'text',
+          inputPlaceholder: 'เช่น 123456',
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          inputValidator: (value) => {
+            if (!value) {
+              return 'กรุณากรอกเลขไมล์รถ';
+            }
+            return null;
+          },
+        });
+
+        if (!odo) {
+          // กดยกเลิก หรือไม่กรอก
+          return;
+        }
+
+        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+      }
+
+      async function updateStopStatus(rowIndex, newStatus, type, seq, odo) {
         try {
           showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
 
@@ -999,7 +1049,7 @@
 
           showLoading('กำลังอัปเดตสถานะจุดส่ง...');
 
-          const url =
+          let url =
             WEB_APP_URL +
             '?action=updatestop' +
             '&rowIndex=' +
@@ -1014,6 +1064,10 @@
             encodeURIComponent(lat) +
             '&lng=' +
             encodeURIComponent(lng);
+
+          if (type === 'checkin') {
+            url += '&odo=' + encodeURIComponent(odo || '');
+          }
 
           const res = await fetch(url);
           const json = await res.json();
@@ -1089,7 +1143,7 @@
 
           if (json.stop) {
             showInlineFlex('closejob', json.stop);
-            // ไม่ส่ง liff.sendMessage ตอนปิดงาน ตาม requirement เดิม (ส่งเฉพาะ checkin/checkout)
+            // ไม่ส่ง liff.sendMessage ตอนปิดงาน ตาม requirement เดิม
           }
 
           if (currentReference) {
@@ -1128,6 +1182,7 @@
       window.updateStopStatus = updateStopStatus;
       window.search = search;
       window.closeJob = closeJob;
+      window.startCheckin = startCheckin;
     </script>
   </body>
 </html>
