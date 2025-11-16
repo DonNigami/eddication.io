@@ -4,108 +4,418 @@
     <base target="_top" />
     <meta charset="UTF-8" />
     <title>Driver Tracking</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <style>
+      :root {
+        --primary: #1abc9c;
+        --primary-dark: #16a085;
+        --bg: #f4f8f7;
+        --text-main: #222;
+        --text-sub: #666;
+        --card-bg: #ffffff;
+        --border-radius: 14px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
       body {
-        font-family: sans-serif;
-        padding: 16px;
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+        background: var(--bg);
+        color: var(--text-main);
       }
+
+      .app-shell {
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        padding: 12px;
+      }
+
       .container {
-        max-width: 480px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: 520px;
       }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        padding: 16px 18px 20px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+
+      .title {
+        font-size: 1.2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(26, 188, 156, 0.1);
+        color: var(--primary-dark);
+      }
+
+      .status-text {
+        font-size: 0.9rem;
+        color: var(--text-sub);
+        margin-bottom: 10px;
+      }
+
+      .field-group {
+        margin-bottom: 10px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.8rem;
+        color: var(--text-sub);
+        margin-bottom: 4px;
+      }
+
       input[type='text'] {
         width: 100%;
-        padding: 8px;
-        box-sizing: border-box;
-        margin-bottom: 8px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #dce2e0;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+        background: #f7faf9;
       }
+
+      input[type='text']:focus {
+        border-color: var(--primary);
+        background: #ffffff;
+        box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.18);
+      }
+
       button {
         width: 100%;
-        padding: 10px;
-        margin-bottom: 16px;
+        padding: 11px 12px;
+        border-radius: 999px;
+        border: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #ffffff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+          opacity 0.15s;
       }
-      .error {
-        color: red;
-        margin-bottom: 8px;
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(22, 160, 133, 0.28);
       }
+
+      button:active {
+        transform: translateY(0);
+        box-shadow: none;
+        opacity: 0.9;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .btn-small {
+        width: auto;
+        padding: 6px 11px;
+        font-size: 0.82rem;
+        border-radius: 999px;
+        margin: 4px 6px 0 0;
+      }
+
+      .btn-outline {
+        background: #ffffff;
+        color: var(--primary-dark);
+        border: 1px solid rgba(26, 188, 156, 0.35);
+        box-shadow: none;
+      }
+
+      .btn-outline:hover {
+        background: rgba(26, 188, 156, 0.06);
+      }
+
       .summary-card {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 16px;
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #f7faf9;
+        border: 1px solid #e3ebe8;
+        font-size: 0.88rem;
       }
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+      }
+
+      .summary-label {
+        color: var(--text-sub);
+      }
+
+      .summary-value {
+        font-weight: 600;
+      }
+
+      .timeline-container {
+        margin-top: 14px;
+      }
+
+      .timeline-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
       .timeline {
         position: relative;
         margin: 0;
-        padding: 0 0 0 20px;
+        padding: 4px 0 0 20px;
         list-style: none;
       }
+
       .timeline::before {
         content: '';
         position: absolute;
-        left: 8px;
+        left: 9px;
         top: 0;
         bottom: 0;
         width: 2px;
-        background: #ccc;
+        background: linear-gradient(
+          to bottom,
+          rgba(26, 188, 156, 0.6),
+          rgba(26, 188, 156, 0.1)
+        );
       }
+
       .timeline-item {
         position: relative;
-        margin-bottom: 16px;
-        padding-left: 8px;
+        margin-bottom: 14px;
       }
+
       .timeline-marker {
         position: absolute;
-        left: -2px;
-        top: 4px;
+        left: -1px;
+        top: 6px;
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        background: #fff;
-        border: 2px solid #4caf50;
+        background: #ffffff;
+        border: 2px solid var(--primary);
+        box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.15);
       }
+
       .timeline-content {
-        margin-left: 12px;
-        background: #f9f9f9;
-        border-radius: 6px;
+        margin-left: 14px;
+        background: #ffffff;
+        border-radius: 12px;
         padding: 8px 10px;
+        border: 1px solid #e4ece9;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
       }
-      .timeline-title {
-        font-weight: bold;
+
+      .timeline-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
         margin-bottom: 4px;
       }
-      .timeline-sub {
-        font-size: 0.9em;
-        color: #555;
+
+      .timeline-stop-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--primary-dark);
       }
-      .btn-small {
+
+      .timeline-status {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(22, 160, 133, 0.06);
+        color: var(--primary-dark);
+      }
+
+      .timeline-sub {
+        font-size: 0.85rem;
+        color: var(--text-sub);
+        margin-bottom: 2px;
+      }
+
+      .pill {
         display: inline-block;
-        padding: 6px 10px;
-        margin: 4px 4px 0 0;
-        font-size: 0.85em;
+        margin-top: 4px;
+        padding: 3px 7px;
+        font-size: 0.75rem;
+        border-radius: 999px;
+        background: rgba(26, 188, 156, 0.08);
+        color: var(--primary-dark);
+      }
+
+      .materials-text {
+        font-size: 0.8rem;
+        color: #444;
+        margin-top: 4px;
+      }
+
+      .footer-note {
+        margin-top: 8px;
+        font-size: 0.78rem;
+        color: var(--text-sub);
+        text-align: center;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      @media (max-width: 480px) {
+        .card {
+          padding: 14px 14px 18px;
+        }
+        .title {
+          font-size: 1.05rem;
+        }
+        button {
+          font-size: 0.9rem;
+        }
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <h2>รับงาน / Tracking</h2>
-      <div id="status"></div>
+    <div class="app-shell">
+      <div class="container">
+        <div class="card">
+          <div class="header">
+            <div class="title">
+              🚚 Driver Tracking
+              <span class="badge">Online</span>
+            </div>
+          </div>
 
-      <label for="keyword">เลขรับงาน (Shipment / Reference)</label>
-      <input id="keyword" type="text" placeholder="กรอกเลขรับงาน" />
-      <button id="btnSearch">ค้นหา</button>
+          <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
 
-      <div id="message" class="error"></div>
-      <div id="result"></div>
+          <div class="field-group">
+            <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
+            <input
+              id="keyword"
+              type="text"
+              placeholder="กรอกเลข Reference เช่น 2511S15403"
+            />
+          </div>
+
+          <button id="btnSearch">
+            <span>ค้นหา / ดึงงาน</span>
+          </button>
+
+          <!-- summary -->
+          <div id="summary" class="summary-card hidden"></div>
+
+          <!-- timeline -->
+          <div id="timelineContainer" class="timeline-container hidden">
+            <div class="timeline-title">
+              เส้นทางส่งสินค้า
+              <span style="font-size:0.8rem;color:var(--text-sub);">
+                (เรียงตามลำดับจุดส่ง)
+              </span>
+            </div>
+            <ul id="timeline" class="timeline"></ul>
+          </div>
+
+          <div class="footer-note">
+            เมื่อ Check-in / Check-out สำเร็จ ระบบจะส่ง Flex Message เข้าแชทให้ด้วย
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
       // TODO: แก้ให้ตรงของจริง
       const LIFF_ID = '2007705394-NGJXjBkn';
-      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec'; // appscript
-
+      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec'; 
       let currentUserId = '';
+      let currentReference = '';
+      let lastStops = []; // เก็บ stops จากการค้นหาล่าสุด เพื่อใช้ตอนส่ง Flex
+
+      /* ---------- SweetAlert Helpers ---------- */
+
+      function showLoading(message) {
+        Swal.fire({
+          title: message || 'กำลังประมวลผล...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+      }
+
+      function closeLoading() {
+        Swal.close();
+      }
+
+      function showError(message) {
+        Swal.fire({
+          icon: 'error',
+          title: 'เกิดข้อผิดพลาด',
+          text: message || 'โปรดลองใหม่อีกครั้ง',
+          confirmButtonColor: '#1abc9c',
+        });
+      }
+
+      function showSuccess(title, text) {
+        Swal.fire({
+          icon: 'success',
+          title: title || 'สำเร็จ',
+          text: text || '',
+          confirmButtonColor: '#1abc9c',
+        });
+      }
+
+      function showInfo(title, text) {
+        Swal.fire({
+          icon: 'info',
+          title: title || 'แจ้งเตือน',
+          text: text || '',
+          confirmButtonColor: '#1abc9c',
+        });
+      }
+
+      /* ---------- LIFF Init ---------- */
 
       async function initLiff() {
         try {
@@ -118,29 +428,31 @@
 
           const profile = await liff.getProfile();
           currentUserId = profile.userId;
-          document.getElementById('status').innerText =
-            'สวัสดีคุณ ' + profile.displayName;
+          const statusEl = document.getElementById('status');
+          statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
+
         } catch (err) {
           console.error(err);
           document.getElementById('status').innerText =
             'เกิดข้อผิดพลาดในการโหลด LIFF';
+          showError('ไม่สามารถโหลดข้อมูลจาก LIFF ได้');
         }
       }
 
-      async function search() {
-        const keyword = document.getElementById('keyword').value.trim();
-        const msgEl = document.getElementById('message');
-        const resultEl = document.getElementById('result');
+      /* ---------- Search Flow ---------- */
 
-        msgEl.textContent = '';
-        resultEl.innerHTML = '';
+      async function search() {
+        const keywordInput = document.getElementById('keyword');
+        const keyword = keywordInput.value.trim();
+        const btn = document.getElementById('btnSearch');
 
         if (!keyword) {
-          msgEl.textContent = 'กรุณาใส่เลขรับงาน';
+          showInfo('กรุณากรอกเลข Reference', 'กรุณาใส่เลขอ้างอิงงานก่อนค้นหา');
           return;
         }
 
-        msgEl.textContent = 'กำลังค้นหา...';
+        btn.disabled = true;
+        showLoading('กำลังค้นหางานจากระบบ...');
 
         try {
           const url =
@@ -153,104 +465,174 @@
           const res = await fetch(url);
           const json = await res.json();
 
+          closeLoading();
+
           if (!json.success) {
-            msgEl.textContent = json.message || 'ไม่พบข้อมูล';
+            clearResult();
+            showError(json.message || 'ไม่พบข้อมูลงาน');
             return;
           }
-
-          msgEl.textContent = '';
 
           const d = json.data;
           const stops = d.stops || [];
           const shipmentNos = d.shipmentNos || [];
 
-          let shipmentSummary = '-';
-          if (shipmentNos.length === 1) {
-            shipmentSummary = shipmentNos[0];
-          } else if (shipmentNos.length > 1) {
-            shipmentSummary = shipmentNos.join(', ');
+          lastStops = stops;
+          currentReference = d.referenceNo || keyword;
+
+          renderSummary(d);
+          renderTimeline(stops);
+
+          if (stops.length === 0) {
+            showInfo(
+              'ไม่พบจุดส่ง',
+              'Reference นี้ไม่มีข้อมูลจุดส่งในระบบ jobdata ครับ'
+            );
           }
-
-          let html = '';
-
-          html += `
-            <div class="summary-card">
-              <div><b>Reference:</b> ${d.referenceNo || '-'}</div>
-              <div><b>Shipment(s):</b> ${shipmentSummary}</div>
-              <div><b>จำนวนจุดส่ง:</b> ${d.totalStops || stops.length} จุด</div>
-            </div>
-          `;
-
-          if (stops.length > 0) {
-            html += `<ul class="timeline">`;
-
-            stops.forEach((stop) => {
-              const hasCheckIn = !!stop.checkInTime;
-              const hasCheckOut = !!stop.checkOutTime;
-
-              let btnHtml = '';
-
-              // stop.destination1 = shipToCode (ZS026)
-              // stop.destination2 = shipToName (PTC-STA-เมืองเพชรบูรณ์)
-              if (!hasCheckIn) {
-                btnHtml += `
-                  <button class="btn-small"
-                    onclick="updateStopStatus(${stop.rowIndex}, 'IN_PROGRESS', 'checkin')">
-                    เช็คอิน
-                  </button>
-                `;
-              }
-
-              if (hasCheckIn && !hasCheckOut) {
-                btnHtml += `
-                  <button class="btn-small"
-                    onclick="updateStopStatus(${stop.rowIndex}, 'DONE', 'checkout')">
-                    ส่งสำเร็จ
-                  </button>
-                `;
-              }
-
-              html += `
-                <li class="timeline-item">
-                  <span class="timeline-marker"></span>
-                  <div class="timeline-content">
-                    <div class="timeline-title">
-                      Stop ${stop.seq} – Shipment: ${stop.shipmentNo || '-'}
-                    </div>
-                    <div class="timeline-sub">
-                      <b>รหัสสถานี:</b> ${stop.destination1 || '-'}
-                    </div>
-                    ${
-                      stop.destination2
-                        ? `<div class="timeline-sub"><b>ชื่อสถานี:</b> ${stop.destination2}</div>`
-                        : ''
-                    }
-                    <div class="timeline-sub">
-                      <b>สถานะ:</b> ${stop.status || '-'}
-                    </div>
-                    <div class="timeline-sub">
-                      <b>เช็คอิน:</b> ${stop.checkInTime || '-'}
-                    </div>
-                    <div class="timeline-sub">
-                      <b>เช็คเอาต์:</b> ${stop.checkOutTime || '-'}
-                    </div>
-                    <div style="margin-top:4px;">
-                      ${btnHtml}
-                    </div>
-                  </div>
-                </li>
-              `;
-            });
-
-            html += `</ul>`;
-          }
-
-          resultEl.innerHTML = html;
         } catch (err) {
           console.error(err);
-          msgEl.textContent = 'เกิดข้อผิดพลาดในการค้นหา';
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+        } finally {
+          btn.disabled = false;
         }
       }
+
+      function clearResult() {
+        document.getElementById('summary').classList.add('hidden');
+        document.getElementById('timelineContainer').classList.add('hidden');
+        document.getElementById('summary').innerHTML = '';
+        document.getElementById('timeline').innerHTML = '';
+        lastStops = [];
+      }
+
+      function renderSummary(d) {
+        const summaryEl = document.getElementById('summary');
+        const stops = d.stops || [];
+        const shipmentNos = d.shipmentNos || [];
+
+        let shipmentSummary = '-';
+        if (shipmentNos.length === 1) {
+          shipmentSummary = shipmentNos[0];
+        } else if (shipmentNos.length > 1) {
+          shipmentSummary = shipmentNos.join(', ');
+        }
+
+        const totalQtyAll = stops.reduce((acc, s) => {
+          if (typeof s.totalQty === 'number') return acc + s.totalQty;
+          return acc;
+        }, 0);
+
+        summaryEl.innerHTML = `
+          <div class="summary-row">
+            <span class="summary-label">Reference</span>
+            <span class="summary-value">${d.referenceNo || '-'}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Shipment</span>
+            <span class="summary-value">${shipmentSummary}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">จำนวนจุดส่ง</span>
+            <span class="summary-value">${d.totalStops || stops.length} จุด</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">ปริมาณรวมโดยประมาณ</span>
+            <span class="summary-value">${totalQtyAll || 0}</span>
+          </div>
+        `;
+
+        summaryEl.classList.remove('hidden');
+      }
+
+      function renderTimeline(stops) {
+        const container = document.getElementById('timelineContainer');
+        const ul = document.getElementById('timeline');
+        ul.innerHTML = '';
+
+        if (!stops || stops.length === 0) {
+          container.classList.add('hidden');
+          return;
+        }
+
+        stops.forEach((stop) => {
+          const hasCheckIn = !!stop.checkInTime;
+          const hasCheckOut = !!stop.checkOutTime;
+
+          let statusLabel = stop.status || '-';
+
+          // ปุ่ม Check-in / Check-out
+          let btnHtml = '';
+
+          if (!hasCheckIn) {
+            btnHtml += `
+              <button class="btn-small btn-outline"
+                onclick="updateStopStatus(${stop.rowIndex}, 'IN_PROGRESS', 'checkin', ${stop.seq})">
+                Check-in
+              </button>
+            `;
+          }
+
+          if (hasCheckIn && !hasCheckOut) {
+            btnHtml += `
+              <button class="btn-small"
+                onclick="updateStopStatus(${stop.rowIndex}, 'DONE', 'checkout', ${stop.seq})">
+                Check-out
+              </button>
+            `;
+          }
+
+          // materials summary (text)
+          let materialsText = '';
+          if (stop.materials && stop.materials.length > 0) {
+            const parts = stop.materials.map((m) => {
+              const name = m.materialDesc || m.material || 'สินค้า';
+              const qty = m.totalQty || 0;
+              return `${name} ${qty}`;
+            });
+            materialsText = parts.join(' • ');
+          }
+
+          const li = document.createElement('li');
+          li.className = 'timeline-item';
+          li.innerHTML = `
+            <span class="timeline-marker"></span>
+            <div class="timeline-content">
+              <div class="timeline-header-row">
+                <div class="timeline-stop-label">
+                  Stop ${stop.seq} • ${stop.destination1 || '-'}
+                </div>
+                <div class="timeline-status">${statusLabel}</div>
+              </div>
+              <div class="timeline-sub">
+                ${stop.destination2 || ''}
+              </div>
+              <div class="timeline-sub">
+                <b>Shipment:</b> ${stop.shipmentNo || '-'}
+              </div>
+              <div class="timeline-sub">
+                <b>Check-in:</b> ${stop.checkInTime || '-'}
+              </div>
+              <div class="timeline-sub">
+                <b>Check-out:</b> ${stop.checkOutTime || '-'}
+              </div>
+              ${
+                materialsText
+                  ? `<div class="materials-text"><b>สินค้า:</b> ${materialsText}</div>`
+                  : ''
+              }
+              <div style="margin-top:6px;">
+                ${btnHtml}
+              </div>
+            </div>
+          `;
+          ul.appendChild(li);
+        });
+
+        container.classList.remove('hidden');
+      }
+
+      /* ---------- Geolocation & Update Stop ---------- */
 
       function getCurrentPositionAsync() {
         return new Promise((resolve, reject) => {
@@ -266,26 +648,27 @@
         });
       }
 
-      async function updateStopStatus(rowIndex, newStatus, type) {
-        const msgEl = document.getElementById('message');
-        msgEl.textContent = 'กำลังอ่านพิกัดจากอุปกรณ์...';
-
-        let pos;
+      async function updateStopStatus(rowIndex, newStatus, type, seq) {
         try {
-          pos = await getCurrentPositionAsync();
-        } catch (err) {
-          console.error(err);
-          msgEl.textContent =
-            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง';
-          return;
-        }
+          showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
 
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
+          let pos;
+          try {
+            pos = await getCurrentPositionAsync();
+          } catch (err) {
+            console.error(err);
+            closeLoading();
+            showError(
+              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+            );
+            return;
+          }
 
-        msgEl.textContent = 'กำลังอัปเดตสถานะ...';
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
 
-        try {
+          showLoading('กำลังอัปเดตสถานะจุดส่ง...');
+
           const url =
             WEB_APP_URL +
             '?action=updatestop' +
@@ -305,27 +688,175 @@
           const res = await fetch(url);
           const json = await res.json();
 
+          closeLoading();
+
           if (!json.success) {
-            msgEl.textContent = json.message || 'อัปเดตสถานะไม่สำเร็จ';
+            showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
             return;
           }
 
-          msgEl.textContent = 'อัปเดตสำเร็จ ✔️';
+          // แจ้งเตือนสำเร็จ
+          showSuccess('อัปเดตสำเร็จ', json.message || 'อัปเดตสถานะเรียบร้อย');
 
-          const keyword = document.getElementById('keyword').value.trim();
-          if (keyword) {
+          // ส่ง Flex Message เข้าแชท
+          const stopInfo = json.stop || null;
+          if (stopInfo) {
+            sendFlexCheckInOut(type, stopInfo);
+          }
+
+          // refresh timeline ด้วย reference เดิม
+          if (currentReference) {
+            document.getElementById('keyword').value = currentReference;
             await search();
           }
         } catch (err) {
           console.error(err);
-          msgEl.textContent = 'เกิดข้อผิดพลาดในการอัปเดตสถานะ';
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
         }
       }
 
-      document
-        .getElementById('btnSearch')
-        .addEventListener('click', search);
-      document.addEventListener('DOMContentLoaded', initLiff);
+      /* ---------- Flex Message เมื่อ Check-in / Check-out ---------- */
+
+      function sendFlexCheckInOut(type, stop) {
+        try {
+          if (!liff.isInClient()) {
+            // ใช้งานผ่าน browser ปกติ (ไม่ใช่ใน LINE) → ส่ง Flex ไม่ได้
+            return;
+          }
+
+          const isCheckIn = type === 'checkin';
+          const title = isCheckIn ? 'Check-in สำเร็จ' : 'Check-out สำเร็จ';
+          const colorBar = isCheckIn ? '#1abc9c' : '#16a085';
+
+          const timeText = isCheckIn
+            ? stop.checkInTime || ''
+            : stop.checkOutTime || '';
+
+          const bubble = {
+            type: 'bubble',
+            size: 'mega',
+            body: {
+              type: 'box',
+              layout: 'vertical',
+              paddingAll: '16px',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'baseline',
+                  contents: [
+                    {
+                      type: 'filler',
+                    },
+                    {
+                      type: 'box',
+                      layout: 'vertical',
+                      contents: [],
+                      width: '8px',
+                      backgroundColor: colorBar,
+                      cornerRadius: '999px',
+                      height: '40px',
+                    },
+                  ],
+                },
+                {
+                  type: 'text',
+                  text: title,
+                  weight: 'bold',
+                  size: 'lg',
+                  color: '#16a085',
+                  margin: 'md',
+                },
+                {
+                  type: 'text',
+                  text: `Reference: ${stop.referenceNo || '-'}`,
+                  size: 'sm',
+                  color: '#555555',
+                  wrap: true,
+                  margin: 'sm',
+                },
+                {
+                  type: 'text',
+                  text: `Shipment: ${stop.shipmentNo || '-'}`,
+                  size: 'sm',
+                  color: '#555555',
+                  wrap: true,
+                  margin: 'xs',
+                },
+                {
+                  type: 'separator',
+                  margin: 'md',
+                },
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  margin: 'md',
+                  spacing: 'sm',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: stop.destination2 || stop.destination1 || 'ปลายทาง',
+                      size: 'md',
+                      weight: 'bold',
+                      wrap: true,
+                    },
+                    {
+                      type: 'text',
+                      text: timeText ? `เวลา: ${timeText}` : '',
+                      size: 'sm',
+                      color: '#555555',
+                      wrap: true,
+                    },
+                    {
+                      type: 'text',
+                      text: `สถานะล่าสุด: ${stop.status || '-'}`,
+                      size: 'sm',
+                      color: '#555555',
+                      wrap: true,
+                      margin: 'xs',
+                    },
+                  ],
+                },
+              ],
+            },
+            styles: {
+              body: {
+                backgroundColor: '#ffffff',
+              },
+            },
+          };
+
+          liff.sendMessages([
+            {
+              type: 'flex',
+              altText: title,
+              contents: bubble,
+            },
+          ]).catch((err) => {
+            console.error('sendMessages error', err);
+          });
+        } catch (err) {
+          console.error('sendFlexCheckInOut error', err);
+        }
+      }
+
+      /* ---------- Event Binding ---------- */
+
+      document.addEventListener('DOMContentLoaded', () => {
+        initLiff();
+
+        document
+          .getElementById('btnSearch')
+          .addEventListener('click', search);
+
+        document
+          .getElementById('keyword')
+          .addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+              search();
+            }
+          });
+      });
 
       // export ให้เรียกจาก onclick ได้
       window.updateStopStatus = updateStopStatus;
