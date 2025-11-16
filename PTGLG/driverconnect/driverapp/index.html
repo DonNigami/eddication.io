@@ -393,7 +393,7 @@
     </style>
   </head>
   <body>
-    <!-- การ์ดแจ้งเตือนแบบ Flex หล่นลงมา (ในหน้า LIFF เอง) -->
+    <!-- การ์ดแจ้งเตือนแบบ Flex หล่นลงมา -->
     <div id="inlineFlex" class="inline-flex hidden">
       <div class="inline-flex-bar"></div>
       <div class="inline-flex-title" id="inlineFlexTitle"></div>
@@ -476,7 +476,7 @@
       let lastStops = [];
       let inlineFlexTimer = null;
 
-      // ใหม่: ตัวแปรสำหรับ alcohol check + job closed
+      // alcohol check state
       let currentDrivers = [];
       let currentCheckedDrivers = [];
       let alcoholAllDone = false;
@@ -777,7 +777,7 @@
           lastStops = stops;
           currentReference = d.referenceNo || keyword;
 
-          // ดึงข้อมูล alcohol + jobClosed จาก backend
+          // alcohol + jobClosed จาก backend
           currentDrivers =
             (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
             [];
@@ -786,7 +786,6 @@
               Array.isArray(d.alcohol.checkedDrivers) &&
               d.alcohol.checkedDrivers) ||
             [];
-          // dedupe
           currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
           alcoholAllDone =
             currentDrivers.length > 0 &&
@@ -875,7 +874,7 @@
         let html = `
           <div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
           <div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:6px;">
-            เลือกชื่อคนขับที่กำลังตรวจ หรือแสดงว่าตรวจแล้ว
+            บันทึกผลแอลกอฮอล์ (ตัวเลข) พร้อมถ่ายรูปหลักฐาน ระบบจะบันทึกพิกัดและเวลาปัจจุบันให้
           </div>
         `;
 
@@ -894,7 +893,7 @@
               <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${name}</span>
                 <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
-                  เป่าแอลกอฮอล์
+                  บันทึกผลแอลกอฮอล์
                 </button>
               </div>
             `;
@@ -923,38 +922,117 @@
         container.classList.remove('hidden');
       }
 
+      // helper: File → base64 (ไม่รวม prefix data:image)
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result || '';
+            const base64 = result.toString().split(',')[1] || '';
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
       async function doAlcoholCheck(driverName) {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
           return;
         }
 
-        const confirmResult = await Swal.fire({
-          icon: 'question',
-          title: 'ยืนยันการเป่าแอลกอฮอล์?',
-          text: `ยืนยันว่าคุณกำลังบันทึกการตรวจของ "${driverName}"`,
+        // Dialog: กรอกค่า + เลือกรูป
+        const { value: formValues } = await Swal.fire({
+          title: 'บันทึกผลแอลกอฮอล์',
+          html: `
+            <div style="text-align:left;">
+              <label style="font-size:0.8rem;color:#555;">ชื่อคนขับ</label>
+              <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${driverName}</div>
+
+              <label style="font-size:0.8rem;color:#555;">ปริมาณแอลกอฮอล์ (มก./ลิตรลมหายใจ)</label>
+              <input id="swalAlcoholValue" type="number" min="0" step="0.01"
+                class="swal2-input" placeholder="เช่น 0.00"
+                style="width:100%;margin:4px 0 10px;">
+
+              <label style="font-size:0.8rem;color:#555;">ถ่ายรูปหลักฐาน</label>
+              <input id="swalAlcoholImage" type="file" accept="image/*" capture="environment"
+                style="margin-top:4px;font-size:0.8rem;">
+            </div>
+          `,
+          focusConfirm: false,
           showCancelButton: true,
-          confirmButtonText: 'ยืนยัน',
+          confirmButtonText: 'บันทึกผล',
           cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const val = document
+              .getElementById('swalAlcoholValue')
+              .value.trim();
+            const file = document.getElementById('swalAlcoholImage').files[0];
+
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
+              return false;
+            }
+            if (isNaN(parseFloat(val))) {
+              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
+              return false;
+            }
+            if (!file) {
+              Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
+              return false;
+            }
+
+            return { alcoholValue: val, file: file };
+          },
         });
 
-        if (!confirmResult.isConfirmed) return;
+        if (!formValues) {
+          // กดยกเลิก
+          return;
+        }
+
+        const { alcoholValue, file } = formValues;
 
         try {
+          showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
+
+          let pos;
+          try {
+            pos = await getCurrentPositionAsync();
+          } catch (err) {
+            console.error(err);
+            closeLoading();
+            showError(
+              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+            );
+            return;
+          }
+
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          const base64 = await fileToBase64(file);
+
           showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
 
-          const url =
-            WEB_APP_URL +
-            '?action=alcoholcheck' +
-            '&reference=' +
-            encodeURIComponent(currentReference) +
-            '&driverName=' +
-            encodeURIComponent(driverName) +
-            '&userId=' +
-            encodeURIComponent(currentUserId);
+          const payload = {
+            action: 'uploadAlcohol',
+            reference: currentReference,
+            driverName: driverName,
+            userId: currentUserId,
+            alcoholValue: alcoholValue,
+            lat: lat,
+            lng: lng,
+            imageBase64: base64,
+          };
 
-          const res = await fetch(url);
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
           const json = await res.json();
 
           closeLoading();
@@ -964,11 +1042,11 @@
             return;
           }
 
-          currentCheckedDrivers =
-            (json.checkedDrivers && Array.isArray(json.checkedDrivers)
-              ? json.checkedDrivers
-              : currentCheckedDrivers.concat([driverName]));
-          currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
+          if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
+            currentCheckedDrivers = [...new Set(json.checkedDrivers)];
+          } else {
+            currentCheckedDrivers = [...new Set(currentCheckedDrivers.concat([driverName]))];
+          }
 
           renderAlcoholSection();
           showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
@@ -1012,7 +1090,6 @@
 
           // Flow: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out
           if (!hasCheckIn) {
-            // ต้องตรวจแอลกอฮอล์ครบก่อนถึงจะเริ่ม Check-in ได้
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
               'onclick="startCheckin(' +
@@ -1358,11 +1435,13 @@
           .addEventListener('click', closeJob);
       });
 
+      // expose functions
       window.updateStopStatus = updateStopStatus;
       window.search = search;
       window.closeJob = closeJob;
       window.startCheckin = startCheckin;
       window.doAlcoholCheck = doAlcoholCheck;
+      window.getCurrentPositionAsync = getCurrentPositionAsync;
     </script>
   </body>
 </html>
