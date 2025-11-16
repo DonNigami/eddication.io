@@ -1237,48 +1237,59 @@ const json = await res.json();
         });
       }
 
-      // wrapper ใช้เฉพาะตอน Check-in → ขอเลขไมล์ + เช็ค alcohol
-      async function startCheckin(rowIndex, seq) {
-        // ถ้ามี driver และยังตรวจแอลกอฮอล์ไม่ครบ → ห้ามเริ่มงาน
-        if (
-          currentDrivers.length > 0 &&
-          !(
-            currentDrivers.length > 0 &&
-            currentDrivers.every((n) => currentCheckedDrivers.includes(n))
-          )
-        ) {
-          showInfo(
-            'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
-            'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
-          );
-          return;
-        }
+// wrapper ใช้เฉพาะตอน Check-in → ขอเลขไมล์ + เช็ค alcohol
+async function startCheckin(rowIndex, seq) {
+  // ถ้ามี driver และยังตรวจแอลกอฮอล์ไม่ครบ → ห้ามเริ่มงาน
+  if (
+    currentDrivers.length > 0 &&
+    !(
+      currentDrivers.length > 0 &&
+      currentDrivers.every((n) => currentCheckedDrivers.includes(n))
+    )
+  ) {
+    showInfo(
+      'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
+      'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
+    );
+    return;
+  }
 
-        const { value: odo } = await Swal.fire({
-          icon: 'question',
-          title: 'กรอกเลขไมล์รถ',
-          text: 'โปรดกรอกเลขไมล์รถ ณ เวลาที่ Check-in',
-          input: 'text',
-          inputPlaceholder: 'เช่น 123456',
-          showCancelButton: true,
-          confirmButtonText: 'ยืนยัน Check-in',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-          inputValidator: (value) => {
-            if (!value) {
-              return 'กรุณากรอกเลขไมล์รถ';
-            }
-            return null;
-          },
-        });
-
-        if (!odo) {
-          // กดยกเลิก หรือไม่กรอก
-          return;
-        }
-
-        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+  const { value: formValues } = await Swal.fire({
+    icon: 'question',
+    title: 'กรอกเลขไมล์รถ',
+    html: `
+      <div style="text-align:left;">
+        <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+        <input id="swalOdoInput" type="number" inputmode="numeric"
+          class="swal2-input"
+          placeholder="เช่น 123456"
+          style="width:100%;margin:6px 0 4px;">
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยัน Check-in',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#1abc9c',
+    preConfirm: () => {
+      const val = document.getElementById('swalOdoInput').value.trim();
+      if (!val) {
+        Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+        return false;
       }
+      return { odo: val };
+    },
+  });
+
+  if (!formValues) {
+    // กดยกเลิก
+    return;
+  }
+
+  const { odo } = formValues;
+  await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+}
+
 
       async function updateStopStatus(rowIndex, newStatus, type, seq, odo) {
         try {
