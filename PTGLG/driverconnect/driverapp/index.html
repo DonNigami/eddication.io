@@ -1278,24 +1278,45 @@ async function startReview(rowIndex, seq) {
           return;
         }
 
-        let allCheckout = true;
+      let allCheckout = true;
 
-        stops.forEach(function (stop) {
-          const hasCheckIn = !!stop.checkInTime;
-          const hasFuel = !!stop.fuelingTime;
-          const hasUnloadDone = !!stop.unloadDoneTime;
-          const hasReviewed = !!stop.reviewedTime;
-          const hasCheckOut = !!stop.checkOutTime;
+      stops.forEach(function (stop) {
+        const hasCheckIn = !!stop.checkInTime;
+        const hasFuel = !!stop.fuelingTime;
+        const hasUnloadDone = !!stop.unloadDoneTime;
+        const hasReviewed = !!stop.reviewedTime;
+        const hasCheckOut = !!stop.checkOutTime;
+        const isOrigin = !!stop.isOriginStop;   // 👈 ดู flag จาก backend
 
-          if (!hasCheckOut) {
-            allCheckout = false;
+        if (!hasCheckOut) {
+          allCheckout = false;
+        }
+
+        const statusLabel = stop.status || '-';
+
+        let btnHtml = '';
+
+        if (isOrigin) {
+          // ---------- Flow ต้นทาง: Check-in → Check-out ----------
+          if (!hasCheckIn) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="startCheckin(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-in</button>';
+          } else if (!hasCheckOut) {
+            btnHtml +=
+              '<button class="btn-small" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'CHECKOUT', 'checkout', " +
+              stop.seq +
+              ')">Check-out</button>';
           }
-
-          const statusLabel = stop.status || '-';
-
-          let btnHtml = '';
-
-          // Flow: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out
+        } else {
+          // ---------- Flow ปลายทาง: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out ----------
           if (!hasCheckIn) {
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
@@ -1328,7 +1349,7 @@ async function startReview(rowIndex, seq) {
               ', ' +
               stop.seq +
               ')">ประเมิน</button>';
-          }else if (!hasCheckOut) {
+          } else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
               'onclick="updateStopStatus(' +
@@ -1337,6 +1358,7 @@ async function startReview(rowIndex, seq) {
               stop.seq +
               ')">Check-out</button>';
           }
+        }
 
           let materialsBlock = '';
           if (stop.materials && stop.materials.length > 0) {
