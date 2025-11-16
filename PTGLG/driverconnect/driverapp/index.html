@@ -462,7 +462,7 @@
     <script>
       const LIFF_ID = '2007705394-NGJXjBkn';
       const WEB_APP_URL =
-        'https://script.google.com/macros/s/AKfycbwSoRXLK1AlFluo7Yk28pDs5myqpjxlR6yJ_E3-RB4rw5NGVMmAm5g9jItQrBvfw3Fu/exec';
+        'YOUR_WEB_APP_URL_HERE'; // แก้เป็น URL ของ Web App จริง
 
       let currentUserId = '';
       let currentReference = '';
@@ -523,7 +523,7 @@
         const labelMap = {
           checkin: 'Check-in สำเร็จ',
           fuel: 'ลงน้ำมันสำเร็จ',
-          unload: 'ลงของเสร็จ',
+          unload: 'ลงเสร็จสำเร็จ',
           review: 'ประเมินสำเร็จ',
           checkout: 'Check-out สำเร็จ',
           closejob: 'ปิดงานสำเร็จ',
@@ -562,7 +562,7 @@
         }, 4000);
       }
 
-      /* ---------- Flex Message ส่งเข้าแชทเมื่อ Check-in / Check-out ---------- */
+      /* ---------- Flex Message (ส่งเข้าแชท เฉพาะ Checkin / Checkout ตาม requirement เดิม) ---------- */
 
       function sendFlexCheckInOut(type, stop) {
         try {
@@ -570,24 +570,21 @@
             return;
           }
 
+          if (type !== 'checkin' && type !== 'checkout') {
+            // requirement เดิม: ส่งเฉพาะ checkin / checkout
+            return;
+          }
+
           const labelMap = {
             checkin: 'Check-in สำเร็จ',
             checkout: 'Check-out สำเร็จ',
-            fuel: 'ลงน้ำมันสำเร็จ',
-            unload: 'ลงของเสร็จ',
-            review: 'ประเมินสำเร็จ',
-            closejob: 'ปิดงานสำเร็จ',
           };
 
           const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
-          const colorBar =
-            type === 'checkout' || type === 'closejob' ? '#16a085' : '#1abc9c';
+          const colorBar = type === 'checkout' ? '#16a085' : '#1abc9c';
 
           let timeText = '';
           if (type === 'checkin') timeText = stop.checkInTime || '';
-          else if (type === 'fuel') timeText = stop.fuelingTime || '';
-          else if (type === 'unload') timeText = stop.unloadDoneTime || '';
-          else if (type === 'review') timeText = stop.reviewedTime || '';
           else if (type === 'checkout') timeText = stop.checkOutTime || '';
 
           const bubble = {
@@ -853,7 +850,7 @@
 
           let btnHtml = '';
 
-          // ลำดับปุ่ม
+          // Flow: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out
           if (!hasCheckIn) {
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
@@ -954,7 +951,6 @@
           ul.appendChild(li);
         });
 
-        // ถ้าทุก stop check-out แล้ว → โชว์ปุ่มปิดงาน
         if (stops.length > 0 && allCheckout) {
           closeJobContainer.classList.remove('hidden');
         }
@@ -1056,7 +1052,7 @@
           return;
         }
 
-        const confirm = await Swal.fire({
+        const confirmResult = await Swal.fire({
           icon: 'question',
           title: 'ยืนยันปิดงาน?',
           text: 'เมื่อปิดงานแล้ว ระบบจะอัพเดตสถานะว่ารถพร้อมใช้งาน',
@@ -1066,7 +1062,7 @@
           confirmButtonColor: '#1abc9c',
         });
 
-        if (!confirm.isConfirmed) return;
+        if (!confirmResult.isConfirmed) return;
 
         try {
           showLoading('กำลังปิดงาน...');
@@ -1092,12 +1088,10 @@
           showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
 
           if (json.stop) {
-            // ถ้า backend ส่ง stop ใด ๆ กลับมา
             showInlineFlex('closejob', json.stop);
-            sendFlexCheckInOut('closejob', json.stop);
+            // ไม่ส่ง liff.sendMessage ตอนปิดงาน ตาม requirement เดิม (ส่งเฉพาะ checkin/checkout)
           }
 
-          // reload ข้อมูล
           if (currentReference) {
             document.getElementById('keyword').value = currentReference;
             await search();
