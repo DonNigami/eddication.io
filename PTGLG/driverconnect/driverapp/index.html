@@ -429,6 +429,13 @@
           <!-- summary -->
           <div id="summary" class="summary-card hidden"></div>
 
+          <!-- Alcohol check -->
+          <div
+            id="alcoholContainer"
+            class="summary-card hidden"
+            style="margin-top:10px;"
+          ></div>
+
           <!-- timeline -->
           <div id="timelineContainer" class="timeline-container hidden">
             <div class="timeline-title">
@@ -468,6 +475,12 @@
       let currentReference = '';
       let lastStops = [];
       let inlineFlexTimer = null;
+
+      // ใหม่: ตัวแปรสำหรับ alcohol check + job closed
+      let currentDrivers = [];
+      let currentCheckedDrivers = [];
+      let alcoholAllDone = false;
+      let jobClosed = false;
 
       /* ---------- SweetAlert Helpers ---------- */
 
@@ -567,7 +580,7 @@
         }, 4000);
       }
 
-      /* ---------- Flex Message (ส่งเข้าแชท เฉพาะ Checkin / Checkout ตาม requirement เดิม) ---------- */
+      /* ---------- Flex Message (Checkin / Checkout) ---------- */
 
       function sendFlexCheckInOut(type, stop) {
         try {
@@ -576,7 +589,6 @@
           }
 
           if (type !== 'checkin' && type !== 'checkout') {
-            // requirement เดิม: ส่งเฉพาะ checkin / checkout
             return;
           }
 
@@ -765,7 +777,25 @@
           lastStops = stops;
           currentReference = d.referenceNo || keyword;
 
+          // ดึงข้อมูล alcohol + jobClosed จาก backend
+          currentDrivers =
+            (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
+            [];
+          currentCheckedDrivers =
+            (d.alcohol &&
+              Array.isArray(d.alcohol.checkedDrivers) &&
+              d.alcohol.checkedDrivers) ||
+            [];
+          // dedupe
+          currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
+          alcoholAllDone =
+            currentDrivers.length > 0 &&
+            currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+
+          jobClosed = !!d.jobClosed;
+
           renderSummary(d);
+          renderAlcoholSection();
           renderTimeline(stops);
         } catch (err) {
           console.error(err);
@@ -782,7 +812,13 @@
         document.getElementById('summary').innerHTML = '';
         document.getElementById('timeline').innerHTML = '';
         document.getElementById('closeJobContainer').classList.add('hidden');
+        document.getElementById('alcoholContainer').classList.add('hidden');
+        document.getElementById('alcoholContainer').innerHTML = '';
         lastStops = [];
+        currentDrivers = [];
+        currentCheckedDrivers = [];
+        alcoholAllDone = false;
+        jobClosed = false;
       }
 
       function renderSummary(d) {
@@ -824,6 +860,125 @@
         summaryEl.classList.remove('hidden');
       }
 
+      /* ---------- Alcohol Check Section ---------- */
+
+      function renderAlcoholSection() {
+        const container = document.getElementById('alcoholContainer');
+        if (!container) return;
+
+        if (!currentDrivers || currentDrivers.length === 0) {
+          container.classList.add('hidden');
+          container.innerHTML = '';
+          return;
+        }
+
+        let html = `
+          <div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
+          <div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:6px;">
+            เลือกชื่อคนขับที่กำลังตรวจ หรือแสดงว่าตรวจแล้ว
+          </div>
+        `;
+
+        currentDrivers.forEach((name) => {
+          const checked = currentCheckedDrivers.includes(name);
+          if (checked) {
+            html += `
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${name}</span>
+                <button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>
+              </div>
+            `;
+          } else {
+            const safeName = name.replace(/'/g, "\\'");
+            html += `
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${name}</span>
+                <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
+                  เป่าแอลกอฮอล์
+                </button>
+              </div>
+            `;
+          }
+        });
+
+        alcoholAllDone =
+          currentDrivers.length > 0 &&
+          currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+
+        if (alcoholAllDone) {
+          html += `
+            <div style="margin-top:4px;font-size:0.78rem;color:var(--primary-dark);">
+              ✅ ตรวจแอลกอฮอล์ครบทุกคนแล้ว สามารถเริ่มงานได้
+            </div>
+          `;
+        } else {
+          html += `
+            <div style="margin-top:4px;font-size:0.78rem;color:#c0392b;">
+              ⚠️ ยังตรวจแอลกอฮอล์ไม่ครบทุกคน
+            </div>
+          `;
+        }
+
+        container.innerHTML = html;
+        container.classList.remove('hidden');
+      }
+
+      async function doAlcoholCheck(driverName) {
+        if (!currentReference) {
+          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+          return;
+        }
+
+        const confirmResult = await Swal.fire({
+          icon: 'question',
+          title: 'ยืนยันการเป่าแอลกอฮอล์?',
+          text: `ยืนยันว่าคุณกำลังบันทึกการตรวจของ "${driverName}"`,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+        });
+
+        if (!confirmResult.isConfirmed) return;
+
+        try {
+          showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
+
+          const url =
+            WEB_APP_URL +
+            '?action=alcoholcheck' +
+            '&reference=' +
+            encodeURIComponent(currentReference) +
+            '&driverName=' +
+            encodeURIComponent(driverName) +
+            '&userId=' +
+            encodeURIComponent(currentUserId);
+
+          const res = await fetch(url);
+          const json = await res.json();
+
+          closeLoading();
+
+          if (!json.success) {
+            showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
+            return;
+          }
+
+          currentCheckedDrivers =
+            (json.checkedDrivers && Array.isArray(json.checkedDrivers)
+              ? json.checkedDrivers
+              : currentCheckedDrivers.concat([driverName]));
+          currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
+
+          renderAlcoholSection();
+          showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
+        }
+      }
+
       /* ---------- Timeline + ปุ่มแต่ละสเต็ป ---------- */
 
       function renderTimeline(stops) {
@@ -857,7 +1012,7 @@
 
           // Flow: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out
           if (!hasCheckIn) {
-            // ใช้ startCheckin เพื่อ popup ขอเลขไมล์
+            // ต้องตรวจแอลกอฮอล์ครบก่อนถึงจะเริ่ม Check-in ได้
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
               'onclick="startCheckin(' +
@@ -973,8 +1128,12 @@
           ul.appendChild(li);
         });
 
-        if (stops.length > 0 && allCheckout) {
+        if (stops.length > 0 && allCheckout && !jobClosed) {
+          // แสดงปุ่มปิดงานเฉพาะเมื่อ Check-out ครบ + ยังไม่ได้ปิดงานไปแล้ว
           closeJobContainer.classList.remove('hidden');
+          document.getElementById('btnCloseJob').disabled = false;
+        } else {
+          closeJobContainer.classList.add('hidden');
         }
 
         container.classList.remove('hidden');
@@ -1000,8 +1159,23 @@
         });
       }
 
-      // wrapper ใช้เฉพาะตอน Check-in → ขอเลขไมล์
+      // wrapper ใช้เฉพาะตอน Check-in → ขอเลขไมล์ + เช็ค alcohol
       async function startCheckin(rowIndex, seq) {
+        // ถ้ามี driver และยังตรวจแอลกอฮอล์ไม่ครบ → ห้ามเริ่มงาน
+        if (
+          currentDrivers.length > 0 &&
+          !(
+            currentDrivers.length > 0 &&
+            currentDrivers.every((n) => currentCheckedDrivers.includes(n))
+          )
+        ) {
+          showInfo(
+            'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
+            'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
+          );
+          return;
+        }
+
         const { value: odo } = await Swal.fire({
           icon: 'question',
           title: 'กรอกเลขไมล์รถ',
@@ -1141,9 +1315,14 @@
 
           showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
 
+          jobClosed = true;
+          const closeContainer = document.getElementById('closeJobContainer');
+          const closeBtn = document.getElementById('btnCloseJob');
+          if (closeBtn) closeBtn.disabled = true;
+          if (closeContainer) closeContainer.classList.add('hidden');
+
           if (json.stop) {
             showInlineFlex('closejob', json.stop);
-            // ไม่ส่ง liff.sendMessage ตอนปิดงาน ตาม requirement เดิม
           }
 
           if (currentReference) {
@@ -1183,6 +1362,7 @@
       window.search = search;
       window.closeJob = closeJob;
       window.startCheckin = startCheckin;
+      window.doAlcoholCheck = doAlcoholCheck;
     </script>
   </body>
 </html>
