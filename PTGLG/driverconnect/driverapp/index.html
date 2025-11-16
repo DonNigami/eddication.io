@@ -1017,23 +1017,24 @@
 
           showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
 
-          const payload = {
-            action: 'uploadAlcohol',
-            reference: currentReference,
-            driverName: driverName,
-            userId: currentUserId,
-            alcoholValue: alcoholValue,
-            lat: lat,
-            lng: lng,
-            imageBase64: base64,
-          };
+// ใช้ URLSearchParams แทน JSON เพื่อเลี่ยง CORS / preflight
+const formData = new URLSearchParams();
+formData.append('action', 'uploadAlcohol');
+formData.append('reference', currentReference);
+formData.append('driverName', driverName);
+formData.append('userId', currentUserId);
+formData.append('alcoholValue', alcoholValue);
+formData.append('lat', String(lat));
+formData.append('lng', String(lng));
+formData.append('imageBase64', base64);
 
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          const json = await res.json();
+const res = await fetch(WEB_APP_URL, {
+  method: 'POST',
+  body: formData, // ไม่มี headers → browser จะใส่ให้เป็น x-www-form-urlencoded
+});
+
+const json = await res.json();
+
 
           closeLoading();
 
