@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<head>
+  <title>กำลังเข้าสู่แบบฟอร์มการลงทะเบียน</title>
+  <style>
+    .centerScreen {
+      margin-top: 20;
+      margin-right: auto;
+      margin-bottom: 20;
+      margin-left: auto;
+    }
+  </style>
+</head>
+
+<body style="background-color: PaleGreen;">
+  <div class="centerScreen">
+    <center>
+      <img src="https://asv-ptgenergy-backoffice-api-prod.azurewebsites.net/images/annual01.png" height="300px" ,
+        width="300px" />
+      <h1>
+        กำลังเข้าสู่ หน้าลงทะเบียน กรุณารอซักครู่
+      </h1>
+    </center>
+  </div>
+</body>
+<footer>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+
+    const liffId = "xxx";  //เปลี่ยนเป็น liffId ของที่สร้าง
+
+    liff.ready
+      .then(() => {
+        if (liff.isLoggedIn()) {
+          return liff.getProfile();
+        } else {
+          liff.login({
+            redirectUri: "https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverapp/register.html", //เปลี่ยนเป็น URL ที่สร้างไว้
+          });
+        }
+      })
+      .then((profile) => {
+        window.location.replace(
+          `https://docs.google.com/forms/d/e/1FAIpQLScHOfOY1pJqJbeioD1KqABrLfmPxlPMHDZ3D-UUmsCrU8qXMg/viewform?usp=pp_url&entry.1956481178=${profile.userId}
+`
+        );
+      });
+
+    liff.init(
+      {
+        liffId: liffId,
+      },
+      () => { },
+      (err) => {
+        window.alert(err);
+      }
+    );
+
+
+
+  </script>
+</footer>
