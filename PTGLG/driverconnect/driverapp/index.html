@@ -1117,12 +1117,12 @@ const json = await res.json();
           } else if (!hasReviewed) {
             btnHtml +=
               '<button class="btn-small btn-outline" ' +
-              'onclick="updateStopStatus(' +
+              'onclick="startReview(' +
               stop.rowIndex +
-              ", 'REVIEWED', 'review', " +
+              ', ' +
               stop.seq +
               ')">ประเมิน</button>';
-          } else if (!hasCheckOut) {
+          }else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
               'onclick="updateStopStatus(' +
