@@ -150,8 +150,8 @@
 
       .btn-small {
         width: auto;
-        padding: 10px 16px;          /* เดิมเล็กกว่านี้ */
-        font-size: 0.95rem;          /* ตัวใหญ่ขึ้น */
+        padding: 10px 16px;
+        font-size: 0.95rem;
         border-radius: 999px;
         margin: 4px 6px 0 0;
       }
@@ -304,7 +304,6 @@
         display: none;
       }
 
-      /* Inline "Flex-style" notification */
       .inline-flex {
         position: fixed;
         top: 10px;
@@ -393,7 +392,6 @@
     </style>
   </head>
   <body>
-    <!-- การ์ดแจ้งเตือนแบบ Flex หล่นลงมา -->
     <div id="inlineFlex" class="inline-flex hidden">
       <div class="inline-flex-bar"></div>
       <div class="inline-flex-title" id="inlineFlexTitle"></div>
@@ -426,17 +424,14 @@
             <span>ค้นหา / ดึงงาน</span>
           </button>
 
-          <!-- summary -->
           <div id="summary" class="summary-card hidden"></div>
 
-          <!-- Alcohol check -->
           <div
             id="alcoholContainer"
             class="summary-card hidden"
             style="margin-top:10px;"
           ></div>
 
-          <!-- timeline -->
           <div id="timelineContainer" class="timeline-container hidden">
             <div class="timeline-title">
               เส้นทางส่งสินค้า
@@ -446,7 +441,6 @@
             </div>
             <ul id="timeline" class="timeline"></ul>
 
-            <!-- ปุ่มปิดงาน -->
             <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
               <button
                 id="btnCloseJob"
@@ -476,13 +470,10 @@
       let lastStops = [];
       let inlineFlexTimer = null;
 
-      // alcohol check state
       let currentDrivers = [];
       let currentCheckedDrivers = [];
       let alcoholAllDone = false;
       let jobClosed = false;
-
-      /* ---------- SweetAlert Helpers ---------- */
 
       function showLoading(message) {
         Swal.fire({
@@ -524,8 +515,6 @@
           confirmButtonColor: '#1abc9c',
         });
       }
-
-      /* ---------- Inline Flex-style Notification ---------- */
 
       function showInlineFlex(type, stop) {
         const container = document.getElementById('inlineFlex');
@@ -579,8 +568,6 @@
           }, 250);
         }, 4000);
       }
-
-      /* ---------- Flex Message (Checkin / Checkout) ---------- */
 
       function sendFlexCheckInOut(type, stop) {
         try {
@@ -714,8 +701,6 @@
         }
       }
 
-      /* ---------- LIFF Init ---------- */
-
       async function initLiff() {
         try {
           await liff.init({ liffId: LIFF_ID });
@@ -736,8 +721,6 @@
           showError('ไม่สามารถโหลดข้อมูลจาก LIFF ได้');
         }
       }
-
-      /* ---------- Search Flow ---------- */
 
       async function search() {
         const keywordInput = document.getElementById('keyword');
@@ -777,7 +760,6 @@
           lastStops = stops;
           currentReference = d.referenceNo || keyword;
 
-          // alcohol + jobClosed จาก backend
           currentDrivers =
             (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
             [];
@@ -859,8 +841,6 @@
         summaryEl.classList.remove('hidden');
       }
 
-      /* ---------- Alcohol Check Section ---------- */
-
       function renderAlcoholSection() {
         const container = document.getElementById('alcoholContainer');
         if (!container) return;
@@ -922,7 +902,6 @@
         container.classList.remove('hidden');
       }
 
-      // helper: File → base64 (ไม่รวม prefix data:image)
       function fileToBase64(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -942,7 +921,6 @@
           return;
         }
 
-        // Dialog: กรอกค่า + เลือกรูป
         const { value: formValues } = await Swal.fire({
           title: 'บันทึกผลแอลกอฮอล์',
           html: `
@@ -989,7 +967,6 @@
         });
 
         if (!formValues) {
-          // กดยกเลิก
           return;
         }
 
@@ -1017,24 +994,22 @@
 
           showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
 
-// ใช้ URLSearchParams แทน JSON เพื่อเลี่ยง CORS / preflight
-const formData = new URLSearchParams();
-formData.append('action', 'uploadAlcohol');
-formData.append('reference', currentReference);
-formData.append('driverName', driverName);
-formData.append('userId', currentUserId);
-formData.append('alcoholValue', alcoholValue);
-formData.append('lat', String(lat));
-formData.append('lng', String(lng));
-formData.append('imageBase64', base64);
+          const formData = new URLSearchParams();
+          formData.append('action', 'uploadAlcohol');
+          formData.append('reference', currentReference);
+          formData.append('driverName', driverName);
+          formData.append('userId', currentUserId);
+          formData.append('alcoholValue', alcoholValue);
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
+          formData.append('imageBase64', base64);
 
-const res = await fetch(WEB_APP_URL, {
-  method: 'POST',
-  body: formData, // ไม่มี headers → browser จะใส่ให้เป็น x-www-form-urlencoded
-});
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: formData,
+          });
 
-const json = await res.json();
-
+          const json = await res.json();
 
           closeLoading();
 
@@ -1046,7 +1021,9 @@ const json = await res.json();
           if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
             currentCheckedDrivers = [...new Set(json.checkedDrivers)];
           } else {
-            currentCheckedDrivers = [...new Set(currentCheckedDrivers.concat([driverName]))];
+            currentCheckedDrivers = [
+              ...new Set(currentCheckedDrivers.concat([driverName])),
+            ];
           }
 
           renderAlcoholSection();
@@ -1058,212 +1035,213 @@ const json = await res.json();
         }
       }
 
-      // ---------- helper สำหรับลายเซ็นใน SweetAlert ----------
-function initSwalSignaturePad(canvasId, clearBtnId) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
+      function initSwalSignaturePad(canvasId, clearBtnId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  let drawing = false;
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
 
-  const getPos = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    if (e.touches && e.touches.length > 0) {
-      return {
-        x: e.touches[0].clientX - rect.left,
-        y: e.touches[0].clientY - rect.top,
-      };
-    }
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-  };
+        const getPos = (e) => {
+          const rect = canvas.getBoundingClientRect();
+          if (e.touches && e.touches.length > 0) {
+            return {
+              x: e.touches[0].clientX - rect.left,
+              y: e.touches[0].clientY - rect.top,
+            };
+          }
+          return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+          };
+        };
 
-  const startDraw = (e) => {
-    e.preventDefault();
-    drawing = true;
-    const pos = getPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-  };
+        const startDraw = (e) => {
+          e.preventDefault();
+          drawing = true;
+          const pos = getPos(e);
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+        };
 
-  const draw = (e) => {
-    if (!drawing) return;
-    e.preventDefault();
-    const pos = getPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-  };
+        const draw = (e) => {
+          if (!drawing) return;
+          e.preventDefault();
+          const pos = getPos(e);
+          ctx.lineTo(pos.x, pos.y);
+          ctx.strokeStyle = '#111';
+          ctx.lineWidth = 2;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+        };
 
-  const endDraw = (e) => {
-    if (!drawing) return;
-    e.preventDefault();
-    drawing = false;
-  };
+        const endDraw = (e) => {
+          if (!drawing) return;
+          e.preventDefault();
+          drawing = false;
+        };
 
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', draw);
-  window.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', endDraw);
 
-  canvas.addEventListener('touchstart', startDraw, { passive: false });
-  canvas.addEventListener('touchmove', draw, { passive: false });
-  canvas.addEventListener('touchend', endDraw, { passive: false });
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', endDraw, { passive: false });
 
-  const clearBtn = document.getElementById(clearBtnId);
-  if (clearBtn) {
-    clearBtn.addEventListener('click', () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    });
-  }
-}
-
-// ---------- popup ประเมิน + เซ็น ----------
-async function startReview(rowIndex, seq) {
-  if (!currentReference) {
-    showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
-    return;
-  }
-
-  const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
-  const destName =
-    (stop && (stop.destination2 || stop.destination1)) || 'จุดส่ง';
-
-  const { value: formValues } = await Swal.fire({
-    title: 'ประเมินความพึงพอใจ',
-    html: `
-      <div style="text-align:left;">
-        <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
-          ปลายทาง: <b>${destName}</b>
-        </div>
-
-        <label style="font-size:0.8rem;color:#555;">ระดับความพึงพอใจ</label>
-        <div style="margin:4px 0 10px;font-size:0.85rem;">
-          <label style="margin-right:10px;">
-            <input type="radio" name="reviewScore" value="น้อย"> น้อย
-          </label>
-          <label style="margin-right:10px;">
-            <input type="radio" name="reviewScore" value="ปานกลาง"> ปานกลาง
-          </label>
-          <label>
-            <input type="radio" name="reviewScore" value="มาก"> มาก
-          </label>
-        </div>
-
-        <label style="font-size:0.8rem;color:#555;">ลายเซ็นผู้รับสินค้า</label>
-        <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-top:4px;">
-          <canvas id="signCanvas" width="280" height="160" style="width:100%;height:auto;background:#fafafa;border-radius:6px;"></canvas>
-          <button type="button" id="btnClearSign"
-            style="margin-top:4px;padding:4px 10px;border-radius:999px;border:1px solid #ccc;font-size:0.75rem;background:#fff;">
-            ล้างลายเซ็น
-          </button>
-        </div>
-      </div>
-    `,
-    didOpen: () => {
-      initSwalSignaturePad('signCanvas', 'btnClearSign');
-    },
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: 'บันทึกการประเมิน',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#1abc9c',
-    preConfirm: () => {
-      const radio = document.querySelector(
-        'input[name="reviewScore"]:checked'
-      );
-      if (!radio) {
-        Swal.showValidationMessage('กรุณาเลือกระดับความพึงพอใจ');
-        return false;
+        const clearBtn = document.getElementById(clearBtnId);
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+          });
+        }
       }
 
-      const canvas = document.getElementById('signCanvas');
-      let dataUrl = '';
-      if (canvas) {
-        dataUrl = canvas.toDataURL('image/png');
+      async function startReview(rowIndex, seq) {
+        if (!currentReference) {
+          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+          return;
+        }
+
+        const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+        const destName =
+          (stop && (stop.destination2 || stop.destination1)) || 'จุดส่ง';
+
+        const { value: formValues } = await Swal.fire({
+          title: 'ประเมินความพึงพอใจ',
+          html: `
+            <div style="text-align:left;">
+              <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
+                ปลายทาง: <b>${destName}</b>
+              </div>
+
+              <label style="font-size:0.8rem;color:#555;">ระดับความพึงพอใจ</label>
+              <div style="margin:4px 0 10px;font-size:0.85rem;">
+                <label style="margin-right:10px;">
+                  <input type="radio" name="reviewScore" value="น้อย"> น้อย
+                </label>
+                <label style="margin-right:10px;">
+                  <input type="radio" name="reviewScore" value="ปานกลาง"> ปานกลาง
+                </label>
+                <label>
+                  <input type="radio" name="reviewScore" value="มาก"> มาก
+                </label>
+              </div>
+
+              <label style="font-size:0.8rem;color:#555;">ลายเซ็นผู้รับสินค้า</label>
+              <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-top:4px;">
+                <canvas id="signCanvas" width="280" height="160" style="width:100%;height:auto;background:#fafafa;border-radius:6px;"></canvas>
+                <button type="button" id="btnClearSign"
+                  style="margin-top:4px;padding:4px 10px;border-radius:999px;border:1px solid #ccc;font-size:0.75rem;background:#fff;">
+                  ล้างลายเซ็น
+                </button>
+              </div>
+            </div>
+          `,
+          didOpen: () => {
+            initSwalSignaturePad('signCanvas', 'btnClearSign');
+          },
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'บันทึกการประเมิน',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const radio = document.querySelector(
+              'input[name="reviewScore"]:checked'
+            );
+            if (!radio) {
+              Swal.showValidationMessage('กรุณาเลือกระดับความพึงพอใจ');
+              return false;
+            }
+
+            const canvas = document.getElementById('signCanvas');
+            let dataUrl = '';
+            if (canvas) {
+              dataUrl = canvas.toDataURL('image/png');
+            }
+
+            return {
+              score: radio.value,
+              signatureDataUrl: dataUrl,
+            };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { score, signatureDataUrl } = formValues;
+
+        try {
+          showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
+
+          let pos;
+          try {
+            pos = await getCurrentPositionAsync();
+          } catch (err) {
+            console.error(err);
+            closeLoading();
+            showError(
+              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+            );
+            return;
+          }
+
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          showLoading('กำลังบันทึกการประเมิน...');
+
+          // แยก base64 ออกจาก dataURL (ถ้ามี)
+          let signatureBase64 = '';
+          if (signatureDataUrl && typeof signatureDataUrl === 'string') {
+            const parts = signatureDataUrl.split(',');
+            signatureBase64 = parts[1] || '';
+          }
+
+          // ส่งแบบ URLSearchParams เพื่อลดปัญหา CORS / preflight
+          const formData = new URLSearchParams();
+          formData.append('action', 'uploadReview');
+          formData.append('reference', currentReference);
+          formData.append('rowIndex', String(rowIndex));
+          formData.append('userId', currentUserId);
+          formData.append('score', score);
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
+          formData.append('signatureBase64', signatureBase64);
+
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: formData,
+          });
+          const json = await res.json();
+
+          closeLoading();
+
+          if (!json.success) {
+            showError(json.message || 'บันทึกการประเมินไม่สำเร็จ');
+            return;
+          }
+
+          showSuccess('บันทึกสำเร็จ', 'บันทึกการประเมินเรียบร้อยแล้ว');
+
+          if (json.stop) {
+            showInlineFlex('review', json.stop);
+          }
+
+          if (currentReference) {
+            document.getElementById('keyword').value = currentReference;
+            await search();
+          }
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการบันทึกการประเมิน');
+        }
       }
-
-      return {
-        score: radio.value,
-        signatureDataUrl: dataUrl,
-      };
-    },
-  });
-
-  if (!formValues) {
-    // กดยกเลิก
-    return;
-  }
-
-  const { score, signatureDataUrl } = formValues;
-
-  try {
-    showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
-
-    let pos;
-    try {
-      pos = await getCurrentPositionAsync();
-    } catch (err) {
-      console.error(err);
-      closeLoading();
-      showError(
-        'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-      );
-      return;
-    }
-
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-
-    showLoading('กำลังบันทึกการประเมิน...');
-
-    const payload = {
-      action: 'uploadReview',
-      reference: currentReference,
-      rowIndex: rowIndex,
-      userId: currentUserId,
-      score: score,
-      lat: lat,
-      lng: lng,
-      signatureBase64: signatureDataUrl,
-    };
-
-    const res = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    const json = await res.json();
-
-    closeLoading();
-
-    if (!json.success) {
-      showError(json.message || 'บันทึกการประเมินไม่สำเร็จ');
-      return;
-    }
-
-    showSuccess('บันทึกสำเร็จ', 'บันทึกการประเมินเรียบร้อยแล้ว');
-
-    if (json.stop) {
-      showInlineFlex('review', json.stop);
-    }
-
-    // refresh timeline
-    if (currentReference) {
-      document.getElementById('keyword').value = currentReference;
-      await search();
-    }
-  } catch (err) {
-    console.error(err);
-    closeLoading();
-    showError('เกิดข้อผิดพลาดในการบันทึกการประเมิน');
-  }
-}
-
-      /* ---------- Timeline + ปุ่มแต่ละสเต็ป ---------- */
 
       function renderTimeline(stops) {
         const container = document.getElementById('timelineContainer');
@@ -1277,87 +1255,85 @@ async function startReview(rowIndex, seq) {
           return;
         }
 
-      let allCheckout = true;
+        let allCheckout = true;
 
-      stops.forEach(function (stop) {
-        const hasCheckIn = !!stop.checkInTime;
-        const hasFuel = !!stop.fuelingTime;
-        const hasUnloadDone = !!stop.unloadDoneTime;
-        const hasReviewed = !!stop.reviewedTime;
-        const hasCheckOut = !!stop.checkOutTime;
-        const isOrigin = !!stop.isOriginStop;   // 👈 ดู flag จาก backend
+        stops.forEach(function (stop) {
+          const hasCheckIn = !!stop.checkInTime;
+          const hasFuel = !!stop.fuelingTime;
+          const hasUnloadDone = !!stop.unloadDoneTime;
+          const hasReviewed = !!stop.reviewedTime;
+          const hasCheckOut = !!stop.checkOutTime;
+          const isOrigin = !!stop.isOriginStop;
 
-        if (!hasCheckOut) {
-          allCheckout = false;
-        }
-
-        const statusLabel = stop.status || '-';
-
-        let btnHtml = '';
-
-        if (isOrigin) {
-          // ---------- Flow ต้นทาง: Check-in → Check-out ----------
-          if (!hasCheckIn) {
-            btnHtml +=
-              '<button class="btn-small btn-outline" ' +
-              'onclick="startCheckin(' +
-              stop.rowIndex +
-              ', ' +
-              stop.seq +
-              ')">Check-in</button>';
-          } else if (!hasCheckOut) {
-            btnHtml +=
-              '<button class="btn-small" ' +
-              'onclick="updateStopStatus(' +
-              stop.rowIndex +
-              ", 'CHECKOUT', 'checkout', " +
-              stop.seq +
-              ')">Check-out</button>';
+          if (!hasCheckOut) {
+            allCheckout = false;
           }
-        } else {
-          // ---------- Flow ปลายทาง: Check-in → ลงน้ำมัน → ลงเสร็จ → ประเมิน → Check-out ----------
-          if (!hasCheckIn) {
-            btnHtml +=
-              '<button class="btn-small btn-outline" ' +
-              'onclick="startCheckin(' +
-              stop.rowIndex +
-              ', ' +
-              stop.seq +
-              ')">Check-in</button>';
-          } else if (!hasFuel) {
-            btnHtml +=
-              '<button class="btn-small btn-warning" ' +
-              'onclick="updateStopStatus(' +
-              stop.rowIndex +
-              ", 'FUELING', 'fuel', " +
-              stop.seq +
-              ')">ลงน้ำมัน</button>';
-          } else if (!hasUnloadDone) {
-            btnHtml +=
-              '<button class="btn-small btn-outline" ' +
-              'onclick="updateStopStatus(' +
-              stop.rowIndex +
-              ", 'UNLOAD_DONE', 'unload', " +
-              stop.seq +
-              ')">ลงเสร็จ</button>';
-          } else if (!hasReviewed) {
-            btnHtml +=
-              '<button class="btn-small btn-outline" ' +
-              'onclick="startReview(' +
-              stop.rowIndex +
-              ', ' +
-              stop.seq +
-              ')">ประเมิน</button>';
-          } else if (!hasCheckOut) {
-            btnHtml +=
-              '<button class="btn-small" ' +
-              'onclick="updateStopStatus(' +
-              stop.rowIndex +
-              ", 'CHECKOUT', 'checkout', " +
-              stop.seq +
-              ')">Check-out</button>';
+
+          const statusLabel = stop.status || '-';
+
+          let btnHtml = '';
+
+          if (isOrigin) {
+            if (!hasCheckIn) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="startCheckin(' +
+                stop.rowIndex +
+                ', ' +
+                stop.seq +
+                ')">Check-in</button>';
+            } else if (!hasCheckOut) {
+              btnHtml +=
+                '<button class="btn-small" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'CHECKOUT', 'checkout', " +
+                stop.seq +
+                ')">Check-out</button>';
+            }
+          } else {
+            if (!hasCheckIn) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="startCheckin(' +
+                stop.rowIndex +
+                ', ' +
+                stop.seq +
+                ')">Check-in</button>';
+            } else if (!hasFuel) {
+              btnHtml +=
+                '<button class="btn-small btn-warning" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'FUELING', 'fuel', " +
+                stop.seq +
+                ')">ลงน้ำมัน</button>';
+            } else if (!hasUnloadDone) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'UNLOAD_DONE', 'unload', " +
+                stop.seq +
+                ')">ลงเสร็จ</button>';
+            } else if (!hasReviewed) {
+              btnHtml +=
+                '<button class="btn-small btn-outline" ' +
+                'onclick="startReview(' +
+                stop.rowIndex +
+                ', ' +
+                stop.seq +
+                ')">ประเมิน</button>';
+            } else if (!hasCheckOut) {
+              btnHtml +=
+                '<button class="btn-small" ' +
+                'onclick="updateStopStatus(' +
+                stop.rowIndex +
+                ", 'CHECKOUT', 'checkout', " +
+                stop.seq +
+                ')">Check-out</button>';
+            }
           }
-        }
 
           let materialsBlock = '';
           if (stop.materials && stop.materials.length > 0) {
@@ -1373,12 +1349,16 @@ async function startReview(rowIndex, seq) {
           }
 
           const distanceText =
-            stop.distanceKm !== undefined && stop.distanceKm !== null && stop.distanceKm !== ''
+            stop.distanceKm !== undefined &&
+            stop.distanceKm !== null &&
+            stop.distanceKm !== ''
               ? stop.distanceKm
               : '-';
 
           const odoText =
-            stop.checkInOdo !== undefined && stop.checkInOdo !== null && stop.checkInOdo !== ''
+            stop.checkInOdo !== undefined &&
+            stop.checkInOdo !== null &&
+            stop.checkInOdo !== ''
               ? stop.checkInOdo
               : '-';
 
@@ -1434,7 +1414,6 @@ async function startReview(rowIndex, seq) {
         });
 
         if (stops.length > 0 && allCheckout && !jobClosed) {
-          // แสดงปุ่มปิดงานเฉพาะเมื่อ Check-out ครบ + ยังไม่ได้ปิดงานไปแล้ว
           closeJobContainer.classList.remove('hidden');
           document.getElementById('btnCloseJob').disabled = false;
         } else {
@@ -1443,8 +1422,6 @@ async function startReview(rowIndex, seq) {
 
         container.classList.remove('hidden');
       }
-
-      /* ---------- Geolocation & Update Stop ---------- */
 
       function getCurrentPositionAsync() {
         return new Promise(function (resolve, reject) {
@@ -1464,59 +1441,55 @@ async function startReview(rowIndex, seq) {
         });
       }
 
-// wrapper ใช้เฉพาะตอน Check-in → ขอเลขไมล์ + เช็ค alcohol
-async function startCheckin(rowIndex, seq) {
-  // ถ้ามี driver และยังตรวจแอลกอฮอล์ไม่ครบ → ห้ามเริ่มงาน
-  if (
-    currentDrivers.length > 0 &&
-    !(
-      currentDrivers.length > 0 &&
-      currentDrivers.every((n) => currentCheckedDrivers.includes(n))
-    )
-  ) {
-    showInfo(
-      'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
-      'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
-    );
-    return;
-  }
+      async function startCheckin(rowIndex, seq) {
+        if (
+          currentDrivers.length > 0 &&
+          !(
+            currentDrivers.length > 0 &&
+            currentDrivers.every((n) => currentCheckedDrivers.includes(n))
+          )
+        ) {
+          showInfo(
+            'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
+            'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
+          );
+          return;
+        }
 
-  const { value: formValues } = await Swal.fire({
-    icon: 'question',
-    title: 'กรอกเลขไมล์รถ',
-    html: `
-      <div style="text-align:left;">
-        <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
-        <input id="swalOdoInput" type="number" inputmode="numeric"
-          class="swal2-input"
-          placeholder="เช่น 123456"
-          style="width:100%;margin:6px 0 4px;">
-      </div>
-    `,
-    focusConfirm: false,
-    showCancelButton: true,
-    confirmButtonText: 'ยืนยัน Check-in',
-    cancelButtonText: 'ยกเลิก',
-    confirmButtonColor: '#1abc9c',
-    preConfirm: () => {
-      const val = document.getElementById('swalOdoInput').value.trim();
-      if (!val) {
-        Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
-        return false;
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'กรอกเลขไมล์รถ',
+          html: `
+            <div style="text-align:left;">
+              <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+              <input id="swalOdoInput" type="number" inputmode="numeric"
+                class="swal2-input"
+                placeholder="เช่น 123456"
+                style="width:100%;margin:6px 0 4px;">
+            </div>
+          `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const val = document.getElementById('swalOdoInput').value.trim();
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
+            }
+            return { odo: val };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { odo } = formValues;
+        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
       }
-      return { odo: val };
-    },
-  });
-
-  if (!formValues) {
-    // กดยกเลิก
-    return;
-  }
-
-  const { odo } = formValues;
-  await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
-}
-
 
       async function updateStopStatus(rowIndex, newStatus, type, seq, odo) {
         try {
@@ -1588,8 +1561,6 @@ async function startCheckin(rowIndex, seq) {
         }
       }
 
-      /* ---------- ปิดงาน (รถพร้อมใช้งาน) ---------- */
-
       async function closeJob() {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
@@ -1652,8 +1623,6 @@ async function startCheckin(rowIndex, seq) {
         }
       }
 
-      /* ---------- Event Binding ---------- */
-
       document.addEventListener('DOMContentLoaded', function () {
         initLiff();
 
@@ -1674,7 +1643,6 @@ async function startCheckin(rowIndex, seq) {
           .addEventListener('click', closeJob);
       });
 
-      // expose functions
       window.updateStopStatus = updateStopStatus;
       window.search = search;
       window.closeJob = closeJob;
