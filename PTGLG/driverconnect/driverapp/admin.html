@@ -503,7 +503,7 @@
 </div>
 
 <script>
-  // 🔧 ใส่ LIFF ID จริงของโปรเจ็กต์นี้
+  // ✅ LIFF ID จริงของโปรเจ็กต์
   const LIFF_ID = '2007705394-Lq3mMYKA';
 
   let ADMIN_USER_ID = null;
@@ -571,7 +571,8 @@
 
   // -------- LIFF / Auth ---------
   async function initLiff() {
-    if (!LIFF_ID || LIFF_ID === '2007705394-Lq3mMYKA') {
+    // ✅ เช็คแค่ว่ามี LIFF_ID และไม่ใช่ placeholder
+    if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
       setAdminInfo('⚠️ กรุณาตั้งค่า LIFF_ID ใน admin.html ก่อนใช้งาน');
       setGlobalMessage('ยังไม่ได้ตั้งค่า LIFF ID', 'error');
       return;
@@ -581,6 +582,7 @@
       setLoading(true, 'กำลังเชื่อมต่อ LINE ...');
       await liff.init({ liffId: LIFF_ID });
 
+      // บังคับให้ Login ผ่าน LINE ก่อนใช้งานทุกครั้งที่ยังไม่ login
       if (!liff.isLoggedIn()) {
         liff.login();
         return;
@@ -621,7 +623,7 @@
 
   async function checkAdminPermission(userId) {
     if (!userId) {
-      setGlobalMessage('ไม่พบ userId จาก LINE', 'error');
+      setGlobalMessage('ไม่พบ userId จาก LINE กรุณา Login ใหม่', 'error');
       showAdminBadge(false);
       return;
     }
@@ -651,7 +653,8 @@
   // -------- Jobdata ---------
   async function loadJobdata() {
     if (!ADMIN_USER_ID) {
-      setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+      setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE หรือยังไม่โหลดโปรไฟล์จาก LIFF', 'error');
+      await initLiff();
       return;
     }
     setPanelMessage('jobMessage', '');
@@ -742,6 +745,7 @@
   async function onSaveJobStatus(btn) {
     if (!ADMIN_USER_ID) {
       setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+      await initLiff();
       return;
     }
     const rowIndex = btn.getAttribute('data-row');
@@ -784,6 +788,7 @@
   async function loadAlcohol() {
     if (!ADMIN_USER_ID) {
       setPanelMessage('alcMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+      await initLiff();
       return;
     }
     setPanelMessage('alcMessage', '');
@@ -858,6 +863,7 @@
   async function onSaveAlcohol(btn) {
     if (!ADMIN_USER_ID) {
       setPanelMessage('alcMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+      await initLiff();
       return;
     }
     const rowIndex = btn.getAttribute('data-row');
@@ -904,6 +910,7 @@
   async function loadUsers() {
     if (!ADMIN_USER_ID) {
       setPanelMessage('userMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+      await initLiff();
       return;
     }
     setPanelMessage('userMessage', '');
@@ -990,6 +997,7 @@
   async function onSaveUserStatus(btn) {
     if (!ADMIN_USER_ID) {
       setPanelMessage('userMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+      await initLiff();
       return;
     }
     const userId = btn.getAttribute('data-user');
@@ -1036,6 +1044,7 @@
     document.getElementById('btnLoadAlcohol').addEventListener('click', loadAlcohol);
     document.getElementById('btnLoadUsers').addEventListener('click', loadUsers);
 
+    // เรียก initLiff ทันทีที่เปิดหน้า เพื่อบังคับ login ถ้ายังไม่ login
     initLiff();
   });
 </script>
