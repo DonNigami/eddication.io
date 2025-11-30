@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Console - Driver Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- SweetAlert2 สำหรับ popup สวย ๆ (ใช้ได้ทั้ง http/https) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warning: #f97316;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      gap: 8px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    header h1 span.logo {
+      display: inline-flex;
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: white;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    header .subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .tab-button {
+      border: none;
+      background: transparent;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .tab-button.active {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+      margin-bottom: 18px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pill {
+      font-size: 0.7rem;
+      border-radius: 999px;
+      padding: 2px 8px;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .filters label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .filters .field {
+      min-width: 150px;
+      flex: 1;
+    }
+
+    .filters input,
+    .filters select {
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .filters input:focus,
+    .filters select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #ffffff;
+    }
+
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border-radius: 999px;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      background: #ffffff;
+    }
+
+    table thead {
+      background: #f9fafb;
+    }
+
+    table th,
+    table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    table th {
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    table tbody tr:nth-child(even) {
+      background: #f9fafb;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+    }
+
+    .badge-status-new {
+      background: #ecfeff;
+      color: #0369a1;
+    }
+
+    .badge-status-checkin {
+      background: #eef2ff;
+      color: #4f46e5;
+    }
+
+    .badge-status-checkout {
+      background: #ecfdf3;
+      color: #15803d;
+    }
+
+    .badge-status-reviewed {
+      background: #fefce8;
+      color: #854d0e;
+    }
+
+    .badge-status-jobdone {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .text-muted {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.72rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .status-pending {
+      background: #fef9c3;
+      color: #854d0e;
+    }
+
+    .status-approved {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-rejected {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .loading-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .loading-indicator span.dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--primary);
+      animation: pulse 1s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+      50% {
+        transform: scale(1.4);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 0.4;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        align-items: flex-start;
+      }
+
+      .filters {
+        flex-direction: column;
+      }
+
+      .toolbar-right {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <header>
+      <div>
+        <h1>
+          <span class="logo">AD</span>
+          Admin Console - Driver Tracking
+        </h1>
+        <div class="subtitle">
+          จัดการข้อมูล jobdata, alcoholcheck และอนุมัติผู้ใช้งานแอปคนขับ
+        </div>
+      </div>
+      <div class="text-muted">
+        Web App URL: <code><?= ScriptApp.getService().getUrl() ?></code>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-button active" data-tab="jobdata">
+        🚚 Jobdata
+      </button>
+      <button class="tab-button" data-tab="alcohol">
+        🍺 Alcohol Check
+      </button>
+      <button class="tab-button" data-tab="userprofile">
+        👤 Approve User
+      </button>
+    </div>
+
+    <!-- TAB: JOBDATA -->
+    <section id="tab-jobdata" class="tab-content active">
+      <div class="card">
+        <div class="card-header">
+          <h2>
+            🚚 Jobdata
+            <span class="pill">ดูสถานะงาน & ตำแหน่งปลายทาง</span>
+          </h2>
+          <div class="toolbar-right">
+            <span id="jobdataLoading" class="loading-indicator" style="display:none;">
+              <span class="dot"></span> กำลังโหลด...
+            </span>
+            <button class="btn btn-outline btn-sm" type="button" onclick="resetJobdataFilter()">
+              ล้างตัวกรอง
+            </button>
+            <button class="btn btn-primary btn-sm" type="button" onclick="loadJobdata()">
+              โหลดข้อมูล
+            </button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="field">
+            <label>ค้นหา Reference</label>
+            <input type="text" id="jobRef" placeholder="เช่น 2400XXXXX" />
+          </div>
+          <div class="field">
+            <label>สถานะงาน</label>
+            <select id="jobStatus">
+              <option value="">ทั้งหมด</option>
+              <option value="NEW">NEW</option>
+              <option value="CHECKIN">CHECKIN</option>
+              <option value="CHECKOUT">CHECKOUT</option>
+              <option value="REVIEWED">REVIEWED</option>
+              <option value="JOB_DONE">JOB_DONE</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>จำนวนแถว (ล่าสุด)</label>
+            <select id="jobLimit">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Reference</th>
+                <th>Shipment</th>
+                <th>ปลายทาง</th>
+                <th>สถานะ</th>
+                <th>Check-in</th>
+                <th>Check-out</th>
+                <th>เลขไมล์</th>
+                <th>Updated by</th>
+                <th>Updated at</th>
+              </tr>
+            </thead>
+            <tbody id="jobdataTableBody">
+              <tr>
+                <td colspan="10" class="text-muted">
+                  ยังไม่มีข้อมูล กดปุ่ม "โหลดข้อมูล" เพื่อดูรายการล่าสุด
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: ALCOHOL -->
+    <section id="tab-alcohol" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>
+            🍺 Alcohol Check
+            <span class="pill">บันทึกการตรวจแอลกอฮอล์</span>
+          </h2>
+          <div class="toolbar-right">
+            <span id="alcoholLoading" class="loading-indicator" style="display:none;">
+              <span class="dot"></span> กำลังโหลด...
+            </span>
+            <button class="btn btn-outline btn-sm" type="button" onclick="resetAlcoholFilter()">
+              ล้างตัวกรอง
+            </button>
+            <button class="btn btn-primary btn-sm" type="button" onclick="loadAlcohol()">
+              โหลดข้อมูล
+            </button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="field">
+            <label>ค้นหา Reference</label>
+            <input type="text" id="alcRef" placeholder="เช่น 2400XXXXX" />
+          </div>
+          <div class="field">
+            <label>ชื่อคนขับ</label>
+            <input type="text" id="alcDriver" placeholder="ค้นหาบางส่วนของชื่อ" />
+          </div>
+          <div class="field">
+            <label>จำนวนแถว (ล่าสุด)</label>
+            <select id="alcLimit">
+              <option value="50">50</option>
+              <option value="100" selected>100</option>
+              <option value="200">200</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Reference</th>
+                <th>คนขับ</th>
+                <th>ค่าแอลกอฮอล์</th>
+                <th>เวลาตรวจ</th>
+                <th>UserID</th>
+                <th>พิกัด</th>
+                <th>รูป</th>
+              </tr>
+            </thead>
+            <tbody id="alcoholTableBody">
+              <tr>
+                <td colspan="8" class="text-muted">
+                  ยังไม่มีข้อมูล กดปุ่ม "โหลดข้อมูล" เพื่อดูรายการล่าสุด
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB: USERPROFILE -->
+    <section id="tab-userprofile" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2>
+            👤 อนุมัติผู้ใช้งาน (userprofile)
+            <span class="pill">APPROVED / PENDING</span>
+          </h2>
+          <div class="toolbar-right">
+            <span id="userLoading" class="loading-indicator" style="display:none;">
+              <span class="dot"></span> กำลังโหลด...
+            </span>
+            <button class="btn btn-outline btn-sm" type="button" onclick="resetUserFilter()">
+              ล้างตัวกรอง
+            </button>
+            <button class="btn btn-primary btn-sm" type="button" onclick="loadUserProfiles()">
+              โหลดข้อมูล
+            </button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <div class="field">
+            <label>สถานะ</label>
+            <select id="userStatusFilter">
+              <option value="">ทั้งหมด</option>
+              <option value="PENDING" selected>PENDING</option>
+              <option value="APPROVED">APPROVED</option>
+              <option value="REJECTED">REJECTED</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>ค้นหาชื่อ / UserID</label>
+            <input type="text" id="userKeyword" placeholder="ค้นหาบางส่วนของชื่อหรือ userId" />
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>UserID</th>
+                <th>ชื่อ</th>
+                <th>รูปโปรไฟล์</th>
+                <th>สถานะ</th>
+                <th>สร้างเมื่อ</th>
+                <th>อัปเดตล่าสุด</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <tr>
+                <td colspan="8" class="text-muted">
+                  ระบบจะแสดงผู้ใช้ที่รออนุมัติ (PENDING) เป็นหลัก กด "โหลดข้อมูล"
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // base URL ของ Web App (ฝังจาก Apps Script)
+    const BASE_URL = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
+
+    // ---------- Helper UI ----------
+    function showToast(title, text = "", icon = "success") {
+      Swal.fire({
+        title,
+        text,
+        icon,
+        timer: 2000,
+        showConfirmButton: false,
+        toast: true,
+        position: "top-end"
+      });
+    }
+
+    function handleError(err, fallbackMsg = "เกิดข้อผิดพลาด") {
+      console.error(err);
+      showToast("Error", fallbackMsg, "error");
+    }
+
+    // ---------- Tab switching ----------
+    document.querySelectorAll(".tab-button").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document
+          .querySelectorAll(".tab-button")
+          .forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        const tabId = btn.dataset.tab;
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((c) => c.classList.remove("active"));
+        document
+          .getElementById(`tab-${tabId}`)
+          .classList.add("active");
+      });
+    });
+
+    // ---------- JOBDATA ----------
+    async function loadJobdata() {
+      const ref = document.getElementById("jobRef").value.trim();
+      const status = document.getElementById("jobStatus").value.trim();
+      const limit = document.getElementById("jobLimit").value || "100";
+
+      const loadingEl = document.getElementById("jobdataLoading");
+      const tbody = document.getElementById("jobdataTableBody");
+      tbody.innerHTML = `
+        <tr><td colspan="10" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
+      `;
+      loadingEl.style.display = "inline-flex";
+
+      try {
+        const params = new URLSearchParams({
+          action: "adminJobdata",
+          reference: ref,
+          status,
+          limit
+        });
+
+        const res = await fetch(`${BASE_URL}?${params.toString()}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          tbody.innerHTML = `
+            <tr><td colspan="10" class="text-muted">${json.message || "ไม่สามารถโหลดข้อมูลได้"}</td></tr>
+          `;
+          showToast("ไม่สำเร็จ", json.message || "โหลดข้อมูล jobdata ไม่สำเร็จ", "warning");
+          return;
+        }
+
+        const rows = json.rows || [];
+        if (!rows.length) {
+          tbody.innerHTML = `
+            <tr><td colspan="10" class="text-muted">ไม่พบข้อมูลตามเงื่อนไข</td></tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        rows.forEach((r, idx) => {
+          const tr = document.createElement("tr");
+
+          const statusClass = (() => {
+            const s = (r.status || "").toUpperCase();
+            if (s === "NEW") return "badge-status-new";
+            if (s === "CHECKIN") return "badge-status-checkin";
+            if (s === "CHECKOUT") return "badge-status-checkout";
+            if (s === "REVIEWED") return "badge-status-reviewed";
+            if (s === "JOB_DONE") return "badge-status-jobdone";
+            return "";
+          })();
+
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>${r.referenceNo || ""}</td>
+            <td>${r.shipmentNo || ""}</td>
+            <td>
+              <div>${r.destination2 || ""}</div>
+              <div class="text-muted">${r.destination1 || ""}</div>
+            </td>
+            <td>
+              <span class="badge ${statusClass}">
+                ${r.status || "-"}
+              </span>
+            </td>
+            <td>${r.checkInTime || ""}</td>
+            <td>${r.checkOutTime || ""}</td>
+            <td>${r.checkInOdo || ""}</td>
+            <td>${r.updatedBy || ""}</td>
+            <td>${r.updatedAt || ""}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr><td colspan="10" class="text-muted">เกิดข้อผิดพลาดระหว่างโหลดข้อมูล</td></tr>
+        `;
+        handleError(err, "โหลด jobdata ไม่สำเร็จ");
+      } finally {
+        loadingEl.style.display = "none";
+      }
+    }
+
+    function resetJobdataFilter() {
+      document.getElementById("jobRef").value = "";
+      document.getElementById("jobStatus").value = "";
+      document.getElementById("jobLimit").value = "100";
+    }
+
+    // ---------- ALCOHOL ----------
+    async function loadAlcohol() {
+      const ref = document.getElementById("alcRef").value.trim();
+      const driver = document.getElementById("alcDriver").value.trim();
+      const limit = document.getElementById("alcLimit").value || "100";
+
+      const loadingEl = document.getElementById("alcoholLoading");
+      const tbody = document.getElementById("alcoholTableBody");
+      tbody.innerHTML = `
+        <tr><td colspan="8" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
+      `;
+      loadingEl.style.display = "inline-flex";
+
+      try {
+        const params = new URLSearchParams({
+          action: "adminAlcohol",
+          reference: ref,
+          driver,
+          limit
+        });
+
+        const res = await fetch(`${BASE_URL}?${params.toString()}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          tbody.innerHTML = `
+            <tr><td colspan="8" class="text-muted">${json.message || "ไม่สามารถโหลดข้อมูลได้"}</td></tr>
+          `;
+          showToast("ไม่สำเร็จ", json.message || "โหลด alcoholcheck ไม่สำเร็จ", "warning");
+          return;
+        }
+
+        const rows = json.rows || [];
+        if (!rows.length) {
+          tbody.innerHTML = `
+            <tr><td colspan="8" class="text-muted">ไม่พบข้อมูลตามเงื่อนไข</td></tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        rows.forEach((r, idx) => {
+          const tr = document.createElement("tr");
+          const alcVal = r.alcoholValue != null ? r.alcoholValue : "";
+          const alcClass =
+            alcVal !== "" && parseFloat(alcVal) > 0
+              ? "color:" + (parseFloat(alcVal) > 50 ? "red" : "orange")
+              : "color:#111827";
+
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td>${r.reference || ""}</td>
+            <td>${r.driverName || ""}</td>
+            <td style="${alcClass}">${alcVal}</td>
+            <td>${r.checkedAt || ""}</td>
+            <td>${r.userId || ""}</td>
+            <td>
+              <div class="text-muted">
+                ${r.lat || "-"}, ${r.lng || "-"}
+              </div>
+            </td>
+            <td>
+              ${
+                r.imageUrl
+                  ? `<a href="${r.imageUrl}" target="_blank" class="btn btn-outline btn-sm">เปิดรูป</a>`
+                  : `<span class="text-muted">ไม่มีรูป</span>`
+              }
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr><td colspan="8" class="text-muted">เกิดข้อผิดพลาดระหว่างโหลดข้อมูล</td></tr>
+        `;
+        handleError(err, "โหลด alcoholcheck ไม่สำเร็จ");
+      } finally {
+        loadingEl.style.display = "none";
+      }
+    }
+
+    function resetAlcoholFilter() {
+      document.getElementById("alcRef").value = "";
+      document.getElementById("alcDriver").value = "";
+      document.getElementById("alcLimit").value = "100";
+    }
+
+    // ---------- USERPROFILE ----------
+    async function loadUserProfiles() {
+      const status = document.getElementById("userStatusFilter").value.trim();
+      const keyword = document.getElementById("userKeyword").value.trim();
+
+      const loadingEl = document.getElementById("userLoading");
+      const tbody = document.getElementById("userTableBody");
+      tbody.innerHTML = `
+        <tr><td colspan="8" class="text-muted">กำลังโหลดข้อมูล...</td></tr>
+      `;
+      loadingEl.style.display = "inline-flex";
+
+      try {
+        const params = new URLSearchParams({
+          action: "adminUserprofile",
+          status,
+          keyword
+        });
+
+        const res = await fetch(`${BASE_URL}?${params.toString()}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          tbody.innerHTML = `
+            <tr><td colspan="8" class="text-muted">${json.message || "ไม่สามารถโหลดข้อมูลได้"}</td></tr>
+          `;
+          showToast("ไม่สำเร็จ", json.message || "โหลด userprofile ไม่สำเร็จ", "warning");
+          return;
+        }
+
+        const rows = json.rows || [];
+        if (!rows.length) {
+          tbody.innerHTML = `
+            <tr><td colspan="8" class="text-muted">ไม่พบข้อมูลตามเงื่อนไข</td></tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = "";
+        rows.forEach((r, idx) => {
+          const tr = document.createElement("tr");
+          const statusUpper = (r.status || "").toUpperCase();
+
+          let statusClass = "status-pending";
+          if (statusUpper === "APPROVED") statusClass = "status-approved";
+          else if (statusUpper === "REJECTED") statusClass = "status-rejected";
+
+          tr.innerHTML = `
+            <td>${idx + 1}</td>
+            <td style="max-width:220px; word-break:break-all;">${r.userId || ""}</td>
+            <td>${r.displayName || ""}</td>
+            <td>
+              ${
+                r.pictureUrl
+                  ? `<a href="${r.pictureUrl}" target="_blank" class="btn btn-outline btn-sm">เปิดรูป</a>`
+                  : `<span class="text-muted">-</span>`
+              }
+            </td>
+            <td>
+              <span class="status-pill ${statusClass}">
+                ${statusUpper || "-"}
+              </span>
+            </td>
+            <td>${r.createdAt || ""}</td>
+            <td>${r.updatedAt || ""}</td>
+            <td>
+              <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                <button class="btn btn-success btn-sm" type="button"
+                  onclick="changeUserStatus('${encodeURIComponent(
+                    r.userId || ""
+                  )}', 'APPROVED')">
+                  ✅ อนุมัติ
+                </button>
+                <button class="btn btn-warning btn-sm" type="button"
+                  onclick="changeUserStatus('${encodeURIComponent(
+                    r.userId || ""
+                  )}', 'PENDING')">
+                  ⏳ Pending
+                </button>
+                <button class="btn btn-danger btn-sm" type="button"
+                  onclick="changeUserStatus('${encodeURIComponent(
+                    r.userId || ""
+                  )}', 'REJECTED')">
+                  ❌ Reject
+                </button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        tbody.innerHTML = `
+          <tr><td colspan="8" class="text-muted">เกิดข้อผิดพลาดระหว่างโหลดข้อมูล</td></tr>
+        `;
+        handleError(err, "โหลด userprofile ไม่สำเร็จ");
+      } finally {
+        loadingEl.style.display = "none";
+      }
+    }
+
+    function resetUserFilter() {
+      document.getElementById("userStatusFilter").value = "PENDING";
+      document.getElementById("userKeyword").value = "";
+    }
+
+    async function changeUserStatus(encodedUserId, newStatus) {
+      const userId = decodeURIComponent(encodedUserId || "");
+      if (!userId) return;
+
+      const confirmText =
+        newStatus === "APPROVED"
+          ? "ยืนยันการอนุมัติให้ผู้ใช้งานคนนี้ใช้แอปคนขับหรือไม่?"
+          : newStatus === "REJECTED"
+          ? "ยืนยันการ Reject ผู้ใช้งานคนนี้หรือไม่?"
+          : "ยืนยันตั้งค่าสถานะเป็น PENDING หรือไม่?";
+
+      const result = await Swal.fire({
+        title: "ยืนยันการเปลี่ยนสถานะ",
+        text: confirmText,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "ยืนยัน",
+        cancelButtonText: "ยกเลิก"
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append("action", "updateUserStatus");
+        formData.append("userId", userId);
+        formData.append("status", newStatus);
+
+        const res = await fetch(BASE_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+          },
+          body: formData.toString()
+        });
+
+        const json = await res.json();
+        if (!json.success) {
+          handleError(
+            json.message || "ไม่สามารถอัปเดตสถานะได้",
+            "อัปเดตสถานะไม่สำเร็จ"
+          );
+          return;
+        }
+
+        showToast("สำเร็จ", "อัปเดตสถานะผู้ใช้งานเรียบร้อย");
+        // reload list
+        loadUserProfiles();
+      } catch (err) {
+        handleError(err, "อัปเดตสถานะไม่สำเร็จ");
+      }
+    }
+
+    // โหลด default: แท็บ userprofile (pending) ให้ก่อนก็ได้ หรือปล่อยว่าง
+    // ตอนนี้ปล่อยให้แอดมินกดเอง จะไม่ auto ยิง query
+  </script>
+</body>
+</html>
