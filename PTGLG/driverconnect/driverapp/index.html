@@ -1195,14 +1195,12 @@
 
           showLoading('กำลังบันทึกการประเมิน...');
 
-          // แยก base64 ออกจาก dataURL (ถ้ามี)
           let signatureBase64 = '';
           if (signatureDataUrl && typeof signatureDataUrl === 'string') {
             const parts = signatureDataUrl.split(',');
             signatureBase64 = parts[1] || '';
           }
 
-          // ส่งแบบ URLSearchParams เพื่อลดปัญหา CORS / preflight
           const formData = new URLSearchParams();
           formData.append('action', 'uploadReview');
           formData.append('reference', currentReference);
@@ -1240,6 +1238,40 @@
           console.error(err);
           closeLoading();
           showError('เกิดข้อผิดพลาดในการบันทึกการประเมิน');
+        }
+      }
+
+      // ⭐ ฟังก์ชันนำทางไปพิกัดปลายทาง
+      function navigateToDestination(lat, lng, label) {
+        if (lat == null || lat === '' || lng == null || lng === '') {
+          showInfo('ไม่พบพิกัดปลายทาง', 'กรุณาติดต่อเจ้าหน้าที่ให้ตรวจสอบจุดส่ง');
+          return;
+        }
+
+        const latNum = parseFloat(lat);
+        const lngNum = parseFloat(lng);
+        if (isNaN(latNum) || isNaN(lngNum)) {
+          showInfo('พิกัดปลายทางไม่ถูกต้อง', 'กรุณาติดต่อเจ้าหน้าที่ให้ตรวจสอบข้อมูล');
+          return;
+        }
+
+        const mapsUrl =
+          'https://www.google.com/maps/dir/?api=1&destination=' +
+          encodeURIComponent(latNum + ',' + lngNum) +
+          '&travelmode=driving';
+
+        try {
+          if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
+            liff.openWindow({
+              url: mapsUrl,
+              external: true,
+            });
+          } else {
+            window.open(mapsUrl, '_blank');
+          }
+        } catch (err) {
+          console.error('navigateToDestination error', err);
+          window.open(mapsUrl, '_blank');
         }
       }
 
@@ -1335,6 +1367,21 @@
             }
           }
 
+          // ⭐ ปุ่มนำทาง
+          let navBtnHtml = '';
+          const hasDestCoord =
+            stop.destLat !== undefined &&
+            stop.destLat !== null &&
+            stop.destLat !== '' &&
+            stop.destLng !== undefined &&
+            stop.destLng !== null &&
+            stop.destLng !== '';
+
+          if (hasDestCoord) {
+            navBtnHtml =
+              '<button class="btn-small btn-outline btn-nav" style="margin-left:4px;">นำทาง</button>';
+          }
+
           let materialsBlock = '';
           if (stop.materials && stop.materials.length > 0) {
             const parts = stop.materials.map(function (m) {
@@ -1408,9 +1455,20 @@
             materialsBlock +
             '<div style="margin-top:6px;">' +
             btnHtml +
+            navBtnHtml +
             '</div>' +
             '</div>';
           ul.appendChild(li);
+
+          // ผูก event ปุ่มนำทาง
+          const navBtnEl = li.querySelector('.btn-nav');
+          if (navBtnEl && hasDestCoord) {
+            const label =
+              stop.destination2 || stop.destination1 || 'ปลายทาง';
+            navBtnEl.addEventListener('click', function () {
+              navigateToDestination(stop.destLat, stop.destLng, label);
+            });
+          }
         });
 
         if (stops.length > 0 && allCheckout && !jobClosed) {
@@ -1650,6 +1708,7 @@
       window.doAlcoholCheck = doAlcoholCheck;
       window.getCurrentPositionAsync = getCurrentPositionAsync;
       window.startReview = startReview;
+      window.navigateToDestination = navigateToDestination;
     </script>
   </body>
 </html>
