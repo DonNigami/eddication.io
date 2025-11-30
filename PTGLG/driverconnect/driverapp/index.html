@@ -389,6 +389,26 @@
           font-size: 0.9rem;
         }
       }
+
+    .btn-nav {
+      background: #0d6efd !important;       /* น้ำเงินเข้ม */
+      color: #fff !important;
+      border: none !important;
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+      z-index: 10;
+    }
+    
+    .timeline-content {
+      position: relative; /* เพื่อให้ปุ่มนำทางยึดภายในกล่อง */
+      padding-bottom: 50px; /* กันพื้นที่ให้ปุ่ม */
+    }
+
     </style>
   </head>
   <body>
@@ -1378,8 +1398,8 @@
             stop.destLng !== '';
 
           if (hasDestCoord) {
-            navBtnHtml =
-              '<button class="btn-small btn-outline btn-nav" style="margin-left:4px;">นำทาง</button>';
+              navBtnHtml = '<button class="btn-nav">นำทาง</button>';
+
           }
 
           let materialsBlock = '';
