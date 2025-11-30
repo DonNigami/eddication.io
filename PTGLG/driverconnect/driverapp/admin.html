@@ -510,8 +510,9 @@
   let ADMIN_NAME = '';
 
   function getBaseUrl() {
-    const url = new URL(window.location.href);
-    return url.origin + url.pathname;
+    // const url = new URL(window.location.href);
+    // return url.origin + url.pathname;
+    return GAS_BASE_URL;
   }
 
   function setLoading(show, text) {
