@@ -293,6 +293,30 @@
         margin-top: 4px;
       }
 
+      /* แถวปุ่ม action + นำทาง */
+      .action-row {
+        margin-top: 6px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .action-row button {
+        flex: 1;
+      }
+
+      .btn-nav {
+        flex: 0 0 25%;
+        background: #0d6efd;
+        color: #fff;
+        border-radius: 8px;
+        padding: 8px 6px;
+        text-align: center;
+        font-size: 0.8rem;
+        border: none;
+        width: auto;
+      }
+
       .footer-note {
         margin-top: 8px;
         font-size: 0.78rem;
@@ -389,26 +413,6 @@
           font-size: 0.9rem;
         }
       }
-
-    .btn-nav {
-      background: #0d6efd !important;       /* น้ำเงินเข้ม */
-      color: #fff !important;
-      border: none !important;
-      position: absolute;
-      right: 10px;
-      bottom: 10px;
-      padding: 10px 16px;
-      border-radius: 12px;
-      font-size: 0.85rem;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-      z-index: 10;
-    }
-    
-    .timeline-content {
-      position: relative; /* เพื่อให้ปุ่มนำทางยึดภายในกล่อง */
-      padding-bottom: 50px; /* กันพื้นที่ให้ปุ่ม */
-    }
-
     </style>
   </head>
   <body>
@@ -890,7 +894,7 @@
           } else {
             const safeName = name.replace(/'/g, "\\'");
             html += `
-              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center%;">
                 <span>${name}</span>
                 <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
                   บันทึกผลแอลกอฮอล์
@@ -1261,40 +1265,6 @@
         }
       }
 
-      // ⭐ ฟังก์ชันนำทางไปพิกัดปลายทาง
-      function navigateToDestination(lat, lng, label) {
-        if (lat == null || lat === '' || lng == null || lng === '') {
-          showInfo('ไม่พบพิกัดปลายทาง', 'กรุณาติดต่อเจ้าหน้าที่ให้ตรวจสอบจุดส่ง');
-          return;
-        }
-
-        const latNum = parseFloat(lat);
-        const lngNum = parseFloat(lng);
-        if (isNaN(latNum) || isNaN(lngNum)) {
-          showInfo('พิกัดปลายทางไม่ถูกต้อง', 'กรุณาติดต่อเจ้าหน้าที่ให้ตรวจสอบข้อมูล');
-          return;
-        }
-
-        const mapsUrl =
-          'https://www.google.com/maps/dir/?api=1&destination=' +
-          encodeURIComponent(latNum + ',' + lngNum) +
-          '&travelmode=driving';
-
-        try {
-          if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-            liff.openWindow({
-              url: mapsUrl,
-              external: true,
-            });
-          } else {
-            window.open(mapsUrl, '_blank');
-          }
-        } catch (err) {
-          console.error('navigateToDestination error', err);
-          window.open(mapsUrl, '_blank');
-        }
-      }
-
       function renderTimeline(stops) {
         const container = document.getElementById('timelineContainer');
         const ul = document.getElementById('timeline');
@@ -1387,21 +1357,6 @@
             }
           }
 
-          // ⭐ ปุ่มนำทาง
-          let navBtnHtml = '';
-          const hasDestCoord =
-            stop.destLat !== undefined &&
-            stop.destLat !== null &&
-            stop.destLat !== '' &&
-            stop.destLng !== undefined &&
-            stop.destLng !== null &&
-            stop.destLng !== '';
-
-          if (hasDestCoord) {
-              navBtnHtml = '<button class="btn-nav">นำทาง</button>';
-
-          }
-
           let materialsBlock = '';
           if (stop.materials && stop.materials.length > 0) {
             const parts = stop.materials.map(function (m) {
@@ -1428,6 +1383,20 @@
             stop.checkInOdo !== ''
               ? stop.checkInOdo
               : '-';
+
+          let navBtnHtml = '';
+          // ใช้ destLat/destLng จาก backend (ถ้ามี)
+          if (
+            stop.destLat !== undefined &&
+            stop.destLat !== '' &&
+            stop.destLng !== undefined &&
+            stop.destLng !== ''
+          ) {
+            navBtnHtml =
+              '<button class="btn-nav" onclick="navigateToStop(' +
+              stop.rowIndex +
+              ')">นำทาง</button>';
+          }
 
           const li = document.createElement('li');
           li.className = 'timeline-item';
@@ -1473,22 +1442,12 @@
             (stop.checkOutTime || '-') +
             '</div>' +
             materialsBlock +
-            '<div style="margin-top:6px;">' +
+            '<div class="action-row">' +
             btnHtml +
             navBtnHtml +
             '</div>' +
             '</div>';
           ul.appendChild(li);
-
-          // ผูก event ปุ่มนำทาง
-          const navBtnEl = li.querySelector('.btn-nav');
-          if (navBtnEl && hasDestCoord) {
-            const label =
-              stop.destination2 || stop.destination1 || 'ปลายทาง';
-            navBtnEl.addEventListener('click', function () {
-              navigateToDestination(stop.destLat, stop.destLng, label);
-            });
-          }
         });
 
         if (stops.length > 0 && allCheckout && !jobClosed) {
@@ -1701,6 +1660,42 @@
         }
       }
 
+      function navigateToStop(rowIndex) {
+        const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+        if (!stop) return;
+
+        // รองรับหลายชื่อ field เผื่อ backend ส่งชื่อไม่ตรง
+        const lat =
+          stop.destLat ||
+          stop.destinationLat ||
+          stop.dest_lat ||
+          stop.lat ||
+          '';
+        const lng =
+          stop.destLng ||
+          stop.destinationLng ||
+          stop.dest_lng ||
+          stop.lng ||
+          '';
+
+        if (!lat || !lng) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'ไม่พบพิกัดปลายทาง',
+            text: 'ปลายทางนี้ยังไม่มีพิกัดในระบบ',
+            confirmButtonColor: '#1abc9c',
+          });
+          return;
+        }
+
+        const url =
+          'https://www.google.com/maps?q=' +
+          encodeURIComponent(lat) +
+          ',' +
+          encodeURIComponent(lng);
+        window.open(url, '_blank');
+      }
+
       document.addEventListener('DOMContentLoaded', function () {
         initLiff();
 
@@ -1728,7 +1723,7 @@
       window.doAlcoholCheck = doAlcoholCheck;
       window.getCurrentPositionAsync = getCurrentPositionAsync;
       window.startReview = startReview;
-      window.navigateToDestination = navigateToDestination;
+      window.navigateToStop = navigateToStop;
     </script>
   </body>
 </html>
