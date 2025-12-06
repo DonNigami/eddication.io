@@ -8,7 +8,6 @@
     <!-- Google Picker (สำหรับเลือกไฟล์จาก Drive) -->
     <script src="https://apis.google.com/js/api.js"></script>
     <style>
-      /* (เหมือน PRO ส่วนใหญ่ เพิ่มบางส่วนเล็กน้อย) */
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #f5f5f7;
@@ -193,6 +192,7 @@
         gap: 8px;
         margin-bottom: 16px;
         border-bottom: 1px solid #e5e7eb;
+        flex-wrap: wrap;
       }
 
       .tab-btn {
@@ -375,6 +375,62 @@
         gap: 6px;
         flex-wrap: wrap;
       }
+
+      /* Token tab */
+      .token-status-box {
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        padding: 12px 14px;
+        background: #fafafa;
+        margin-top: 8px;
+      }
+
+      .token-status-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .token-status-summary {
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .token-status-tag-ok {
+        background: #e7f7ee;
+        color: #166534;
+      }
+
+      .token-status-tag-expired {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .token-status-tag-none {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .token-status-tag {
+        font-size: 11px;
+        border-radius: 999px;
+        padding: 2px 8px;
+        display: inline-block;
+      }
+
+      .token-status-detail {
+        font-size: 12px;
+        color: #4b5563;
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+
+      .token-status-error {
+        font-size: 12px;
+        color: #b91c1c;
+        margin-top: 6px;
+      }
     </style>
   </head>
   <body>
@@ -395,6 +451,7 @@
         <div class="tabs">
           <button class="tab-btn active" id="tabSend" onclick="showTab('send')">ส่ง Broadcast</button>
           <button class="tab-btn" id="tabHistory" onclick="showTab('history')">ประวัติการส่ง</button>
+          <button class="tab-btn" id="tabSystem" onclick="showTab('system')">Token &amp; System</button>
         </div>
 
         <!-- TAB: ส่ง Broadcast -->
@@ -552,13 +609,46 @@
           </table>
         </div>
 
+        <!-- TAB: Token & System -->
+        <div id="tabSystemPane" style="display:none;">
+          <div class="section-title">สถานะ LINE Channel Access Token</div>
+          <div class="hint">
+            ใช้สำหรับ debug ระบบ token ชั่วคราวจาก LINE (ไม่แสดง token จริงเพื่อความปลอดภัย)
+          </div>
+
+          <div style="margin-top:8px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-ghost btn-small" type="button" onclick="loadTokenStatus()">
+              🔍 ตรวจสอบสถานะปัจจุบัน
+            </button>
+            <button class="btn btn-danger btn-small" type="button" onclick="forceRefreshToken()">
+              ♻️ Force refresh token ใหม่
+            </button>
+          </div>
+
+          <div class="token-status-box">
+            <div class="token-status-header">
+              <div class="token-status-summary" id="tokenStatusSummary">
+                ยังไม่ได้โหลดสถานะ token
+              </div>
+              <div>
+                <span class="token-status-tag token-status-tag-none" id="tokenStatusTag">
+                  UNKNOWN
+                </span>
+              </div>
+            </div>
+            <div class="token-status-detail" id="tokenStatusDetail">
+              กดปุ่ม "ตรวจสอบสถานะปัจจุบัน" เพื่อดูข้อมูล token
+            </div>
+            <div class="token-status-error" id="tokenStatusError" style="display:none;"></div>
+          </div>
+        </div>
+
       </div>
     </div>
 
     <script>
       const LIFF_ID = '<?= LIFF_ID ?>';
 
-      // ถ้าจะใช้ Google Picker จริง ให้ใส่ API key / Client ID ตรงนี้
       const PICKER_API_KEY   = 'YOUR_GOOGLE_PICKER_API_KEY';
       const PICKER_CLIENT_ID = 'YOUR_GOOGLE_PICKER_CLIENT_ID';
 
@@ -566,7 +656,6 @@
       let templatesList = [];
       let pickerInited = false;
 
-      // ---------- Init ----------
       document.addEventListener('DOMContentLoaded', function () {
         initImageInputs();
         attachPreviewListeners();
@@ -619,7 +708,6 @@
         updatePreview();
       }
 
-      // ---------- LIFF & Admin ----------
       function initLiff() {
         liff.init({ liffId: LIFF_ID })
           .then(() => {
@@ -670,36 +758,49 @@
           });
       }
 
-      // ---------- Google Picker Init ----------
       function initPickerApi() {
-        // ถ้าไม่ได้ตั้ง API Key/Client ID ไว้ จะไม่เปิด picker (ปุ่มกดได้ แต่จะ alert)
         gapi.load('picker', () => {
           pickerInited = true;
         });
       }
 
-      // ---------- Tabs ----------
+      // -------- Tabs ----------
       function showTab(tab) {
         const sendPane = document.getElementById('tabSendPane');
         const historyPane = document.getElementById('tabHistoryPane');
+        const systemPane = document.getElementById('tabSystemPane');
+
         const tabSend = document.getElementById('tabSend');
         const tabHistory = document.getElementById('tabHistory');
+        const tabSystem = document.getElementById('tabSystem');
 
         if (tab === 'send') {
           sendPane.style.display = 'block';
           historyPane.style.display = 'none';
+          systemPane.style.display = 'none';
           tabSend.classList.add('active');
           tabHistory.classList.remove('active');
-        } else {
+          tabSystem.classList.remove('active');
+        } else if (tab === 'history') {
           sendPane.style.display = 'none';
           historyPane.style.display = 'block';
+          systemPane.style.display = 'none';
           tabSend.classList.remove('active');
           tabHistory.classList.add('active');
+          tabSystem.classList.remove('active');
           loadHistory();
+        } else if (tab === 'system') {
+          sendPane.style.display = 'none';
+          historyPane.style.display = 'none';
+          systemPane.style.display = 'block';
+          tabSend.classList.remove('active');
+          tabHistory.classList.remove('active');
+          tabSystem.classList.add('active');
+          loadTokenStatus();
         }
       }
 
-      // ---------- Status ----------
+      // -------- Status ----------
       function setStatus(msg, ok) {
         const bar = document.getElementById('statusBar');
         const textEl = document.getElementById('statusText');
@@ -708,7 +809,6 @@
         textEl.className = ok ? 'status-ok' : 'status-error';
       }
 
-      // ---------- Form helpers ----------
       function getSelectedSendMode() {
         const radios = document.querySelectorAll('input[name="sendMode"]');
         for (const r of radios) {
@@ -725,7 +825,7 @@
         return 'all';
       }
 
-      // ---------- Submit ----------
+      // -------- Submit ----------
       function handleSubmit() {
         if (!currentUser) {
           alert('กรุณารอระบบโหลดโปรไฟล์ LINE ให้เรียบร้อย');
@@ -805,7 +905,7 @@
         updatePreview();
       }
 
-      // ---------- Preview ----------
+      // -------- Preview ----------
       function updatePreview() {
         const text = document.getElementById('message').value || '';
         const previewText = document.getElementById('previewText');
@@ -845,7 +945,7 @@
           modeLabel + (timeLabel ? timeLabel : '') + ' | เป้าหมาย: ' + targetLabel;
       }
 
-      // ---------- Upload from Computer ----------
+      // -------- Upload from Computer ----------
       function triggerFileUpload(slotIndex) {
         const input = document.getElementById('file' + slotIndex);
         if (input) input.click();
@@ -857,7 +957,6 @@
 
         const file = input.files[0];
 
-        // แสดง preview จากไฟล์ในเครื่องทันที
         const reader = new FileReader();
         reader.onload = function (e) {
           const prevBox = document.getElementById('localPreview' + slotIndex);
@@ -867,7 +966,6 @@
         };
         reader.readAsDataURL(file);
 
-        // ส่งไฟล์ขึ้น Apps Script เพื่อเก็บใน Drive + คืน URL
         const form = document.getElementById('uploadForm');
 
         google.script.run
@@ -885,7 +983,7 @@
           .uploadImageToDrive(form, slotIndex);
       }
 
-      // ---------- Google Drive Picker ----------
+      // -------- Google Drive Picker ----------
       function openDrivePicker(slotIndex) {
         if (!PICKER_API_KEY || !PICKER_CLIENT_ID) {
           alert('ยังไม่ได้ตั้งค่า Google Picker API Key / Client ID');
@@ -896,10 +994,13 @@
           return;
         }
 
-        // ใช้ Access token จาก LIFF (Quick hack) – สำหรับใช้กับ Drive Picker
-        liff.getAccessToken()
-          ? buildPicker(liff.getAccessToken(), slotIndex)
-          : alert('ไม่พบ AccessToken จาก LIFF (ต้องเชื่อม OAuth เพิ่มหากใช้จริง)');
+        const token = liff.getAccessToken();
+        if (!token) {
+          alert('ไม่พบ AccessToken จาก LIFF (ถ้าจะใช้ Drive Picker จริงควรผูก OAuth เพิ่ม)');
+          return;
+        }
+
+        buildPicker(token, slotIndex);
       }
 
       function buildPicker(accessToken, slotIndex) {
@@ -908,7 +1009,6 @@
           .setSelectFolderEnabled(false);
 
         const picker = new google.picker.PickerBuilder()
-          .setAppId('') // optional
           .setOAuthToken(accessToken)
           .setDeveloperKey(PICKER_API_KEY)
           .addView(view)
@@ -935,7 +1035,7 @@
         picker.setVisible(true);
       }
 
-      // ---------- History ----------
+      // -------- History ----------
       function loadHistory() {
         if (!currentUser) return;
         const body = document.getElementById('historyBody');
@@ -1079,7 +1179,7 @@
           .retryBroadcast(jobId, currentUser.lineUserId);
       }
 
-      // ---------- Templates ----------
+      // -------- Templates ----------
       function loadTemplates() {
         if (!currentUser) return;
 
@@ -1198,7 +1298,119 @@
           .saveTemplate(name, text, imageUrls, id, currentUser.lineUserId);
       }
 
-      // ---------- Utils ----------
+      // -------- Token Status ----------
+      function loadTokenStatus() {
+        google.script.run
+          .withSuccessHandler(renderTokenStatus)
+          .withFailureHandler(function (err) {
+            const summary = document.getElementById('tokenStatusSummary');
+            const tag = document.getElementById('tokenStatusTag');
+            const detail = document.getElementById('tokenStatusDetail');
+            const errBox = document.getElementById('tokenStatusError');
+
+            summary.textContent = 'โหลดสถานะ token ไม่สำเร็จ';
+            tag.textContent = 'ERROR';
+            tag.className = 'token-status-tag token-status-tag-expired';
+            detail.textContent = (err && err.message ? err.message : err);
+            errBox.style.display = 'none';
+          })
+          .getChannelAccessTokenStatus();
+      }
+
+      function forceRefreshToken() {
+        if (!confirm('ต้องการขอ token ใหม่จาก LINE ทันทีหรือไม่?')) return;
+
+        const summary = document.getElementById('tokenStatusSummary');
+        const detail = document.getElementById('tokenStatusDetail');
+        const tag = document.getElementById('tokenStatusTag');
+        const errBox = document.getElementById('tokenStatusError');
+
+        summary.textContent = 'กำลังขอ token ใหม่จาก LINE...';
+        tag.textContent = 'LOADING';
+        tag.className = 'token-status-tag token-status-tag-none';
+        detail.textContent = 'กรุณารอสักครู่...';
+        errBox.style.display = 'none';
+
+        google.script.run
+          .withSuccessHandler(renderTokenStatus)
+          .withFailureHandler(function (err) {
+            summary.textContent = 'Force refresh token ไม่สำเร็จ';
+            tag.textContent = 'ERROR';
+            tag.className = 'token-status-tag token-status-tag-expired';
+            detail.textContent = (err && err.message ? err.message : err);
+            errBox.style.display = 'none';
+          })
+          .refreshChannelAccessToken();
+      }
+
+      function renderTokenStatus(status) {
+        const summary = document.getElementById('tokenStatusSummary');
+        const tag = document.getElementById('tokenStatusTag');
+        const detail = document.getElementById('tokenStatusDetail');
+        const errBox = document.getElementById('tokenStatusError');
+
+        if (!status || typeof status.hasToken === 'undefined') {
+          summary.textContent = 'ไม่มีข้อมูลสถานะ token';
+          tag.textContent = 'UNKNOWN';
+          tag.className = 'token-status-tag token-status-tag-none';
+          detail.textContent = 'ลองกดปุ่มตรวจสอบสถานะอีกครั้ง';
+          errBox.style.display = 'none';
+          return;
+        }
+
+        const hasToken = !!status.hasToken;
+        const isExpired = !!status.isExpired;
+        const remainingSeconds = Number(status.remainingSeconds || 0);
+        const expiresAt = status.expiresAt ? new Date(status.expiresAt) : null;
+
+        let tagText = 'NONE';
+        let tagClass = 'token-status-tag token-status-tag-none';
+        let summaryText = '';
+        let detailText = '';
+
+        if (!hasToken) {
+          tagText = 'NO TOKEN';
+          tagClass = 'token-status-tag token-status-tag-none';
+          summaryText = 'ยังไม่มี token ที่ใช้งานอยู่';
+          detailText = 'ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast ครั้งต่อไป หรือกด Force refresh token';
+        } else if (isExpired) {
+          tagText = 'EXPIRED';
+          tagClass = 'token-status-tag token-status-tag-expired';
+          summaryText = 'token หมดอายุแล้ว';
+          detailText = 'ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast ครั้งถัดไป หรือคุณสามารถกด Force refresh token ได้ทันที';
+        } else {
+          tagText = 'ACTIVE';
+          tagClass = 'token-status-tag token-status-tag-ok';
+          summaryText = 'token กำลังใช้งานได้ปกติ';
+
+          const mins = Math.floor(remainingSeconds / 60);
+          const secs = remainingSeconds % 60;
+          const remainText =
+            mins > 0
+              ? `${mins} นาที ${secs} วินาที`
+              : `${secs} วินาที`;
+
+          const expiresStr = expiresAt ? expiresAt.toLocaleString() : '-';
+
+          detailText =
+            `เวลาที่เหลือก่อนหมดอายุ ~ ${remainText}\n` +
+            `จะหมดอายุประมาณ: ${expiresStr}`;
+        }
+
+        summary.textContent = summaryText || 'สถานะ Token';
+        tag.textContent = tagText;
+        tag.className = tagClass;
+        detail.textContent = detailText;
+
+        if (status.error) {
+          errBox.style.display = 'block';
+          errBox.textContent = 'Error ล่าสุดจากการขอ token: ' + status.error;
+        } else {
+          errBox.style.display = 'none';
+        }
+      }
+
+      // -------- Utils ----------
       function escapeHtml(str) {
         if (!str) return '';
         return str
