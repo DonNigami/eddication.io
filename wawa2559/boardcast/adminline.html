@@ -1,1254 +1,954 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <base target="_top">
-    <meta charset="UTF-8">
-    <title>LINE OA Broadcast Studio Enterprise</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-      /* --- CSS เดิมทั้งหมด (ย่อไม่ได้) --- */
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #f5f5f7;
-        margin: 0;
-        padding: 24px;
-      }
-      .container {
-        max-width: 960px;
-        margin: 0 auto;
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 24px 28px 28px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-      }
-      h1 {
-        margin-top: 0;
-        font-size: 22px;
-        text-align: center;
-      }
-      .section-title {
-        font-weight: 600;
-        margin-top: 16px;
-        margin-bottom: 8px;
-      }
-      textarea {
-        width: 100%;
-        min-height: 120px;
-        padding: 10px 12px;
-        font-size: 14px;
-        border-radius: 8px;
-        border: 1px solid #d0d0d5;
-        box-sizing: border-box;
-        resize: vertical;
-      }
-      input[type="url"],
-      input[type="text"],
-      input[type="datetime-local"],
-      select {
-        width: 100%;
-        padding: 8px 10px;
-        font-size: 14px;
-        border-radius: 8px;
-        border: 1px solid #d0d0d5;
-        box-sizing: border-box;
-      }
-      .image-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-        gap: 8px 16px;
-      }
-      .image-item {
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 8px;
-        background: #fafafa;
-      }
-      .image-item label {
-        font-size: 12px;
-        color: #555;
-      }
-      .image-actions {
-        display: flex;
-        gap: 6px;
-        margin-top: 4px;
-        flex-wrap: wrap;
-      }
-      .image-local-preview {
-        margin-top: 6px;
-        display: flex;
-        justify-content: center;
-      }
-      .image-local-preview img {
-        max-width: 100%;
-        max-height: 120px;
-        border-radius: 8px;
-        object-fit: cover;
-      }
-      .radio-group {
-        display: flex;
-        gap: 16px;
-        margin: 8px 0 6px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .row-inline {
-        display: flex;
-        gap: 12px;
-        align-items: flex-start;
-      }
-      .row-inline > div {
-        flex: 1;
-      }
-      .hint {
-        font-size: 12px;
-        color: #777;
-        margin-top: 4px;
-      }
-      .btn {
-        border: none;
-        border-radius: 999px;
-        padding: 8px 18px;
-        font-size: 13px;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        white-space: nowrap;
-      }
-      .btn-primary {
-        background: #06c755;
-        color: #fff;
-      }
-      .btn-primary:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-      .btn-secondary {
-        background: #e5e7eb;
-        color: #111827;
-      }
-      .btn-small {
-        border-radius: 999px;
-        padding: 4px 10px;
-        font-size: 11px;
-      }
-      .btn-danger {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-      .btn-ghost {
-        background: transparent;
-        border: 1px solid #d1d5db;
-        color: #374151;
-      }
-      .status-bar {
-        margin-top: 12px;
-        font-size: 13px;
-      }
-      .status-bar span {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 999px;
-      }
-      .status-ok {
-        background: #e7f7ee;
-        color: #137d3b;
-      }
-      .status-error {
-        background: #fde8e8;
-        color: #b91c1c;
-      }
-      .tabs {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 16px;
-        border-bottom: 1px solid #e5e7eb;
-        flex-wrap: wrap;
-      }
-      .tab-btn {
-        border: none;
-        background: transparent;
-        padding: 8px 16px 10px;
-        font-size: 13px;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        color: #6b7280;
-      }
-      .tab-btn.active {
-        color: #111827;
-        border-bottom-color: #06c755;
-        font-weight: 600;
-      }
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2px 8px;
-        border-radius: 999px;
-        font-size: 10px;
-        text-transform: uppercase;
-      }
-      .pill-pending { background: #fef3c7; color: #92400e; }
-      .pill-sent { background: #e7f7ee; color: #166534; }
-      .pill-error { background: #fee2e2; color: #b91c1c; }
-      .pill-cancelled { background: #e5e7eb; color: #4b5563; }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-        font-size: 12px;
-      }
-      thead { background: #f3f4f6; }
-      th, td {
-        padding: 6px 8px;
-        border-bottom: 1px solid #e5e7eb;
-        vertical-align: top;
-      }
-      th {
-        text-align: left;
-        font-weight: 600;
-        font-size: 11px;
-        color: #4b5563;
-      }
-      tbody tr:nth-child(even) { background: #fafafa; }
-      .text-muted { color: #6b7280; }
-      .no-access {
-        text-align: center;
-        padding: 32px 16px;
-      }
-      .badge-mode {
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 999px;
-        background: #e5e7eb;
-        color: #374151;
-        display: inline-block;
-      }
-      .log-preview {
-        max-width: 220px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .text-preview {
-        max-width: 260px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .preview-wrapper {
-        margin-top: 8px;
-        display: flex;
-        justify-content: center;
-      }
-      .phone-frame {
-        width: 260px;
-        border-radius: 24px;
-        border: 1px solid #e5e7eb;
-        padding: 10px;
-        background: #f3f4f6;
-        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
-      }
-      .phone-header {
-        display: flex;
-        justify-content: center;
-        gap: 4px;
-        margin-bottom: 6px;
-      }
-      .phone-dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 999px;
-        background: #d1d5db;
-      }
-      .bubble {
-        background: #ffffff;
-        border-radius: 16px;
-        padding: 8px 10px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      }
-      .preview-meta {
-        font-size: 10px;
-        color: #6b7280;
-        margin-bottom: 6px;
-        text-align: left;
-      }
-      .preview-text {
-        font-size: 13px;
-        margin-bottom: 6px;
-        white-space: pre-wrap;
-      }
-      .image-grid-preview {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 4px;
-      }
-      .image-grid-preview img {
-        width: 100%;
-        border-radius: 8px;
-        object-fit: cover;
-        aspect-ratio: 1/1;
-      }
-      .template-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-      .template-action-group {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-      }
-      .token-status-box {
-        border-radius: 12px;
-        border: 1px solid #e5e7eb;
-        padding: 12px 14px;
-        background: #fafafa;
-        margin-top: 8px;
-      }
-      .token-status-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-      }
-      .token-status-summary {
-        font-size: 14px;
-        font-weight: 500;
-      }
-      .token-status-tag {
-        font-size: 11px;
-        border-radius: 999px;
-        padding: 2px 8px;
-        display: inline-block;
-      }
-      .token-status-tag-ok {
-        background: #e7f7ee;
-        color: #166534;
-      }
-      .token-status-tag-expired {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-      .token-status-tag-none {
-        background: #e5e7eb;
-        color: #374151;
-      }
-      .token-status-detail {
-        font-size: 12px;
-        color: #4b5563;
-        margin-top: 6px;
-        line-height: 1.5;
-      }
-      .token-status-error {
-        font-size: 12px;
-        color: #b91c1c;
-        margin-top: 6px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container" id="appContainer">
-      <h1>LINE OA Broadcast Studio Enterprise</h1>
-
-      <div id="notAdminBox" class="no-access" style="display:none;">
-        <p style="font-size:14px; margin-bottom:8px;">
-          ⚠️ คุณไม่มีสิทธิ์ใช้งาน Broadcast Studio
-        </p>
-        <p class="text-muted" style="font-size:12px;">
-          กรุณาให้ผู้ดูแลระบบเพิ่ม LINE User ID ของคุณลงในชีท <b>Admin</b>
-        </p>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>LINE OA Broadcast Enterprise++</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 20px 40px rgba(15,23,42,0.6);
+      border: 1px solid #1e293b;
+    }
+    .flex {
+      display: flex;
+    }
+    .flex-row {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+    }
+    .flex-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .w-1-2 { flex: 1 1 0; }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .sub {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    label {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    input[type="text"],
+    input[type="datetime-local"],
+    input[type="url"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #6b7280;
+    }
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #4f46e5;
+      color: white;
+    }
+    .btn-secondary {
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+    .btn-danger {
+      background: #b91c1c;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .pill {
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 2px 8px;
+      display: inline-block;
+    }
+    .pill-pending { background:#fbbf24; color:#111827; }
+    .pill-sent    { background:#16a34a; color:#0f172a; }
+    .pill-error   { background:#b91c1c; color:#fee2e2; }
+    .pill-cancel  { background:#4b5563; color:#e5e7eb; }
+    .tag-pill {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      border:1px solid #4b5563;
+      background: #020617;
+      color:#e5e7eb;
+      white-space: nowrap;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 4px;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 999px;
+    }
+    .tab-btn.active {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .image-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .image-item {
+      border-radius: 12px;
+      border:1px solid #1f2937;
+      padding: 6px;
+      background:#020617;
+    }
+    .preview-box {
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      padding: 10px;
+      background: #020617;
+      min-height: 160px;
+    }
+    .preview-images {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .preview-images img {
+      width: 68px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 8px;
+      border:1px solid #111827;
+    }
+    .status-bar {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+    .status-chip-ok {
+      background:#16a34a; color:#0f172a;
+      padding:2px 8px; border-radius:999px; font-size:11px;
+    }
+    .status-chip-err {
+      background:#b91c1c; color:#fee2e2;
+      padding:2px 8px; border-radius:999px; font-size:11px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid #1f2937;
+      padding: 6px 4px;
+      vertical-align: top;
+    }
+    th { text-align:left; color:#9ca3af; font-weight:500; }
+    .text-muted { color:#9ca3af; font-size:11px; }
+    .log-preview { max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .text-preview { max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .gap-2 { gap:8px; }
+    .gap-3 { gap:12px; }
+    .hidden { display:none; }
+    @media (max-width: 900px) {
+      .flex-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <div class="top-bar">
+      <div>
+        <h1>LINE OA Broadcast Enterprise++</h1>
+        <div class="sub" id="userInfo">กำลังโหลด...</div>
       </div>
-
-      <div id="appMain" style="display:none;">
-
-        <div class="tabs">
-          <button class="tab-btn active" id="tabSend" onclick="showTab('send')">ส่ง Broadcast</button>
-          <button class="tab-btn" id="tabHistory" onclick="showTab('history')">ประวัติการส่ง</button>
-          <button class="tab-btn" id="tabSystem" onclick="showTab('system')">Token &amp; System</button>
+      <div class="flex-col" style="align-items:flex-end;">
+        <div>
+          <label>เลือก OA</label><br>
+          <select id="oaSelect" onchange="handleOaChanged()">
+            <option value="">กำลังโหลด OA...</option>
+          </select>
         </div>
-
-        <!-- TAB: ส่ง Broadcast -->
-        <div id="tabSendPane">
-          <div class="row-inline">
-            <!-- ซ้าย: ฟอร์ม -->
-            <div style="flex:3; min-width:0;">
-
-              <!-- Templates -->
-              <div class="section">
-                <div class="section-title">Template ข้อความ</div>
-                <div class="template-row">
-                  <div style="flex:1;">
-                    <select id="templateSelect">
-                      <option value="">— เลือกเทมเพลต —</option>
-                    </select>
-                    <div class="hint" id="templateHint">0 เทมเพลต</div>
-                  </div>
-                  <div class="template-action-group">
-                    <button class="btn btn-ghost btn-small" type="button" onclick="applySelectedTemplate()">
-                      ใช้เทมเพลต
-                    </button>
-                    <button class="btn btn-secondary btn-small" type="button" onclick="saveAsNewTemplate()">
-                      บันทึกเป็นเทมเพลตใหม่
-                    </button>
-                    <button class="btn btn-secondary btn-small" type="button" onclick="updateCurrentTemplate()">
-                      อัปเดตเทมเพลตนี้
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="section">
-                <div class="section-title">ข้อความ Broadcast</div>
-                <textarea id="message" placeholder="พิมพ์ข้อความที่จะส่งถึงทุกคนใน LINE OA"></textarea>
-                <div class="hint">คุณสามารถเว้นว่างข้อความได้ ถ้าต้องการส่งเฉพาะรูป</div>
-              </div>
-
-              <!-- Form สำหรับ Upload -->
-              <form id="uploadForm" onsubmit="return false;">
-                <div class="section">
-                  <div class="section-title">รูปภาพ (สูงสุด 10 รูป)</div>
-                  <div class="hint">
-                    แต่ละช่องสามารถ: อัปโหลดจากเครื่อง หรือวางลิงก์รูปโดยตรง
-                  </div>
-                  <div class="image-grid" id="imageGrid"></div>
-                </div>
-              </form>
-
-              <div class="section">
-                <div class="section-title">โหมดการส่ง</div>
-                <div class="radio-group">
-                  <label>
-                    <input type="radio" name="sendMode" value="now" checked>
-                    ส่งทันที
-                  </label>
-                  <label>
-                    <input type="radio" name="sendMode" value="schedule">
-                    ตั้งเวลา
-                  </label>
-                </div>
-                <div class="row-inline">
-                  <div>
-                    <input type="datetime-local" id="scheduleAt">
-                  </div>
-                  <div style="flex:0 0 auto; font-size:12px; color:#666;">
-                    *เวลาอิง Timezone ของโปรเจกต์ Apps Script
-                  </div>
-                </div>
-              </div>
-
-              <div class="section">
-                <div class="section-title">กลุ่มเป้าหมาย</div>
-                <div class="radio-group">
-                  <label>
-                    <input type="radio" name="targetType" value="all" checked>
-                    ทุกคนใน OA
-                  </label>
-                  <label>
-                    <input type="radio" name="targetType" value="test">
-                    โหมดทดสอบ (ส่งหาเราเท่านั้น)
-                  </label>
-                </div>
-                <div class="hint">
-                  โหมดทดสอบจะส่งข้อความหา LINE ID ของแอดมินที่กำลังล็อกอินผ่าน LIFF เท่านั้น
-                </div>
-              </div>
-
-              <div class="section" style="margin-top: 18px;">
-                <button class="btn btn-primary" id="btnSubmit" onclick="handleSubmit()">
-                  🚀 ส่ง Broadcast
-                </button>
-                <button class="btn btn-secondary" type="button" onclick="clearForm()">
-                  ✨ ล้างฟอร์ม
-                </button>
-              </div>
-
-              <div class="status-bar" id="statusBar" style="display:none;">
-                <span id="statusText"></span>
-              </div>
-            </div>
-
-            <!-- ขวา: Preview -->
-            <div style="flex:2; min-width:260px; margin-left:16px;">
-              <div class="section-title">Preview (จำลองหน้าจอมือถือ)</div>
-              <div class="preview-wrapper">
-                <div class="phone-frame">
-                  <div class="phone-header">
-                    <div class="phone-dot"></div>
-                    <div class="phone-dot"></div>
-                    <div class="phone-dot"></div>
-                  </div>
-                  <div class="preview-meta" id="previewMeta">
-                    ส่งทันที | เป้าหมาย: ทุกคนใน OA
-                  </div>
-                  <div class="bubble">
-                    <div class="preview-text" id="previewText">(ไม่มีข้อความ)</div>
-                    <div class="image-grid-preview" id="previewImages"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div> <!-- row-inline -->
+        <div style="margin-top:4px;">
+          <span id="oaModeTag" class="tag-pill">OA: - | MODE: -</span>
         </div>
-
-        <!-- TAB: History -->
-        <div id="tabHistoryPane" style="display:none;">
-          <div class="section-title">ประวัติการ Broadcast ล่าสุด</div>
-          <div class="hint">
-            แสดงล่าสุด 50 รายการ | ยกเลิกงานที่ยังรอส่ง (pending) หรือกดส่งซ้ำได้
-          </div>
-
-          <div style="margin-top:8px; margin-bottom:8px;">
-            <button class="btn btn-ghost btn-small" type="button" onclick="loadHistory()">
-              🔄 โหลดประวัติใหม่
-            </button>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>เวลา</th>
-                <th>โหมด</th>
-                <th>กลุ่มเป้าหมาย</th>
-                <th>ข้อความ</th>
-                <th>รูป</th>
-                <th>สถานะ</th>
-                <th>Log</th>
-                <th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody id="historyBody">
-              <tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- TAB: Token & System -->
-        <div id="tabSystemPane" style="display:none;">
-          <div class="section-title">สถานะ LINE Channel Access Token</div>
-          <div class="hint">
-            ใช้สำหรับ debug ระบบ token ชั่วคราวจาก LINE (ไม่แสดง token จริงเพื่อความปลอดภัย)
-          </div>
-
-          <div style="margin-top:8px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap;">
-            <button class="btn btn-ghost btn-small" type="button" onclick="loadTokenStatus()">
-              🔍 ตรวจสอบสถานะปัจจุบัน
-            </button>
-            <button class="btn btn-danger btn-small" type="button" onclick="forceRefreshToken()">
-              ♻️ Force refresh token ใหม่
-            </button>
-          </div>
-
-          <div class="token-status-box">
-            <div class="token-status-header">
-              <div class="token-status-summary" id="tokenStatusSummary">
-                ยังไม่ได้โหลดสถานะ token
-              </div>
-              <div>
-                <span class="token-status-tag token-status-tag-none" id="tokenStatusTag">
-                  UNKNOWN
-                </span>
-              </div>
-            </div>
-            <div class="token-status-detail" id="tokenStatusDetail">
-              กดปุ่ม "ตรวจสอบสถานะปัจจุบัน" เพื่อดูข้อมูล token
-            </div>
-            <div class="token-status-error" id="tokenStatusError" style="display:none;"></div>
-          </div>
-        </div>
-
       </div>
     </div>
 
-    <script>
-      const LIFF_ID = '2007213966-G3n3wn8v';
+    <div class="tabs">
+      <button id="tabSend" class="tab-btn active" onclick="showTab('send')">ส่ง Broadcast</button>
+      <button id="tabHistory" class="tab-btn" onclick="showTab('history')">ประวัติ</button>
+      <button id="tabSystem" class="tab-btn" onclick="showTab('system')">System</button>
+    </div>
 
-      let currentUser = null;
-      let templatesList = [];
+    <!-- not admin -->
+    <div id="notAdminBox" class="mt-3 hidden">
+      <div class="sub">
+        คุณไม่มีสิทธิ์ใช้งานระบบนี้ กรุณาติดต่อผู้ดูแลเพื่อเพิ่มชื่อในชีท <b>Admin</b>.
+      </div>
+    </div>
 
-      document.addEventListener('DOMContentLoaded', function () {
-        initImageInputs();
-        attachPreviewListeners();
-        initLiff();
-      });
+    <!-- ส่ง broadcast -->
+    <div id="tabSendPane" class="mt-3">
+      <div class="flex-row">
+        <div class="w-1-2 flex-col">
+          <div class="flex-col">
+            <label>ข้อความ</label>
+            <textarea id="message" placeholder="พิมพ์ข้อความ..." oninput="updatePreview()"></textarea>
+          </div>
 
-      function initImageInputs() {
-        const grid = document.getElementById('imageGrid');
-        for (let i = 1; i <= 10; i++) {
-          const div = document.createElement('div');
-          div.className = 'image-item';
-          div.innerHTML = `
-            <label>รูปที่ ${i}</label>
-            <input type="url" id="imageUrl${i}" placeholder="https://..." />
-            <div class="image-actions">
-              <button class="btn btn-ghost btn-small" type="button" onclick="triggerFileUpload(${i})">
-                เลือกไฟล์จากเครื่อง
-              </button>
+          <div class="flex-col mt-2">
+            <label>ลิงก์รูป (สูงสุด 10 รูป / ว่างได้)</label>
+            <div class="image-grid" id="imageGrid"></div>
+          </div>
+
+          <div class="flex-col mt-2">
+            <label>อัปโหลดรูปจากคอม (หลายไฟล์ได้)</label>
+            <input type="file" id="multiFiles" accept="image/*" multiple />
+            <button class="btn btn-secondary mt-2" type="button" onclick="handleMultiUpload()">อัปโหลด & เติมลิงก์รูปอัตโนมัติ</button>
+            <div class="sub">ไฟล์จะถูกอัปโหลดไปยัง Google Drive ของคุณ แล้วสร้างลิงก์ดูภาพให้</div>
+          </div>
+
+          <div class="flex-row mt-3 gap-3">
+            <div class="flex-col" style="flex:1;">
+              <label>โหมดส่ง</label>
+              <div>
+                <label><input type="radio" name="sendMode" value="now" checked onchange="updatePreview()"> ส่งทันที</label><br>
+                <label><input type="radio" name="sendMode" value="schedule" onchange="updatePreview()"> ตั้งเวลา</label>
+              </div>
+              <input id="scheduleAt" type="datetime-local" class="mt-2" onchange="updatePreview()" />
             </div>
-            <input type="file" id="file${i}" name="file${i}" accept="image/*" style="display:none" />
-            <div class="image-local-preview" id="localPreview${i}" style="display:none;">
-              <img src="" alt="preview" />
+            <div class="flex-col" style="flex:1;">
+              <label>เป้าหมาย</label>
+              <div>
+                <label><input type="radio" name="targetType" value="all" checked> ทุกคนใน OA</label><br>
+                <label><input type="radio" name="targetType" value="test"> ทดสอบ (ส่งหาเราเท่านั้น)</label>
+              </div>
             </div>
-          `;
-          grid.appendChild(div);
-        }
-      }
+          </div>
 
-      function attachPreviewListeners() {
-        document.getElementById('message').addEventListener('input', updatePreview);
+          <div class="mt-3">
+            <button id="btnSubmit" class="btn" type="button" onclick="handleSubmit()">🚀 ส่ง Broadcast</button>
+            <button class="btn btn-secondary" type="button" onclick="clearForm()" style="margin-left:8px;">ล้างฟอร์ม</button>
+          </div>
 
-        for (let i = 1; i <= 10; i++) {
-          document.getElementById('imageUrl' + i).addEventListener('input', updatePreview);
-          document.getElementById('file' + i).addEventListener('change', () => handleFileChange(i));
-        }
+          <div id="statusBar" class="status-bar hidden">
+            <span id="statusChip" class="status-chip-ok"></span>
+            <span id="statusText"></span>
+          </div>
+        </div>
 
-        document.getElementById('scheduleAt').addEventListener('change', updatePreview);
+        <div class="w-1-2 flex-col">
+          <div class="flex-col">
+            <label>ตัวอย่าง Preview</label>
+            <div class="preview-box">
+              <div class="sub" id="previewMeta">-</div>
+              <div style="margin-top:6px; font-size:13px;" id="previewText">(ไม่มีข้อความ)</div>
+              <div class="preview-images" id="previewImages"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        document.querySelectorAll('input[name="sendMode"]').forEach(r => {
-          r.addEventListener('change', updatePreview);
-        });
-        document.querySelectorAll('input[name="targetType"]').forEach(r => {
-          r.addEventListener('change', updatePreview);
-        });
-
-        updatePreview();
-      }
-
-      function initLiff() {
-        liff.init({ liffId: LIFF_ID })
-          .then(() => {
-            if (!liff.isLoggedIn()) {
-              liff.login();
-              return;
-            }
-            return liff.getProfile();
-          })
-          .then(profile => {
-            if (!profile) return;
-            currentUser = {
-              lineUserId: profile.userId,
-              displayName: profile.displayName,
-              pictureUrl: profile.pictureUrl
-            };
-
-            const container = document.getElementById('appContainer');
-            container.insertAdjacentHTML('afterbegin',
-              `<div style="font-size:11px; color:#6b7280; text-align:right; margin-bottom:6px;">
-                Login: ${escapeHtml(currentUser.displayName)}
-              </div>`
-            );
-
-            google.script.run
-              .withSuccessHandler(function (res) {
-                if (res && res.ok) {
-                  document.getElementById('notAdminBox').style.display = 'none';
-                  document.getElementById('appMain').style.display = 'block';
-                  loadHistory();
-                  loadTemplates();
-                  updatePreview();
-                } else {
-                  document.getElementById('notAdminBox').style.display = 'block';
-                  document.getElementById('appMain').style.display = 'none';
-                }
-              })
-              .withFailureHandler(function () {
-                document.getElementById('notAdminBox').style.display = 'block';
-                document.getElementById('appMain').style.display = 'none';
-              })
-              .isAdminByLineUserId(currentUser.lineUserId);
-          })
-          .catch(err => {
-            console.error('LIFF error', err);
-            document.getElementById('notAdminBox').style.display = 'block';
-            document.getElementById('appMain').style.display = 'none';
-          });
-      }
-
-      function showTab(tab) {
-        const sendPane = document.getElementById('tabSendPane');
-        const historyPane = document.getElementById('tabHistoryPane');
-        const systemPane = document.getElementById('tabSystemPane');
-
-        const tabSend = document.getElementById('tabSend');
-        const tabHistory = document.getElementById('tabHistory');
-        const tabSystem = document.getElementById('tabSystem');
-
-        if (tab === 'send') {
-          sendPane.style.display = 'block';
-          historyPane.style.display = 'none';
-          systemPane.style.display = 'none';
-          tabSend.classList.add('active');
-          tabHistory.classList.remove('active');
-          tabSystem.classList.remove('active');
-        } else if (tab === 'history') {
-          sendPane.style.display = 'none';
-          historyPane.style.display = 'block';
-          systemPane.style.display = 'none';
-          tabSend.classList.remove('active');
-          tabHistory.classList.add('active');
-          tabSystem.classList.remove('active');
-          loadHistory();
-        } else if (tab === 'system') {
-          sendPane.style.display = 'none';
-          historyPane.style.display = 'none';
-          systemPane.style.display = 'block';
-          tabSend.classList.remove('active');
-          tabHistory.classList.remove('active');
-          tabSystem.classList.add('active');
-          loadTokenStatus();
-        }
-      }
-
-      function setStatus(msg, ok) {
-        const bar = document.getElementById('statusBar');
-        const textEl = document.getElementById('statusText');
-        bar.style.display = 'block';
-        textEl.textContent = msg;
-        textEl.className = ok ? 'status-ok' : 'status-error';
-      }
-
-      function getSelectedSendMode() {
-        const radios = document.querySelectorAll('input[name="sendMode"]');
-        for (const r of radios) if (r.checked) return r.value;
-        return 'now';
-      }
-
-      function getTargetType() {
-        const radios = document.querySelectorAll('input[name="targetType"]');
-        for (const r of radios) if (r.checked) return r.value;
-        return 'all';
-      }
-
-      function handleSubmit() {
-        if (!currentUser) {
-          alert('กรุณารอระบบโหลดโปรไฟล์ LINE ให้เรียบร้อย');
-          return;
-        }
-
-        const btn = document.getElementById('btnSubmit');
-        btn.disabled = true;
-        setStatus('กำลังส่งคำขอ...', true);
-
-        const text = document.getElementById('message').value || '';
-        const imageUrls = [];
-        for (let i = 1; i <= 10; i++) {
-          const val = (document.getElementById('imageUrl' + i).value || '').trim();
-          if (val) imageUrls.push(val);
-        }
-
-        const mode = getSelectedSendMode();
-        const targetType = getTargetType();
-        let scheduleTimestamp = null;
-
-        if (mode === 'schedule') {
-          const dtVal = document.getElementById('scheduleAt').value;
-          if (!dtVal) {
-            setStatus('กรุณาเลือกวันและเวลาสำหรับตั้งเวลา', false);
-            btn.disabled = false;
-            return;
-          }
-          const d = new Date(dtVal);
-          if (isNaN(d.getTime())) {
-            setStatus('รูปแบบวันเวลาไม่ถูกต้อง', false);
-            btn.disabled = false;
-            return;
-          }
-          scheduleTimestamp = d.getTime();
-        }
-
-        if (!text.trim() && imageUrls.length === 0) {
-          setStatus('กรุณากรอกข้อความหรือใส่ URL รูปอย่างน้อย 1 รายการ', false);
-          btn.disabled = false;
-          return;
-        }
-
-        google.script.run
-          .withSuccessHandler(function (res) {
-            if (res && res.mode === 'scheduled') {
-              setStatus('ตั้งเวลาส่งเรียบร้อย: ' + new Date(res.scheduleAt).toLocaleString(), true);
-            } else if (res && res.mode === 'now') {
-              setStatus('ส่ง Broadcast สำเร็จแล้ว', true);
-            } else {
-              setStatus('ดำเนินการเสร็จสิ้น', true);
-            }
-            btn.disabled = false;
-            loadHistory();
-          })
-          .withFailureHandler(function (err) {
-            setStatus('เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : err), false);
-            btn.disabled = false;
-          })
-          .createBroadcast(text, imageUrls, scheduleTimestamp, currentUser.lineUserId, targetType);
-      }
-
-      function clearForm() {
-        document.getElementById('message').value = '';
-        for (let i = 1; i <= 10; i++) {
-          document.getElementById('imageUrl' + i).value = '';
-          const f = document.getElementById('file' + i);
-          if (f) f.value = '';
-          const prevBox = document.getElementById('localPreview' + i);
-          prevBox.style.display = 'none';
-          prevBox.querySelector('img').src = '';
-        }
-        document.getElementById('scheduleAt').value = '';
-        document.getElementById('statusBar').style.display = 'none';
-        updatePreview();
-      }
-
-      function updatePreview() {
-        const text = document.getElementById('message').value || '';
-        const previewText = document.getElementById('previewText');
-        previewText.textContent = text.trim() ? text : '(ไม่มีข้อความ)';
-
-        const imageUrls = [];
-        for (let i = 1; i <= 10; i++) {
-          const val = (document.getElementById('imageUrl' + i).value || '').trim();
-          if (val) imageUrls.push(val);
-        }
-
-        const imgContainer = document.getElementById('previewImages');
-        imgContainer.innerHTML = '';
-        imageUrls.slice(0, 4).forEach(u => {
-          const img = document.createElement('img');
-          img.src = u;
-          img.alt = 'image';
-          imgContainer.appendChild(img);
-        });
-
-        const mode = getSelectedSendMode();
-        const targetType = getTargetType();
-        const dtVal = document.getElementById('scheduleAt').value;
-
-        let modeLabel = mode === 'schedule' ? 'ตั้งเวลา' : 'ส่งทันที';
-        let targetLabel = targetType === 'test' ? 'ทดสอบ (ส่งหาเรา)' : 'ทุกคนใน OA';
-        let timeLabel = '';
-
-        if (mode === 'schedule' && dtVal) {
-          const d = new Date(dtVal);
-          if (!isNaN(d.getTime())) {
-            timeLabel = ' @ ' + d.toLocaleString();
-          }
-        }
-
-        document.getElementById('previewMeta').textContent =
-          modeLabel + (timeLabel ? timeLabel : '') + ' | เป้าหมาย: ' + targetLabel;
-      }
-
-      function triggerFileUpload(slotIndex) {
-        const input = document.getElementById('file' + slotIndex);
-        if (input) input.click();
-      }
-
-      function handleFileChange(slotIndex) {
-        const input = document.getElementById('file' + slotIndex);
-        if (!input || !input.files || input.files.length === 0) return;
-
-        const file = input.files[0];
-
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          const prevBox = document.getElementById('localPreview' + slotIndex);
-          const img = prevBox.querySelector('img');
-          img.src = e.target.result;
-          prevBox.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
-
-        const form = document.getElementById('uploadForm');
-
-        google.script.run
-          .withSuccessHandler(function (res) {
-            if (res && res.url) {
-              document.getElementById('imageUrl' + res.slotIndex).value = res.url;
-              updatePreview();
-            } else {
-              alert('อัปโหลดสำเร็จแต่ไม่ได้ URL กลับมา');
-            }
-          })
-          .withFailureHandler(function (err) {
-            alert('อัปโหลดไฟล์ไม่สำเร็จ: ' + (err && err.message ? err.message : err));
-          })
-          .uploadImageToDrive(form, slotIndex);
-      }
-
-      function loadHistory() {
-        if (!currentUser) return;
-        const body = document.getElementById('historyBody');
-        body.innerHTML = '<tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>';
-
-        google.script.run
-          .withSuccessHandler(renderHistory)
-          .withFailureHandler(function (err) {
-            body.innerHTML = '<tr><td colspan="8" class="text-muted">โหลดประวัติไม่สำเร็จ: ' +
-              (err && err.message ? err.message : err) + '</td></tr>';
-          })
-          .getBroadcastHistory(50, currentUser.lineUserId);
-      }
-
-      function renderHistory(list) {
-        const body = document.getElementById('historyBody');
-        if (!list || list.length === 0) {
-          body.innerHTML = '<tr><td colspan="8" class="text-muted">ยังไม่มีประวัติ Broadcast</td></tr>';
-          return;
-        }
-
-        const now = new Date();
-        let html = '';
-
-        list.forEach(item => {
-          const created = item.createdAt ? new Date(item.createdAt) : null;
-          const scheduleAt = item.scheduleAt ? new Date(item.scheduleAt) : null;
-          const sentAt = item.sentAt ? new Date(item.sentAt) : null;
-
-          const createdText = created ? created.toLocaleString() : '-';
-          const scheduleText = scheduleAt ? scheduleAt.toLocaleString() : '-';
-          const sentText = sentAt ? sentAt.toLocaleString() : '-';
-
-          const modeBadge = item.mode === 'scheduled' ? 'ตั้งเวลา' : 'ส่งทันที';
-          const targetBadge = item.targetType === 'test' ? 'ทดสอบ' : 'ทุกคน';
-
-          let statusClass = 'pill-cancelled';
-          if (item.status === 'pending') statusClass = 'pill-pending';
-          else if (item.status === 'sent') statusClass = 'pill-sent';
-          else if (item.status === 'error') statusClass = 'pill-error';
-
-          const statusLabel = item.status || '-';
-
-          const textPreview = (item.text || '').trim();
-          const textShort = textPreview.length > 60
-            ? textPreview.slice(0, 60) + '…'
-            : (textPreview || '-');
-
-          const logText = (item.log || '').toString();
-          const logShort = logText
-            ? (logText.length > 60 ? logText.slice(0, 60) + '…' : logText)
-            : '-';
-
-          const isFuturePending = (item.status === 'pending' && scheduleAt && scheduleAt > now);
-
-          let actions = '';
-          if (isFuturePending) {
-            actions += `
-              <button class="btn btn-small btn-danger" type="button" onclick="confirmCancel('${item.jobId}')">
-                ยกเลิก
-              </button>
-            `;
-          }
-          if (item.status === 'sent' || item.status === 'error' || isFuturePending) {
-            actions += `
-              <button class="btn btn-small btn-secondary" type="button" onclick="confirmRetry('${item.jobId}')">
-                ส่งซ้ำ
-              </button>
-            `;
-          }
-          if (!actions) actions = '<span class="text-muted">-</span>';
-
-          html += `
+    <!-- history -->
+    <div id="tabHistoryPane" class="mt-3 hidden">
+      <div class="sub">แสดงประวัติการส่งล่าสุด (filter ตาม OA ที่เลือกด้านบน)</div>
+      <div class="mt-2" style="overflow-x:auto;">
+        <table>
+          <thead>
             <tr>
-              <td>
-                <div>${createdText}</div>
-                <div class="text-muted" style="font-size:10px;">Schedule: ${scheduleText}<br>Sent: ${sentText}</div>
-              </td>
-              <td><span class="badge-mode">${modeBadge}</span></td>
-              <td><span class="badge-mode">${targetBadge}</span></td>
-              <td><div class="text-preview">${escapeHtml(textShort)}</div></td>
-              <td>${item.imageCount || 0}</td>
-              <td><span class="pill ${statusClass}">${statusLabel}</span></td>
-              <td><div class="log-preview text-muted">${escapeHtml(logShort)}</div></td>
-              <td>${actions}</td>
+              <th>เวลา</th>
+              <th>โหมด</th>
+              <th>เป้าหมาย</th>
+              <th>ข้อความ</th>
+              <th>จำนวนรูป</th>
+              <th>สถานะ</th>
+              <th>Log</th>
+              <th>Action</th>
             </tr>
-          `;
-        });
+          </thead>
+          <tbody id="historyBody">
+            <tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-        body.innerHTML = html;
+    <!-- system -->
+    <div id="tabSystemPane" class="mt-3 hidden">
+      <div class="flex-col">
+        <label>Token Status (OA ปัจจุบัน)</label>
+        <div class="preview-box">
+          <div id="tokenStatusSummary">กดปุ่มด้านล่างเพื่อตรวจสอบ</div>
+          <div class="mt-2">
+            <span id="tokenStatusTag" class="tag-pill">-</span>
+          </div>
+          <pre id="tokenStatusDetail" style="font-size:11px; margin-top:8px; white-space:pre-wrap;"></pre>
+          <div id="tokenStatusError" class="text-muted mt-2 hidden"></div>
+          <div class="mt-3">
+            <button class="btn btn-secondary" type="button" onclick="loadTokenStatus()">ตรวจสอบ token</button>
+            <button class="btn" type="button" onclick="forceRefreshToken()" style="margin-left:8px;">Force refresh token</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ================= CONFIG =================
+  const API_BASE_URL = "PUT_YOUR_WEBAPP_URL_HERE";   // เช่น https://script.google.com/macros/s/xxx/exec
+  const LIFF_ID      = "PUT_YOUR_LIFF_ID_HERE";
+
+  let currentUser = null;
+  let frontendConfig = {
+    useLiffLogin: true,
+    defaultAdminUserId: '',
+    defaultOaId: ''
+  };
+  let oaList = [];
+  let currentOaId = '';
+
+  // ================ Helper ================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  async function apiJson(action, data) {
+    const payload = Object.assign({}, data || {}, { action });
+    const res = await fetch(API_BASE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    return res.json();
+  }
+
+  function setStatus(msg, ok) {
+    const bar = document.getElementById("statusBar");
+    const chip = document.getElementById("statusChip");
+    const text = document.getElementById("statusText");
+    bar.classList.remove("hidden");
+    chip.className = ok ? "status-chip-ok" : "status-chip-err";
+    chip.textContent = ok ? "OK" : "ERROR";
+    text.textContent = msg;
+  }
+
+  // ================ Tabs ===================
+  function showTab(tab) {
+    const send = document.getElementById("tabSendPane");
+    const hist = document.getElementById("tabHistoryPane");
+    const sys  = document.getElementById("tabSystemPane");
+    const t1 = document.getElementById("tabSend");
+    const t2 = document.getElementById("tabHistory");
+    const t3 = document.getElementById("tabSystem");
+    send.classList.add("hidden");
+    hist.classList.add("hidden");
+    sys.classList.add("hidden");
+    t1.classList.remove("active");
+    t2.classList.remove("active");
+    t3.classList.remove("active");
+    if (tab === 'send') {
+      send.classList.remove("hidden");
+      t1.classList.add("active");
+    } else if (tab === 'history') {
+      hist.classList.remove("hidden");
+      t2.classList.add("active");
+      loadHistory();
+    } else {
+      sys.classList.remove("hidden");
+      t3.classList.add("active");
+      loadTokenStatus();
+    }
+  }
+
+  // ================ LIFF / No-LIFF ===================
+  async function initApp() {
+    try {
+      // 1) frontend config
+      const cfg = await apiJson("getFrontendConfig", {});
+      if (cfg && cfg.ok) {
+        frontendConfig.useLiffLogin = !!cfg.useLiffLogin;
+        frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
+        frontendConfig.defaultOaId = cfg.defaultOaId || '';
       }
 
-      function confirmCancel(jobId) {
-        if (!currentUser) return;
-        if (!confirm('ต้องการยกเลิก Broadcast นี้หรือไม่?')) return;
-
-        const body = document.getElementById('historyBody');
-        body.insertAdjacentHTML('afterbegin',
-          '<tr id="tempRow"><td colspan="8" class="text-muted">กำลังยกเลิก...</td></tr>'
-        );
-
-        google.script.run
-          .withSuccessHandler(function () {
-            const temp = document.getElementById('tempRow');
-            if (temp) temp.remove();
-            loadHistory();
-          })
-          .withFailureHandler(function (err) {
-            const temp = document.getElementById('tempRow');
-            if (temp) temp.remove();
-            alert('ยกเลิกไม่สำเร็จ: ' + (err && err.message ? err.message : err));
-          })
-          .cancelBroadcast(jobId, currentUser.lineUserId);
+      // 2) OA list
+      const oaRes = await apiJson("getOAs", {});
+      if (oaRes && oaRes.ok) {
+        oaList = oaRes.list || [];
       }
+      initOaSelect();
 
-      function confirmRetry(jobId) {
-        if (!currentUser) return;
-        if (!confirm('ต้องการส่งซ้ำ Broadcast นี้หรือไม่?')) return;
-
-        const body = document.getElementById('historyBody');
-        body.insertAdjacentHTML('afterbegin',
-          '<tr id="tempRowRetry"><td colspan="8" class="text-muted">กำลังส่งซ้ำ...</td></tr>'
-        );
-
-        google.script.run
-          .withSuccessHandler(function () {
-            const temp = document.getElementById('tempRowRetry');
-            if (temp) temp.remove();
-            loadHistory();
-          })
-          .withFailureHandler(function (err) {
-            const temp = document.getElementById('tempRowRetry');
-            if (temp) temp.remove();
-            alert('ส่งซ้ำไม่สำเร็จ: ' + (err && err.message ? err.message : err));
-          })
-          .retryBroadcast(jobId, currentUser.lineUserId);
+      // 3) user
+      if (frontendConfig.useLiffLogin) {
+        await initLiffFlow();
+      } else {
+        initNoLiffFlow();
       }
+    } catch (e) {
+      console.error("initApp error", e);
+      document.getElementById("userInfo").textContent =
+        "โหลด config/LIFF ไม่สำเร็จ: "+(e.message || e);
+      document.getElementById("notAdminBox").classList.remove("hidden");
+    }
+  }
 
-      function loadTemplates() {
-        if (!currentUser) return;
+  async function initLiffFlow() {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    const profile = await liff.getProfile();
+    currentUser = { id: profile.userId, displayName: profile.displayName };
+    document.getElementById("userInfo").textContent =
+      "Login (LIFF): "+profile.displayName;
 
-        google.script.run
-          .withSuccessHandler(function (list) {
-            templatesList = Array.isArray(list) ? list : [];
-            const select = document.getElementById('templateSelect');
-            const hint = document.getElementById('templateHint');
+    const res = await apiJson("isAdmin", { userId: currentUser.id });
+    if (!res || !res.ok) {
+      document.getElementById("notAdminBox").classList.remove("hidden");
+      return;
+    }
+    document.getElementById("notAdminBox").classList.add("hidden");
+    loadHistory();
+    updatePreview();
+  }
 
-            select.innerHTML = '<option value="">— เลือกเทมเพลต —</option>';
+  function initNoLiffFlow() {
+    const id = frontendConfig.defaultAdminUserId;
+    if (!id) {
+      document.getElementById("userInfo").textContent =
+        "No-LIFF mode แต่ไม่ได้ตั้ง DEFAULT_ADMIN_USER_ID ใน Settings";
+      document.getElementById("notAdminBox").classList.remove("hidden");
+      return;
+    }
+    currentUser = { id, displayName: "Admin (No-LIFF)" };
+    document.getElementById("userInfo").textContent =
+      "No-LIFF mode: userId="+id;
 
-            templatesList.forEach(t => {
-              const opt = document.createElement('option');
-              opt.value = t.templateId;
-              const dateStr = t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '';
-              opt.textContent = t.name + (dateStr ? ` (${dateStr})` : '');
-              select.appendChild(opt);
-            });
-
-            hint.textContent = (templatesList.length || 0) + ' เทมเพลต';
-          })
-          .withFailureHandler(function (err) {
-            console.error('loadTemplates error:', err);
-          })
-          .getTemplates(currentUser.lineUserId);
-      }
-
-      function applySelectedTemplate() {
-        const select = document.getElementById('templateSelect');
-        const id = select.value;
-        if (!id) {
-          alert('กรุณาเลือกเทมเพลตก่อน');
-          return;
-        }
-
-        const tpl = templatesList.find(t => t.templateId === id);
-        if (!tpl) {
-          alert('ไม่พบเทมเพลตที่เลือก');
-          return;
-        }
-
-        document.getElementById('message').value = tpl.text || '';
-
-        for (let i = 1; i <= 10; i++) {
-          document.getElementById('imageUrl' + i).value = '';
-          const prevBox = document.getElementById('localPreview' + i);
-          prevBox.style.display = 'none';
-          prevBox.querySelector('img').src = '';
-        }
-
-        if (Array.isArray(tpl.imageUrls)) {
-          tpl.imageUrls.slice(0, 10).forEach((u, idx) => {
-            const input = document.getElementById('imageUrl' + (idx + 1));
-            if (input) input.value = u;
-          });
-        }
-
+    apiJson("isAdmin", { userId:id }).then(res => {
+      if (!res || !res.ok) {
+        document.getElementById("notAdminBox").classList.remove("hidden");
+      } else {
+        document.getElementById("notAdminBox").classList.add("hidden");
+        loadHistory();
         updatePreview();
       }
+    }).catch(e => {
+      document.getElementById("userInfo").textContent =
+        "No-LIFF error: "+(e.message || e);
+      document.getElementById("notAdminBox").classList.remove("hidden");
+    });
+  }
 
-      function saveAsNewTemplate() {
-        if (!currentUser) return;
-        const name = prompt('ชื่อเทมเพลตใหม่:');
-        if (!name || !name.trim()) return;
+  // ================ OA Select ===================
+  function initOaSelect() {
+    const sel = document.getElementById("oaSelect");
+    sel.innerHTML = "";
+    if (!oaList.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "ไม่พบ OA ที่ Active";
+      sel.appendChild(opt);
+      currentOaId = "";
+      updateOaModeTag();
+      return;
+    }
+    const def = frontendConfig.defaultOaId;
+    const found = def && oaList.find(o => o.oaId === def);
+    currentOaId = found ? found.oaId : oaList[0].oaId;
 
-        const text = document.getElementById('message').value || '';
-        const imageUrls = [];
-        for (let i = 1; i <= 10; i++) {
-          const val = (document.getElementById('imageUrl' + i).value || '').trim();
-          if (val) imageUrls.push(val);
-        }
+    oaList.forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.oaId;
+      opt.textContent = `${o.name} (${o.tokenMode})`;
+      if (o.oaId === currentOaId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    updateOaModeTag();
+  }
 
-        google.script.run
-          .withSuccessHandler(function () {
-            alert('บันทึกเทมเพลตใหม่เรียบร้อย');
-            loadTemplates();
-          })
-          .withFailureHandler(function (err) {
-            alert('บันทึกเทมเพลตไม่สำเร็จ: ' + (err && err.message ? err.message : err));
-          })
-          .saveTemplate(name, text, imageUrls, null, currentUser.lineUserId);
+  function handleOaChanged() {
+    const sel = document.getElementById("oaSelect");
+    currentOaId = sel.value || '';
+    updateOaModeTag();
+    loadHistory();
+    loadTokenStatus();
+  }
+
+  function updateOaModeTag() {
+    const tag = document.getElementById("oaModeTag");
+    if (!currentOaId) {
+      tag.textContent = "OA: - | MODE: -";
+      return;
+    }
+    const oa = oaList.find(o => o.oaId === currentOaId);
+    if (!oa) {
+      tag.textContent = "OA: - | MODE: -";
+      return;
+    }
+    tag.textContent = `OA: ${oa.name} | MODE: ${oa.tokenMode}`;
+  }
+
+  // ================ Image Grid & Preview ===================
+  function initImageGrid() {
+    const grid = document.getElementById("imageGrid");
+    for (let i=1;i<=10;i++) {
+      const div = document.createElement("div");
+      div.className = "image-item";
+      div.innerHTML = `
+        <label>รูปที่ ${i}</label>
+        <input type="url" id="imageUrl${i}" placeholder="https://..." oninput="updatePreview()" />
+      `;
+      grid.appendChild(div);
+    }
+  }
+
+  function collectImageUrls() {
+    const urls = [];
+    for (let i=1;i<=10;i++) {
+      const v = (document.getElementById("imageUrl"+i).value || "").trim();
+      if (v) urls.push(v);
+    }
+    return urls;
+  }
+
+  function getSendMode() {
+    const radios = document.querySelectorAll("input[name='sendMode']");
+    for (const r of radios) if (r.checked) return r.value;
+    return "now";
+  }
+
+  function getTargetType() {
+    const radios = document.querySelectorAll("input[name='targetType']");
+    for (const r of radios) if (r.checked) return r.value;
+    return "all";
+  }
+
+  function updatePreview() {
+    const text = document.getElementById("message").value || "";
+    const urls = collectImageUrls();
+    document.getElementById("previewText").textContent =
+      text.trim() ? text : "(ไม่มีข้อความ)";
+    const box = document.getElementById("previewImages");
+    box.innerHTML = "";
+    urls.slice(0,4).forEach(u => {
+      const img = document.createElement("img");
+      img.src = u;
+      box.appendChild(img);
+    });
+
+    const mode = getSendMode();
+    const target = getTargetType();
+    const schedule = document.getElementById("scheduleAt").value;
+    let modeLabel = mode === "schedule" ? "ตั้งเวลา" : "ส่งทันที";
+    let targetLabel = target === "test" ? "ทดสอบ" : "ทุกคน";
+    let timeLabel = "";
+    if (mode === "schedule" && schedule) {
+      const d = new Date(schedule);
+      if (!isNaN(d.getTime())) timeLabel = " @ "+d.toLocaleString();
+    }
+    document.getElementById("previewMeta").textContent =
+      `${modeLabel}${timeLabel} | เป้าหมาย: ${targetLabel}`;
+  }
+
+  // ================ Multi Upload (base64) ===================
+  async function handleMultiUpload() {
+    if (!currentUser) { alert("ยังไม่ได้ระบุ user (LIFF/No-LIFF)"); return; }
+    if (!currentOaId) { alert("ยังไม่ได้เลือก OA"); return; }
+    const input = document.getElementById("multiFiles");
+    if (!input.files.length) {
+      alert("ยังไม่ได้เลือกไฟล์");
+      return;
+    }
+    setStatus("กำลังอัปโหลดรูป...", true);
+    const files = [];
+    for (let file of input.files) {
+      const base64 = await fileToBase64(file);
+      files.push({
+        name: file.name,
+        mimeType: file.type || 'image/png',
+        dataBase64: base64
+      });
+    }
+    try {
+      const res = await apiJson("uploadImages", {
+        userId: currentUser.id,
+        oaId: currentOaId,
+        files
+      });
+      if (!res || !res.ok || !Array.isArray(res.urls)) {
+        throw new Error("uploadImages response ผิดรูปแบบ");
       }
+      fillImageSlotsWithUrls(res.urls);
+      setStatus("อัปโหลดสำเร็จ "+res.urls.length+" รูป", true);
+      updatePreview();
+    } catch (e) {
+      console.error(e);
+      setStatus("อัปโหลดรูปไม่สำเร็จ: "+(e.message || e), false);
+    } finally {
+      input.value = "";
+    }
+  }
 
-      function updateCurrentTemplate() {
-        if (!currentUser) return;
-        const select = document.getElementById('templateSelect');
-        const id = select.value;
-        if (!id) {
-          alert('กรุณาเลือกเทมเพลตที่จะอัปเดตก่อน');
-          return;
-        }
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const result = e.target.result; // data:...;base64,xxx
+        const commaIndex = result.indexOf(",");
+        const b64 = commaIndex >= 0 ? result.substring(commaIndex+1) : result;
+        resolve(b64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
 
-        const tpl = templatesList.find(t => t.templateId === id);
-        if (!tpl) {
-          alert('ไม่พบเทมเพลตที่เลือก');
-          return;
-        }
-
-        const text = document.getElementById('message').value || '';
-        const imageUrls = [];
-        for (let i = 1; i <= 10; i++) {
-          const val = (document.getElementById('imageUrl' + i).value || '').trim();
-          if (val) imageUrls.push(val);
-        }
-
-        const name = tpl.name || prompt('ชื่อเทมเพลต (เว้นว่างเพื่อใช้ชื่อเดิม):') || tpl.name;
-
-        google.script.run
-          .withSuccessHandler(function () {
-            alert('อัปเดตเทมเพลตเรียบร้อย');
-            loadTemplates();
-          })
-          .withFailureHandler(function (err) {
-            alert('อัปเดตเทมเพลตไม่สำเร็จ: ' + (err && err.message ? err.message : err));
-          })
-          .saveTemplate(name, text, imageUrls, id, currentUser.lineUserId);
+  function fillImageSlotsWithUrls(urls) {
+    let idx = 0;
+    for (let i=1;i<=10 && idx<urls.length;i++) {
+      const input = document.getElementById("imageUrl"+i);
+      if (!input.value.trim()) {
+        input.value = urls[idx++];
       }
+    }
+  }
 
-      function loadTokenStatus() {
-        google.script.run
-          .withSuccessHandler(renderTokenStatus)
-          .withFailureHandler(function (err) {
-            const summary = document.getElementById('tokenStatusSummary');
-            const tag = document.getElementById('tokenStatusTag');
-            const detail = document.getElementById('tokenStatusDetail');
-            const errBox = document.getElementById('tokenStatusError');
+  // ================ Submit ===================
+  async function handleSubmit() {
+    if (!currentUser) { alert("ยังไม่ได้ระบุ user (LIFF/No-LIFF)"); return; }
+    if (!currentOaId) { alert("ยังไม่ได้เลือก OA"); return; }
+    const btn = document.getElementById("btnSubmit");
+    btn.disabled = true;
+    setStatus("กำลังส่งคำขอไปยัง backend...", true);
 
-            summary.textContent = 'โหลดสถานะ token ไม่สำเร็จ';
-            tag.textContent = 'ERROR';
-            tag.className = 'token-status-tag token-status-tag-expired';
-            detail.textContent = (err && err.message ? err.message : err);
-            errBox.style.display = 'none';
-          })
-          .getChannelAccessTokenStatus();
+    const text   = document.getElementById("message").value || '';
+    const images = collectImageUrls();
+    const mode   = getSendMode();
+    const target = getTargetType();
+    let scheduleAt = null;
+
+    if (mode === "schedule") {
+      const val = document.getElementById("scheduleAt").value;
+      if (!val) {
+        setStatus("กรุณาเลือกวันเวลาเมื่อเลือกโหมดตั้งเวลา", false);
+        btn.disabled = false;
+        return;
       }
+      scheduleAt = val;
+    }
+    if (!text.trim() && images.length === 0) {
+      setStatus("กรุณาใส่ข้อความหรือรูปอย่างน้อย 1 รายการ", false);
+      btn.disabled = false;
+      return;
+    }
 
-      function forceRefreshToken() {
-        if (!confirm('ต้องการขอ token ใหม่จาก LINE ทันทีหรือไม่?')) return;
-
-        const summary = document.getElementById('tokenStatusSummary');
-        const detail = document.getElementById('tokenStatusDetail');
-        const tag = document.getElementById('tokenStatusTag');
-        const errBox = document.getElementById('tokenStatusError');
-
-        summary.textContent = 'กำลังขอ token ใหม่จาก LINE...';
-        tag.textContent = 'LOADING';
-        tag.className = 'token-status-tag token-status-tag-none';
-        detail.textContent = 'กรุณารอสักครู่...';
-        errBox.style.display = 'none';
-
-        google.script.run
-          .withSuccessHandler(renderTokenStatus)
-          .withFailureHandler(function (err) {
-            summary.textContent = 'Force refresh token ไม่สำเร็จ';
-            tag.textContent = 'ERROR';
-            tag.className = 'token-status-tag token-status-tag-expired';
-            detail.textContent = (err && err.message ? err.message : err);
-            errBox.style.display = 'none';
-          })
-          .refreshChannelAccessToken();
+    try {
+      const res = await apiJson("createBroadcast", {
+        oaId: currentOaId,
+        userId: currentUser.id,
+        text,
+        images,
+        mode,
+        target,
+        scheduleAt
+      });
+      if (!res || !res.ok) {
+        throw new Error(JSON.stringify(res));
       }
+      if (res.mode === 'scheduled') {
+        setStatus("ตั้งเวลา Broadcast เรียบร้อย", true);
+      } else {
+        setStatus("ส่ง Broadcast สำเร็จแล้ว", true);
+      }
+      loadHistory();
+    } catch (e) {
+      console.error(e);
+      setStatus("ส่ง Broadcast ไม่สำเร็จ: "+(e.message || e), false);
+    } finally {
+      btn.disabled = false;
+    }
+  }
 
-      function renderTokenStatus(status) {
-        const summary = document.getElementById('tokenStatusSummary');
-        const tag = document.getElementById('tokenStatusTag');
-        const detail = document.getElementById('tokenStatusDetail');
-        const errBox = document.getElementById('tokenStatusError');
+  function clearForm() {
+    document.getElementById("message").value = "";
+    document.getElementById("scheduleAt").value = "";
+    for (let i=1;i<=10;i++) {
+      document.getElementById("imageUrl"+i).value = "";
+    }
+    document.getElementById("statusBar").classList.add("hidden");
+    updatePreview();
+  }
 
-        if (!status || typeof status.hasToken === 'undefined') {
-          summary.textContent = 'ไม่มีข้อมูลสถานะ token';
-          tag.textContent = 'UNKNOWN';
-          tag.className = 'token-status-tag token-status-tag-none';
-          detail.textContent = 'ลองกดปุ่มตรวจสอบสถานะอีกครั้ง';
-          errBox.style.display = 'none';
-          return;
+  // ================ History ===================
+  async function loadHistory() {
+    if (!currentUser || !currentOaId) return;
+    const body = document.getElementById("historyBody");
+    body.innerHTML = `<tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>`;
+    try {
+      const res = await apiJson("history", {
+        oaId: currentOaId,
+        userId: currentUser.id,
+        limit: 50
+      });
+      if (!res || !res.ok || !Array.isArray(res.list) || !res.list.length) {
+        body.innerHTML = `<tr><td colspan="8" class="text-muted">ยังไม่มีประวัติ</td></tr>`;
+        return;
+      }
+      const now = new Date();
+      const rows = res.list.map(item => {
+        const created = item.createdAt ? new Date(item.createdAt) : null;
+        const schedule= item.scheduleAt ? new Date(item.scheduleAt) : null;
+        const sent    = item.sentAt ? new Date(item.sentAt) : null;
+        const createdText  = created ? created.toLocaleString() : "-";
+        const scheduleText = schedule? schedule.toLocaleString() : "-";
+        const sentText     = sent   ? sent.toLocaleString() : "-";
+        const modeLabel   = item.mode === 'scheduled' ? 'ตั้งเวลา' : 'ส่งทันที';
+        const targetLabel = item.targetType === 'test' ? 'ทดสอบ' : 'ทุกคน';
+        let statusClass = 'pill-cancel';
+        if (item.status === 'pending') statusClass = 'pill-pending';
+        else if (item.status === 'sent') statusClass = 'pill-sent';
+        else if (item.status === 'error') statusClass = 'pill-error';
+
+        const textShort = (item.text || '').trim();
+        const tShort = textShort.length > 50 ? textShort.slice(0,50)+'…' : (textShort || '-');
+
+        const logText = (item.log || '').toString();
+        const lShort = logText ? (logText.length>50?logText.slice(0,50)+'…':logText) : '-';
+
+        const imagesCount = item.imageCount || (Array.isArray(item.images)?item.images.length:0);
+        const futurePending = (item.status === 'pending' && schedule && schedule > now);
+
+        let actions = "";
+        if (futurePending) {
+          actions += `<button class="btn btn-secondary" type="button" onclick="onCancel('${item.jobId}')">ยกเลิก</button> `;
         }
+        actions += `<button class="btn btn-secondary" type="button" onclick="onRetry('${item.jobId}')">ส่งซ้ำ</button>`;
+        return `
+          <tr>
+            <td>
+              <div>${createdText}</div>
+              <div class="text-muted">Schedule: ${scheduleText}<br>Sent: ${sentText}</div>
+            </td>
+            <td>${modeLabel}</td>
+            <td>${targetLabel}</td>
+            <td><div class="text-preview">${escapeHtml(tShort)}</div></td>
+            <td>${imagesCount}</td>
+            <td><span class="pill ${statusClass}">${item.status}</span></td>
+            <td><div class="log-preview text-muted">${escapeHtml(lShort)}</div></td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      });
+      body.innerHTML = rows.join("");
+    } catch (e) {
+      console.error(e);
+      body.innerHTML = `<tr><td colspan="8" class="text-muted">โหลดประวัติไม่สำเร็จ: ${escapeHtml(e.message || e)}</td></tr>`;
+    }
+  }
 
-        const hasToken = !!status.hasToken;
-        const isExpired = !!status.isExpired;
-        const remainingSeconds = Number(status.remainingSeconds || 0);
-        const expiresAt = status.expiresAt ? new Date(status.expiresAt) : null;
+  async function onCancel(jobId) {
+    if (!currentUser) return;
+    if (!confirm("ต้องการยกเลิก Broadcast นี้หรือไม่?")) return;
+    try {
+      const res = await apiJson("cancel", { userId: currentUser.id, jobId });
+      if (!res || !res.ok) alert("ยกเลิกไม่สำเร็จ: "+JSON.stringify(res));
+      loadHistory();
+    } catch (e) {
+      alert("ยกเลิกไม่สำเร็จ: "+(e.message || e));
+    }
+  }
 
-        let tagText = 'NONE';
-        let tagClass = 'token-status-tag token-status-tag-none';
-        let summaryText = '';
-        let detailText = '';
+  async function onRetry(jobId) {
+    if (!currentUser) return;
+    if (!confirm("ต้องการส่งซ้ำ Broadcast นี้หรือไม่?")) return;
+    try {
+      const res = await apiJson("retry", { userId: currentUser.id, jobId });
+      if (!res || !res.ok) alert("ส่งซ้ำไม่สำเร็จ: "+JSON.stringify(res));
+      loadHistory();
+    } catch (e) {
+      alert("ส่งซ้ำไม่สำเร็จ: "+(e.message || e));
+    }
+  }
 
-        if (!hasToken) {
-          tagText = 'NO TOKEN';
-          tagClass = 'token-status-tag token-status-tag-none';
-          summaryText = 'ยังไม่มี token ที่ใช้งานอยู่';
-          detailText = 'ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast ครั้งต่อไป หรือกด Force refresh token';
-        } else if (isExpired) {
-          tagText = 'EXPIRED';
-          tagClass = 'token-status-tag token-status-tag-expired';
-          summaryText = 'token หมดอายุแล้ว';
-          detailText = 'ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast ครั้งถัดไป หรือคุณสามารถกด Force refresh token ได้ทันที';
-        } else {
-          tagText = 'ACTIVE';
-          tagClass = 'token-status-tag token-status-tag-ok';
-          summaryText = 'token กำลังใช้งานได้ปกติ';
+  // ================ Token Status ===================
+  async function loadTokenStatus() {
+    if (!currentUser || !currentOaId) return;
+    const summary = document.getElementById("tokenStatusSummary");
+    const tag     = document.getElementById("tokenStatusTag");
+    const detail  = document.getElementById("tokenStatusDetail");
+    const errBox  = document.getElementById("tokenStatusError");
+    summary.textContent = "กำลังตรวจสอบ token...";
+    tag.textContent = "LOADING";
+    detail.textContent = "";
+    errBox.classList.add("hidden");
+    try {
+      const st = await apiJson("tokenStatus", {
+        userId: currentUser.id,
+        oaId: currentOaId
+      });
+      if (!st || !st.ok) throw new Error(JSON.stringify(st));
+      renderTokenStatus(st);
+    } catch (e) {
+      summary.textContent = "ตรวจสอบ token ไม่สำเร็จ";
+      tag.textContent = "ERROR";
+      detail.textContent = e.message || e;
+      errBox.classList.add("hidden");
+    }
+  }
 
-          const mins = Math.floor(remainingSeconds / 60);
-          const secs = remainingSeconds % 60;
-          const remainText =
-            mins > 0
-              ? `${mins} นาที ${secs} วินาที`
-              : `${secs} วินาที`;
+  async function forceRefreshToken() {
+    if (!currentUser || !currentOaId) return;
+    if (!confirm("ต้องการ Force refresh token สำหรับ OA นี้หรือไม่?")) return;
+    const summary = document.getElementById("tokenStatusSummary");
+    const tag     = document.getElementById("tokenStatusTag");
+    const detail  = document.getElementById("tokenStatusDetail");
+    const errBox  = document.getElementById("tokenStatusError");
+    summary.textContent = "กำลัง refresh token...";
+    tag.textContent = "LOADING";
+    detail.textContent = "";
+    errBox.classList.add("hidden");
+    try {
+      const st = await apiJson("refreshToken", {
+        userId: currentUser.id,
+        oaId: currentOaId
+      });
+      if (!st || !st.ok) throw new Error(JSON.stringify(st));
+      renderTokenStatus(st);
+    } catch (e) {
+      summary.textContent = "Force refresh token ไม่สำเร็จ";
+      tag.textContent = "ERROR";
+      detail.textContent = e.message || e;
+      errBox.classList.add("hidden");
+    }
+  }
 
-          const expiresStr = expiresAt ? expiresAt.toLocaleString() : '-';
+  function renderTokenStatus(st) {
+    const summary = document.getElementById("tokenStatusSummary");
+    const tag     = document.getElementById("tokenStatusTag");
+    const detail  = document.getElementById("tokenStatusDetail");
+    const errBox  = document.getElementById("tokenStatusError");
 
-          detailText =
-            `เวลาที่เหลือก่อนหมดอายุ ~ ${remainText}\n` +
-            `จะหมดอายุประมาณ: ${expiresStr}`;
-        }
-
-        summary.textContent = summaryText || 'สถานะ Token';
-        tag.textContent = tagText;
-        tag.className = tagClass;
-        detail.textContent = detailText;
-
-        if (status.error) {
-          errBox.style.display = 'block';
-          errBox.textContent = 'Error ล่าสุดจากการขอ token: ' + status.error;
-        } else {
-          errBox.style.display = 'none';
-        }
+    const mode = st.tokenMode || '-';
+    if (mode === 'LONG') {
+      summary.textContent = "โหมด LONG-LIVED TOKEN";
+      tag.textContent = st.hasToken ? "ACTIVE" : "NO TOKEN";
+      detail.textContent = st.hasToken
+        ? "ใช้ long-lived token จากชีท OA_Config\n(ถ้าต้องการเปลี่ยน ให้แก้ไขในชีทโดยตรง)"
+        : "ยังไม่ได้ใส่ long_lived_token ใน OA_Config";
+    } else {
+      // SHORT
+      if (!st.hasToken) {
+        summary.textContent = "ยังไม่มี short token หรือหมดอายุแล้ว";
+        tag.textContent = "EXPIRED/EMPTY";
+        detail.textContent = "ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast หรือใช้ Force refresh token";
+      } else if (st.isExpired) {
+        summary.textContent = "short token หมดอายุแล้ว";
+        tag.textContent = "EXPIRED";
+        detail.textContent = "ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast หรือใช้ Force refresh token";
+      } else {
+        const mins = Math.floor((st.remainingSeconds || 0)/60);
+        const secs = (st.remainingSeconds || 0) % 60;
+        const remain = mins>0 ? `${mins} นาที ${secs} วินาที` : `${secs} วินาที`;
+        summary.textContent = "short token กำลังใช้งานได้ปกติ";
+        tag.textContent = "ACTIVE";
+        detail.textContent =
+          `เวลาที่เหลือก่อนหมดอายุ ~ ${remain}\nจะหมดอายุประมาณ: ${
+            st.expiresAt ? new Date(st.expiresAt).toLocaleString() : '-'
+          }`;
       }
+    }
+    if (st.error) {
+      errBox.classList.remove("hidden");
+      errBox.textContent = "Error ล่าสุดจาก backend: "+st.error;
+    } else {
+      errBox.classList.add("hidden");
+    }
+  }
 
-      function escapeHtml(str) {
-        if (!str) return '';
-        return str
-          .replace(/&/g, '&amp;')
-          .replace(/"/g, '&quot;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;');
-      }
-    </script>
-  </body>
+  // ================ DOM Ready ===================
+  document.addEventListener("DOMContentLoaded", () => {
+    initImageGrid();
+    updatePreview();
+    initApp();
+  });
+</script>
+</body>
 </html>
