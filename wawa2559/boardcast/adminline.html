@@ -5,16 +5,14 @@
     <meta charset="UTF-8">
     <title>LINE OA Broadcast Studio Enterprise</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <!-- Google Picker (สำหรับเลือกไฟล์จาก Drive) -->
-    <script src="https://apis.google.com/js/api.js"></script>
     <style>
+      /* --- CSS เดิมทั้งหมด (ย่อไม่ได้) --- */
       body {
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         background: #f5f5f7;
         margin: 0;
         padding: 24px;
       }
-
       .container {
         max-width: 960px;
         margin: 0 auto;
@@ -23,19 +21,16 @@
         padding: 24px 28px 28px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.06);
       }
-
       h1 {
         margin-top: 0;
         font-size: 22px;
         text-align: center;
       }
-
       .section-title {
         font-weight: 600;
         margin-top: 16px;
         margin-bottom: 8px;
       }
-
       textarea {
         width: 100%;
         min-height: 120px;
@@ -46,7 +41,6 @@
         box-sizing: border-box;
         resize: vertical;
       }
-
       input[type="url"],
       input[type="text"],
       input[type="datetime-local"],
@@ -58,45 +52,38 @@
         border: 1px solid #d0d0d5;
         box-sizing: border-box;
       }
-
       .image-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 8px 16px;
       }
-
       .image-item {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 8px;
         background: #fafafa;
       }
-
       .image-item label {
         font-size: 12px;
         color: #555;
       }
-
       .image-actions {
         display: flex;
         gap: 6px;
         margin-top: 4px;
         flex-wrap: wrap;
       }
-
       .image-local-preview {
         margin-top: 6px;
         display: flex;
         justify-content: center;
       }
-
       .image-local-preview img {
         max-width: 100%;
         max-height: 120px;
         border-radius: 8px;
         object-fit: cover;
       }
-
       .radio-group {
         display: flex;
         gap: 16px;
@@ -104,23 +91,19 @@
         align-items: center;
         flex-wrap: wrap;
       }
-
       .row-inline {
         display: flex;
         gap: 12px;
         align-items: flex-start;
       }
-
       .row-inline > div {
         flex: 1;
       }
-
       .hint {
         font-size: 12px;
         color: #777;
         margin-top: 4px;
       }
-
       .btn {
         border: none;
         border-radius: 999px;
@@ -133,60 +116,49 @@
         gap: 6px;
         white-space: nowrap;
       }
-
       .btn-primary {
         background: #06c755;
         color: #fff;
       }
-
       .btn-primary:disabled {
         opacity: 0.5;
         cursor: not-allowed;
       }
-
       .btn-secondary {
         background: #e5e7eb;
         color: #111827;
       }
-
       .btn-small {
         border-radius: 999px;
         padding: 4px 10px;
         font-size: 11px;
       }
-
       .btn-danger {
         background: #fee2e2;
         color: #b91c1c;
       }
-
       .btn-ghost {
         background: transparent;
         border: 1px solid #d1d5db;
         color: #374151;
       }
-
       .status-bar {
         margin-top: 12px;
         font-size: 13px;
       }
-
       .status-bar span {
         display: inline-block;
         padding: 4px 8px;
         border-radius: 999px;
       }
-
       .status-ok {
         background: #e7f7ee;
         color: #137d3b;
       }
-
       .status-error {
         background: #fde8e8;
         color: #b91c1c;
       }
-
       .tabs {
         display: flex;
         gap: 8px;
@@ -194,7 +166,6 @@
         border-bottom: 1px solid #e5e7eb;
         flex-wrap: wrap;
       }
-
       .tab-btn {
         border: none;
         background: transparent;
@@ -204,13 +175,11 @@
         border-bottom: 2px solid transparent;
         color: #6b7280;
       }
-
       .tab-btn.active {
         color: #111827;
         border-bottom-color: #06c755;
         font-weight: 600;
       }
-
       .pill {
         display: inline-flex;
         align-items: center;
@@ -220,64 +189,34 @@
         font-size: 10px;
         text-transform: uppercase;
       }
-
-      .pill-pending {
-        background: #fef3c7;
-        color: #92400e;
-      }
-
-      .pill-sent {
-        background: #e7f7ee;
-        color: #166534;
-      }
-
-      .pill-error {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-
-      .pill-cancelled {
-        background: #e5e7eb;
-        color: #4b5563;
-      }
-
+      .pill-pending { background: #fef3c7; color: #92400e; }
+      .pill-sent { background: #e7f7ee; color: #166534; }
+      .pill-error { background: #fee2e2; color: #b91c1c; }
+      .pill-cancelled { background: #e5e7eb; color: #4b5563; }
       table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 10px;
         font-size: 12px;
       }
-
-      thead {
-        background: #f3f4f6;
-      }
-
+      thead { background: #f3f4f6; }
       th, td {
         padding: 6px 8px;
         border-bottom: 1px solid #e5e7eb;
         vertical-align: top;
       }
-
       th {
         text-align: left;
         font-weight: 600;
         font-size: 11px;
         color: #4b5563;
       }
-
-      tbody tr:nth-child(even) {
-        background: #fafafa;
-      }
-
-      .text-muted {
-        color: #6b7280;
-      }
-
+      tbody tr:nth-child(even) { background: #fafafa; }
+      .text-muted { color: #6b7280; }
       .no-access {
         text-align: center;
         padding: 32px 16px;
       }
-
       .badge-mode {
         font-size: 10px;
         padding: 2px 6px;
@@ -286,27 +225,23 @@
         color: #374151;
         display: inline-block;
       }
-
       .log-preview {
         max-width: 220px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-
       .text-preview {
         max-width: 260px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
       }
-
       .preview-wrapper {
         margin-top: 8px;
         display: flex;
         justify-content: center;
       }
-
       .phone-frame {
         width: 260px;
         border-radius: 24px;
@@ -315,68 +250,57 @@
         background: #f3f4f6;
         box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
       }
-
       .phone-header {
         display: flex;
         justify-content: center;
         gap: 4px;
         margin-bottom: 6px;
       }
-
       .phone-dot {
         width: 4px;
         height: 4px;
         border-radius: 999px;
         background: #d1d5db;
       }
-
       .bubble {
         background: #ffffff;
         border-radius: 16px;
         padding: 8px 10px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       }
-
       .preview-meta {
         font-size: 10px;
         color: #6b7280;
         margin-bottom: 6px;
         text-align: left;
       }
-
       .preview-text {
         font-size: 13px;
         margin-bottom: 6px;
         white-space: pre-wrap;
       }
-
       .image-grid-preview {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 4px;
       }
-
       .image-grid-preview img {
         width: 100%;
         border-radius: 8px;
         object-fit: cover;
         aspect-ratio: 1/1;
       }
-
       .template-row {
         display: flex;
         gap: 8px;
         align-items: center;
         flex-wrap: wrap;
       }
-
       .template-action-group {
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
       }
-
-      /* Token tab */
       .token-status-box {
         border-radius: 12px;
         border: 1px solid #e5e7eb;
@@ -384,48 +308,40 @@
         background: #fafafa;
         margin-top: 8px;
       }
-
       .token-status-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 8px;
       }
-
       .token-status-summary {
         font-size: 14px;
         font-weight: 500;
       }
-
-      .token-status-tag-ok {
-        background: #e7f7ee;
-        color: #166534;
-      }
-
-      .token-status-tag-expired {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-
-      .token-status-tag-none {
-        background: #e5e7eb;
-        color: #374151;
-      }
-
       .token-status-tag {
         font-size: 11px;
         border-radius: 999px;
         padding: 2px 8px;
         display: inline-block;
       }
-
+      .token-status-tag-ok {
+        background: #e7f7ee;
+        color: #166534;
+      }
+      .token-status-tag-expired {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .token-status-tag-none {
+        background: #e5e7eb;
+        color: #374151;
+      }
       .token-status-detail {
         font-size: 12px;
         color: #4b5563;
         margin-top: 6px;
         line-height: 1.5;
       }
-
       .token-status-error {
         font-size: 12px;
         color: #b91c1c;
@@ -495,7 +411,7 @@
                 <div class="section">
                   <div class="section-title">รูปภาพ (สูงสุด 10 รูป)</div>
                   <div class="hint">
-                    แต่ละช่องสามารถ: อัปโหลดจากเครื่อง / เลือกจาก Drive / วางลิงก์รูปโดยตรง
+                    แต่ละช่องสามารถ: อัปโหลดจากเครื่อง หรือวางลิงก์รูปโดยตรง
                   </div>
                   <div class="image-grid" id="imageGrid"></div>
                 </div>
@@ -647,20 +563,15 @@
     </div>
 
     <script>
-      const LIFF_ID = '2007213966-G3n3wn8v';
-
-      const PICKER_API_KEY   = 'YOUR_GOOGLE_PICKER_API_KEY';
-      const PICKER_CLIENT_ID = 'YOUR_GOOGLE_PICKER_CLIENT_ID';
+      const LIFF_ID = '<?= LIFF_ID ?>';
 
       let currentUser = null;
       let templatesList = [];
-      let pickerInited = false;
 
       document.addEventListener('DOMContentLoaded', function () {
         initImageInputs();
         attachPreviewListeners();
         initLiff();
-        initPickerApi();
       });
 
       function initImageInputs() {
@@ -674,9 +585,6 @@
             <div class="image-actions">
               <button class="btn btn-ghost btn-small" type="button" onclick="triggerFileUpload(${i})">
                 เลือกไฟล์จากเครื่อง
-              </button>
-              <button class="btn btn-ghost btn-small" type="button" onclick="openDrivePicker(${i})">
-                เลือกจาก Drive
               </button>
             </div>
             <input type="file" id="file${i}" name="file${i}" accept="image/*" style="display:none" />
@@ -758,13 +666,6 @@
           });
       }
 
-      function initPickerApi() {
-        gapi.load('picker', () => {
-          pickerInited = true;
-        });
-      }
-
-      // -------- Tabs ----------
       function showTab(tab) {
         const sendPane = document.getElementById('tabSendPane');
         const historyPane = document.getElementById('tabHistoryPane');
@@ -800,7 +701,6 @@
         }
       }
 
-      // -------- Status ----------
       function setStatus(msg, ok) {
         const bar = document.getElementById('statusBar');
         const textEl = document.getElementById('statusText');
@@ -811,21 +711,16 @@
 
       function getSelectedSendMode() {
         const radios = document.querySelectorAll('input[name="sendMode"]');
-        for (const r of radios) {
-          if (r.checked) return r.value;
-        }
+        for (const r of radios) if (r.checked) return r.value;
         return 'now';
       }
 
       function getTargetType() {
         const radios = document.querySelectorAll('input[name="targetType"]');
-        for (const r of radios) {
-          if (r.checked) return r.value;
-        }
+        for (const r of radios) if (r.checked) return r.value;
         return 'all';
       }
 
-      // -------- Submit ----------
       function handleSubmit() {
         if (!currentUser) {
           alert('กรุณารอระบบโหลดโปรไฟล์ LINE ให้เรียบร้อย');
@@ -838,7 +733,6 @@
 
         const text = document.getElementById('message').value || '';
         const imageUrls = [];
-
         for (let i = 1; i <= 10; i++) {
           const val = (document.getElementById('imageUrl' + i).value || '').trim();
           if (val) imageUrls.push(val);
@@ -900,12 +794,10 @@
           prevBox.querySelector('img').src = '';
         }
         document.getElementById('scheduleAt').value = '';
-        const bar = document.getElementById('statusBar');
-        bar.style.display = 'none';
+        document.getElementById('statusBar').style.display = 'none';
         updatePreview();
       }
 
-      // -------- Preview ----------
       function updatePreview() {
         const text = document.getElementById('message').value || '';
         const previewText = document.getElementById('previewText');
@@ -945,7 +837,6 @@
           modeLabel + (timeLabel ? timeLabel : '') + ' | เป้าหมาย: ' + targetLabel;
       }
 
-      // -------- Upload from Computer ----------
       function triggerFileUpload(slotIndex) {
         const input = document.getElementById('file' + slotIndex);
         if (input) input.click();
@@ -983,59 +874,6 @@
           .uploadImageToDrive(form, slotIndex);
       }
 
-      // -------- Google Drive Picker ----------
-      function openDrivePicker(slotIndex) {
-        if (!PICKER_API_KEY || !PICKER_CLIENT_ID) {
-          alert('ยังไม่ได้ตั้งค่า Google Picker API Key / Client ID');
-          return;
-        }
-        if (!pickerInited) {
-          alert('Google Picker ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง');
-          return;
-        }
-
-        const token = liff.getAccessToken();
-        if (!token) {
-          alert('ไม่พบ AccessToken จาก LIFF (ถ้าจะใช้ Drive Picker จริงควรผูก OAuth เพิ่ม)');
-          return;
-        }
-
-        buildPicker(token, slotIndex);
-      }
-
-      function buildPicker(accessToken, slotIndex) {
-        const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
-          .setIncludeFolders(true)
-          .setSelectFolderEnabled(false);
-
-        const picker = new google.picker.PickerBuilder()
-          .setOAuthToken(accessToken)
-          .setDeveloperKey(PICKER_API_KEY)
-          .addView(view)
-          .setCallback(function (data) {
-            if (data.action === google.picker.Action.PICKED) {
-              const doc = data.docs[0];
-              const fileId = doc.id;
-              google.script.run
-                .withSuccessHandler(function (res) {
-                  if (res && res.url) {
-                    document.getElementById('imageUrl' + slotIndex).value = res.url;
-                    updatePreview();
-                  } else {
-                    alert('ไม่สามารถสร้างลิงก์จาก Drive ได้');
-                  }
-                })
-                .withFailureHandler(function (err) {
-                  alert('ผิดพลาดตอนสร้างลิงก์จาก Drive: ' + (err && err.message ? err.message : err));
-                })
-                .getDriveFilePublicUrl(fileId);
-            }
-          })
-          .build();
-        picker.setVisible(true);
-      }
-
-      // -------- History ----------
       function loadHistory() {
         if (!currentUser) return;
         const body = document.getElementById('historyBody');
@@ -1092,7 +930,6 @@
           const isFuturePending = (item.status === 'pending' && scheduleAt && scheduleAt > now);
 
           let actions = '';
-
           if (isFuturePending) {
             actions += `
               <button class="btn btn-small btn-danger" type="button" onclick="confirmCancel('${item.jobId}')">
@@ -1100,7 +937,6 @@
               </button>
             `;
           }
-
           if (item.status === 'sent' || item.status === 'error' || isFuturePending) {
             actions += `
               <button class="btn btn-small btn-secondary" type="button" onclick="confirmRetry('${item.jobId}')">
@@ -1108,10 +944,7 @@
               </button>
             `;
           }
-
-          if (!actions) {
-            actions = '<span class="text-muted">-</span>';
-          }
+          if (!actions) actions = '<span class="text-muted">-</span>';
 
           html += `
             <tr>
@@ -1179,7 +1012,6 @@
           .retryBroadcast(jobId, currentUser.lineUserId);
       }
 
-      // -------- Templates ----------
       function loadTemplates() {
         if (!currentUser) return;
 
@@ -1298,7 +1130,6 @@
           .saveTemplate(name, text, imageUrls, id, currentUser.lineUserId);
       }
 
-      // -------- Token Status ----------
       function loadTokenStatus() {
         google.script.run
           .withSuccessHandler(renderTokenStatus)
@@ -1410,7 +1241,6 @@
         }
       }
 
-      // -------- Utils ----------
       function escapeHtml(str) {
         if (!str) return '';
         return str
