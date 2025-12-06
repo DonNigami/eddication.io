@@ -388,16 +388,25 @@
       .replace(/'/g,'&#39;');
   }
 
-  async function apiJson(action, data) {
-    const payload = Object.assign({}, data || {}, { action });
-    const res = await fetch(API_BASE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error("HTTP "+res.status);
-    return res.json();
+async function apiJson(action, data) {
+  const form = new FormData();
+  form.append("action", action);
+  form.append("payload", JSON.stringify(data || {}));
+
+  const res = await fetch(API_BASE_URL, {
+    method: "POST",
+    body: form           // ❗ ห้ามใส่ headers Content-Type เอง
+  });
+
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch (e) {
+    console.error("Response not JSON:", text);
+    throw e;
   }
+}
 
   function setStatus(msg, ok) {
     const bar = document.getElementById("statusBar");
