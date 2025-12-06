@@ -372,11 +372,10 @@
 
   let currentUser = null;
   let frontendConfig = {
--   useLiffLogin: true,
-+   useLiffLogin: false,
+    useLiffLogin: true,
     defaultAdminUserId: '',
     defaultOaId: ''
-};
+  };
   let oaList = [];
   let currentOaId = '';
 
@@ -453,20 +452,11 @@
   async function initApp() {
     try {
       const cfg = await apiJson("getFrontendConfig", {});
-if (cfg && cfg.ok) {
-  // ✅ รองรับทั้ง boolean และ string จากชีท
-  let useLiff = cfg.useLiffLogin;
-  if (typeof useLiff === 'string') {
-    useLiff = useLiff.trim().toLowerCase();
-    useLiff = (useLiff === 'true' || useLiff === '1' || useLiff === 'yes');
-  } else {
-    useLiff = !!useLiff;
-  }
-
-  frontendConfig.useLiffLogin = useLiff;
-  frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
-  frontendConfig.defaultOaId = cfg.defaultOaId || '';
-}
+      if (cfg && cfg.ok) {
+        frontendConfig.useLiffLogin = !!cfg.useLiffLogin;
+        frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
+        frontendConfig.defaultOaId = cfg.defaultOaId || '';
+      }
 
       const oaRes = await apiJson("getOAs", {});
       if (oaRes && oaRes.ok) {
@@ -488,15 +478,11 @@ if (cfg && cfg.ok) {
   }
 
   async function initLiffFlow() {
-  if (typeof liff === "undefined") {
-    document.getElementById("userInfo").textContent =
-      "เปิดโหมด LIFF แต่ไม่มี LIFF SDK";
-    document.getElementById("notAdminBox").classList.remove("hidden");
-    return;
-  }
-  await liff.init({ liffId: LIFF_ID });
-  ...
-}
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
     const profile = await liff.getProfile();
     currentUser = { id: profile.userId, displayName: profile.displayName };
     document.getElementById("userInfo").textContent =
