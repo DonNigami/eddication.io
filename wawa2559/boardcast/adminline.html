@@ -5,6 +5,8 @@
   <title>LINE OA Broadcast Enterprise++</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- ✅ SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     body {
       margin: 0;
@@ -365,7 +367,7 @@
 
 <script>
   // ================= CONFIG =================
-  const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzel2xyggGjFFqMpZkbOh561hAXzaPREJlVScmWnzwhC-NjnmLiifi6NaywMA_y7haj/exec";   // เช่น https://script.google.com/macros/s/xxx/exec
+  const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzel2xyggGjFFqMpZkbOh561hAXzaPREJlVScmWnzwhC-NjnmLiifi6NaywMA_y7haj/exec";
   const LIFF_ID      = "2007368597-nE1G39Z3";
 
   let currentUser = null;
@@ -388,25 +390,25 @@
       .replace(/'/g,'&#39;');
   }
 
-async function apiJson(action, data) {
-  const form = new FormData();
-  form.append("action", action);
-  form.append("payload", JSON.stringify(data || {}));
+  async function apiJson(action, data) {
+    const form = new FormData();
+    form.append("action", action);
+    form.append("payload", JSON.stringify(data || {}));
 
-  const res = await fetch(API_BASE_URL, {
-    method: "POST",
-    body: form           // ❗ ห้ามใส่ headers Content-Type เอง
-  });
+    const res = await fetch(API_BASE_URL, {
+      method: "POST",
+      body: form
+    });
 
-  if (!res.ok) throw new Error("HTTP " + res.status);
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch (e) {
-    console.error("Response not JSON:", text);
-    throw e;
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Response not JSON:", text);
+      throw e;
+    }
   }
-}
 
   function setStatus(msg, ok) {
     const bar = document.getElementById("statusBar");
@@ -449,7 +451,6 @@ async function apiJson(action, data) {
   // ================ LIFF / No-LIFF ===================
   async function initApp() {
     try {
-      // 1) frontend config
       const cfg = await apiJson("getFrontendConfig", {});
       if (cfg && cfg.ok) {
         frontendConfig.useLiffLogin = !!cfg.useLiffLogin;
@@ -457,14 +458,12 @@ async function apiJson(action, data) {
         frontendConfig.defaultOaId = cfg.defaultOaId || '';
       }
 
-      // 2) OA list
       const oaRes = await apiJson("getOAs", {});
       if (oaRes && oaRes.ok) {
         oaList = oaRes.list || [];
       }
       initOaSelect();
 
-      // 3) user
       if (frontendConfig.useLiffLogin) {
         await initLiffFlow();
       } else {
@@ -637,16 +636,35 @@ async function apiJson(action, data) {
       `${modeLabel}${timeLabel} | เป้าหมาย: ${targetLabel}`;
   }
 
-  // ================ Multi Upload (base64) ===================
+  // ================ Multi Upload (base64 + SweetAlert) ===================
   async function handleMultiUpload() {
-    if (!currentUser) { alert("ยังไม่ได้ระบุ user (LIFF/No-LIFF)"); return; }
-    if (!currentOaId) { alert("ยังไม่ได้เลือก OA"); return; }
-    const input = document.getElementById("multiFiles");
-    if (!input.files.length) {
-      alert("ยังไม่ได้เลือกไฟล์");
+    if (!currentUser) {
+      Swal.fire("ยังไม่ได้ระบุผู้ใช้", "กรุณาเข้าสู่ระบบผ่าน LIFF ก่อน", "warning");
       return;
     }
+    if (!currentOaId) {
+      Swal.fire("ยังไม่ได้เลือก OA", "กรุณาเลือก OA ด้านขวาบนก่อน", "warning");
+      return;
+    }
+    const input = document.getElementById("multiFiles");
+    if (!input.files.length) {
+      Swal.fire("ยังไม่ได้เลือกไฟล์", "กรุณาเลือกไฟล์รูปก่อน", "info");
+      return;
+    }
+
+    // 🔥 SweetAlert Loading ขณะอัปโหลด
+    Swal.fire({
+      title: "กำลังอัปโหลดรูป…",
+      text: "โปรดรอสักครู่ ระบบกำลังอัปโหลดและสร้างลิงก์รูปให้คุณ",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     setStatus("กำลังอัปโหลดรูป...", true);
+
     const files = [];
     for (let file of input.files) {
       const base64 = await fileToBase64(file);
@@ -656,6 +674,7 @@ async function apiJson(action, data) {
         dataBase64: base64
       });
     }
+
     try {
       const res = await apiJson("uploadImages", {
         userId: currentUser.id,
@@ -668,9 +687,14 @@ async function apiJson(action, data) {
       fillImageSlotsWithUrls(res.urls);
       setStatus("อัปโหลดสำเร็จ "+res.urls.length+" รูป", true);
       updatePreview();
+
+      Swal.close();
+      Swal.fire("สำเร็จ", "อัปโหลดรูปและเติมลิงก์รูปอัตโนมัติเรียบร้อยแล้ว", "success");
     } catch (e) {
       console.error(e);
       setStatus("อัปโหลดรูปไม่สำเร็จ: "+(e.message || e), false);
+      Swal.close();
+      Swal.fire("อัปโหลดไม่สำเร็จ", e.message || String(e), "error");
     } finally {
       input.value = "";
     }
@@ -680,7 +704,7 @@ async function apiJson(action, data) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = e => {
-        const result = e.target.result; // data:...;base64,xxx
+        const result = e.target.result;
         const commaIndex = result.indexOf(",");
         const b64 = commaIndex >= 0 ? result.substring(commaIndex+1) : result;
         resolve(b64);
@@ -923,7 +947,6 @@ async function apiJson(action, data) {
         ? "ใช้ long-lived token จากชีท OA_Config\n(ถ้าต้องการเปลี่ยน ให้แก้ไขในชีทโดยตรง)"
         : "ยังไม่ได้ใส่ long_lived_token ใน OA_Config";
     } else {
-      // SHORT
       if (!st.hasToken) {
         summary.textContent = "ยังไม่มี short token หรือหมดอายุแล้ว";
         tag.textContent = "EXPIRED/EMPTY";
