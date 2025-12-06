@@ -488,11 +488,15 @@ if (cfg && cfg.ok) {
   }
 
   async function initLiffFlow() {
-    await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
+  if (typeof liff === "undefined") {
+    document.getElementById("userInfo").textContent =
+      "เปิดโหมด LIFF แต่ไม่มี LIFF SDK";
+    document.getElementById("notAdminBox").classList.remove("hidden");
+    return;
+  }
+  await liff.init({ liffId: LIFF_ID });
+  ...
+}
     const profile = await liff.getProfile();
     currentUser = { id: profile.userId, displayName: profile.displayName };
     document.getElementById("userInfo").textContent =
