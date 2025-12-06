@@ -372,10 +372,11 @@
 
   let currentUser = null;
   let frontendConfig = {
-    useLiffLogin: true,
+-   useLiffLogin: true,
++   useLiffLogin: false,
     defaultAdminUserId: '',
     defaultOaId: ''
-  };
+};
   let oaList = [];
   let currentOaId = '';
 
@@ -452,11 +453,20 @@
   async function initApp() {
     try {
       const cfg = await apiJson("getFrontendConfig", {});
-      if (cfg && cfg.ok) {
-        frontendConfig.useLiffLogin = !!cfg.useLiffLogin;
-        frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
-        frontendConfig.defaultOaId = cfg.defaultOaId || '';
-      }
+if (cfg && cfg.ok) {
+  // ✅ รองรับทั้ง boolean และ string จากชีท
+  let useLiff = cfg.useLiffLogin;
+  if (typeof useLiff === 'string') {
+    useLiff = useLiff.trim().toLowerCase();
+    useLiff = (useLiff === 'true' || useLiff === '1' || useLiff === 'yes');
+  } else {
+    useLiff = !!useLiff;
+  }
+
+  frontendConfig.useLiffLogin = useLiff;
+  frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
+  frontendConfig.defaultOaId = cfg.defaultOaId || '';
+}
 
       const oaRes = await apiJson("getOAs", {});
       if (oaRes && oaRes.ok) {
