@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <title>LINE OA Broadcast Studio Enterprise</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <!-- Google Picker (สำหรับเลือกไฟล์จาก Drive) -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <style>
+      /* (เหมือน PRO ส่วนใหญ่ เพิ่มบางส่วนเล็กน้อย) */
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #f5f5f7;
+        margin: 0;
+        padding: 24px;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px 28px 28px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      }
+
+      h1 {
+        margin-top: 0;
+        font-size: 22px;
+        text-align: center;
+      }
+
+      .section-title {
+        font-weight: 600;
+        margin-top: 16px;
+        margin-bottom: 8px;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 10px 12px;
+        font-size: 14px;
+        border-radius: 8px;
+        border: 1px solid #d0d0d5;
+        box-sizing: border-box;
+        resize: vertical;
+      }
+
+      input[type="url"],
+      input[type="text"],
+      input[type="datetime-local"],
+      select {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 14px;
+        border-radius: 8px;
+        border: 1px solid #d0d0d5;
+        box-sizing: border-box;
+      }
+
+      .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 8px 16px;
+      }
+
+      .image-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 8px;
+        background: #fafafa;
+      }
+
+      .image-item label {
+        font-size: 12px;
+        color: #555;
+      }
+
+      .image-actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+      }
+
+      .image-local-preview {
+        margin-top: 6px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .image-local-preview img {
+        max-width: 100%;
+        max-height: 120px;
+        border-radius: 8px;
+        object-fit: cover;
+      }
+
+      .radio-group {
+        display: flex;
+        gap: 16px;
+        margin: 8px 0 6px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .row-inline {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .row-inline > div {
+        flex: 1;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: #777;
+        margin-top: 4px;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 999px;
+        padding: 8px 18px;
+        font-size: 13px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        white-space: nowrap;
+      }
+
+      .btn-primary {
+        background: #06c755;
+        color: #fff;
+      }
+
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      .btn-small {
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+      }
+
+      .btn-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .btn-ghost {
+        background: transparent;
+        border: 1px solid #d1d5db;
+        color: #374151;
+      }
+
+      .status-bar {
+        margin-top: 12px;
+        font-size: 13px;
+      }
+
+      .status-bar span {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 999px;
+      }
+
+      .status-ok {
+        background: #e7f7ee;
+        color: #137d3b;
+      }
+
+      .status-error {
+        background: #fde8e8;
+        color: #b91c1c;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .tab-btn {
+        border: none;
+        background: transparent;
+        padding: 8px 16px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        color: #6b7280;
+      }
+
+      .tab-btn.active {
+        color: #111827;
+        border-bottom-color: #06c755;
+        font-weight: 600;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .pill-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .pill-sent {
+        background: #e7f7ee;
+        color: #166534;
+      }
+
+      .pill-error {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .pill-cancelled {
+        background: #e5e7eb;
+        color: #4b5563;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+
+      thead {
+        background: #f3f4f6;
+      }
+
+      th, td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #e5e7eb;
+        vertical-align: top;
+      }
+
+      th {
+        text-align: left;
+        font-weight: 600;
+        font-size: 11px;
+        color: #4b5563;
+      }
+
+      tbody tr:nth-child(even) {
+        background: #fafafa;
+      }
+
+      .text-muted {
+        color: #6b7280;
+      }
+
+      .no-access {
+        text-align: center;
+        padding: 32px 16px;
+      }
+
+      .badge-mode {
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 999px;
+        background: #e5e7eb;
+        color: #374151;
+        display: inline-block;
+      }
+
+      .log-preview {
+        max-width: 220px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .text-preview {
+        max-width: 260px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .preview-wrapper {
+        margin-top: 8px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .phone-frame {
+        width: 260px;
+        border-radius: 24px;
+        border: 1px solid #e5e7eb;
+        padding: 10px;
+        background: #f3f4f6;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.5);
+      }
+
+      .phone-header {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        margin-bottom: 6px;
+      }
+
+      .phone-dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: #d1d5db;
+      }
+
+      .bubble {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 8px 10px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      }
+
+      .preview-meta {
+        font-size: 10px;
+        color: #6b7280;
+        margin-bottom: 6px;
+        text-align: left;
+      }
+
+      .preview-text {
+        font-size: 13px;
+        margin-bottom: 6px;
+        white-space: pre-wrap;
+      }
+
+      .image-grid-preview {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+      }
+
+      .image-grid-preview img {
+        width: 100%;
+        border-radius: 8px;
+        object-fit: cover;
+        aspect-ratio: 1/1;
+      }
+
+      .template-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .template-action-group {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container" id="appContainer">
+      <h1>LINE OA Broadcast Studio Enterprise</h1>
+
+      <div id="notAdminBox" class="no-access" style="display:none;">
+        <p style="font-size:14px; margin-bottom:8px;">
+          ⚠️ คุณไม่มีสิทธิ์ใช้งาน Broadcast Studio
+        </p>
+        <p class="text-muted" style="font-size:12px;">
+          กรุณาให้ผู้ดูแลระบบเพิ่ม LINE User ID ของคุณลงในชีท <b>Admin</b>
+        </p>
+      </div>
+
+      <div id="appMain" style="display:none;">
+
+        <div class="tabs">
+          <button class="tab-btn active" id="tabSend" onclick="showTab('send')">ส่ง Broadcast</button>
+          <button class="tab-btn" id="tabHistory" onclick="showTab('history')">ประวัติการส่ง</button>
+        </div>
+
+        <!-- TAB: ส่ง Broadcast -->
+        <div id="tabSendPane">
+          <div class="row-inline">
+            <!-- ซ้าย: ฟอร์ม -->
+            <div style="flex:3; min-width:0;">
+
+              <!-- Templates -->
+              <div class="section">
+                <div class="section-title">Template ข้อความ</div>
+                <div class="template-row">
+                  <div style="flex:1;">
+                    <select id="templateSelect">
+                      <option value="">— เลือกเทมเพลต —</option>
+                    </select>
+                    <div class="hint" id="templateHint">0 เทมเพลต</div>
+                  </div>
+                  <div class="template-action-group">
+                    <button class="btn btn-ghost btn-small" type="button" onclick="applySelectedTemplate()">
+                      ใช้เทมเพลต
+                    </button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="saveAsNewTemplate()">
+                      บันทึกเป็นเทมเพลตใหม่
+                    </button>
+                    <button class="btn btn-secondary btn-small" type="button" onclick="updateCurrentTemplate()">
+                      อัปเดตเทมเพลตนี้
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-title">ข้อความ Broadcast</div>
+                <textarea id="message" placeholder="พิมพ์ข้อความที่จะส่งถึงทุกคนใน LINE OA"></textarea>
+                <div class="hint">คุณสามารถเว้นว่างข้อความได้ ถ้าต้องการส่งเฉพาะรูป</div>
+              </div>
+
+              <!-- Form สำหรับ Upload -->
+              <form id="uploadForm" onsubmit="return false;">
+                <div class="section">
+                  <div class="section-title">รูปภาพ (สูงสุด 10 รูป)</div>
+                  <div class="hint">
+                    แต่ละช่องสามารถ: อัปโหลดจากเครื่อง / เลือกจาก Drive / วางลิงก์รูปโดยตรง
+                  </div>
+                  <div class="image-grid" id="imageGrid"></div>
+                </div>
+              </form>
+
+              <div class="section">
+                <div class="section-title">โหมดการส่ง</div>
+                <div class="radio-group">
+                  <label>
+                    <input type="radio" name="sendMode" value="now" checked>
+                    ส่งทันที
+                  </label>
+                  <label>
+                    <input type="radio" name="sendMode" value="schedule">
+                    ตั้งเวลา
+                  </label>
+                </div>
+                <div class="row-inline">
+                  <div>
+                    <input type="datetime-local" id="scheduleAt">
+                  </div>
+                  <div style="flex:0 0 auto; font-size:12px; color:#666;">
+                    *เวลาอิง Timezone ของโปรเจกต์ Apps Script
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-title">กลุ่มเป้าหมาย</div>
+                <div class="radio-group">
+                  <label>
+                    <input type="radio" name="targetType" value="all" checked>
+                    ทุกคนใน OA
+                  </label>
+                  <label>
+                    <input type="radio" name="targetType" value="test">
+                    โหมดทดสอบ (ส่งหาเราเท่านั้น)
+                  </label>
+                </div>
+                <div class="hint">
+                  โหมดทดสอบจะส่งข้อความหา LINE ID ของแอดมินที่กำลังล็อกอินผ่าน LIFF เท่านั้น
+                </div>
+              </div>
+
+              <div class="section" style="margin-top: 18px;">
+                <button class="btn btn-primary" id="btnSubmit" onclick="handleSubmit()">
+                  🚀 ส่ง Broadcast
+                </button>
+                <button class="btn btn-secondary" type="button" onclick="clearForm()">
+                  ✨ ล้างฟอร์ม
+                </button>
+              </div>
+
+              <div class="status-bar" id="statusBar" style="display:none;">
+                <span id="statusText"></span>
+              </div>
+            </div>
+
+            <!-- ขวา: Preview -->
+            <div style="flex:2; min-width:260px; margin-left:16px;">
+              <div class="section-title">Preview (จำลองหน้าจอมือถือ)</div>
+              <div class="preview-wrapper">
+                <div class="phone-frame">
+                  <div class="phone-header">
+                    <div class="phone-dot"></div>
+                    <div class="phone-dot"></div>
+                    <div class="phone-dot"></div>
+                  </div>
+                  <div class="preview-meta" id="previewMeta">
+                    ส่งทันที | เป้าหมาย: ทุกคนใน OA
+                  </div>
+                  <div class="bubble">
+                    <div class="preview-text" id="previewText">(ไม่มีข้อความ)</div>
+                    <div class="image-grid-preview" id="previewImages"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div> <!-- row-inline -->
+        </div>
+
+        <!-- TAB: History -->
+        <div id="tabHistoryPane" style="display:none;">
+          <div class="section-title">ประวัติการ Broadcast ล่าสุด</div>
+          <div class="hint">
+            แสดงล่าสุด 50 รายการ | ยกเลิกงานที่ยังรอส่ง (pending) หรือกดส่งซ้ำได้
+          </div>
+
+          <div style="margin-top:8px; margin-bottom:8px;">
+            <button class="btn btn-ghost btn-small" type="button" onclick="loadHistory()">
+              🔄 โหลดประวัติใหม่
+            </button>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>เวลา</th>
+                <th>โหมด</th>
+                <th>กลุ่มเป้าหมาย</th>
+                <th>ข้อความ</th>
+                <th>รูป</th>
+                <th>สถานะ</th>
+                <th>Log</th>
+                <th>จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="historyBody">
+              <tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+      const LIFF_ID = '<?= LIFF_ID ?>';
+
+      // ถ้าจะใช้ Google Picker จริง ให้ใส่ API key / Client ID ตรงนี้
+      const PICKER_API_KEY   = 'YOUR_GOOGLE_PICKER_API_KEY';
+      const PICKER_CLIENT_ID = 'YOUR_GOOGLE_PICKER_CLIENT_ID';
+
+      let currentUser = null;
+      let templatesList = [];
+      let pickerInited = false;
+
+      // ---------- Init ----------
+      document.addEventListener('DOMContentLoaded', function () {
+        initImageInputs();
+        attachPreviewListeners();
+        initLiff();
+        initPickerApi();
+      });
+
+      function initImageInputs() {
+        const grid = document.getElementById('imageGrid');
+        for (let i = 1; i <= 10; i++) {
+          const div = document.createElement('div');
+          div.className = 'image-item';
+          div.innerHTML = `
+            <label>รูปที่ ${i}</label>
+            <input type="url" id="imageUrl${i}" placeholder="https://..." />
+            <div class="image-actions">
+              <button class="btn btn-ghost btn-small" type="button" onclick="triggerFileUpload(${i})">
+                เลือกไฟล์จากเครื่อง
+              </button>
+              <button class="btn btn-ghost btn-small" type="button" onclick="openDrivePicker(${i})">
+                เลือกจาก Drive
+              </button>
+            </div>
+            <input type="file" id="file${i}" name="file${i}" accept="image/*" style="display:none" />
+            <div class="image-local-preview" id="localPreview${i}" style="display:none;">
+              <img src="" alt="preview" />
+            </div>
+          `;
+          grid.appendChild(div);
+        }
+      }
+
+      function attachPreviewListeners() {
+        document.getElementById('message').addEventListener('input', updatePreview);
+
+        for (let i = 1; i <= 10; i++) {
+          document.getElementById('imageUrl' + i).addEventListener('input', updatePreview);
+          document.getElementById('file' + i).addEventListener('change', () => handleFileChange(i));
+        }
+
+        document.getElementById('scheduleAt').addEventListener('change', updatePreview);
+
+        document.querySelectorAll('input[name="sendMode"]').forEach(r => {
+          r.addEventListener('change', updatePreview);
+        });
+        document.querySelectorAll('input[name="targetType"]').forEach(r => {
+          r.addEventListener('change', updatePreview);
+        });
+
+        updatePreview();
+      }
+
+      // ---------- LIFF & Admin ----------
+      function initLiff() {
+        liff.init({ liffId: LIFF_ID })
+          .then(() => {
+            if (!liff.isLoggedIn()) {
+              liff.login();
+              return;
+            }
+            return liff.getProfile();
+          })
+          .then(profile => {
+            if (!profile) return;
+            currentUser = {
+              lineUserId: profile.userId,
+              displayName: profile.displayName,
+              pictureUrl: profile.pictureUrl
+            };
+
+            const container = document.getElementById('appContainer');
+            container.insertAdjacentHTML('afterbegin',
+              `<div style="font-size:11px; color:#6b7280; text-align:right; margin-bottom:6px;">
+                Login: ${escapeHtml(currentUser.displayName)}
+              </div>`
+            );
+
+            google.script.run
+              .withSuccessHandler(function (res) {
+                if (res && res.ok) {
+                  document.getElementById('notAdminBox').style.display = 'none';
+                  document.getElementById('appMain').style.display = 'block';
+                  loadHistory();
+                  loadTemplates();
+                  updatePreview();
+                } else {
+                  document.getElementById('notAdminBox').style.display = 'block';
+                  document.getElementById('appMain').style.display = 'none';
+                }
+              })
+              .withFailureHandler(function () {
+                document.getElementById('notAdminBox').style.display = 'block';
+                document.getElementById('appMain').style.display = 'none';
+              })
+              .isAdminByLineUserId(currentUser.lineUserId);
+          })
+          .catch(err => {
+            console.error('LIFF error', err);
+            document.getElementById('notAdminBox').style.display = 'block';
+            document.getElementById('appMain').style.display = 'none';
+          });
+      }
+
+      // ---------- Google Picker Init ----------
+      function initPickerApi() {
+        // ถ้าไม่ได้ตั้ง API Key/Client ID ไว้ จะไม่เปิด picker (ปุ่มกดได้ แต่จะ alert)
+        gapi.load('picker', () => {
+          pickerInited = true;
+        });
+      }
+
+      // ---------- Tabs ----------
+      function showTab(tab) {
+        const sendPane = document.getElementById('tabSendPane');
+        const historyPane = document.getElementById('tabHistoryPane');
+        const tabSend = document.getElementById('tabSend');
+        const tabHistory = document.getElementById('tabHistory');
+
+        if (tab === 'send') {
+          sendPane.style.display = 'block';
+          historyPane.style.display = 'none';
+          tabSend.classList.add('active');
+          tabHistory.classList.remove('active');
+        } else {
+          sendPane.style.display = 'none';
+          historyPane.style.display = 'block';
+          tabSend.classList.remove('active');
+          tabHistory.classList.add('active');
+          loadHistory();
+        }
+      }
+
+      // ---------- Status ----------
+      function setStatus(msg, ok) {
+        const bar = document.getElementById('statusBar');
+        const textEl = document.getElementById('statusText');
+        bar.style.display = 'block';
+        textEl.textContent = msg;
+        textEl.className = ok ? 'status-ok' : 'status-error';
+      }
+
+      // ---------- Form helpers ----------
+      function getSelectedSendMode() {
+        const radios = document.querySelectorAll('input[name="sendMode"]');
+        for (const r of radios) {
+          if (r.checked) return r.value;
+        }
+        return 'now';
+      }
+
+      function getTargetType() {
+        const radios = document.querySelectorAll('input[name="targetType"]');
+        for (const r of radios) {
+          if (r.checked) return r.value;
+        }
+        return 'all';
+      }
+
+      // ---------- Submit ----------
+      function handleSubmit() {
+        if (!currentUser) {
+          alert('กรุณารอระบบโหลดโปรไฟล์ LINE ให้เรียบร้อย');
+          return;
+        }
+
+        const btn = document.getElementById('btnSubmit');
+        btn.disabled = true;
+        setStatus('กำลังส่งคำขอ...', true);
+
+        const text = document.getElementById('message').value || '';
+        const imageUrls = [];
+
+        for (let i = 1; i <= 10; i++) {
+          const val = (document.getElementById('imageUrl' + i).value || '').trim();
+          if (val) imageUrls.push(val);
+        }
+
+        const mode = getSelectedSendMode();
+        const targetType = getTargetType();
+        let scheduleTimestamp = null;
+
+        if (mode === 'schedule') {
+          const dtVal = document.getElementById('scheduleAt').value;
+          if (!dtVal) {
+            setStatus('กรุณาเลือกวันและเวลาสำหรับตั้งเวลา', false);
+            btn.disabled = false;
+            return;
+          }
+          const d = new Date(dtVal);
+          if (isNaN(d.getTime())) {
+            setStatus('รูปแบบวันเวลาไม่ถูกต้อง', false);
+            btn.disabled = false;
+            return;
+          }
+          scheduleTimestamp = d.getTime();
+        }
+
+        if (!text.trim() && imageUrls.length === 0) {
+          setStatus('กรุณากรอกข้อความหรือใส่ URL รูปอย่างน้อย 1 รายการ', false);
+          btn.disabled = false;
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (res && res.mode === 'scheduled') {
+              setStatus('ตั้งเวลาส่งเรียบร้อย: ' + new Date(res.scheduleAt).toLocaleString(), true);
+            } else if (res && res.mode === 'now') {
+              setStatus('ส่ง Broadcast สำเร็จแล้ว', true);
+            } else {
+              setStatus('ดำเนินการเสร็จสิ้น', true);
+            }
+            btn.disabled = false;
+            loadHistory();
+          })
+          .withFailureHandler(function (err) {
+            setStatus('เกิดข้อผิดพลาด: ' + (err && err.message ? err.message : err), false);
+            btn.disabled = false;
+          })
+          .createBroadcast(text, imageUrls, scheduleTimestamp, currentUser.lineUserId, targetType);
+      }
+
+      function clearForm() {
+        document.getElementById('message').value = '';
+        for (let i = 1; i <= 10; i++) {
+          document.getElementById('imageUrl' + i).value = '';
+          const f = document.getElementById('file' + i);
+          if (f) f.value = '';
+          const prevBox = document.getElementById('localPreview' + i);
+          prevBox.style.display = 'none';
+          prevBox.querySelector('img').src = '';
+        }
+        document.getElementById('scheduleAt').value = '';
+        const bar = document.getElementById('statusBar');
+        bar.style.display = 'none';
+        updatePreview();
+      }
+
+      // ---------- Preview ----------
+      function updatePreview() {
+        const text = document.getElementById('message').value || '';
+        const previewText = document.getElementById('previewText');
+        previewText.textContent = text.trim() ? text : '(ไม่มีข้อความ)';
+
+        const imageUrls = [];
+        for (let i = 1; i <= 10; i++) {
+          const val = (document.getElementById('imageUrl' + i).value || '').trim();
+          if (val) imageUrls.push(val);
+        }
+
+        const imgContainer = document.getElementById('previewImages');
+        imgContainer.innerHTML = '';
+        imageUrls.slice(0, 4).forEach(u => {
+          const img = document.createElement('img');
+          img.src = u;
+          img.alt = 'image';
+          imgContainer.appendChild(img);
+        });
+
+        const mode = getSelectedSendMode();
+        const targetType = getTargetType();
+        const dtVal = document.getElementById('scheduleAt').value;
+
+        let modeLabel = mode === 'schedule' ? 'ตั้งเวลา' : 'ส่งทันที';
+        let targetLabel = targetType === 'test' ? 'ทดสอบ (ส่งหาเรา)' : 'ทุกคนใน OA';
+        let timeLabel = '';
+
+        if (mode === 'schedule' && dtVal) {
+          const d = new Date(dtVal);
+          if (!isNaN(d.getTime())) {
+            timeLabel = ' @ ' + d.toLocaleString();
+          }
+        }
+
+        document.getElementById('previewMeta').textContent =
+          modeLabel + (timeLabel ? timeLabel : '') + ' | เป้าหมาย: ' + targetLabel;
+      }
+
+      // ---------- Upload from Computer ----------
+      function triggerFileUpload(slotIndex) {
+        const input = document.getElementById('file' + slotIndex);
+        if (input) input.click();
+      }
+
+      function handleFileChange(slotIndex) {
+        const input = document.getElementById('file' + slotIndex);
+        if (!input || !input.files || input.files.length === 0) return;
+
+        const file = input.files[0];
+
+        // แสดง preview จากไฟล์ในเครื่องทันที
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const prevBox = document.getElementById('localPreview' + slotIndex);
+          const img = prevBox.querySelector('img');
+          img.src = e.target.result;
+          prevBox.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        // ส่งไฟล์ขึ้น Apps Script เพื่อเก็บใน Drive + คืน URL
+        const form = document.getElementById('uploadForm');
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (res && res.url) {
+              document.getElementById('imageUrl' + res.slotIndex).value = res.url;
+              updatePreview();
+            } else {
+              alert('อัปโหลดสำเร็จแต่ไม่ได้ URL กลับมา');
+            }
+          })
+          .withFailureHandler(function (err) {
+            alert('อัปโหลดไฟล์ไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+          })
+          .uploadImageToDrive(form, slotIndex);
+      }
+
+      // ---------- Google Drive Picker ----------
+      function openDrivePicker(slotIndex) {
+        if (!PICKER_API_KEY || !PICKER_CLIENT_ID) {
+          alert('ยังไม่ได้ตั้งค่า Google Picker API Key / Client ID');
+          return;
+        }
+        if (!pickerInited) {
+          alert('Google Picker ยังโหลดไม่เสร็จ ลองใหม่อีกครั้ง');
+          return;
+        }
+
+        // ใช้ Access token จาก LIFF (Quick hack) – สำหรับใช้กับ Drive Picker
+        liff.getAccessToken()
+          ? buildPicker(liff.getAccessToken(), slotIndex)
+          : alert('ไม่พบ AccessToken จาก LIFF (ต้องเชื่อม OAuth เพิ่มหากใช้จริง)');
+      }
+
+      function buildPicker(accessToken, slotIndex) {
+        const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES)
+          .setIncludeFolders(true)
+          .setSelectFolderEnabled(false);
+
+        const picker = new google.picker.PickerBuilder()
+          .setAppId('') // optional
+          .setOAuthToken(accessToken)
+          .setDeveloperKey(PICKER_API_KEY)
+          .addView(view)
+          .setCallback(function (data) {
+            if (data.action === google.picker.Action.PICKED) {
+              const doc = data.docs[0];
+              const fileId = doc.id;
+              google.script.run
+                .withSuccessHandler(function (res) {
+                  if (res && res.url) {
+                    document.getElementById('imageUrl' + slotIndex).value = res.url;
+                    updatePreview();
+                  } else {
+                    alert('ไม่สามารถสร้างลิงก์จาก Drive ได้');
+                  }
+                })
+                .withFailureHandler(function (err) {
+                  alert('ผิดพลาดตอนสร้างลิงก์จาก Drive: ' + (err && err.message ? err.message : err));
+                })
+                .getDriveFilePublicUrl(fileId);
+            }
+          })
+          .build();
+        picker.setVisible(true);
+      }
+
+      // ---------- History ----------
+      function loadHistory() {
+        if (!currentUser) return;
+        const body = document.getElementById('historyBody');
+        body.innerHTML = '<tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>';
+
+        google.script.run
+          .withSuccessHandler(renderHistory)
+          .withFailureHandler(function (err) {
+            body.innerHTML = '<tr><td colspan="8" class="text-muted">โหลดประวัติไม่สำเร็จ: ' +
+              (err && err.message ? err.message : err) + '</td></tr>';
+          })
+          .getBroadcastHistory(50, currentUser.lineUserId);
+      }
+
+      function renderHistory(list) {
+        const body = document.getElementById('historyBody');
+        if (!list || list.length === 0) {
+          body.innerHTML = '<tr><td colspan="8" class="text-muted">ยังไม่มีประวัติ Broadcast</td></tr>';
+          return;
+        }
+
+        const now = new Date();
+        let html = '';
+
+        list.forEach(item => {
+          const created = item.createdAt ? new Date(item.createdAt) : null;
+          const scheduleAt = item.scheduleAt ? new Date(item.scheduleAt) : null;
+          const sentAt = item.sentAt ? new Date(item.sentAt) : null;
+
+          const createdText = created ? created.toLocaleString() : '-';
+          const scheduleText = scheduleAt ? scheduleAt.toLocaleString() : '-';
+          const sentText = sentAt ? sentAt.toLocaleString() : '-';
+
+          const modeBadge = item.mode === 'scheduled' ? 'ตั้งเวลา' : 'ส่งทันที';
+          const targetBadge = item.targetType === 'test' ? 'ทดสอบ' : 'ทุกคน';
+
+          let statusClass = 'pill-cancelled';
+          if (item.status === 'pending') statusClass = 'pill-pending';
+          else if (item.status === 'sent') statusClass = 'pill-sent';
+          else if (item.status === 'error') statusClass = 'pill-error';
+
+          const statusLabel = item.status || '-';
+
+          const textPreview = (item.text || '').trim();
+          const textShort = textPreview.length > 60
+            ? textPreview.slice(0, 60) + '…'
+            : (textPreview || '-');
+
+          const logText = (item.log || '').toString();
+          const logShort = logText
+            ? (logText.length > 60 ? logText.slice(0, 60) + '…' : logText)
+            : '-';
+
+          const isFuturePending = (item.status === 'pending' && scheduleAt && scheduleAt > now);
+
+          let actions = '';
+
+          if (isFuturePending) {
+            actions += `
+              <button class="btn btn-small btn-danger" type="button" onclick="confirmCancel('${item.jobId}')">
+                ยกเลิก
+              </button>
+            `;
+          }
+
+          if (item.status === 'sent' || item.status === 'error' || isFuturePending) {
+            actions += `
+              <button class="btn btn-small btn-secondary" type="button" onclick="confirmRetry('${item.jobId}')">
+                ส่งซ้ำ
+              </button>
+            `;
+          }
+
+          if (!actions) {
+            actions = '<span class="text-muted">-</span>';
+          }
+
+          html += `
+            <tr>
+              <td>
+                <div>${createdText}</div>
+                <div class="text-muted" style="font-size:10px;">Schedule: ${scheduleText}<br>Sent: ${sentText}</div>
+              </td>
+              <td><span class="badge-mode">${modeBadge}</span></td>
+              <td><span class="badge-mode">${targetBadge}</span></td>
+              <td><div class="text-preview">${escapeHtml(textShort)}</div></td>
+              <td>${item.imageCount || 0}</td>
+              <td><span class="pill ${statusClass}">${statusLabel}</span></td>
+              <td><div class="log-preview text-muted">${escapeHtml(logShort)}</div></td>
+              <td>${actions}</td>
+            </tr>
+          `;
+        });
+
+        body.innerHTML = html;
+      }
+
+      function confirmCancel(jobId) {
+        if (!currentUser) return;
+        if (!confirm('ต้องการยกเลิก Broadcast นี้หรือไม่?')) return;
+
+        const body = document.getElementById('historyBody');
+        body.insertAdjacentHTML('afterbegin',
+          '<tr id="tempRow"><td colspan="8" class="text-muted">กำลังยกเลิก...</td></tr>'
+        );
+
+        google.script.run
+          .withSuccessHandler(function () {
+            const temp = document.getElementById('tempRow');
+            if (temp) temp.remove();
+            loadHistory();
+          })
+          .withFailureHandler(function (err) {
+            const temp = document.getElementById('tempRow');
+            if (temp) temp.remove();
+            alert('ยกเลิกไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+          })
+          .cancelBroadcast(jobId, currentUser.lineUserId);
+      }
+
+      function confirmRetry(jobId) {
+        if (!currentUser) return;
+        if (!confirm('ต้องการส่งซ้ำ Broadcast นี้หรือไม่?')) return;
+
+        const body = document.getElementById('historyBody');
+        body.insertAdjacentHTML('afterbegin',
+          '<tr id="tempRowRetry"><td colspan="8" class="text-muted">กำลังส่งซ้ำ...</td></tr>'
+        );
+
+        google.script.run
+          .withSuccessHandler(function () {
+            const temp = document.getElementById('tempRowRetry');
+            if (temp) temp.remove();
+            loadHistory();
+          })
+          .withFailureHandler(function (err) {
+            const temp = document.getElementById('tempRowRetry');
+            if (temp) temp.remove();
+            alert('ส่งซ้ำไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+          })
+          .retryBroadcast(jobId, currentUser.lineUserId);
+      }
+
+      // ---------- Templates ----------
+      function loadTemplates() {
+        if (!currentUser) return;
+
+        google.script.run
+          .withSuccessHandler(function (list) {
+            templatesList = Array.isArray(list) ? list : [];
+            const select = document.getElementById('templateSelect');
+            const hint = document.getElementById('templateHint');
+
+            select.innerHTML = '<option value="">— เลือกเทมเพลต —</option>';
+
+            templatesList.forEach(t => {
+              const opt = document.createElement('option');
+              opt.value = t.templateId;
+              const dateStr = t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '';
+              opt.textContent = t.name + (dateStr ? ` (${dateStr})` : '');
+              select.appendChild(opt);
+            });
+
+            hint.textContent = (templatesList.length || 0) + ' เทมเพลต';
+          })
+          .withFailureHandler(function (err) {
+            console.error('loadTemplates error:', err);
+          })
+          .getTemplates(currentUser.lineUserId);
+      }
+
+      function applySelectedTemplate() {
+        const select = document.getElementById('templateSelect');
+        const id = select.value;
+        if (!id) {
+          alert('กรุณาเลือกเทมเพลตก่อน');
+          return;
+        }
+
+        const tpl = templatesList.find(t => t.templateId === id);
+        if (!tpl) {
+          alert('ไม่พบเทมเพลตที่เลือก');
+          return;
+        }
+
+        document.getElementById('message').value = tpl.text || '';
+
+        for (let i = 1; i <= 10; i++) {
+          document.getElementById('imageUrl' + i).value = '';
+          const prevBox = document.getElementById('localPreview' + i);
+          prevBox.style.display = 'none';
+          prevBox.querySelector('img').src = '';
+        }
+
+        if (Array.isArray(tpl.imageUrls)) {
+          tpl.imageUrls.slice(0, 10).forEach((u, idx) => {
+            const input = document.getElementById('imageUrl' + (idx + 1));
+            if (input) input.value = u;
+          });
+        }
+
+        updatePreview();
+      }
+
+      function saveAsNewTemplate() {
+        if (!currentUser) return;
+        const name = prompt('ชื่อเทมเพลตใหม่:');
+        if (!name || !name.trim()) return;
+
+        const text = document.getElementById('message').value || '';
+        const imageUrls = [];
+        for (let i = 1; i <= 10; i++) {
+          const val = (document.getElementById('imageUrl' + i).value || '').trim();
+          if (val) imageUrls.push(val);
+        }
+
+        google.script.run
+          .withSuccessHandler(function () {
+            alert('บันทึกเทมเพลตใหม่เรียบร้อย');
+            loadTemplates();
+          })
+          .withFailureHandler(function (err) {
+            alert('บันทึกเทมเพลตไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+          })
+          .saveTemplate(name, text, imageUrls, null, currentUser.lineUserId);
+      }
+
+      function updateCurrentTemplate() {
+        if (!currentUser) return;
+        const select = document.getElementById('templateSelect');
+        const id = select.value;
+        if (!id) {
+          alert('กรุณาเลือกเทมเพลตที่จะอัปเดตก่อน');
+          return;
+        }
+
+        const tpl = templatesList.find(t => t.templateId === id);
+        if (!tpl) {
+          alert('ไม่พบเทมเพลตที่เลือก');
+          return;
+        }
+
+        const text = document.getElementById('message').value || '';
+        const imageUrls = [];
+        for (let i = 1; i <= 10; i++) {
+          const val = (document.getElementById('imageUrl' + i).value || '').trim();
+          if (val) imageUrls.push(val);
+        }
+
+        const name = tpl.name || prompt('ชื่อเทมเพลต (เว้นว่างเพื่อใช้ชื่อเดิม):') || tpl.name;
+
+        google.script.run
+          .withSuccessHandler(function () {
+            alert('อัปเดตเทมเพลตเรียบร้อย');
+            loadTemplates();
+          })
+          .withFailureHandler(function (err) {
+            alert('อัปเดตเทมเพลตไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+          })
+          .saveTemplate(name, text, imageUrls, id, currentUser.lineUserId);
+      }
+
+      // ---------- Utils ----------
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+    </script>
+  </body>
+</html>
