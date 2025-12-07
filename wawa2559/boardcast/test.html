@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>LINE OA Broadcast Enterprise++</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- ✅ SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    .app {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    .card {
+      background: #020617;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 20px 40px rgba(15,23,42,0.6);
+      border: 1px solid #1e293b;
+    }
+    .flex {
+      display: flex;
+    }
+    .flex-row {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+    }
+    .flex-col {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .w-1-2 { flex: 1 1 0; }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+    .sub {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    label {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    input[type="text"],
+    input[type="datetime-local"],
+    input[type="url"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #1f2937;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 13px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    input::placeholder, textarea::placeholder {
+      color: #6b7280;
+    }
+    .btn {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #4f46e5;
+      color: white;
+    }
+    .btn-secondary {
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+    .btn-danger {
+      background: #b91c1c;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .pill {
+      border-radius: 999px;
+      font-size: 11px;
+      padding: 2px 8px;
+      display: inline-block;
+    }
+    .pill-pending { background:#fbbf24; color:#111827; }
+    .pill-sent    { background:#16a34a; color:#0f172a; }
+    .pill-error   { background:#b91c1c; color:#fee2e2; }
+    .pill-cancel  { background:#4b5563; color:#e5e7eb; }
+    .tag-pill {
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 11px;
+      border:1px solid #4b5563;
+      background: #020617;
+      color:#e5e7eb;
+      white-space: nowrap;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 4px;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 999px;
+    }
+    .tab-btn.active {
+      background: #111827;
+      color: #e5e7eb;
+    }
+    .image-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .image-item {
+      border-radius: 12px;
+      border:1px solid #1f2937;
+      padding: 6px;
+      background:#020617;
+    }
+    .preview-box {
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      padding: 10px;
+      background: #020617;
+      min-height: 160px;
+    }
+    .preview-images {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .preview-images img {
+      width: 68px;
+      height: 68px;
+      object-fit: cover;
+      border-radius: 8px;
+      border:1px solid #111827;
+    }
+    .status-bar {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+    .status-chip-ok {
+      background:#16a34a; color:#0f172a;
+      padding:2px 8px; border-radius:999px; font-size:11px;
+    }
+    .status-chip-err {
+      background:#b91c1c; color:#fee2e2;
+      padding:2px 8px; border-radius:999px; font-size:11px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      border-bottom: 1px solid #1f2937;
+      padding: 6px 4px;
+      vertical-align: top;
+    }
+    th { text-align:left; color:#9ca3af; font-weight:500; }
+    .text-muted { color:#9ca3af; font-size:11px; }
+    .log-preview { max-width:180px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .text-preview { max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .gap-2 { gap:8px; }
+    .gap-3 { gap:12px; }
+    .hidden { display:none; }
+    @media (max-width: 900px) {
+      .flex-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+    <div class="top-bar">
+      <div>
+        <h1>LINE OA Broadcast Enterprise++</h1>
+        <div class="sub" id="userInfo">กำลังโหลด...</div>
+      </div>
+      <div class="flex-col" style="align-items:flex-end;">
+        <div>
+          <label>เลือก OA</label><br>
+          <select id="oaSelect" onchange="handleOaChanged()">
+            <option value="">กำลังโหลด OA...</option>
+          </select>
+        </div>
+        <div style="margin-top:4px;">
+          <span id="oaModeTag" class="tag-pill">OA: - | MODE: -</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button id="tabSend" class="tab-btn active" onclick="showTab('send')">ส่ง Broadcast</button>
+      <button id="tabHistory" class="tab-btn" onclick="showTab('history')">ประวัติ</button>
+      <button id="tabSystem" class="tab-btn" onclick="showTab('system')">System</button>
+    </div>
+
+    <!-- not admin -->
+    <div id="notAdminBox" class="mt-3 hidden">
+      <div class="sub">
+        คุณไม่มีสิทธิ์ใช้งานระบบนี้ กรุณาติดต่อผู้ดูแลเพื่อเพิ่มชื่อในชีท <b>Admin</b>.
+      </div>
+    </div>
+
+    <!-- ส่ง broadcast -->
+    <div id="tabSendPane" class="mt-3">
+      <div class="flex-row">
+        <div class="w-1-2 flex-col">
+          <div class="flex-col">
+            <label>ข้อความ</label>
+            <textarea id="message" placeholder="พิมพ์ข้อความ..." oninput="updatePreview()"></textarea>
+          </div>
+
+          <div class="flex-col mt-2">
+            <label>ลิงก์รูป (สูงสุด 10 รูป / ว่างได้)</label>
+            <div class="image-grid" id="imageGrid"></div>
+          </div>
+
+          <div class="flex-col mt-2">
+            <label>อัปโหลดรูปจากคอม (หลายไฟล์ได้)</label>
+            <input type="file" id="multiFiles" accept="image/*" multiple />
+            <button class="btn btn-secondary mt-2" type="button" onclick="handleMultiUpload()">อัปโหลด & เติมลิงก์รูปอัตโนมัติ</button>
+            <div class="sub">ไฟล์จะถูกอัปโหลดไปยัง Google Drive ของคุณ แล้วสร้างลิงก์ดูภาพให้</div>
+          </div>
+
+          <div class="flex-row mt-3 gap-3">
+            <div class="flex-col" style="flex:1;">
+              <label>โหมดส่ง</label>
+              <div>
+                <label><input type="radio" name="sendMode" value="now" checked onchange="updatePreview()"> ส่งทันที</label><br>
+                <label><input type="radio" name="sendMode" value="schedule" onchange="updatePreview()"> ตั้งเวลา</label>
+              </div>
+              <input id="scheduleAt" type="datetime-local" class="mt-2" onchange="updatePreview()" />
+            </div>
+            <div class="flex-col" style="flex:1;">
+              <label>เป้าหมาย</label>
+              <div>
+                <label><input type="radio" name="targetType" value="all" checked> ทุกคนใน OA</label><br>
+                <label><input type="radio" name="targetType" value="test"> ทดสอบ (ส่งหาเราเท่านั้น)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button id="btnSubmit" class="btn" type="button" onclick="handleSubmit()">🚀 ส่ง Broadcast</button>
+            <button class="btn btn-secondary" type="button" onclick="clearForm()" style="margin-left:8px;">ล้างฟอร์ม</button>
+          </div>
+
+          <div id="statusBar" class="status-bar hidden">
+            <span id="statusChip" class="status-chip-ok"></span>
+            <span id="statusText"></span>
+          </div>
+        </div>
+
+        <div class="w-1-2 flex-col">
+          <div class="flex-col">
+            <label>ตัวอย่าง Preview</label>
+            <div class="preview-box">
+              <div class="sub" id="previewMeta">-</div>
+              <div style="margin-top:6px; font-size:13px;" id="previewText">(ไม่มีข้อความ)</div>
+              <div class="preview-images" id="previewImages"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- history -->
+    <div id="tabHistoryPane" class="mt-3 hidden">
+      <div class="sub">แสดงประวัติการส่งล่าสุด (filter ตาม OA ที่เลือกด้านบน)</div>
+      <div class="mt-2" style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>เวลา</th>
+              <th>โหมด</th>
+              <th>เป้าหมาย</th>
+              <th>ข้อความ</th>
+              <th>จำนวนรูป</th>
+              <th>สถานะ</th>
+              <th>Log</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody">
+            <tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- system -->
+    <div id="tabSystemPane" class="mt-3 hidden">
+      <div class="flex-col">
+        <label>Token Status (OA ปัจจุบัน)</label>
+        <div class="preview-box">
+          <div id="tokenStatusSummary">กดปุ่มด้านล่างเพื่อตรวจสอบ</div>
+          <div class="mt-2">
+            <span id="tokenStatusTag" class="tag-pill">-</span>
+          </div>
+          <pre id="tokenStatusDetail" style="font-size:11px; margin-top:8px; white-space:pre-wrap;"></pre>
+          <div id="tokenStatusError" class="text-muted mt-2 hidden"></div>
+          <div class="mt-3">
+            <button class="btn btn-secondary" type="button" onclick="loadTokenStatus()">ตรวจสอบ token</button>
+            <button class="btn" type="button" onclick="forceRefreshToken()" style="margin-left:8px;">Force refresh token</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ================= CONFIG =================
+  const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzel2xyggGjFFqMpZkbOh561hAXzaPREJlVScmWnzwhC-NjnmLiifi6NaywMA_y7haj/exec";
+  const LIFF_ID      = "2008642887-y6PjM71V";
+
+  let currentUser = null;
+  let frontendConfig = {
+    useLiffLogin: true,
+    defaultAdminUserId: '',
+    defaultOaId: '',
+    adminCheckEnabled: true   // ✅ ตัวแปรใหม่
+  };
+  let oaList = [];
+  let currentOaId = '';
+
+  // ================ Helper ================
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  async function apiJson(action, data) {
+    const form = new FormData();
+    form.append("action", action);
+    form.append("payload", JSON.stringify(data || {}));
+
+    const res = await fetch(API_BASE_URL, {
+      method: "POST",
+      body: form
+    });
+
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Response not JSON:", text);
+      throw e;
+    }
+  }
+
+  function setStatus(msg, ok) {
+    const bar = document.getElementById("statusBar");
+    const chip = document.getElementById("statusChip");
+    const text = document.getElementById("statusText");
+    bar.classList.remove("hidden");
+    chip.className = ok ? "status-chip-ok" : "status-chip-err";
+    chip.textContent = ok ? "OK" : "ERROR";
+    text.textContent = msg;
+  }
+
+  // ================ Tabs ===================
+  function showTab(tab) {
+    const send = document.getElementById("tabSendPane");
+    const hist = document.getElementById("tabHistoryPane");
+    const sys  = document.getElementById("tabSystemPane");
+    const t1 = document.getElementById("tabSend");
+    const t2 = document.getElementById("tabHistory");
+    const t3 = document.getElementById("tabSystem");
+    send.classList.add("hidden");
+    hist.classList.add("hidden");
+    sys.classList.add("hidden");
+    t1.classList.remove("active");
+    t2.classList.remove("active");
+    t3.classList.remove("active");
+    if (tab === 'send') {
+      send.classList.remove("hidden");
+      t1.classList.add("active");
+    } else if (tab === 'history') {
+      hist.classList.remove("hidden");
+      t2.classList.add("active");
+      loadHistory();
+    } else {
+      sys.classList.remove("hidden");
+      t3.classList.add("active");
+      loadTokenStatus();
+    }
+  }
+
+  // ================ LIFF / No-LIFF ===================
+  async function initApp() {
+    try {
+      const cfg = await apiJson("getFrontendConfig", {});
+      if (cfg && cfg.ok) {
+        frontendConfig.useLiffLogin       = !!cfg.useLiffLogin;
+        frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
+        frontendConfig.defaultOaId        = cfg.defaultOaId || '';
+        // ✅ รับค่าจาก backend
+        frontendConfig.adminCheckEnabled  = cfg.adminCheckEnabled !== false;
+      }
+
+      const oaRes = await apiJson("getOAs", {});
+      if (oaRes && oaRes.ok) {
+        oaList = oaRes.list || [];
+      }
+      initOaSelect();
+
+      if (frontendConfig.useLiffLogin) {
+        await initLiffFlow();
+      } else {
+        initNoLiffFlow();
+      }
+    } catch (e) {
+      console.error("initApp error", e);
+      document.getElementById("userInfo").textContent =
+        "โหลด config/LIFF ไม่สำเร็จ: "+(e.message || e);
+      document.getElementById("notAdminBox").classList.remove("hidden");
+    }
+  }
+
+  async function initLiffFlow() {
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    const profile = await liff.getProfile();
+    currentUser = { id: profile.userId, displayName: profile.displayName };
+
+    const adminModeText = frontendConfig.adminCheckEnabled
+      ? " | AdminCheck: ON"
+      : " | AdminCheck: OFF";
+
+    document.getElementById("userInfo").textContent =
+      "Login (LIFF): " + profile.displayName + adminModeText;
+
+    // ✅ ถ้าไม่ต้องการเช็ค admin เลย → ให้ใช้งานได้ทันที
+    if (!frontendConfig.adminCheckEnabled) {
+      document.getElementById("notAdminBox").classList.add("hidden");
+      loadHistory();
+      updatePreview();
+      return;
+    }
+
+    // ✅ กรณีเปิดเช็ค admin → เรียก backend isAdmin
+    const res = await apiJson("isAdmin", { userId: currentUser.id });
+    if (!res || !res.ok) {
+      document.getElementById("notAdminBox").classList.remove("hidden");
+      return;
+    }
+    document.getElementById("notAdminBox").classList.add("hidden");
+    loadHistory();
+    updatePreview();
+  }
+
+  function initNoLiffFlow() {
+    const id = frontendConfig.defaultAdminUserId;
+    if (!id) {
+      document.getElementById("userInfo").textContent =
+        "No-LIFF mode แต่ไม่ได้ตั้ง DEFAULT_ADMIN_USER_ID ใน Settings";
+      document.getElementById("notAdminBox").classList.remove("hidden");
+      return;
+    }
+    currentUser = { id, displayName: "Admin (No-LIFF)" };
+
+    const adminModeText = frontendConfig.adminCheckEnabled
+      ? " | AdminCheck: ON"
+      : " | AdminCheck: OFF";
+
+    document.getElementById("userInfo").textContent =
+      "No-LIFF mode: userId=" + id + adminModeText;
+
+    // ✅ ถ้าปิดเช็ค admin → ใช้งานได้เลย
+    if (!frontendConfig.adminCheckEnabled) {
+      document.getElementById("notAdminBox").classList.add("hidden");
+      loadHistory();
+      updatePreview();
+      return;
+    }
+
+    // ✅ ถ้าเปิดเช็ค admin → ตรวจจาก backend
+    apiJson("isAdmin", { userId:id }).then(res => {
+      if (!res || !res.ok) {
+        document.getElementById("notAdminBox").classList.remove("hidden");
+      } else {
+        document.getElementById("notAdminBox").classList.add("hidden");
+        loadHistory();
+        updatePreview();
+      }
+    }).catch(e => {
+      document.getElementById("userInfo").textContent =
+        "No-LIFF error: "+(e.message || e);
+      document.getElementById("notAdminBox").classList.remove("hidden");
+    });
+  }
+
+  // ================ OA Select ===================
+  function initOaSelect() {
+    const sel = document.getElementById("oaSelect");
+    sel.innerHTML = "";
+    if (!oaList.length) {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "ไม่พบ OA ที่ Active";
+      sel.appendChild(opt);
+      currentOaId = "";
+      updateOaModeTag();
+      return;
+    }
+    const def = frontendConfig.defaultOaId;
+    const found = def && oaList.find(o => o.oaId === def);
+    currentOaId = found ? found.oaId : oaList[0].oaId;
+
+    oaList.forEach(o => {
+      const opt = document.createElement("option");
+      opt.value = o.oaId;
+      opt.textContent = `${o.name} (${o.tokenMode})`;
+      if (o.oaId === currentOaId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    updateOaModeTag();
+  }
+
+  function handleOaChanged() {
+    const sel = document.getElementById("oaSelect");
+    currentOaId = sel.value || '';
+    updateOaModeTag();
+    loadHistory();
+    loadTokenStatus();
+  }
+
+  function updateOaModeTag() {
+    const tag = document.getElementById("oaModeTag");
+    if (!currentOaId) {
+      tag.textContent = "OA: - | MODE: -";
+      return;
+    }
+    const oa = oaList.find(o => o.oaId === currentOaId);
+    if (!oa) {
+      tag.textContent = "OA: - | MODE: -";
+      return;
+    }
+    tag.textContent = `OA: ${oa.name} | MODE: ${oa.tokenMode}`;
+  }
+
+  // ================ Image Grid & Preview ===================
+  function initImageGrid() {
+    const grid = document.getElementById("imageGrid");
+    for (let i=1;i<=10;i++) {
+      const div = document.createElement("div");
+      div.className = "image-item";
+      div.innerHTML = `
+        <label>รูปที่ ${i}</label>
+        <input type="url" id="imageUrl${i}" placeholder="https://..." oninput="updatePreview()" />
+      `;
+      grid.appendChild(div);
+    }
+  }
+
+  function collectImageUrls() {
+    const urls = [];
+    for (let i=1;i<=10;i++) {
+      const v = (document.getElementById("imageUrl"+i).value || "").trim();
+      if (v) urls.push(v);
+    }
+    return urls;
+  }
+
+  function getSendMode() {
+    const radios = document.querySelectorAll("input[name='sendMode']");
+    for (const r of radios) if (r.checked) return r.value;
+    return "now";
+  }
+
+  function getTargetType() {
+    const radios = document.querySelectorAll("input[name='targetType']");
+    for (const r of radios) if (r.checked) return r.value;
+    return "all";
+  }
+
+  function updatePreview() {
+    const text = document.getElementById("message").value || "";
+    const urls = collectImageUrls();
+    document.getElementById("previewText").textContent =
+      text.trim() ? text : "(ไม่มีข้อความ)";
+    const box = document.getElementById("previewImages");
+    box.innerHTML = "";
+    urls.slice(0,4).forEach(u => {
+      const img = document.createElement("img");
+      img.src = u;
+      box.appendChild(img);
+    });
+
+    const mode = getSendMode();
+    const target = getTargetType();
+    const schedule = document.getElementById("scheduleAt").value;
+    let modeLabel = mode === "schedule" ? "ตั้งเวลา" : "ส่งทันที";
+    let targetLabel = target === "test" ? "ทดสอบ" : "ทุกคน";
+    let timeLabel = "";
+    if (mode === "schedule" && schedule) {
+      const d = new Date(schedule);
+      if (!isNaN(d.getTime())) timeLabel = " @ "+d.toLocaleString();
+    }
+    document.getElementById("previewMeta").textContent =
+      `${modeLabel}${timeLabel} | เป้าหมาย: ${targetLabel}`;
+  }
+
+  // ================ Multi Upload (base64 + SweetAlert) ===================
+  async function handleMultiUpload() {
+    if (!currentUser) {
+      Swal.fire("ยังไม่ได้ระบุผู้ใช้", "กรุณาเข้าสู่ระบบผ่าน LIFF ก่อน", "warning");
+      return;
+    }
+    if (!currentOaId) {
+      Swal.fire("ยังไม่ได้เลือก OA", "กรุณาเลือก OA ด้านขวาบนก่อน", "warning");
+      return;
+    }
+    const input = document.getElementById("multiFiles");
+    if (!input.files.length) {
+      Swal.fire("ยังไม่ได้เลือกไฟล์", "กรุณาเลือกไฟล์รูปก่อน", "info");
+      return;
+    }
+
+    Swal.fire({
+      title: "กำลังอัปโหลดรูป…",
+      text: "โปรดรอสักครู่ ระบบกำลังอัปโหลดและสร้างลิงก์รูปให้คุณ",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    setStatus("กำลังอัปโหลดรูป...", true);
+
+    const files = [];
+    for (let file of input.files) {
+      const base64 = await fileToBase64(file);
+      files.push({
+        name: file.name,
+        mimeType: file.type || 'image/png',
+        dataBase64: base64
+      });
+    }
+
+    try {
+      const res = await apiJson("uploadImages", {
+        userId: currentUser.id,
+        oaId: currentOaId,
+        files
+      });
+      if (!res || !res.ok || !Array.isArray(res.urls)) {
+        throw new Error("uploadImages response ผิดรูปแบบ");
+      }
+      fillImageSlotsWithUrls(res.urls);
+      setStatus("อัปโหลดสำเร็จ "+res.urls.length+" รูป", true);
+      updatePreview();
+
+      Swal.close();
+      Swal.fire("สำเร็จ", "อัปโหลดรูปและเติมลิงก์รูปอัตโนมัติเรียบร้อยแล้ว", "success");
+    } catch (e) {
+      console.error(e);
+      setStatus("อัปโหลดรูปไม่สำเร็จ: "+(e.message || e), false);
+      Swal.close();
+      Swal.fire("อัปโหลดไม่สำเร็จ", e.message || String(e), "error");
+    } finally {
+      input.value = "";
+    }
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const result = e.target.result;
+        const commaIndex = result.indexOf(",");
+        const b64 = commaIndex >= 0 ? result.substring(commaIndex+1) : result;
+        resolve(b64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function fillImageSlotsWithUrls(urls) {
+    let idx = 0;
+    for (let i=1;i<=10 && idx<urls.length;i++) {
+      const input = document.getElementById("imageUrl"+i);
+      if (!input.value.trim()) {
+        input.value = urls[idx++];
+      }
+    }
+  }
+
+  // ================ Submit ===================
+  async function handleSubmit() {
+    if (!currentUser) { alert("ยังไม่ได้ระบุ user (LIFF/No-LIFF)"); return; }
+    if (!currentOaId) { alert("ยังไม่ได้เลือก OA"); return; }
+    const btn = document.getElementById("btnSubmit");
+    btn.disabled = true;
+    setStatus("กำลังส่งคำขอไปยัง backend...", true);
+
+    const text   = document.getElementById("message").value || '';
+    const images = collectImageUrls();
+    const mode   = getSendMode();
+    const target = getTargetType();
+    let scheduleAt = null;
+
+    if (mode === "schedule") {
+      const val = document.getElementById("scheduleAt").value;
+      if (!val) {
+        setStatus("กรุณาเลือกวันเวลาเมื่อเลือกโหมดตั้งเวลา", false);
+        btn.disabled = false;
+        return;
+      }
+      scheduleAt = val;
+    }
+    if (!text.trim() && images.length === 0) {
+      setStatus("กรุณาใส่ข้อความหรือรูปอย่างน้อย 1 รายการ", false);
+      btn.disabled = false;
+      return;
+    }
+
+    try {
+      const res = await apiJson("createBroadcast", {
+        oaId: currentOaId,
+        userId: currentUser.id,
+        text,
+        images,
+        mode,
+        target,
+        scheduleAt
+      });
+      if (!res || !res.ok) {
+        throw new Error(JSON.stringify(res));
+      }
+      if (res.mode === 'scheduled') {
+        setStatus("ตั้งเวลา Broadcast เรียบร้อย", true);
+      } else {
+        setStatus("ส่ง Broadcast สำเร็จแล้ว", true);
+      }
+      loadHistory();
+    } catch (e) {
+      console.error(e);
+      setStatus("ส่ง Broadcast ไม่สำเร็จ: "+(e.message || e), false);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function clearForm() {
+    document.getElementById("message").value = "";
+    document.getElementById("scheduleAt").value = "";
+    for (let i=1;i<=10;i++) {
+      document.getElementById("imageUrl"+i).value = "";
+    }
+    document.getElementById("statusBar").classList.add("hidden");
+    updatePreview();
+  }
+
+  // ================ History ===================
+  async function loadHistory() {
+    if (!currentUser || !currentOaId) return;
+    const body = document.getElementById("historyBody");
+    body.innerHTML = `<tr><td colspan="8" class="text-muted">กำลังโหลด...</td></tr>`;
+    try {
+      const res = await apiJson("history", {
+        oaId: currentOaId,
+        userId: currentUser.id,
+        limit: 50
+      });
+      if (!res || !res.ok || !Array.isArray(res.list) || !res.list.length) {
+        body.innerHTML = `<tr><td colspan="8" class="text-muted">ยังไม่มีประวัติ</td></tr>`;
+        return;
+      }
+      const now = new Date();
+      const rows = res.list.map(item => {
+        const created = item.createdAt ? new Date(item.createdAt) : null;
+        const schedule= item.scheduleAt ? new Date(item.scheduleAt) : null;
+        const sent    = item.sentAt ? new Date(item.sentAt) : null;
+        const createdText  = created ? created.toLocaleString() : "-";
+        const scheduleText = schedule? schedule.toLocaleString() : "-";
+        const sentText     = sent   ? sent.toLocaleString() : "-";
+        const modeLabel   = item.mode === 'scheduled' ? 'ตั้งเวลา' : 'ส่งทันที';
+        const targetLabel = item.targetType === 'test' ? 'ทดสอบ' : 'ทุกคน';
+        let statusClass = 'pill-cancel';
+        if (item.status === 'pending') statusClass = 'pill-pending';
+        else if (item.status === 'sent') statusClass = 'pill-sent';
+        else if (item.status === 'error') statusClass = 'pill-error';
+
+        const textShort = (item.text || '').trim();
+        const tShort = textShort.length > 50 ? textShort.slice(0,50)+'…' : (textShort || '-');
+
+        const logText = (item.log || '').toString();
+        const lShort = logText ? (logText.length>50?logText.slice(0,50)+'…':logText) : '-';
+
+        const imagesCount = item.imageCount || (Array.isArray(item.images)?item.images.length:0);
+        const futurePending = (item.status === 'pending' && schedule && schedule > now);
+
+        let actions = "";
+        if (futurePending) {
+          actions += `<button class="btn btn-secondary" type="button" onclick="onCancel('${item.jobId}')">ยกเลิก</button> `;
+        }
+        actions += `<button class="btn btn-secondary" type="button" onclick="onRetry('${item.jobId}')">ส่งซ้ำ</button>`;
+        return `
+          <tr>
+            <td>
+              <div>${createdText}</div>
+              <div class="text-muted">Schedule: ${scheduleText}<br>Sent: ${sentText}</div>
+            </td>
+            <td>${modeLabel}</td>
+            <td>${targetLabel}</td>
+            <td><div class="text-preview">${escapeHtml(tShort)}</div></td>
+            <td>${imagesCount}</td>
+            <td><span class="pill ${statusClass}">${item.status}</span></td>
+            <td><div class="log-preview text-muted">${escapeHtml(lShort)}</div></td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      });
+      body.innerHTML = rows.join("");
+    } catch (e) {
+      console.error(e);
+      body.innerHTML = `<tr><td colspan="8" class="text-muted">โหลดประวัติไม่สำเร็จ: ${escapeHtml(e.message || e)}</td></tr>`;
+    }
+  }
+
+  async function onCancel(jobId) {
+    if (!currentUser) return;
+    if (!confirm("ต้องการยกเลิก Broadcast นี้หรือไม่?")) return;
+    try {
+      const res = await apiJson("cancel", { userId: currentUser.id, jobId });
+      if (!res || !res.ok) alert("ยกเลิกไม่สำเร็จ: "+JSON.stringify(res));
+      loadHistory();
+    } catch (e) {
+      alert("ยกเลิกไม่สำเร็จ: "+(e.message || e));
+    }
+  }
+
+  async function onRetry(jobId) {
+    if (!currentUser) return;
+    if (!confirm("ต้องการส่งซ้ำ Broadcast นี้หรือไม่?")) return;
+    try {
+      const res = await apiJson("retry", { userId: currentUser.id, jobId });
+      if (!res || !res.ok) alert("ส่งซ้ำไม่สำเร็จ: "+JSON.stringify(res));
+      loadHistory();
+    } catch (e) {
+      alert("ส่งซ้ำไม่สำเร็จ: "+(e.message || e));
+    }
+  }
+
+  // ================ Token Status ===================
+  async function loadTokenStatus() {
+    if (!currentUser || !currentOaId) return;
+    const summary = document.getElementById("tokenStatusSummary");
+    const tag     = document.getElementById("tokenStatusTag");
+    const detail  = document.getElementById("tokenStatusDetail");
+    const errBox  = document.getElementById("tokenStatusError");
+    summary.textContent = "กำลังตรวจสอบ token...";
+    tag.textContent = "LOADING";
+    detail.textContent = "";
+    errBox.classList.add("hidden");
+    try {
+      const st = await apiJson("tokenStatus", {
+        userId: currentUser.id,
+        oaId: currentOaId
+      });
+      if (!st || !st.ok) throw new Error(JSON.stringify(st));
+      renderTokenStatus(st);
+    } catch (e) {
+      summary.textContent = "ตรวจสอบ token ไม่สำเร็จ";
+      tag.textContent = "ERROR";
+      detail.textContent = e.message || e;
+      errBox.classList.add("hidden");
+    }
+  }
+
+  async function forceRefreshToken() {
+    if (!currentUser || !currentOaId) return;
+    if (!confirm("ต้องการ Force refresh token สำหรับ OA นี้หรือไม่?")) return;
+    const summary = document.getElementById("tokenStatusSummary");
+    const tag     = document.getElementById("tokenStatusTag");
+    const detail  = document.getElementById("tokenStatusDetail");
+    const errBox  = document.getElementById("tokenStatusError");
+    summary.textContent = "กำลัง refresh token...";
+    tag.textContent = "LOADING";
+    detail.textContent = "";
+    errBox.classList.add("hidden");
+    try {
+      const st = await apiJson("refreshToken", {
+        userId: currentUser.id,
+        oaId: currentOaId
+      });
+      if (!st || !st.ok) throw new Error(JSON.stringify(st));
+      renderTokenStatus(st);
+    } catch (e) {
+      summary.textContent = "Force refresh token ไม่สำเร็จ";
+      tag.textContent = "ERROR";
+      detail.textContent = e.message || e;
+      errBox.classList.add("hidden");
+    }
+  }
+
+  function renderTokenStatus(st) {
+    const summary = document.getElementById("tokenStatusSummary");
+    const tag     = document.getElementById("tokenStatusTag");
+    const detail  = document.getElementById("tokenStatusDetail");
+    const errBox  = document.getElementById("tokenStatusError");
+
+    const mode = st.tokenMode || '-';
+    if (mode === 'LONG') {
+      summary.textContent = "โหมด LONG-LIVED TOKEN";
+      tag.textContent = st.hasToken ? "ACTIVE" : "NO TOKEN";
+      detail.textContent = st.hasToken
+        ? "ใช้ long-lived token จากชีท OA_Config\n(ถ้าต้องการเปลี่ยน ให้แก้ไขในชีทโดยตรง)"
+        : "ยังไม่ได้ใส่ long_lived_token ใน OA_Config";
+    } else {
+      if (!st.hasToken) {
+        summary.textContent = "ยังไม่มี short token หรือหมดอายุแล้ว";
+        tag.textContent = "EXPIRED/EMPTY";
+        detail.textContent = "ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast หรือใช้ Force refresh token";
+      } else if (st.isExpired) {
+        summary.textContent = "short token หมดอายุแล้ว";
+        tag.textContent = "EXPIRED";
+        detail.textContent = "ระบบจะขอ token ใหม่อัตโนมัติเมื่อมีการส่ง Broadcast หรือใช้ Force refresh token";
+      } else {
+        const mins = Math.floor((st.remainingSeconds || 0)/60);
+        const secs = (st.remainingSeconds || 0) % 60;
+        const remain = mins>0 ? `${mins} นาที ${secs} วินาที` : `${secs} วินาที`;
+        summary.textContent = "short token กำลังใช้งานได้ปกติ";
+        tag.textContent = "ACTIVE";
+        detail.textContent =
+          `เวลาที่เหลือก่อนหมดอายุ ~ ${remain}\nจะหมดอายุประมาณ: ${
+            st.expiresAt ? new Date(st.expiresAt).toLocaleString() : '-'
+          }`;
+      }
+    }
+    if (st.error) {
+      errBox.classList.remove("hidden");
+      errBox.textContent = "Error ล่าสุดจาก backend: "+st.error;
+    } else {
+      errBox.classList.add("hidden");
+    }
+  }
+
+  // ================ DOM Ready ===================
+  document.addEventListener("DOMContentLoaded", () => {
+    initImageGrid();
+    updatePreview();
+    initApp();
+  });
+</script>
+</body>
+</html>
