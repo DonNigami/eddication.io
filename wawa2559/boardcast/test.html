@@ -513,6 +513,7 @@
     updateOaModeTag();
     loadHistory();
     loadTokenStatus();
+    loadQuotaStatus(); // ✅ quota ตาม OA
   }
 
   function updateOaModeTag() {
@@ -726,6 +727,9 @@
         setStatus("ส่ง Broadcast สำเร็จแล้ว", true);
       }
       loadHistory();
+      // ✅ โหลด quota ล่าสุดหลังส่งสำเร็จ
+      loadQuotaStatus();
+      
     } catch (e) {
       console.error(e);
       setStatus("ส่ง Broadcast ไม่สำเร็จ: "+(e.message || e), false);
