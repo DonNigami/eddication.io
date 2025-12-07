@@ -2,9 +2,8 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>LINE OA Broadcast Enterprise++</title>
+  <title>LINE OA Broadcast Enterprise++ (Web Public)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <!-- ✅ SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -249,13 +248,6 @@
       <button id="tabSystem" class="tab-btn" onclick="showTab('system')">System</button>
     </div>
 
-    <!-- not admin -->
-    <div id="notAdminBox" class="mt-3 hidden">
-      <div class="sub">
-        คุณไม่มีสิทธิ์ใช้งานระบบนี้ กรุณาติดต่อผู้ดูแลเพื่อเพิ่มชื่อในชีท <b>Admin</b>.
-      </div>
-    </div>
-
     <!-- ส่ง broadcast -->
     <div id="tabSendPane" class="mt-3">
       <div class="flex-row">
@@ -274,7 +266,7 @@
             <label>อัปโหลดรูปจากคอม (หลายไฟล์ได้)</label>
             <input type="file" id="multiFiles" accept="image/*" multiple />
             <button class="btn btn-secondary mt-2" type="button" onclick="handleMultiUpload()">อัปโหลด & เติมลิงก์รูปอัตโนมัติ</button>
-            <div class="sub">ไฟล์จะถูกอัปโหลดไปยัง Google Drive ของคุณ แล้วสร้างลิงก์ดูภาพให้</div>
+            <div class="sub">ไฟล์จะถูกอัปโหลดไปยัง Google Drive แล้วสร้างลิงก์ดูภาพให้</div>
           </div>
 
           <div class="flex-row mt-3 gap-3">
@@ -290,7 +282,7 @@
               <label>เป้าหมาย</label>
               <div>
                 <label><input type="radio" name="targetType" value="all" checked> ทุกคนใน OA</label><br>
-                <label><input type="radio" name="targetType" value="test"> ทดสอบ (ส่งหาเราเท่านั้น)</label>
+                <label><input type="radio" name="targetType" value="test"> ทดสอบ (ส่งหา userId นี้เท่านั้น)</label>
               </div>
             </div>
           </div>
@@ -304,7 +296,13 @@
             <span id="statusChip" class="status-chip-ok"></span>
             <span id="statusText"></span>
           </div>
-        </div>
+          
+          <!-- ✅ Quota status -->
+          <div id="quotaBar" class="status-bar hidden">
+            <span class="badge">Quota</span>
+            <span id="quotaText"></span>
+          </div>
+
 
         <div class="w-1-2 flex-col">
           <div class="flex-col">
@@ -368,13 +366,12 @@
 <script>
   // ================= CONFIG =================
   const API_BASE_URL = "https://script.google.com/macros/s/AKfycbzel2xyggGjFFqMpZkbOh561hAXzaPREJlVScmWnzwhC-NjnmLiifi6NaywMA_y7haj/exec";
-  const LIFF_ID      = "2008642887-y6PjM71V";
 
   let currentUser = null;
   let frontendConfig = {
-    useLiffLogin: true,
-    defaultAdminUserId: '',
-    defaultOaId: ''
+    defaultUserId: '',
+    defaultOaId: '',
+    adminCheckEnabled: true
   };
   let oaList = [];
   let currentOaId = '';
@@ -448,15 +445,24 @@
     }
   }
 
-  // ================ LIFF / No-LIFF ===================
+  // ================ Init (Web Public Mode) ===================
   async function initApp() {
     try {
       const cfg = await apiJson("getFrontendConfig", {});
       if (cfg && cfg.ok) {
-        frontendConfig.useLiffLogin = !!cfg.useLiffLogin;
-        frontendConfig.defaultAdminUserId = cfg.defaultAdminUserId || '';
-        frontendConfig.defaultOaId = cfg.defaultOaId || '';
+        // ใช้ defaultAdminUserId เป็น userId สำหรับ web ถ้าไม่ได้ตั้งก็ใช้ PUBLIC_WEB_USER
+        frontendConfig.defaultUserId     = cfg.defaultAdminUserId || 'PUBLIC_WEB_USER';
+        frontendConfig.defaultOaId       = cfg.defaultOaId || '';
+        frontendConfig.adminCheckEnabled = cfg.adminCheckEnabled !== false;
       }
+
+      currentUser = {
+        id: frontendConfig.defaultUserId || 'PUBLIC_WEB_USER',
+        displayName: 'Web Broadcast User'
+      };
+
+      document.getElementById("userInfo").textContent =
+        `โหมด Web Public: userId=${currentUser.id} | AdminCheck: ${frontendConfig.adminCheckEnabled ? 'ON' : 'OFF (จาก Settings)'}`;
 
       const oaRes = await apiJson("getOAs", {});
       if (oaRes && oaRes.ok) {
@@ -464,65 +470,16 @@
       }
       initOaSelect();
 
-      if (frontendConfig.useLiffLogin) {
-        await initLiffFlow();
-      } else {
-        initNoLiffFlow();
-      }
+      // เริ่มต้นโหลด history / preview
+      loadHistory();
+      updatePreview();
+      loadTokenStatus();
+      loadQuotaStatus(); // ✅ โหลด quota ครั้งแรก
     } catch (e) {
       console.error("initApp error", e);
       document.getElementById("userInfo").textContent =
-        "โหลด config/LIFF ไม่สำเร็จ: "+(e.message || e);
-      document.getElementById("notAdminBox").classList.remove("hidden");
+        "โหลด config/OA ไม่สำเร็จ: " + (e.message || e);
     }
-  }
-
-  async function initLiffFlow() {
-    await liff.init({ liffId: LIFF_ID });
-    if (!liff.isLoggedIn()) {
-      liff.login();
-      return;
-    }
-    const profile = await liff.getProfile();
-    currentUser = { id: profile.userId, displayName: profile.displayName };
-    document.getElementById("userInfo").textContent =
-      "Login (LIFF): "+profile.displayName;
-
-    const res = await apiJson("isAdmin", { userId: currentUser.id });
-    if (!res || !res.ok) {
-      document.getElementById("notAdminBox").classList.remove("hidden");
-      return;
-    }
-    document.getElementById("notAdminBox").classList.add("hidden");
-    loadHistory();
-    updatePreview();
-  }
-
-  function initNoLiffFlow() {
-    const id = frontendConfig.defaultAdminUserId;
-    if (!id) {
-      document.getElementById("userInfo").textContent =
-        "No-LIFF mode แต่ไม่ได้ตั้ง DEFAULT_ADMIN_USER_ID ใน Settings";
-      document.getElementById("notAdminBox").classList.remove("hidden");
-      return;
-    }
-    currentUser = { id, displayName: "Admin (No-LIFF)" };
-    document.getElementById("userInfo").textContent =
-      "No-LIFF mode: userId="+id;
-
-    apiJson("isAdmin", { userId:id }).then(res => {
-      if (!res || !res.ok) {
-        document.getElementById("notAdminBox").classList.remove("hidden");
-      } else {
-        document.getElementById("notAdminBox").classList.add("hidden");
-        loadHistory();
-        updatePreview();
-      }
-    }).catch(e => {
-      document.getElementById("userInfo").textContent =
-        "No-LIFF error: "+(e.message || e);
-      document.getElementById("notAdminBox").classList.remove("hidden");
-    });
   }
 
   // ================ OA Select ===================
@@ -558,6 +515,7 @@
     updateOaModeTag();
     loadHistory();
     loadTokenStatus();
+    loadQuotaStatus(); // ✅ quota ตาม OA
   }
 
   function updateOaModeTag() {
@@ -639,7 +597,7 @@
   // ================ Multi Upload (base64 + SweetAlert) ===================
   async function handleMultiUpload() {
     if (!currentUser) {
-      Swal.fire("ยังไม่ได้ระบุผู้ใช้", "กรุณาเข้าสู่ระบบผ่าน LIFF ก่อน", "warning");
+      Swal.fire("ระบบยังไม่พร้อม", "กรุณารีเฟรชหน้าเว็บแล้วลองใหม่อีกครั้ง", "warning");
       return;
     }
     if (!currentOaId) {
@@ -652,7 +610,6 @@
       return;
     }
 
-    // 🔥 SweetAlert Loading ขณะอัปโหลด
     Swal.fire({
       title: "กำลังอัปโหลดรูป…",
       text: "โปรดรอสักครู่ ระบบกำลังอัปโหลดและสร้างลิงก์รูปให้คุณ",
@@ -726,7 +683,7 @@
 
   // ================ Submit ===================
   async function handleSubmit() {
-    if (!currentUser) { alert("ยังไม่ได้ระบุ user (LIFF/No-LIFF)"); return; }
+    if (!currentUser) { alert("ระบบยังไม่พร้อม กรุณารีเฟรชหน้าเว็บ"); return; }
     if (!currentOaId) { alert("ยังไม่ได้เลือก OA"); return; }
     const btn = document.getElementById("btnSubmit");
     btn.disabled = true;
@@ -764,7 +721,7 @@
         scheduleAt
       });
       if (!res || !res.ok) {
-        throw new Error(JSON.stringify(res));
+        throw new Error(res.error || JSON.stringify(res));
       }
       if (res.mode === 'scheduled') {
         setStatus("ตั้งเวลา Broadcast เรียบร้อย", true);
@@ -772,6 +729,9 @@
         setStatus("ส่ง Broadcast สำเร็จแล้ว", true);
       }
       loadHistory();
+      // ✅ โหลด quota ล่าสุดหลังส่งสำเร็จ
+      loadQuotaStatus();
+      
     } catch (e) {
       console.error(e);
       setStatus("ส่ง Broadcast ไม่สำเร็จ: "+(e.message || e), false);
@@ -974,6 +934,54 @@
       errBox.classList.add("hidden");
     }
   }
+
+  // ================ Quota Status ===================
+async function loadQuotaStatus() {
+  if (!currentOaId) return;
+  const bar  = document.getElementById("quotaBar");
+  const text = document.getElementById("quotaText");
+
+  bar.classList.remove("hidden");
+  text.textContent = "กำลังตรวจสอบ quota ข้อความ...";
+
+  try {
+    const res = await apiJson("quotaStatus", {
+      oaId: currentOaId,
+      userId: currentUser ? currentUser.id : ""
+    });
+
+    if (!res || !res.ok) {
+      throw new Error(res && res.error ? res.error : "ไม่สามารถดึง quota ได้");
+    }
+    renderQuotaStatus(res);
+  } catch (e) {
+    console.error("loadQuotaStatus error", e);
+    text.textContent = "โหลด quota ไม่สำเร็จ: " + (e.message || e);
+  }
+}
+
+function renderQuotaStatus(q) {
+  const bar  = document.getElementById("quotaBar");
+  const text = document.getElementById("quotaText");
+
+  if (!q || !q.ok) {
+    bar.classList.add("hidden");
+    return;
+  }
+
+  const used  = q.used || 0;
+  const limit = (q.limit != null) ? q.limit : null;
+  const remaining = (q.remaining != null) ? q.remaining : (limit != null ? Math.max(0, limit - used) : null);
+
+  if (!limit) {
+    // กรณี type = none → ไม่จำกัด
+    text.textContent = `แพ็กเกจข้อความ: ไม่จำกัด | ใช้ไปแล้ว ${used.toLocaleString()} ข้อความ`;
+  } else {
+    text.textContent =
+      `ใช้ไปแล้ว ${used.toLocaleString()} / ${limit.toLocaleString()} ข้อความ` +
+      ` (เหลือประมาณ ${remaining.toLocaleString()} ข้อความ)`;
+  }
+}
 
   // ================ DOM Ready ===================
   document.addEventListener("DOMContentLoaded", () => {
