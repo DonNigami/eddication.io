@@ -251,6 +251,7 @@
     <!-- ส่ง broadcast -->
     <div id="tabSendPane" class="mt-3">
       <div class="flex-row">
+        <!-- ซ้าย: ฟอร์ม -->
         <div class="w-1-2 flex-col">
           <div class="flex-col">
             <label>ข้อความ</label>
@@ -302,8 +303,9 @@
             <span class="badge">Quota</span>
             <span id="quotaText"></span>
           </div>
+        </div>
 
-
+        <!-- ขวา: Preview -->
         <div class="w-1-2 flex-col">
           <div class="flex-col">
             <label>ตัวอย่าง Preview</label>
@@ -450,7 +452,6 @@
     try {
       const cfg = await apiJson("getFrontendConfig", {});
       if (cfg && cfg.ok) {
-        // ใช้ defaultAdminUserId เป็น userId สำหรับ web ถ้าไม่ได้ตั้งก็ใช้ PUBLIC_WEB_USER
         frontendConfig.defaultUserId     = cfg.defaultAdminUserId || 'PUBLIC_WEB_USER';
         frontendConfig.defaultOaId       = cfg.defaultOaId || '';
         frontendConfig.adminCheckEnabled = cfg.adminCheckEnabled !== false;
@@ -470,11 +471,11 @@
       }
       initOaSelect();
 
-      // เริ่มต้นโหลด history / preview
+      // เริ่มต้นโหลด history / preview / token / quota
       loadHistory();
       updatePreview();
       loadTokenStatus();
-      loadQuotaStatus(); // ✅ โหลด quota ครั้งแรก
+      loadQuotaStatus();
     } catch (e) {
       console.error("initApp error", e);
       document.getElementById("userInfo").textContent =
@@ -515,7 +516,7 @@
     updateOaModeTag();
     loadHistory();
     loadTokenStatus();
-    loadQuotaStatus(); // ✅ quota ตาม OA
+    loadQuotaStatus();
   }
 
   function updateOaModeTag() {
@@ -729,9 +730,7 @@
         setStatus("ส่ง Broadcast สำเร็จแล้ว", true);
       }
       loadHistory();
-      // ✅ โหลด quota ล่าสุดหลังส่งสำเร็จ
       loadQuotaStatus();
-      
     } catch (e) {
       console.error(e);
       setStatus("ส่ง Broadcast ไม่สำเร็จ: "+(e.message || e), false);
@@ -936,52 +935,51 @@
   }
 
   // ================ Quota Status ===================
-async function loadQuotaStatus() {
-  if (!currentOaId) return;
-  const bar  = document.getElementById("quotaBar");
-  const text = document.getElementById("quotaText");
+  async function loadQuotaStatus() {
+    if (!currentOaId) return;
+    const bar  = document.getElementById("quotaBar");
+    const text = document.getElementById("quotaText");
 
-  bar.classList.remove("hidden");
-  text.textContent = "กำลังตรวจสอบ quota ข้อความ...";
+    bar.classList.remove("hidden");
+    text.textContent = "กำลังตรวจสอบ quota ข้อความ...";
 
-  try {
-    const res = await apiJson("quotaStatus", {
-      oaId: currentOaId,
-      userId: currentUser ? currentUser.id : ""
-    });
+    try {
+      const res = await apiJson("quotaStatus", {
+        oaId: currentOaId,
+        userId: currentUser ? currentUser.id : ""
+      });
 
-    if (!res || !res.ok) {
-      throw new Error(res && res.error ? res.error : "ไม่สามารถดึง quota ได้");
+      if (!res || !res.ok) {
+        throw new Error(res && res.error ? res.error : "ไม่สามารถดึง quota ได้");
+      }
+      renderQuotaStatus(res);
+    } catch (e) {
+      console.error("loadQuotaStatus error", e);
+      text.textContent = "โหลด quota ไม่สำเร็จ: " + (e.message || e);
     }
-    renderQuotaStatus(res);
-  } catch (e) {
-    console.error("loadQuotaStatus error", e);
-    text.textContent = "โหลด quota ไม่สำเร็จ: " + (e.message || e);
-  }
-}
-
-function renderQuotaStatus(q) {
-  const bar  = document.getElementById("quotaBar");
-  const text = document.getElementById("quotaText");
-
-  if (!q || !q.ok) {
-    bar.classList.add("hidden");
-    return;
   }
 
-  const used  = q.used || 0;
-  const limit = (q.limit != null) ? q.limit : null;
-  const remaining = (q.remaining != null) ? q.remaining : (limit != null ? Math.max(0, limit - used) : null);
+  function renderQuotaStatus(q) {
+    const bar  = document.getElementById("quotaBar");
+    const text = document.getElementById("quotaText");
 
-  if (!limit) {
-    // กรณี type = none → ไม่จำกัด
-    text.textContent = `แพ็กเกจข้อความ: ไม่จำกัด | ใช้ไปแล้ว ${used.toLocaleString()} ข้อความ`;
-  } else {
-    text.textContent =
-      `ใช้ไปแล้ว ${used.toLocaleString()} / ${limit.toLocaleString()} ข้อความ` +
-      ` (เหลือประมาณ ${remaining.toLocaleString()} ข้อความ)`;
+    if (!q || !q.ok) {
+      bar.classList.add("hidden");
+      return;
+    }
+
+    const used  = q.used || 0;
+    const limit = (q.limit != null) ? q.limit : null;
+    const remaining = (q.remaining != null) ? q.remaining : (limit != null ? Math.max(0, limit - used) : null);
+
+    if (!limit) {
+      text.textContent = `แพ็กเกจข้อความ: ไม่จำกัด | ใช้ไปแล้ว ${used.toLocaleString()} ข้อความ`;
+    } else {
+      text.textContent =
+        `ใช้ไปแล้ว ${used.toLocaleString()} / ${limit.toLocaleString()} ข้อความ` +
+        ` (เหลือประมาณ ${remaining.toLocaleString()} ข้อความ)`;
+    }
   }
-}
 
   // ================ DOM Ready ===================
   document.addEventListener("DOMContentLoaded", () => {
