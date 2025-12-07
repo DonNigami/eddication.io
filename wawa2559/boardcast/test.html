@@ -473,6 +473,8 @@
       // เริ่มต้นโหลด history / preview
       loadHistory();
       updatePreview();
+      loadTokenStatus();
+      loadQuotaStatus(); // ✅ โหลด quota ครั้งแรก
     } catch (e) {
       console.error("initApp error", e);
       document.getElementById("userInfo").textContent =
