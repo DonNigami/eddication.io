@@ -296,7 +296,13 @@
             <span id="statusChip" class="status-chip-ok"></span>
             <span id="statusText"></span>
           </div>
-        </div>
+          
+          <!-- ✅ Quota status -->
+          <div id="quotaBar" class="status-bar hidden">
+            <span class="badge">Quota</span>
+            <span id="quotaText"></span>
+          </div>
+
 
         <div class="w-1-2 flex-col">
           <div class="flex-col">
@@ -922,6 +928,54 @@
       errBox.classList.add("hidden");
     }
   }
+
+  // ================ Quota Status ===================
+async function loadQuotaStatus() {
+  if (!currentOaId) return;
+  const bar  = document.getElementById("quotaBar");
+  const text = document.getElementById("quotaText");
+
+  bar.classList.remove("hidden");
+  text.textContent = "กำลังตรวจสอบ quota ข้อความ...";
+
+  try {
+    const res = await apiJson("quotaStatus", {
+      oaId: currentOaId,
+      userId: currentUser ? currentUser.id : ""
+    });
+
+    if (!res || !res.ok) {
+      throw new Error(res && res.error ? res.error : "ไม่สามารถดึง quota ได้");
+    }
+    renderQuotaStatus(res);
+  } catch (e) {
+    console.error("loadQuotaStatus error", e);
+    text.textContent = "โหลด quota ไม่สำเร็จ: " + (e.message || e);
+  }
+}
+
+function renderQuotaStatus(q) {
+  const bar  = document.getElementById("quotaBar");
+  const text = document.getElementById("quotaText");
+
+  if (!q || !q.ok) {
+    bar.classList.add("hidden");
+    return;
+  }
+
+  const used  = q.used || 0;
+  const limit = (q.limit != null) ? q.limit : null;
+  const remaining = (q.remaining != null) ? q.remaining : (limit != null ? Math.max(0, limit - used) : null);
+
+  if (!limit) {
+    // กรณี type = none → ไม่จำกัด
+    text.textContent = `แพ็กเกจข้อความ: ไม่จำกัด | ใช้ไปแล้ว ${used.toLocaleString()} ข้อความ`;
+  } else {
+    text.textContent =
+      `ใช้ไปแล้ว ${used.toLocaleString()} / ${limit.toLocaleString()} ข้อความ` +
+      ` (เหลือประมาณ ${remaining.toLocaleString()} ข้อความ)`;
+  }
+}
 
   // ================ DOM Ready ===================
   document.addEventListener("DOMContentLoaded", () => {
