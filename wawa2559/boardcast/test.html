@@ -348,7 +348,7 @@
             <option value="pending">pending</option>
             <option value="sent">sent</option>
             <option value="error">error</option>
-            <option value="cancelled">cancelled</option>
+            <option value="cancel">cancel</option>
           </select>
         </div>
 
@@ -416,10 +416,10 @@
   let oaList = [];
   let currentOaId = '';
 
-  // ✅ History / Pagination state
-  let historyData = [];
+  // ✅ History / Pagination state (ใช้ backend pagination)
   let historyPage = 1;
-  const HISTORY_PAGE_SIZE = 3;
+  let historyTotalPages = 1;
+  const HISTORY_PAGE_SIZE = 3; // 3 รายการต่อหน้า = 3 ล่าสุด
   let historyStatusFilter = 'ALL';
 
   // ================ Helper ================
@@ -496,7 +496,6 @@
     try {
       const cfg = await apiJson("getFrontendConfig", {});
       if (cfg && cfg.ok) {
-        // ใช้ defaultAdminUserId เป็น userId สำหรับ web ถ้าไม่ได้ตั้งก็ใช้ PUBLIC_WEB_USER
         frontendConfig.defaultUserId     = cfg.defaultAdminUserId || 'PUBLIC_WEB_USER';
         frontendConfig.defaultOaId       = cfg.defaultOaId || '';
         frontendConfig.adminCheckEnabled = cfg.adminCheckEnabled !== false;
@@ -559,6 +558,7 @@
     const sel = document.getElementById("oaSelect");
     currentOaId = sel.value || '';
     updateOaModeTag();
+    historyPage = 1;
     loadHistory();
     loadTokenStatus();
     loadQuotaStatus();
@@ -774,6 +774,7 @@
       } else {
         setStatus("ส่ง Broadcast สำเร็จแล้ว", true);
       }
+      historyPage = 1;
       loadHistory();
       loadQuotaStatus(); // ✅ quota หลังส่ง
     } catch (e) {
@@ -794,145 +795,119 @@
     updatePreview();
   }
 
-  // ================ History ===================
+  // ================ History (ใช้ backend pagination) ===================
   async function loadHistory() {
     if (!currentUser || !currentOaId) return;
     const body = document.getElementById("historyBody");
     body.innerHTML = `<tr><td colspan="9" class="text-muted">กำลังโหลด...</td></tr>`;
     try {
+      const statusParam = (historyStatusFilter === 'ALL') ? '' : historyStatusFilter;
       const res = await apiJson("history", {
         oaId: currentOaId,
         userId: currentUser.id,
-        limit: 50
+        limit: HISTORY_PAGE_SIZE,
+        page: historyPage,
+        status: statusParam
       });
-      if (!res || !res.ok || !Array.isArray(res.list) || !res.list.length) {
-        historyData = [];
-        historyPage = 1;
+
+      if (!res || !res.ok) {
+        throw new Error(res && res.error ? res.error : "history response ผิดรูปแบบ");
+      }
+
+      const list = Array.isArray(res.list) ? res.list : [];
+      historyPage = res.page || 1;
+      historyTotalPages = res.totalPages || 1;
+
+      if (!list.length) {
         body.innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีประวัติ</td></tr>`;
-        document.getElementById("historyPageInfo").textContent = "หน้า 1 / 1";
+        document.getElementById("historyPageInfo").textContent = `หน้า ${historyPage} / ${historyTotalPages}`;
         return;
       }
 
-      // เก็บข้อมูลไว้ แล้ว render ตาม page + filter
-      historyData = res.list;
-      historyPage = 1;
-      renderHistoryTable();
+      const now = new Date();
+      const rows = list.map(item => {
+        const created = item.createdAt ? new Date(item.createdAt) : null;
+        const schedule= item.scheduleAt ? new Date(item.scheduleAt) : null;
+        const sent    = item.sentAt ? new Date(item.sentAt) : null;
+        const createdText  = created ? created.toLocaleString() : "-";
+        const scheduleText = schedule? schedule.toLocaleString() : "-";
+        const sentText     = sent   ? sent.toLocaleString() : "-";
+        const modeLabel   = item.mode === 'scheduled' ? 'ตั้งเวลา' : 'ส่งทันที';
+        const targetLabel = item.targetType === 'test' ? 'ทดสอบ' : 'ทุกคน';
+
+        let statusClass = 'pill-cancel';
+        if (item.status === 'pending') statusClass = 'pill-pending';
+        else if (item.status === 'sent') statusClass = 'pill-sent';
+        else if (item.status === 'error') statusClass = 'pill-error';
+
+        const textShort = (item.text || '').trim();
+        const tShort = textShort.length > 50 ? textShort.slice(0,50)+'…' : (textShort || '-');
+
+        const logText = (item.log || '').toString();
+        const lShort = logText ? (logText.length>50?logText.slice(0,50)+'…':logText) : '-';
+
+        const images = Array.isArray(item.images) ? item.images : [];
+        const imagesCount = item.imageCount || images.length || 0;
+
+        const thumbnailsHtml = images.map(u => `
+          <img src="${escapeHtml(u)}" alt="img" />
+        `).join("");
+
+        const futurePending = (item.status === 'pending' && schedule && schedule > now);
+
+        let actions = "";
+        if (futurePending) {
+          actions += `<button class="btn btn-secondary" type="button" onclick="onCancel('${item.jobId}')">ยกเลิก</button> `;
+        }
+        actions += `<button class="btn btn-secondary" type="button" onclick="onRetry('${item.jobId}')">ส่งซ้ำ</button>`;
+
+        return `
+          <tr>
+            <td>
+              <div>${createdText}</div>
+              <div class="text-muted">Schedule: ${scheduleText}<br>Sent: ${sentText}</div>
+            </td>
+            <td>${modeLabel}</td>
+            <td>${targetLabel}</td>
+            <td><div class="text-preview">${escapeHtml(tShort)}</div></td>
+            <td>${imagesCount}</td>
+            <td><div class="history-images">${thumbnailsHtml || '-'}</div></td>
+            <td><span class="pill ${statusClass}">${item.status}</span></td>
+            <td><div class="log-preview text-muted">${escapeHtml(lShort)}</div></td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      });
+
+      body.innerHTML = rows.join("");
+      document.getElementById("historyPageInfo").textContent =
+        `หน้า ${historyPage} / ${historyTotalPages}`;
     } catch (e) {
       console.error(e);
       body.innerHTML = `<tr><td colspan="9" class="text-muted">โหลดประวัติไม่สำเร็จ: ${escapeHtml(e.message || e)}</td></tr>`;
+      document.getElementById("historyPageInfo").textContent =
+        `หน้า ${historyPage} / ${historyTotalPages}`;
     }
-  }
-
-  function renderHistoryTable() {
-    const body = document.getElementById("historyBody");
-    if (!historyData || !historyData.length) {
-      body.innerHTML = `<tr><td colspan="9" class="text-muted">ยังไม่มีประวัติ</td></tr>`;
-      document.getElementById("historyPageInfo").textContent = "หน้า 1 / 1";
-      return;
-    }
-
-    // กรองตามสถานะ
-    let filtered = historyData;
-    if (historyStatusFilter !== 'ALL') {
-      filtered = historyData.filter(item => (item.status || '').toLowerCase() === historyStatusFilter.toLowerCase());
-    }
-
-    if (!filtered.length) {
-      body.innerHTML = `<tr><td colspan="9" class="text-muted">ไม่มีรายการสำหรับสถานะนี้</td></tr>`;
-      document.getElementById("historyPageInfo").textContent = "หน้า 1 / 1";
-      return;
-    }
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / HISTORY_PAGE_SIZE));
-    if (historyPage > totalPages) historyPage = totalPages;
-    if (historyPage < 1) historyPage = 1;
-
-    const startIndex = (historyPage - 1) * HISTORY_PAGE_SIZE;
-    const pageItems = filtered.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
-
-    const now = new Date();
-    const rows = pageItems.map(item => {
-      const created = item.createdAt ? new Date(item.createdAt) : null;
-      const schedule= item.scheduleAt ? new Date(item.scheduleAt) : null;
-      const sent    = item.sentAt ? new Date(item.sentAt) : null;
-      const createdText  = created ? created.toLocaleString() : "-";
-      const scheduleText = schedule? schedule.toLocaleString() : "-";
-      const sentText     = sent   ? sent.toLocaleString() : "-";
-      const modeLabel   = item.mode === 'scheduled' ? 'ตั้งเวลา' : 'ส่งทันที';
-      const targetLabel = item.targetType === 'test' ? 'ทดสอบ' : 'ทุกคน';
-
-      let statusClass = 'pill-cancel';
-      if (item.status === 'pending') statusClass = 'pill-pending';
-      else if (item.status === 'sent') statusClass = 'pill-sent';
-      else if (item.status === 'error') statusClass = 'pill-error';
-
-      const textShort = (item.text || '').trim();
-      const tShort = textShort.length > 50 ? textShort.slice(0,50)+'…' : (textShort || '-');
-
-      const logText = (item.log || '').toString();
-      const lShort = logText ? (logText.length>50?logText.slice(0,50)+'…':logText) : '-';
-
-      const images = Array.isArray(item.images) ? item.images : [];
-      const imagesCount = item.imageCount || images.length || 0;
-
-      const thumbnailsHtml = images.map(u => `
-        <img src="${escapeHtml(u)}" alt="img" />
-      `).join("");
-
-      const futurePending = (item.status === 'pending' && schedule && schedule > now);
-
-      let actions = "";
-      if (futurePending) {
-        actions += `<button class="btn btn-secondary" type="button" onclick="onCancel('${item.jobId}')">ยกเลิก</button> `;
-      }
-      actions += `<button class="btn btn-secondary" type="button" onclick="onRetry('${item.jobId}')">ส่งซ้ำ</button>`;
-
-      return `
-        <tr>
-          <td>
-            <div>${createdText}</div>
-            <div class="text-muted">Schedule: ${scheduleText}<br>Sent: ${sentText}</div>
-          </td>
-          <td>${modeLabel}</td>
-          <td>${targetLabel}</td>
-          <td><div class="text-preview">${escapeHtml(tShort)}</div></td>
-          <td>${imagesCount}</td>
-          <td><div class="history-images">${thumbnailsHtml || '-'}</div></td>
-          <td><span class="pill ${statusClass}">${item.status}</span></td>
-          <td><div class="log-preview text-muted">${escapeHtml(lShort)}</div></td>
-          <td>${actions}</td>
-        </tr>
-      `;
-    });
-
-    body.innerHTML = rows.join("");
-    document.getElementById("historyPageInfo").textContent =
-      `หน้า ${historyPage} / ${totalPages}`;
   }
 
   function onHistoryFilterChanged() {
     const sel = document.getElementById("historyStatusFilter");
     historyStatusFilter = sel.value || 'ALL';
     historyPage = 1;
-    renderHistoryTable();
+    loadHistory();
   }
 
   function prevHistoryPage() {
     if (historyPage > 1) {
       historyPage--;
-      renderHistoryTable();
+      loadHistory();
     }
   }
 
   function nextHistoryPage() {
-    let filtered = historyData;
-    if (historyStatusFilter !== 'ALL') {
-      filtered = historyData.filter(item => (item.status || '').toLowerCase() === historyStatusFilter.toLowerCase());
-    }
-    const totalPages = Math.max(1, Math.ceil(filtered.length / HISTORY_PAGE_SIZE));
-    if (historyPage < totalPages) {
+    if (historyPage < historyTotalPages) {
       historyPage++;
-      renderHistoryTable();
+      loadHistory();
     }
   }
 
@@ -942,6 +917,7 @@
     try {
       const res = await apiJson("cancel", { userId: currentUser.id, jobId });
       if (!res || !res.ok) alert("ยกเลิกไม่สำเร็จ: "+JSON.stringify(res));
+      historyPage = 1;
       loadHistory();
     } catch (e) {
       alert("ยกเลิกไม่สำเร็จ: "+(e.message || e));
@@ -954,7 +930,9 @@
     try {
       const res = await apiJson("retry", { userId: currentUser.id, jobId });
       if (!res || !res.ok) alert("ส่งซ้ำไม่สำเร็จ: "+JSON.stringify(res));
+      historyPage = 1;
       loadHistory();
+      loadQuotaStatus();
     } catch (e) {
       alert("ส่งซ้ำไม่สำเร็จ: "+(e.message || e));
     }
