@@ -1726,68 +1726,95 @@
         await saveEndTripSummary(formValues);
       }
 
-      // ✅ ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long)
-      async function saveEndTripSummary(values) {
-        try {
-          showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
+// ✅ ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) – เวอร์ชันทน JSON error
+async function saveEndTripSummary(values) {
+  try {
+    showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
 
-          let pos;
-          try {
-            pos = await getCurrentPositionAsync();
-          } catch (err) {
-            console.error(err);
-            closeLoading();
-            showError(
-              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-            );
-            return;
-          }
+    let pos;
+    try {
+      pos = await getCurrentPositionAsync();
+    } catch (err) {
+      console.error('Geolocation error in endTrip:', err);
+      closeLoading();
+      showError(
+        'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+      );
+      return;
+    }
 
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
 
-          showLoading('กำลังบันทึกข้อมูลจบทริป...');
+    showLoading('กำลังบันทึกข้อมูลจบทริป...');
 
-          const formData = new URLSearchParams();
-          // ถ้าชื่อ action backend จริงเป็นอย่างอื่น เปลี่ยนตรงนี้
-          formData.append('action', 'endtrip');
-          formData.append('reference', currentReference);
-          formData.append('userId', currentUserId);
-          formData.append('endOdo', values.endOdo || '');
-          formData.append('endPointName', values.endPointName || '');
-          formData.append('lat', String(lat));
-          formData.append('lng', String(lng));
+    const formData = new URLSearchParams();
+    // 👇 ถ้า backend ใช้ชื่อ action อื่น เปลี่ยนตรงนี้ให้ตรงกัน
+    formData.append('action', 'endtrip');
+    formData.append('reference', currentReference);
+    formData.append('userId', currentUserId);
+    formData.append('endOdo', values.endOdo || '');
+    formData.append('endPointName', values.endPointName || '');
+    formData.append('lat', String(lat));
+    formData.append('lng', String(lng));
 
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: formData,
-          });
-          const json = await res.json();
+    const res = await fetch(WEB_APP_URL, {
+      method: 'POST',
+      body: formData,
+    });
 
-          closeLoading();
+    // ถ้า HTTP ไม่ 2xx ให้แจ้งเตือนก่อนเลย
+    if (!res.ok) {
+      const rawErr = await res.text().catch(() => '');
+      console.error('HTTP error endtrip:', res.status, rawErr);
+      closeLoading();
+      showError(
+        'ไม่สามารถบันทึกข้อมูลจบทริปได้ (HTTP ' +
+          res.status +
+          ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
+      );
+      return;
+    }
 
-          if (!json.success) {
-            showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
-            return;
-          }
+    // 👉 ตรงนี้เปลี่ยนจาก res.json() เป็นอ่าน text แล้วค่อย parse เอง
+    const raw = await res.text();
+    let json;
+    try {
+      json = JSON.parse(raw);
+    } catch (e) {
+      console.error('Response from endtrip is not valid JSON:', raw);
+      closeLoading();
+      // แสดงข้อความดิบให้รู้ว่า backend ส่งอะไรมา (เช่น "NO_EVENT")
+      showError(
+        'เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป (รูปแบบข้อมูลไม่ถูกต้อง): ' +
+          (raw || 'NO_RESPONSE')
+      );
+      return;
+    }
 
-          await showSuccess(
-            'จบทริปสำเร็จ',
-            'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
-          );
+    closeLoading();
 
-          // refresh ข้อมูลอีกครั้ง เผื่อ backend อัปเดตสถานะ/ฟิลด์อื่น
-          if (currentReference) {
-            document.getElementById('keyword').value = currentReference;
-            await search();
-          }
-        } catch (err) {
-          console.error(err);
-          closeLoading();
-          showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
-        }
-      }
+    if (!json.success) {
+      showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
+      return;
+    }
 
+    await showSuccess(
+      'จบทริปสำเร็จ',
+      'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
+    );
+
+    // refresh ข้อมูลอีกรอบ
+    if (currentReference) {
+      document.getElementById('keyword').value = currentReference;
+      await search();
+    }
+  } catch (err) {
+    console.error('saveEndTripSummary fatal error:', err);
+    closeLoading();
+    showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
+  }
+}
       async function closeJob() {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
