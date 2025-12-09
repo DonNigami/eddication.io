@@ -470,13 +470,21 @@
             </div>
             <ul id="timeline" class="timeline"></ul>
 
+            <!-- ✅ ปุ่มปิดงาน + ปุ่มจบทริป ต่อกันใต้ไทม์ไลน์ -->
             <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
               <button
                 id="btnCloseJob"
                 class="btn-secondary"
-                style="width:100%;"
+                style="width:100%;margin-bottom:6px;"
               >
                 ปิดงาน (รถพร้อมใช้งาน)
+              </button>
+              <button
+                id="btnEndTrip"
+                class="btn-secondary"
+                style="width:100%;display:none;"
+              >
+                บันทึกจบทริป (เลขไมล์ + จุดจบทริป)
               </button>
             </div>
           </div>
@@ -502,7 +510,7 @@
       let currentDrivers = [];
       let currentCheckedDrivers = [];
       let alcoholAllDone = false;
-      let jobClosed = false;
+      let jobClosed = false; // มาจาก backend: d.jobClosed
 
       function showLoading(message) {
         Swal.fire({
@@ -802,7 +810,7 @@
             currentDrivers.length > 0 &&
             currentDrivers.every((n) => currentCheckedDrivers.includes(n));
 
-          jobClosed = !!d.jobClosed;
+          jobClosed = !!d.jobClosed; // backend ต้องส่ง flag นี้มาด้วย
 
           renderSummary(d);
           renderAlcoholSection();
@@ -1274,8 +1282,21 @@
         const container = document.getElementById('timelineContainer');
         const ul = document.getElementById('timeline');
         const closeJobContainer = document.getElementById('closeJobContainer');
+        const btnCloseJob = document.getElementById('btnCloseJob');
+        const btnEndTrip = document.getElementById('btnEndTrip');
+
         ul.innerHTML = '';
+
+        // reset ปุ่มด้านล่าง
         closeJobContainer.classList.add('hidden');
+        if (btnCloseJob) {
+          btnCloseJob.style.display = 'none';
+          btnCloseJob.disabled = true;
+        }
+        if (btnEndTrip) {
+          btnEndTrip.style.display = 'none';
+          btnEndTrip.disabled = true;
+        }
 
         if (!stops || stops.length === 0) {
           container.classList.add('hidden');
@@ -1454,9 +1475,33 @@
           ul.appendChild(li);
         });
 
-        if (stops.length > 0 && allCheckout && !jobClosed) {
-          closeJobContainer.classList.remove('hidden');
-          document.getElementById('btnCloseJob').disabled = false;
+        // ✅ Logic แสดงปุ่มปิดงาน / จบทริป ด้านล่างไทม์ไลน์
+        if (stops.length > 0) {
+          if (jobClosed) {
+            // ปิดงานแล้ว → แสดงเฉพาะปุ่ม "บันทึกจบทริป"
+            closeJobContainer.classList.remove('hidden');
+            if (btnCloseJob) {
+              btnCloseJob.style.display = 'none';
+              btnCloseJob.disabled = true;
+            }
+            if (btnEndTrip) {
+              btnEndTrip.style.display = 'block';
+              btnEndTrip.disabled = false;
+            }
+          } else if (allCheckout) {
+            // Checkout ครบ แต่ยังไม่ปิดงาน → แสดงปุ่ม "ปิดงาน"
+            closeJobContainer.classList.remove('hidden');
+            if (btnCloseJob) {
+              btnCloseJob.style.display = 'block';
+              btnCloseJob.disabled = false;
+            }
+            if (btnEndTrip) {
+              btnEndTrip.style.display = 'none';
+              btnEndTrip.disabled = true;
+            }
+          } else {
+            closeJobContainer.classList.add('hidden');
+          }
         } else {
           closeJobContainer.classList.add('hidden');
         }
@@ -1605,7 +1650,7 @@
         }
       }
 
-      // ✅ ฟอร์ม "จบทริป" หลังปิดงาน
+      // ✅ ฟอร์ม "จบทริป" หลังปิดงาน (เรียกจากปุ่มในไทม์ไลน์)
       async function openEndTripDialog() {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
@@ -1640,7 +1685,7 @@
           focusConfirm: false,
           showCancelButton: true,
           confirmButtonText: 'บันทึกจบทริป',
-          cancelButtonText: 'ข้ามตอนนี้',
+          cancelButtonText: 'ยกเลิก',
           confirmButtonColor: '#1abc9c',
           cancelButtonColor: '#95a5a6',
           preConfirm: () => {
@@ -1675,7 +1720,6 @@
         });
 
         if (!formValues) {
-          // กด "ข้ามตอนนี้"
           return;
         }
 
@@ -1784,29 +1828,18 @@
           }
 
           jobClosed = true;
-          const closeContainer = document.getElementById('closeJobContainer');
-          const closeBtn = document.getElementById('btnCloseJob');
-          if (closeBtn) closeBtn.disabled = true;
-          if (closeContainer) closeContainer.classList.add('hidden');
 
           if (json.stop) {
             showInlineFlex('closejob', json.stop);
           }
 
-          // popup ปิดงาน แล้วตามด้วย step "จบทริป"
-          await showSuccess(
-            'ปิดงานสำเร็จ',
-            'รถพร้อมใช้งานแล้ว\nต่อไปกรุณากรอกข้อมูลสรุปจบทริป'
-          );
+          await showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
 
-          // Reload data เผื่อมี flag ใด ๆ เปลี่ยน
+          // Reload data เพื่อให้ d.jobClosed = true แล้ว renderTimeline จะโชว์ปุ่ม "บันทึกจบทริป"
           if (currentReference) {
             document.getElementById('keyword').value = currentReference;
             await search();
           }
-
-          // เปิดฟอร์มสรุปจบทริปต่อทันที
-          await openEndTripDialog();
         } catch (err) {
           console.error(err);
           closeLoading();
@@ -1867,6 +1900,10 @@
         document
           .getElementById('btnCloseJob')
           .addEventListener('click', closeJob);
+
+        document
+          .getElementById('btnEndTrip')
+          .addEventListener('click', openEndTripDialog);
       });
 
       window.updateStopStatus = updateStopStatus;
