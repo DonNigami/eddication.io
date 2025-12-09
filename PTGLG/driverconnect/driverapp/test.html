@@ -1157,18 +1157,92 @@
                 ปลายทาง: <b>${destName}</b>
               </div>
 
-              <label style="font-size:0.8rem;color:#555;">ระดับความพึงพอใจ</label>
-              <div style="margin:4px 0 10px;font-size:0.85rem;">
-                <label style="margin-right:10px;">
-                  <input type="radio" name="reviewScore" value="น้อย"> น้อย
-                </label>
-                <label style="margin-right:10px;">
-                  <input type="radio" name="reviewScore" value="ปานกลาง"> ปานกลาง
-                </label>
-                <label>
-                  <input type="radio" name="reviewScore" value="มาก"> มาก
-                </label>
-              </div>
+            <label style="font-size:0.85rem;color:#555;">ระดับความพึงพอใจ</label>
+            <div
+              style="
+                margin:6px 0 12px;
+                display:flex;
+                gap:8px;
+                justify-content:space-between;
+              "
+            >
+              <!-- ซ้ายสุด: น้อย -->
+              <label
+                style="
+                  flex:1;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  padding:10px 6px;
+                  border-radius:999px;
+                  border:1px solid #d0d7dd;
+                  background:#f8fafc;
+                  font-size:0.95rem;
+                  cursor:pointer;
+                  gap:6px;
+                "
+              >
+                <input
+                  type="radio"
+                  name="reviewScore"
+                  value="น้อย"
+                  style="transform:scale(1.3);margin:0;"
+                />
+                <span>น้อย</span>
+              </label>
+            
+              <!-- กลาง: ปานกลาง -->
+              <label
+                style="
+                  flex:1;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  padding:10px 6px;
+                  border-radius:999px;
+                  border:1px solid #d0d7dd;
+                  background:#f8fafc;
+                  font-size:0.95rem;
+                  cursor:pointer;
+                  gap:6px;
+                "
+              >
+                <input
+                  type="radio"
+                  name="reviewScore"
+                  value="ปานกลาง"
+                  style="transform:scale(1.3);margin:0;"
+                />
+                <span>ปานกลาง</span>
+              </label>
+            
+              <!-- ขวาสุด: มาก -->
+              <label
+                style="
+                  flex:1;
+                  display:flex;
+                  align-items:center;
+                  justify-content:center;
+                  padding:10px 6px;
+                  border-radius:999px;
+                  border:2px solid #16a085;
+                  background:#e8f8f5;
+                  font-size:0.98rem;
+                  font-weight:600;
+                  cursor:pointer;
+                  gap:6px;
+                "
+              >
+                <input
+                  type="radio"
+                  name="reviewScore"
+                  value="มาก"
+                  style="transform:scale(1.35);margin:0;"
+                />
+                <span>มาก</span>
+              </label>
+            </div>
+
 
               <label style="font-size:0.8rem;color:#555;">ลายเซ็นผู้รับสินค้า</label>
               <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-top:4px;">
