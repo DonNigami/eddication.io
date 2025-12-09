@@ -293,7 +293,6 @@
         margin-top: 4px;
       }
 
-      /* แถวปุ่ม action + นำทาง */
       .action-row {
         margin-top: 6px;
         display: flex;
@@ -529,7 +528,7 @@
       }
 
       function showSuccess(title, text) {
-        Swal.fire({
+        return Swal.fire({
           icon: 'success',
           title: title || 'สำเร็จ',
           text: text || '',
@@ -1254,7 +1253,7 @@
             return;
           }
 
-          showSuccess('บันทึกสำเร็จ', 'บันทึกการประเมินเรียบร้อยแล้ว');
+          await showSuccess('บันทึกสำเร็จ', 'บันทึกการประเมินเรียบร้อยแล้ว');
 
           if (json.stop) {
             showInlineFlex('review', json.stop);
@@ -1584,7 +1583,10 @@
             return;
           }
 
-          showSuccess('อัปเดตสำเร็จ', json.message || 'อัปเดตสถานะเรียบร้อย');
+          await showSuccess(
+            'อัปเดตสำเร็จ',
+            json.message || 'อัปเดตสถานะเรียบร้อย'
+          );
 
           const stopInfo = json.stop || null;
           if (stopInfo) {
@@ -1600,6 +1602,145 @@
           console.error(err);
           closeLoading();
           showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+        }
+      }
+
+      // ✅ ฟอร์ม "จบทริป" หลังปิดงาน
+      async function openEndTripDialog() {
+        if (!currentReference) {
+          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+          return;
+        }
+
+        const { value: formValues } = await Swal.fire({
+          title: 'สรุปจบทริป',
+          html: `
+            <div style="text-align:left;">
+              <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
+                Reference: <b>${currentReference}</b>
+              </div>
+
+              <label style="font-size:0.8rem;color:#555;">เลขไมล์จบทริป</label>
+              <input id="swalEndOdo" type="number" min="0" step="1"
+                class="swal2-input"
+                placeholder="เช่น 234567"
+                style="width:100%;margin:4px 0 8px;">
+
+              <label style="font-size:0.8rem;color:#555;">ชื่อจุดจบทริป</label>
+              <input id="swalEndPoint" type="text"
+                class="swal2-input"
+                placeholder="เช่น ศูนย์กระจายสินค้าบางนา / ลานจอดคลังหลัก"
+                style="width:100%;margin:4px 0 6px;">
+
+              <div style="margin-top:6px;font-size:0.78rem;color:#888;">
+                * ระบบจะบันทึกเลขไมล์ จุดจบทริป พร้อมพิกัด GPS (Lat/Long) ณ เวลาบันทึก
+              </div>
+            </div>
+          `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'บันทึกจบทริป',
+          cancelButtonText: 'ข้ามตอนนี้',
+          confirmButtonColor: '#1abc9c',
+          cancelButtonColor: '#95a5a6',
+          preConfirm: () => {
+            const odoVal = document
+              .getElementById('swalEndOdo')
+              .value.trim();
+            const pointVal = document
+              .getElementById('swalEndPoint')
+              .value.trim();
+
+            if (!odoVal) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์จบทริป');
+              return false;
+            }
+            const odoNum = parseFloat(odoVal);
+            if (isNaN(odoNum) || odoNum < 0) {
+              Swal.showValidationMessage(
+                'กรุณากรอกเลขไมล์จบทริปให้ถูกต้อง (0 ขึ้นไป)'
+              );
+              return false;
+            }
+            if (!pointVal) {
+              Swal.showValidationMessage('กรุณากรอกชื่อจุดจบทริป');
+              return false;
+            }
+
+            return {
+              endOdo: odoVal,
+              endPointName: pointVal,
+            };
+          },
+        });
+
+        if (!formValues) {
+          // กด "ข้ามตอนนี้"
+          return;
+        }
+
+        await saveEndTripSummary(formValues);
+      }
+
+      // ✅ ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long)
+      async function saveEndTripSummary(values) {
+        try {
+          showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
+
+          let pos;
+          try {
+            pos = await getCurrentPositionAsync();
+          } catch (err) {
+            console.error(err);
+            closeLoading();
+            showError(
+              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+            );
+            return;
+          }
+
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          showLoading('กำลังบันทึกข้อมูลจบทริป...');
+
+          const formData = new URLSearchParams();
+          // ถ้าชื่อ action backend จริงเป็นอย่างอื่น เปลี่ยนตรงนี้
+          formData.append('action', 'endtrip');
+          formData.append('reference', currentReference);
+          formData.append('userId', currentUserId);
+          formData.append('endOdo', values.endOdo || '');
+          formData.append('endPointName', values.endPointName || '');
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
+
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: formData,
+          });
+          const json = await res.json();
+
+          closeLoading();
+
+          if (!json.success) {
+            showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
+            return;
+          }
+
+          await showSuccess(
+            'จบทริปสำเร็จ',
+            'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
+          );
+
+          // refresh ข้อมูลอีกครั้ง เผื่อ backend อัปเดตสถานะ/ฟิลด์อื่น
+          if (currentReference) {
+            document.getElementById('keyword').value = currentReference;
+            await search();
+          }
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
         }
       }
 
@@ -1642,8 +1783,6 @@
             return;
           }
 
-          showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
-
           jobClosed = true;
           const closeContainer = document.getElementById('closeJobContainer');
           const closeBtn = document.getElementById('btnCloseJob');
@@ -1654,10 +1793,20 @@
             showInlineFlex('closejob', json.stop);
           }
 
+          // popup ปิดงาน แล้วตามด้วย step "จบทริป"
+          await showSuccess(
+            'ปิดงานสำเร็จ',
+            'รถพร้อมใช้งานแล้ว\nต่อไปกรุณากรอกข้อมูลสรุปจบทริป'
+          );
+
+          // Reload data เผื่อมี flag ใด ๆ เปลี่ยน
           if (currentReference) {
             document.getElementById('keyword').value = currentReference;
             await search();
           }
+
+          // เปิดฟอร์มสรุปจบทริปต่อทันที
+          await openEndTripDialog();
         } catch (err) {
           console.error(err);
           closeLoading();
@@ -1728,6 +1877,8 @@
       window.getCurrentPositionAsync = getCurrentPositionAsync;
       window.startReview = startReview;
       window.navigateToStop = navigateToStop;
+      window.openEndTripDialog = openEndTripDialog;
+      window.saveEndTripSummary = saveEndTripSummary;
     </script>
   </body>
 </html>
