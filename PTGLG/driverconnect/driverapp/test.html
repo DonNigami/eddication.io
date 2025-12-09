@@ -470,7 +470,7 @@
             </div>
             <ul id="timeline" class="timeline"></ul>
 
-            <!-- ✅ ปุ่มปิดงาน + ปุ่มจบทริป ต่อกันใต้ไทม์ไลน์ -->
+            <!-- ปุ่มปิดงาน + ปุ่มจบทริป -->
             <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
               <button
                 id="btnCloseJob"
@@ -510,7 +510,8 @@
       let currentDrivers = [];
       let currentCheckedDrivers = [];
       let alcoholAllDone = false;
-      let jobClosed = false; // มาจาก backend: d.jobClosed
+      let jobClosed = false; // จาก backend: d.jobClosed
+      let tripEnded = false; // ✅ เพิ่ม: จาก backend: d.tripEnded หรือหลัง endtrip สำเร็จ
 
       function showLoading(message) {
         Swal.fire({
@@ -566,6 +567,7 @@
           review: 'ประเมินสำเร็จ',
           checkout: 'Check-out สำเร็จ',
           closejob: 'ปิดงานสำเร็จ',
+          endtrip: 'จบทริปสำเร็จ', // เผื่อใช้ทีหลัง
         };
 
         const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
@@ -810,7 +812,8 @@
             currentDrivers.length > 0 &&
             currentDrivers.every((n) => currentCheckedDrivers.includes(n));
 
-          jobClosed = !!d.jobClosed; // backend ต้องส่ง flag นี้มาด้วย
+          jobClosed = !!d.jobClosed;     // จาก backend
+          tripEnded = !!d.tripEnded;     // ✅ รับ flag จบทริปจาก backend (ถ้ามี)
 
           renderSummary(d);
           renderAlcoholSection();
@@ -837,6 +840,7 @@
         currentCheckedDrivers = [];
         alcoholAllDone = false;
         jobClosed = false;
+        tripEnded = false; // ✅ reset state จบทริป
       }
 
       function renderSummary(d) {
@@ -975,102 +979,102 @@
                 style="margin-top:4px;font-size:0.8rem;">
             </div>
           `,
-          focusConfirm: false,
-          showCancelButton: true,
-          confirmButtonText: 'บันทึกผล',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-          preConfirm: () => {
-            const val = document
-              .getElementById('swalAlcoholValue')
-              .value.trim();
-            const file = document.getElementById('swalAlcoholImage').files[0];
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกผล',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          const val = document
+            .getElementById('swalAlcoholValue')
+            .value.trim();
+          const file = document.getElementById('swalAlcoholImage').files[0];
 
-            if (!val) {
-              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
-              return false;
-            }
-            if (isNaN(parseFloat(val))) {
-              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
-              return false;
-            }
-            if (!file) {
-              Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
-              return false;
-            }
+          if (!val) {
+            Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
+            return false;
+          }
+          if (isNaN(parseFloat(val))) {
+            Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
+            return false;
+          }
+          if (!file) {
+            Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
+            return false;
+          }
 
-            return { alcoholValue: val, file: file };
-          },
-        });
+          return { alcoholValue: val, file: file };
+        },
+      });
 
-        if (!formValues) {
-          return;
-        }
+      if (!formValues) {
+        return;
+      }
 
-        const { alcoholValue, file } = formValues;
+      const { alcoholValue, file } = formValues;
 
+      try {
+        showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
+
+        let pos;
         try {
-          showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
-
-          let pos;
-          try {
-            pos = await getCurrentPositionAsync();
-          } catch (err) {
-            console.error(err);
-            closeLoading();
-            showError(
-              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-            );
-            return;
-          }
-
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          const base64 = await fileToBase64(file);
-
-          showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
-
-          const formData = new URLSearchParams();
-          formData.append('action', 'uploadAlcohol');
-          formData.append('reference', currentReference);
-          formData.append('driverName', driverName);
-          formData.append('userId', currentUserId);
-          formData.append('alcoholValue', alcoholValue);
-          formData.append('lat', String(lat));
-          formData.append('lng', String(lng));
-          formData.append('imageBase64', base64);
-
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: formData,
-          });
-
-          const json = await res.json();
-
-          closeLoading();
-
-          if (!json.success) {
-            showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
-            return;
-          }
-
-          if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
-            currentCheckedDrivers = [...new Set(json.checkedDrivers)];
-          } else {
-            currentCheckedDrivers = [
-              ...new Set(currentCheckedDrivers.concat([driverName])),
-            ];
-          }
-
-          renderAlcoholSection();
-          showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+          pos = await getCurrentPositionAsync();
         } catch (err) {
           console.error(err);
           closeLoading();
-          showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
+          return;
         }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        const base64 = await fileToBase64(file);
+
+        showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'uploadAlcohol');
+        formData.append('reference', currentReference);
+        formData.append('driverName', driverName);
+        formData.append('userId', currentUserId);
+        formData.append('alcoholValue', alcoholValue);
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+        formData.append('imageBase64', base64);
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const json = await res.json();
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
+          return;
+        }
+
+        if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
+          currentCheckedDrivers = [...new Set(json.checkedDrivers)];
+        } else {
+          currentCheckedDrivers = [
+            ...new Set(currentCheckedDrivers.concat([driverName])),
+          ];
+        }
+
+        renderAlcoholSection();
+        showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+      } catch (err) {
+        console.error(err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
       }
+    }
 
       function initSwalSignaturePad(canvasId, clearBtnId) {
         const canvas = document.getElementById(canvasId);
@@ -1475,9 +1479,20 @@
           ul.appendChild(li);
         });
 
-        // ✅ Logic แสดงปุ่มปิดงาน / จบทริป ด้านล่างไทม์ไลน์
+        // ✅ Logic แสดง/ซ่อนปุ่มปิดงาน / จบทริป
         if (stops.length > 0) {
-          if (jobClosed) {
+          if (tripEnded) {
+            // จบทริปแล้ว → ซ่อนปุ่มทั้งหมด
+            closeJobContainer.classList.add('hidden');
+            if (btnCloseJob) {
+              btnCloseJob.style.display = 'none';
+              btnCloseJob.disabled = true;
+            }
+            if (btnEndTrip) {
+              btnEndTrip.style.display = 'none';
+              btnEndTrip.disabled = true;
+            }
+          } else if (jobClosed) {
             // ปิดงานแล้ว → แสดงเฉพาะปุ่ม "บันทึกจบทริป"
             closeJobContainer.classList.remove('hidden');
             if (btnCloseJob) {
@@ -1650,7 +1665,7 @@
         }
       }
 
-      // ✅ ฟอร์ม "จบทริป" หลังปิดงาน (เรียกจากปุ่มในไทม์ไลน์)
+      // ฟอร์ม "จบทริป"
       async function openEndTripDialog() {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
@@ -1726,95 +1741,109 @@
         await saveEndTripSummary(formValues);
       }
 
-// ✅ ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) – เวอร์ชันทน JSON error
-async function saveEndTripSummary(values) {
-  try {
-    showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
+      // ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) + ซ่อนปุ่มทันที
+      async function saveEndTripSummary(values) {
+        try {
+          showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
 
-    let pos;
-    try {
-      pos = await getCurrentPositionAsync();
-    } catch (err) {
-      console.error('Geolocation error in endTrip:', err);
-      closeLoading();
-      showError(
-        'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-      );
-      return;
-    }
+          let pos;
+          try {
+            pos = await getCurrentPositionAsync();
+          } catch (err) {
+            console.error('Geolocation error in endTrip:', err);
+            closeLoading();
+            showError(
+              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+            );
+            return;
+          }
 
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
 
-    showLoading('กำลังบันทึกข้อมูลจบทริป...');
+          showLoading('กำลังบันทึกข้อมูลจบทริป...');
 
-    const formData = new URLSearchParams();
-    // 👇 ถ้า backend ใช้ชื่อ action อื่น เปลี่ยนตรงนี้ให้ตรงกัน
-    formData.append('action', 'endtrip');
-    formData.append('reference', currentReference);
-    formData.append('userId', currentUserId);
-    formData.append('endOdo', values.endOdo || '');
-    formData.append('endPointName', values.endPointName || '');
-    formData.append('lat', String(lat));
-    formData.append('lng', String(lng));
+          const formData = new URLSearchParams();
+          formData.append('action', 'endtrip'); // ต้องตรงกับ backend
+          formData.append('reference', currentReference);
+          formData.append('userId', currentUserId);
+          formData.append('endOdo', values.endOdo || '');
+          formData.append('endPointName', values.endPointName || '');
+          formData.append('lat', String(lat));
+          formData.append('lng', String(lng));
 
-    const res = await fetch(WEB_APP_URL, {
-      method: 'POST',
-      body: formData,
-    });
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: formData,
+          });
 
-    // ถ้า HTTP ไม่ 2xx ให้แจ้งเตือนก่อนเลย
-    if (!res.ok) {
-      const rawErr = await res.text().catch(() => '');
-      console.error('HTTP error endtrip:', res.status, rawErr);
-      closeLoading();
-      showError(
-        'ไม่สามารถบันทึกข้อมูลจบทริปได้ (HTTP ' +
-          res.status +
-          ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
-      );
-      return;
-    }
+          if (!res.ok) {
+            const rawErr = await res.text().catch(() => '');
+            console.error('HTTP error endtrip:', res.status, rawErr);
+            closeLoading();
+            showError(
+              'ไม่สามารถบันทึกข้อมูลจบทริปได้ (HTTP ' +
+                res.status +
+                ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
+            );
+            return;
+          }
 
-    // 👉 ตรงนี้เปลี่ยนจาก res.json() เป็นอ่าน text แล้วค่อย parse เอง
-    const raw = await res.text();
-    let json;
-    try {
-      json = JSON.parse(raw);
-    } catch (e) {
-      console.error('Response from endtrip is not valid JSON:', raw);
-      closeLoading();
-      // แสดงข้อความดิบให้รู้ว่า backend ส่งอะไรมา (เช่น "NO_EVENT")
-      showError(
-        'เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป (รูปแบบข้อมูลไม่ถูกต้อง): ' +
-          (raw || 'NO_RESPONSE')
-      );
-      return;
-    }
+          const raw = await res.text();
+          let json;
+          try {
+            json = JSON.parse(raw);
+          } catch (e) {
+            console.error('Response from endtrip is not valid JSON:', raw);
+            closeLoading();
+            showError(
+              'เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป (รูปแบบข้อมูลไม่ถูกต้อง): ' +
+                (raw || 'NO_RESPONSE')
+            );
+            return;
+          }
 
-    closeLoading();
+          closeLoading();
 
-    if (!json.success) {
-      showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
-      return;
-    }
+          if (!json.success) {
+            showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
+            return;
+          }
 
-    await showSuccess(
-      'จบทริปสำเร็จ',
-      'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
-    );
+          // ✅ mark ว่าจบทริปแล้ว
+          tripEnded = true;
 
-    // refresh ข้อมูลอีกรอบ
-    if (currentReference) {
-      document.getElementById('keyword').value = currentReference;
-      await search();
-    }
-  } catch (err) {
-    console.error('saveEndTripSummary fatal error:', err);
-    closeLoading();
-    showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
-  }
-}
+          await showSuccess(
+            'จบทริปสำเร็จ',
+            'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
+          );
+
+          // ✅ ซ่อนปุ่มด้านล่างทันที
+          const closeJobContainer = document.getElementById('closeJobContainer');
+          const btnCloseJob = document.getElementById('btnCloseJob');
+          const btnEndTrip = document.getElementById('btnEndTrip');
+          if (closeJobContainer) closeJobContainer.classList.add('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'none';
+            btnCloseJob.disabled = true;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'none';
+            btnEndTrip.disabled = true;
+          }
+
+          // refresh ข้อมูลอีกรอบ (จะได้ d.tripEnded = true ด้วยถ้า backend ส่งมา)
+          if (currentReference) {
+            document.getElementById('keyword').value = currentReference;
+            await search();
+          }
+        } catch (err) {
+          console.error('saveEndTripSummary fatal error:', err);
+          closeLoading();
+          showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
+        }
+      }
+
       async function closeJob() {
         if (!currentReference) {
           showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
