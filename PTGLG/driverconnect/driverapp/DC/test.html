@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>DC Log – บันทึกเวลาที่ DC & แจ้งปัญหา & สถานะ Booking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --bg-card: #ffffff;
+      --border-subtle: #d1d5db;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.08);
+      --accent-strong: #1d4ed8;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --danger: #b91c1c;
+      --radius-lg: 18px;
+      --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      padding: 16px 12px 24px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px 20px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .card-header-main {
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 4px 0 4px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      border: 1px solid #d1d5db;
+      margin: 14px 0 12px;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      flex: 1 1 0;
+      border-radius: 999px;
+      padding: 8px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn span.icon {
+      font-size: 16px;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: var(--accent-strong);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .panel { margin-top: 4px; }
+    .hidden { display: none !important; }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin: 18px 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-main);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .section-title span.hint {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 480px) {
+      .grid-2.inline-desktop {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+
+    .field { margin-bottom: 12px; }
+
+    .field-inline {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="file"],
+    input[type="time"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: #f9fafb;
+      color: var(--text-main);
+      font-size: 14px;
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+      background: #ffffff;
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .btn-xs {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .btn-accent,
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+    }
+
+    .btn-ghost {
+      background: #e5e7eb;
+      color: var(--text-main);
+      border: 1px solid #d1d5db;
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: none;
+    }
+
+    .btn-full {
+      width: 100%;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    .note strong { color: #b45309; }
+
+    .image-preview {
+      margin-top: 8px;
+      border-radius: 12px;
+      border: 1px dashed #cbd5f5;
+      padding: 8px;
+      display: none;
+      background: #eff6ff;
+    }
+
+    .image-preview img {
+      max-width: 100%;
+      border-radius: 10px;
+      display: block;
+    }
+
+    .image-preview span {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .footer-hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .required { color: var(--danger); margin-left: 2px; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #facc15;
+    }
+
+    #timeError {
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      display: none;
+    }
+
+    .input-error {
+      border-color: var(--danger) !important;
+      box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.25) !important;
+      background: #fef2f2 !important;
+    }
+
+    .problem-preview-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .problem-preview-list img {
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+    }
+
+    /* Booking result */
+    .booking-result-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      font-size: 13px;
+    }
+
+    .booking-result-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1d4ed8;
+    }
+
+    .booking-result-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
+
+    .booking-item-label {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .booking-item-value {
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <div class="card-header-main">
+        <span class="badge">DC Log</span>
+        <h1>บันทึกเวลาที่ DC · แจ้งปัญหา · สถานะ Booking</h1>
+        <p class="subtitle">
+          บันทึกเวลาที่ DC แนบรูปท้ายรถ แจ้งปัญหาขนส่ง และตรวจสอบสถานะ Booking ได้ในหน้าเดียว
+        </p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="form">
+          <span class="icon">📝</span>
+          <span>บันทึก DC วันนี้</span>
+        </button>
+        <button class="tab-btn" data-tab="problem">
+          <span class="icon">⚠️</span>
+          <span>แจ้งปัญหาขนส่ง</span>
+        </button>
+        <button class="tab-btn" data-tab="booking">
+          <span class="icon">🔎</span>
+          <span>สถานะ Booking</span>
+        </button>
+      </div>
+
+      <!-- Panel: บันทึก DC -->
+      <div class="panel" data-panel="form">
+        <form id="dcForm">
+          <div class="grid-2">
+            <div class="field">
+              <label for="reference">
+                เลข Booking (9 หลักท้ายหลังเครื่องหมาย -)<span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="reference"
+                name="reference"
+                placeholder="เช่น 251243448 (จาก B001-251243448)"
+                inputmode="numeric"
+                maxlength="9"
+                required
+                oninput="enforceBookingDigits(this)"
+              />
+              <div class="note">
+                กรอกเฉพาะเลข 9 หลักสุดท้าย <strong>ไม่ต้องกรอก B001-</strong>
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="truckPlate">
+                ทะเบียนรถ<span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="truckPlate"
+                name="truckPlate"
+                placeholder="เช่น กท-1234 / 70-xxxx"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="section-title">
+            <span>เวลาที่ DC</span>
+            <span class="hint">
+              เลือกเวลา หรือกด “ตอนนี้” ตามลำดับ
+            </span>
+          </div>
+
+          <div id="timeError"></div>
+
+          <div class="field">
+            <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
+            <div class="field-inline">
+              <input
+                type="time"
+                id="arriveDcTime"
+                name="arriveDcTime"
+                required
+              />
+              <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
+                ตอนนี้
+              </button>
+            </div>
+          </div>
+
+          <div class="grid-2 inline-desktop">
+            <div class="field">
+              <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
+              <div class="field-inline">
+                <input type="time" id="loadStartTime" name="loadStartTime" />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="loadEndTime">ขึ้นสินค้า (เสร็จ)</label>
+              <div class="field-inline">
+                <input type="time" id="loadEndTime" name="loadEndTime" />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 inline-desktop">
+            <div class="field">
+              <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
+              <div class="field-inline">
+                <input type="time" id="docStartTime" name="docStartTime" />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="docEndTime">ยื่นเอกสาร (เสร็จ)</label>
+              <div class="field-inline">
+                <input type="time" id="docEndTime" name="docEndTime" />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="departTime">ออกจาก DC</label>
+            <div class="field-inline">
+              <input type="time" id="departTime" name="departTime" />
+              <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
+                ตอนนี้
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="remark">หมายเหตุเพิ่มเติม</label>
+            <textarea
+              id="remark"
+              name="remark"
+              placeholder="เช่น รอคิวโหลดนาน / มีปัญหาหน้างาน ฯลฯ"
+            ></textarea>
+          </div>
+
+          <div class="section-title">
+            <span>รูปท้ายรถก่อนปิดตู้</span>
+            <span class="tag">บังคับแนบทุกครั้ง</span>
+          </div>
+
+          <div class="field">
+            <label for="photoRear">
+              แนบรูปท้ายรถ <span class="required">*</span>
+            </label>
+            <input
+              type="file"
+              id="photoRear"
+              name="photoRear"
+              accept="image/*"
+              capture="environment"
+              required
+            />
+            <div class="note">
+              • ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
+              • ระบบจะบีบอัดรูปให้อัตโนมัติ เพื่อลดเวลาส่งข้อมูล
+            </div>
+
+            <div id="previewBox" class="image-preview">
+              <span>รูปตัวอย่าง:</span>
+              <img id="previewImage" alt="ตัวอย่างรูปท้ายรถ" />
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-accent btn-full">
+            บันทึกข้อมูลงาน DC
+          </button>
+
+          <div class="footer-hint">
+            <div>ระบบบันทึกเวลาเป็นรูปแบบ <code>HH:mm น.</code></div>
+            <div>การส่งข้อมูลอาจใช้เวลา 5–10 วินาที</div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Panel: แจ้งปัญหาขนส่ง -->
+      <div class="panel hidden" data-panel="problem">
+        <form id="problemForm">
+          <div class="field">
+            <label for="problemReference">เลข Booking (9 หลักท้าย)<span class="required">*</span></label>
+            <input
+              type="text"
+              id="problemReference"
+              placeholder="เช่น 251243448"
+              inputmode="numeric"
+              maxlength="9"
+              required
+              oninput="enforceBookingDigits(this)"
+            />
+          </div>
+
+          <div class="field">
+            <label for="problemTruckPlate">ทะเบียนรถ<span class="required">*</span></label>
+            <input
+              type="text"
+              id="problemTruckPlate"
+              placeholder="เช่น กท-1234 / 70-xxxx"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="problemType">
+              หัวข้อปัญหา<span class="required">*</span>
+            </label>
+            <select id="problemType" required>
+              <option value="">-- กำลังโหลดหัวข้อปัญหา --</option>
+            </select>
+            <div class="note">
+              ระบบจะโหลดหัวข้อจากชีท <strong>problem list (B2:B)</strong> ทุกครั้งที่เปิดแท็บนี้
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="problemDetail">รายละเอียดปัญหา<span class="required">*</span></label>
+            <textarea
+              id="problemDetail"
+              placeholder="อธิบายเหตุการณ์ / จุดที่เกิดปัญหา / ผู้ติดต่อหน้างาน ฯลฯ"
+              required
+            ></textarea>
+          </div>
+
+          <div class="section-title">
+            <span>แนบรูปประกอบ</span>
+            <span class="hint">แนบได้หลายรูป เช่น หน้างาน / เอกสาร / สภาพสินค้า</span>
+          </div>
+
+          <div class="field">
+            <label for="problemPhotos">เลือกรูปภาพ</label>
+            <input
+              type="file"
+              id="problemPhotos"
+              accept="image/*"
+              multiple
+            />
+            <div class="note">
+              สามารถเลือกหลายรูปได้ในครั้งเดียว ระบบจะย่อลดขนาดให้อัตโนมัติ
+            </div>
+            <div id="problemPreview" class="problem-preview-list"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            ส่งแจ้งปัญหาขนส่ง
+          </button>
+        </form>
+      </div>
+
+      <!-- Panel: สถานะ Booking -->
+      <div class="panel hidden" data-panel="booking">
+        <div class="field">
+          <label for="searchBooking">
+            เลข Booking (9 หลักท้าย)<span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="searchBooking"
+            placeholder="เช่น 251243448"
+            inputmode="numeric"
+            maxlength="9"
+            oninput="enforceBookingDigits(this)"
+          />
+          <div class="note">
+            ใช้เลข 9 หลักท้ายเหมือนกับที่บันทึกในหน้า DC Log
+          </div>
+        </div>
+        <button id="btnSearchBooking" class="btn btn-primary btn-full">
+          ตรวจสอบสถานะ Booking
+        </button>
+
+        <div id="bookingResult" class="booking-result-box" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 👇 เปลี่ยนเป็น URL Web App ของ Apps Script
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
+
+    /* -------- Tabs -------- */
+    const tabButtons = document.querySelectorAll(".tab-btn");
+    const panels = document.querySelectorAll(".panel");
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.getAttribute("data-tab");
+        tabButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        panels.forEach((p) => {
+          if (p.getAttribute("data-panel") === tab) {
+            p.classList.remove("hidden");
+          } else {
+            p.classList.add("hidden");
+          }
+        });
+
+        if (tab === "problem") {
+          loadProblemTopics();
+          const refDC = document.getElementById("reference").value.trim();
+          const plateDC = document.getElementById("truckPlate").value.trim();
+          if (refDC) document.getElementById("problemReference").value = refDC.replace(/\D/g, "").slice(0, 9);
+          if (plateDC) document.getElementById("problemTruckPlate").value = plateDC;
+        }
+
+        if (tab === "booking") {
+          const refDC = document.getElementById("reference").value.trim();
+          if (refDC) document.getElementById("searchBooking").value = refDC.replace(/\D/g, "").slice(0, 9);
+        }
+      });
+    });
+
+    /* -------- Booking enforce digits -------- */
+    function enforceBookingDigits(el) {
+      el.value = el.value.replace(/\D/g, "").slice(0, 9);
+    }
+    window.enforceBookingDigits = enforceBookingDigits;
+
+    /* -------- Time helpers & validation (เหมือนเดิม) -------- */
+    function setNow(fieldId) {
+      const el = document.getElementById(fieldId);
+      if (!el) return;
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      el.value = `${hh}:${mm}`;
+      validateTimeSteps(false);
+    }
+    window.setNow = setNow;
+
+    const timeInputsConfig = [
+      { id: "arriveDcTime", label: "ถึง DC" },
+      { id: "loadStartTime", label: "ขึ้นสินค้า (เริ่ม)" },
+      { id: "loadEndTime", label: "ขึ้นสินค้า (เสร็จ)" },
+      { id: "docStartTime", label: "ยื่นเอกสาร (เริ่ม)" },
+      { id: "docEndTime", label: "ยื่นเอกสาร (เสร็จ)" },
+      { id: "departTime", label: "ออกจาก DC" },
+    ];
+
+    function timeToMinutes(t) {
+      if (!t) return null;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function isValidCrossDay(prevMin, nextMin) {
+      return (prevMin >= 23 * 60 && prevMin <= 23 * 60 + 59) &&
+             (nextMin >= 0 && nextMin <= 5 * 60);
+    }
+
+    function clearTimeErrors() {
+      const errorBox = document.getElementById("timeError");
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+      timeInputsConfig.forEach(({ id }) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove("input-error");
+      });
+    }
+
+    function showTimeError(message, errorInputId, showAlert) {
+      const errorBox = document.getElementById("timeError");
+      errorBox.textContent = message;
+      errorBox.style.display = "block";
+
+      if (errorInputId) {
+        const el = document.getElementById(errorInputId);
+        if (el) el.classList.add("input-error");
+      }
+
+      if (showAlert) {
+        Swal.fire({
+          icon: "warning",
+          title: "เวลาไม่ถูกต้อง",
+          text: message,
+        });
+      }
+    }
+
+    function validateTimeSteps(showAlert = true) {
+      clearTimeErrors();
+
+      const steps = timeInputsConfig.map(({ id, label }) => {
+        const el = document.getElementById(id);
+        const val = el ? el.value.trim() : "";
+        return { id, label, minutes: timeToMinutes(val), hasValue: !!val };
+      });
+
+      for (let i = 0; i < steps.length - 1; i++) {
+        const prev = steps[i];
+        const next = steps[i + 1];
+
+        if (!prev.hasValue && next.hasValue) {
+          showTimeError(
+            `กรุณากรอกเวลา "${prev.label}" ก่อน "${next.label}"`,
+            next.id,
+            showAlert
+          );
+          return false;
+        }
+
+        if (!prev.hasValue || !next.hasValue) continue;
+
+        const prevMin = prev.minutes;
+        const nextMin = next.minutes;
+
+        if (isValidCrossDay(prevMin, nextMin)) continue;
+
+        if (nextMin < prevMin) {
+          showTimeError(
+            `"${next.label}" ต้องมีเวลามากกว่า "${prev.label}"`,
+            next.id,
+            showAlert
+          );
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    timeInputsConfig.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", () => validateTimeSteps(false));
+      el.addEventListener("blur", () => validateTimeSteps(false));
+    });
+
+    /* -------- Preview รูป DC -------- */
+    const photoInput = document.getElementById("photoRear");
+    const previewBox = document.getElementById("previewBox");
+    const previewImage = document.getElementById("previewImage");
+
+    photoInput.addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      if (!file) {
+        previewBox.style.display = "none";
+        previewImage.src = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewImage.src = e.target.result;
+        previewBox.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    /* -------- Resize รูป -------- */
+    function resizeImage(file, maxSize = 1280) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.onload = () => {
+            let { width, height } = img;
+            if (width <= maxSize && height <= maxSize) {
+              return resolve(e.target.result);
+            }
+            const canvas = document.createElement("canvas");
+            if (width > height) {
+              canvas.width = maxSize;
+              canvas.height = (height * maxSize) / width;
+            } else {
+              canvas.height = maxSize;
+              canvas.width = (width * maxSize) / height;
+            }
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            resolve(dataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function formatTimeForPayload(value) {
+      if (!value) return "";
+      return `${value} น.`;
+    }
+
+    /* -------- Submit: DC Form -------- */
+    const dcForm = document.getElementById("dcForm");
+    dcForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const referenceRaw = document.getElementById("reference").value.trim();
+      const numericRef   = referenceRaw.replace(/\D/g, "");
+      const truckPlate   = document.getElementById("truckPlate").value.trim();
+
+      const arriveRaw    = document.getElementById("arriveDcTime").value.trim();
+      const loadStartRaw = document.getElementById("loadStartTime").value.trim();
+      const loadEndRaw   = document.getElementById("loadEndTime").value.trim();
+      const docStartRaw  = document.getElementById("docStartTime").value.trim();
+      const docEndRaw    = document.getElementById("docEndTime").value.trim();
+      const departRaw    = document.getElementById("departTime").value.trim();
+
+      const remark       = document.getElementById("remark").value.trim();
+      const file         = photoInput.files && photoInput.files[0];
+
+      if (!numericRef || numericRef.length !== 9) {
+        Swal.fire(
+          "เลข Booking ไม่ถูกต้อง",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลักสุดท้ายหลังเครื่องหมาย - เช่น 251243448",
+          "warning"
+        );
+        return;
+      }
+
+      if (!truckPlate) {
+        Swal.fire("กรุณากรอกทะเบียนรถ", "", "warning");
+        return;
+      }
+      if (!arriveRaw) {
+        Swal.fire('กรุณาเลือกเวลา "ถึง DC"', "", "warning");
+        return;
+      }
+      if (!file) {
+        Swal.fire("กรุณาแนบรูปท้ายรถก่อนปิดตู้", "", "warning");
+        return;
+      }
+
+      if (!validateTimeSteps(true)) {
+        return;
+      }
+
+      try {
+        Swal.fire({
+          title: "กำลังบันทึกข้อมูล...",
+          html: "ระบบกำลังอัปโหลดรูปและบันทึกข้อมูล อาจใช้เวลา 5–10 วินาที",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        let imageBase64;
+        try {
+          imageBase64 = await resizeImage(file);
+        } catch (err) {
+          console.warn("Resize รูปไม่สำเร็จ ใช้ไฟล์เดิม", err);
+          imageBase64 = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = (e) => resolve(e.target.result);
+            r.onerror = reject;
+            r.readAsDataURL(file);
+          });
+        }
+
+        const payload = {
+          action: "saveDcLog",
+          reference: numericRef,
+          truckPlate: truckPlate,
+          arriveDcTime: formatTimeForPayload(arriveRaw),
+          loadStartTime: formatTimeForPayload(loadStartRaw),
+          loadEndTime: formatTimeForPayload(loadEndRaw),
+          docStartTime: formatTimeForPayload(docStartRaw),
+          docEndTime: formatTimeForPayload(docEndRaw),
+          departTime: formatTimeForPayload(departRaw),
+          remark: remark,
+          imageBase64: imageBase64,
+        };
+
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await res.json().catch(() => ({}));
+        Swal.close();
+
+        if (result && result.success) {
+          Swal.fire({
+            icon: "success",
+            title: "บันทึกสำเร็จ",
+            text: result.message || "ระบบบันทึกข้อมูลงาน DC เรียบร้อยแล้ว",
+          });
+
+          dcForm.reset();
+          previewBox.style.display = "none";
+          previewImage.src = "";
+          clearTimeErrors();
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "บันทึกไม่สำเร็จ",
+            text:
+              (result && result.message) ||
+              "กรุณาลองใหม่อีกครั้ง หรือแจ้งแอดมินตรวจสอบ",
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        Swal.close();
+        Swal.fire({
+          icon: "error",
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือแจ้งแอดมิน",
+        });
+      }
+    });
+
+    /* -------- Problem tab: load topics -------- */
+    const problemTypeSelect = document.getElementById("problemType");
+    let isLoadingTopics = false;
+
+    async function loadProblemTopics() {
+      if (isLoadingTopics) return;
+      isLoadingTopics = true;
+      try {
+        problemTypeSelect.innerHTML = '<option value="">-- กำลังโหลดหัวข้อปัญหา --</option>';
+
+        const params = new URLSearchParams();
+        params.set("action", "getProblemList");
+
+        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: "GET" });
+        const result = await res.json().catch(() => ({}));
+
+        if (!result || !result.success) {
+          problemTypeSelect.innerHTML = '<option value="">โหลดหัวข้อไม่สำเร็จ</option>';
+          return;
+        }
+
+        const topics = Array.isArray(result.data) ? result.data : [];
+        if (!topics.length) {
+          problemTypeSelect.innerHTML = '<option value="">ยังไม่มีหัวข้อใน problem list</option>';
+          return;
+        }
+
+        problemTypeSelect.innerHTML = '<option value="">-- เลือกหัวข้อปัญหา --</option>';
+        topics.forEach((t) => {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          problemTypeSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        problemTypeSelect.innerHTML = '<option value="">เกิดข้อผิดพลาดในการโหลดหัวข้อ</option>';
+      } finally {
+        isLoadingTopics = false;
+      }
+    }
+
+    /* -------- Problem: preview multi images -------- */
+    const problemPhotosInput = document.getElementById("problemPhotos");
+    const problemPreview = document.getElementById("problemPreview");
+
+    problemPhotosInput.addEventListener("change", () => {
+      problemPreview.innerHTML = "";
+      const files = Array.from(problemPhotosInput.files || []);
+      if (!files.length) return;
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          problemPreview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    /* -------- Submit: Problem Form -------- */
+    const problemForm = document.getElementById("problemForm");
+    problemForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const refRaw       = document.getElementById("problemReference").value.trim();
+      const numericRef   = refRaw.replace(/\D/g, "");
+      const truckPlate   = document.getElementById("problemTruckPlate").value.trim();
+      const problemType  = problemTypeSelect.value.trim();
+      const detail       = document.getElementById("problemDetail").value.trim();
+      const files        = Array.from(problemPhotosInput.files || []);
+
+      if (!numericRef || numericRef.length !== 9) {
+        Swal.fire(
+          "เลข Booking ไม่ถูกต้อง",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
+          "warning"
+        );
+        return;
+      }
+      if (!truckPlate) {
+        Swal.fire("กรุณากรอกทะเบียนรถ", "", "warning");
+        return;
+      }
+      if (!problemType) {
+        Swal.fire("กรุณาเลือกหัวข้อปัญหา", "", "warning");
+        return;
+      }
+      if (!detail) {
+        Swal.fire("กรุณากรอกรายละเอียดปัญหา", "", "warning");
+        return;
+      }
+
+      try {
+        Swal.fire({
+          title: "กำลังส่งแจ้งปัญหา...",
+          html: "ระบบกำลังอัปโหลดรูปและบันทึกข้อมูล",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        let imagesBase64 = [];
+        if (files.length) {
+          imagesBase64 = await Promise.all(files.map((f) => resizeImage(f).catch(() => null)));
+          imagesBase64 = imagesBase64.filter((v) => !!v);
+        }
+
+        const payload = {
+          action: "saveProblem",
+          reference: numericRef,
+          truckPlate: truckPlate,
+          problemType: problemType,
+          detail: detail,
+          imagesBase64: imagesBase64,
+        };
+
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await res.json().catch(() => ({}));
+        Swal.close();
+
+        if (result && result.success) {
+          Swal.fire({
+            icon: "success",
+            title: "ส่งแจ้งปัญหาสำเร็จ",
+            text: result.message || "ระบบบันทึกปัญหาขนส่งเรียบร้อยแล้ว",
+          });
+          problemForm.reset();
+          problemPreview.innerHTML = "";
+        } else {
+          Swal.fire({
+            icon: "error",
+            title: "ส่งแจ้งปัญหาไม่สำเร็จ",
+            text:
+              (result && result.message) ||
+              "กรุณาลองใหม่อีกครั้ง หรือแจ้งแอดมินตรวจสอบ",
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        Swal.close();
+        Swal.fire({
+          icon: "error",
+          title: "เกิดข้อผิดพลาด",
+          text: "ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือแจ้งแอดมิน",
+        });
+      }
+    });
+
+    /* -------- Booking Status: fetch -------- */
+    const searchBookingInput = document.getElementById("searchBooking");
+    const btnSearchBooking = document.getElementById("btnSearchBooking");
+    const bookingResultBox = document.getElementById("bookingResult");
+
+    btnSearchBooking.addEventListener("click", fetchBookingStatus);
+
+    async function fetchBookingStatus() {
+      const raw = searchBookingInput.value.trim();
+      const numericRef = raw.replace(/\D/g, "");
+      if (!numericRef || numericRef.length !== 9) {
+        Swal.fire(
+          "เลข Booking ไม่ถูกต้อง",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
+          "warning"
+        );
+        return;
+      }
+
+      try {
+        Swal.fire({
+          title: "กำลังค้นหาสถานะ Booking...",
+          html: "กำลังดึงข้อมูลจาก Wave",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        const params = new URLSearchParams();
+        params.set("action", "getBookingStatus");
+        params.set("booking", numericRef);
+
+        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
+          method: "GET",
+        });
+
+        const result = await res.json().catch(() => ({}));
+        Swal.close();
+
+        if (!result || !result.success) {
+          bookingResultBox.style.display = "block";
+          bookingResultBox.innerHTML = `
+            <div class="booking-result-title">ไม่สามารถดึงข้อมูลได้</div>
+            <div>กรุณาลองใหม่อีกครั้ง หรือแจ้งแอดมินตรวจสอบ</div>
+          `;
+          return;
+        }
+
+        if (!result.found) {
+          bookingResultBox.style.display = "block";
+          bookingResultBox.innerHTML = `
+            <div class="booking-result-title">ไม่พบข้อมูล Booking นี้</div>
+            <div>${result.message || ''}</div>
+          `;
+          return;
+        }
+
+        const d = result.data || {};
+        bookingResultBox.style.display = "block";
+        bookingResultBox.innerHTML = `
+          <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+          <div class="booking-result-grid">
+            <div><span class="booking-item-label">สถานะหลัก:</span>
+              <span class="booking-item-value"> ${d.status || '-'} </span></div>
+            <div><span class="booking-item-label">Wave Status:</span>
+              <span class="booking-item-value"> ${d.waveStatus || '-'} </span></div>
+            <div><span class="booking-item-label">Loading Status:</span>
+              <span class="booking-item-value"> ${d.loadingStatus || '-'} </span></div>
+            <div><span class="booking-item-label">Transport Status:</span>
+              <span class="booking-item-value"> ${d.transportStatus || '-'} </span></div>
+            <div><span class="booking-item-label">DC Status:</span>
+              <span class="booking-item-value"> ${d.dcStatus || '-'} </span></div>
+            <div><span class="booking-item-label">DC Status Details:</span>
+              <span class="booking-item-value"> ${d.dcStatusDetails || '-'} </span></div>
+            <div><span class="booking-item-label">Allocated Status:</span>
+              <span class="booking-item-value"> ${d.allocateStatus || '-'} </span></div>
+            <div><span class="booking-item-label">Allocated Details:</span>
+              <span class="booking-item-value"> ${d.allocateStatusDetails || '-'} </span></div>
+            <div><span class="booking-item-label">Pick-up Date/Time:</span>
+              <span class="booking-item-value"> ${d.pickUpDate || '-'} ${d.pickUpTime || ''} </span></div>
+            <div><span class="booking-item-label">Completion Time:</span>
+              <span class="booking-item-value"> ${d.completionTime || '-'} </span></div>
+            <div><span class="booking-item-label">Picked Qty:</span>
+              <span class="booking-item-value"> ${d.pickedQty || '-'} </span></div>
+          </div>
+          <div class="note" style="margin-top:8px;">
+            Wave: ${d.waveNumber || '-'} · ${d.waveDescription || '-'}
+          </div>
+        `;
+      } catch (err) {
+        console.error(err);
+        Swal.close();
+        bookingResultBox.style.display = "block";
+        bookingResultBox.innerHTML = `
+          <div class="booking-result-title">เกิดข้อผิดพลาด</div>
+          <div>ไม่สามารถดึงข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือลองใหม่อีกครั้ง</div>
+        `;
+      }
+    }
+  </script>
+</body>
+</html>
