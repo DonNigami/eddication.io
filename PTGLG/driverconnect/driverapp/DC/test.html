@@ -333,8 +333,12 @@
 
     .booking-result-title {
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
       color: #1d4ed8;
+    }
+
+    .booking-result-main-status {
+      margin: 4px 0 8px;
     }
 
     .booking-result-meta {
@@ -388,6 +392,42 @@
       text-align: right;
       flex: 1 1 auto;
       word-break: break-word;
+    }
+
+    /* 🔵 สเตตัสใหญ่ + สี */
+    .booking-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #22c55e;
+    }
+
+    .status-warning {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fbbf24;
+    }
+
+    .status-info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #60a5fa;
+    }
+
+    .status-neutral {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
     }
   </style>
 </head>
@@ -1166,7 +1206,42 @@
       }
     });
 
-    /* -------- Booking Status: fetch (MULTI WAVE) + card layout -------- */
+    /* -------- Wave Status mapping EN -> TH + สี -------- */
+    function mapWaveStatus(statusEn) {
+      const key = (statusEn || "").trim();
+      const map = {
+        "Allocated": {
+          th: "รอหยิบ",
+          level: "info",       // ฟ้า
+        },
+        "Pick Completed": {
+          th: "หยิบเสร็จแล้ว",
+          level: "success",    // เขียว
+        },
+        "Ship Completed": {
+          th: "จัดส่งแล้ว",
+          level: "success",    // เขียว
+        },
+        "Wave Created": {
+          th: "สร้างเวฟแล้ว",
+          level: "neutral",    // เทา
+        },
+        "Picking": {
+          th: "กำลังหยิบ/รอQC",
+          level: "warning",    // เหลือง/ส้ม
+        },
+      };
+
+      if (map[key]) return map[key];
+
+      // ถ้าไม่ตรง mapping ข้างบน ให้ใช้สถานะเดิมภาษาอังกฤษ
+      return {
+        th: statusEn || "-",
+        level: "neutral",
+      };
+    }
+
+    /* -------- Booking Status: fetch (MULTI WAVE) + card layout + big status -------- */
     const searchBookingInput = document.getElementById("searchBooking");
     const btnSearchBooking = document.getElementById("btnSearchBooking");
     const bookingResultBox = document.getElementById("bookingResult");
@@ -1234,17 +1309,29 @@
           return;
         }
 
-        const cardsHtml = waves.map((w, index) => `
+        // เลือก Wave แรกเป็นตัวแทนสถานะโดยรวม (สามารถเปลี่ยนเป็น wave ล่าสุดได้ถ้า backend ให้ข้อมูลเรียง)
+        const overallWaveStatus = waves[0].waveStatus || d.status || "";
+        const mappedOverall = mapWaveStatus(overallWaveStatus);
+
+        const cardsHtml = waves.map((w, index) => {
+          const mapped = mapWaveStatus(w.waveStatus || "");
+
+          return `
           <div class="booking-wave-card">
             <div class="booking-wave-header">
               Wave #${w.waveNumber || '-'}${waves.length > 1 ? ` (ลำดับที่ ${index + 1})` : ''}
+            </div>
+            <div class="booking-result-main-status">
+              <span class="booking-status-pill status-${mapped.level}">
+                ${mapped.th}
+              </span>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Loading Status</div>
               <div class="booking-wave-value">${w.loadingStatus || '-'}</div>
             </div>
             <div class="booking-wave-row">
-              <div class="booking-wave-label">Wave Status</div>
+              <div class="booking-wave-label">Wave Status (EN)</div>
               <div class="booking-wave-value">${w.waveStatus || '-'}</div>
             </div>
             <div class="booking-wave-row">
@@ -1264,14 +1351,20 @@
               <div class="booking-wave-value">${w.dock || '-'}</div>
             </div>
           </div>
-        `).join("");
+        `;
+        }).join("");
 
         bookingResultBox.style.display = "block";
         bookingResultBox.innerHTML = `
           <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+          <div class="booking-result-main-status">
+            <span class="booking-status-pill status-${mappedOverall.level}">
+              สถานะโดยรวม: ${mappedOverall.th}
+            </span>
+          </div>
           <div class="booking-result-meta">
             วันที่ Wave: ${d.pickDate || '-'} · เจ้าของ: ${d.owner || '-'}<br/>
-            รายละเอียด Wave: ${d.waveDescription || '-'} · สถานะหลัก: ${d.status || '-'}
+            รายละเอียด Wave: ${d.waveDescription || '-'} · สถานะหลัก (EN): ${overallWaveStatus || '-'}
           </div>
           <div class="booking-waves">
             ${cardsHtml}
