@@ -743,22 +743,12 @@
       const remark       = document.getElementById("remark").value.trim();
       const file         = photoInput.files && photoInput.files[0];
 
-      // ✅ ตรวจ booking: ต้องเป็นเลข 9 ตัว
-      const numericRef = referenceRaw;
-      if (!/^\d{9}$/.test(numericRef)) {
+      // ✅ ตรวจ booking: ต้องเป็นตัวเลข 9 หลักเท่านั้น
+      const numericRef = referenceRaw.replace(/\D/g, "");
+      if (!numericRef || numericRef.length !== 9) {
         Swal.fire(
           "เลข Booking ไม่ถูกต้อง",
           "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
-          "warning"
-        );
-        return;
-      }
-      const mm = numericRef.substring(2, 4);
-      const monthNum = parseInt(mm, 10);
-      if (isNaN(monthNum) || monthNum < 1 || monthNum > 12) {
-        Swal.fire(
-          "เลข Booking ไม่ถูกต้อง",
-          "ตำแหน่งเดือน (หลักที่ 3–4) ต้องอยู่ระหว่าง 01–12",
           "warning"
         );
         return;
