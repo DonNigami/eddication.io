@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>DC Log – บันทึกเวลาที่ DC & แจ้งปัญหาขนส่ง</title>
+  <title>DC Log – บันทึกเวลาที่ DC & แจ้งปัญหา & สถานะ Booking</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -22,6 +22,11 @@
 
     * { box-sizing: border-box; }
 
+    html {
+      /* ขนาดฟอนต์พื้นฐาน ปรับตามความกว้างจอ */
+      font-size: clamp(14px, 1.6vw + 10px, 16px);
+    }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -34,30 +39,29 @@
 
     .app {
       width: 100%;
-      max-width: 520px;
-      padding: 16px 12px 24px;
+      max-width: 600px;             /* รองรับมือถือใหญ่ + แท็บเล็ตเล็ก */
+      padding: clamp(10px, 4vw, 20px) clamp(8px, 4vw, 16px);
     }
 
     .card {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
-      padding: 18px 16px 20px;
+      padding: clamp(14px, 3.5vw, 20px);
       box-shadow: var(--shadow-soft);
       border: 1px solid var(--border-subtle);
     }
 
-    .card-header-main {
-      margin-bottom: 12px;
-    }
+    .card-header-main { margin-bottom: clamp(8px, 2vw, 14px); }
 
     h1 {
-      font-size: 20px;
-      margin: 4px 0 4px;
+      font-size: clamp(1rem, 2.4vw, 1.2rem);
+      margin: 4px 0;
+      line-height: 1.35;
     }
 
     .badge {
       display: inline-block;
-      font-size: 12px;
+      font-size: 0.75rem;
       padding: 4px 10px;
       border-radius: 999px;
       background: var(--accent-soft);
@@ -67,44 +71,45 @@
     }
 
     .subtitle {
-      font-size: 13px;
+      font-size: 0.8rem;
       color: var(--text-muted);
       margin: 0;
       line-height: 1.4;
     }
 
-    /* Tabs */
+    /* Tabs: 2 ต่อแถว */
     .tabs {
-      display: flex;
-      align-items: center;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 6px;
       padding: 4px;
       border-radius: 999px;
       background: #e5e7eb;
       border: 1px solid #d1d5db;
-      margin: 14px 0 12px;
+      margin: clamp(10px, 2.5vw, 16px) 0 10px;
     }
 
     .tab-btn {
-      flex: 1 1 0;
+      width: 100%;
       border-radius: 999px;
       padding: 8px 10px;
       border: none;
       background: transparent;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+      transition: background 0.12s ease, color 0.12s ease,
+                  box-shadow 0.12s ease, transform 0.12s ease;
       white-space: nowrap;
     }
 
     .tab-btn span.icon {
-      font-size: 16px;
+      font-size: 1rem;
     }
 
     .tab-btn.active {
@@ -114,16 +119,11 @@
       transform: translateY(-1px);
     }
 
-    .panel {
-      margin-top: 4px;
-    }
-
-    .hidden {
-      display: none !important;
-    }
+    .panel { margin-top: 4px; }
+    .hidden { display: none !important; }
 
     .section-title {
-      font-size: 15px;
+      font-size: 0.9rem;
       font-weight: 600;
       margin: 18px 0 6px;
       display: flex;
@@ -135,7 +135,7 @@
     }
 
     .section-title span.hint {
-      font-size: 12px;
+      font-size: 0.75rem;
       font-weight: 400;
       color: var(--text-muted);
     }
@@ -154,14 +154,12 @@
 
     label {
       display: block;
-      font-size: 14px;
+      font-size: 0.85rem;
       margin-bottom: 4px;
       color: var(--text-main);
     }
 
-    .field {
-      margin-bottom: 12px;
-    }
+    .field { margin-bottom: 12px; }
 
     .field-inline {
       display: flex;
@@ -176,12 +174,12 @@
     textarea,
     select {
       width: 100%;
-      padding: 10px 12px;
+      padding: 9px 11px;
       border-radius: 10px;
       border: 1px solid var(--border-subtle);
       background: #f9fafb;
       color: var(--text-main);
-      font-size: 14px;
+      font-size: 0.85rem;
       outline: none;
       transition: border 0.15s, box-shadow 0.15s, background 0.15s;
     }
@@ -202,21 +200,22 @@
     .btn {
       border: none;
       border-radius: 999px;
-      padding: 10px 16px;
-      font-size: 14px;
+      padding: 9px 14px;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+      transition: transform 0.12s ease, box-shadow 0.12s ease,
+                  background 0.12s ease, opacity 0.12s ease;
       white-space: nowrap;
     }
 
     .btn-xs {
-      padding: 8px 12px;
-      font-size: 13px;
+      padding: 7px 10px;
+      font-size: 0.8rem;
     }
 
     .btn-accent,
@@ -244,7 +243,7 @@
     }
 
     .note {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-muted);
       margin-top: 6px;
       line-height: 1.4;
@@ -268,7 +267,7 @@
     }
 
     .image-preview span {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-muted);
       display: block;
       margin-bottom: 4px;
@@ -276,7 +275,7 @@
 
     .footer-hint {
       margin-top: 10px;
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
@@ -290,7 +289,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 12px;
+      font-size: 0.75rem;
       padding: 2px 8px;
       border-radius: 999px;
       background: #fef3c7;
@@ -299,7 +298,7 @@
     }
 
     #timeError {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--danger);
       margin-top: 4px;
       padding: 6px 8px;
@@ -329,6 +328,117 @@
       border-radius: 8px;
       border: 1px solid #d1d5db;
     }
+
+    /* Booking result – card style */
+    .booking-result-box {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      font-size: 0.8rem;
+    }
+
+    .booking-result-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1d4ed8;
+    }
+
+    .booking-result-main-status {
+      margin: 4px 0 8px;
+    }
+
+    .booking-result-meta {
+      font-size: 0.75rem;
+      color: #4b5563;
+      margin-bottom: 8px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .booking-empty {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 6px;
+    }
+
+    .booking-waves {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .booking-wave-card {
+      background: #ffffff;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 8px 10px;
+    }
+
+    .booking-wave-header {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #111827;
+      font-size: 0.8rem;
+    }
+
+    .booking-wave-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.75rem;
+      padding: 2px 0;
+    }
+
+    .booking-wave-label {
+      color: #6b7280;
+      flex: 0 0 50%;
+      max-width: 50%;
+    }
+
+    .booking-wave-value {
+      color: #111827;
+      text-align: right;
+      flex: 1 1 auto;
+      word-break: break-word;
+    }
+
+    /* สเตตัสใหญ่ + สี */
+    .booking-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-success {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #22c55e;
+    }
+
+    .status-warning {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fbbf24;
+    }
+
+    .status-info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #60a5fa;
+    }
+
+    .status-neutral {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
   </style>
 </head>
 <body>
@@ -336,9 +446,9 @@
     <div class="card">
       <div class="card-header-main">
         <span class="badge">DC Log</span>
-        <h1>บันทึกเวลาที่ DC & แจ้งปัญหาขนส่ง</h1>
+        <h1>บันทึกเวลาที่ DC · แจ้งปัญหา · สถานะ Booking</h1>
         <p class="subtitle">
-          บันทึกเวลาทำงานที่ DC แนบรูปท้ายรถ และแจ้งปัญหาขนส่งได้ในหน้าเดียว
+          บันทึกเวลาที่ DC แนบรูปท้ายรถ แจ้งปัญหาขนส่ง และตรวจสอบสถานะ Booking ได้ในหน้าเดียว
         </p>
       </div>
 
@@ -351,6 +461,10 @@
         <button class="tab-btn" data-tab="problem">
           <span class="icon">⚠️</span>
           <span>แจ้งปัญหาขนส่ง</span>
+        </button>
+        <button class="tab-btn" data-tab="booking">
+          <span class="icon">🔎</span>
+          <span>สถานะ Booking</span>
         </button>
       </div>
 
@@ -586,6 +700,31 @@
           </button>
         </form>
       </div>
+
+      <!-- Panel: สถานะ Booking -->
+      <div class="panel hidden" data-panel="booking">
+        <div class="field">
+          <label for="searchBooking">
+            เลข Booking (9 หลักท้าย)<span class="required">*</span>
+          </label>
+          <input
+            type="text"
+            id="searchBooking"
+            placeholder="เช่น 251243448"
+            inputmode="numeric"
+            maxlength="9"
+            oninput="enforceBookingDigits(this)"
+          />
+          <div class="note">
+            ใช้เลข 9 หลักท้ายเหมือนกับที่บันทึกในหน้า DC Log
+          </div>
+        </div>
+        <button id="btnSearchBooking" class="btn btn-primary btn-full">
+          ตรวจสอบสถานะ Booking
+        </button>
+
+        <div id="bookingResult" class="booking-result-box" style="display:none;"></div>
+      </div>
     </div>
   </div>
 
@@ -593,7 +732,7 @@
     // 👇 เปลี่ยนเป็น URL Web App ของ Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
 
-    /* ---------------- Tabs ---------------- */
+    /* -------- Tabs -------- */
     const tabButtons = document.querySelectorAll(".tab-btn");
     const panels = document.querySelectorAll(".panel");
 
@@ -613,17 +752,26 @@
 
         if (tab === "problem") {
           loadProblemTopics();
-          // auto sync booking + plate จากฝั่ง DC log ถ้ามี
           const refDC = document.getElementById("reference").value.trim();
           const plateDC = document.getElementById("truckPlate").value.trim();
           if (refDC) document.getElementById("problemReference").value = refDC.replace(/\D/g, "").slice(0, 9);
           if (plateDC) document.getElementById("problemTruckPlate").value = plateDC;
         }
+
+        if (tab === "booking") {
+          const refDC = document.getElementById("reference").value.trim();
+          if (refDC) document.getElementById("searchBooking").value = refDC.replace(/\D/g, "").slice(0, 9);
+        }
       });
     });
 
-    /* ---------------- Time helper + validation ---------------- */
+    /* -------- Booking enforce digits -------- */
+    function enforceBookingDigits(el) {
+      el.value = el.value.replace(/\D/g, "").slice(0, 9);
+    }
+    window.enforceBookingDigits = enforceBookingDigits;
 
+    /* -------- Time helpers & validation -------- */
     function setNow(fieldId) {
       const el = document.getElementById(fieldId);
       if (!el) return;
@@ -634,11 +782,6 @@
       validateTimeSteps(false);
     }
     window.setNow = setNow;
-
-    function enforceBookingDigits(el) {
-      el.value = el.value.replace(/\D/g, "").slice(0, 9);
-    }
-    window.enforceBookingDigits = enforceBookingDigits;
 
     const timeInputsConfig = [
       { id: "arriveDcTime", label: "ถึง DC" },
@@ -656,7 +799,6 @@
     }
 
     function isValidCrossDay(prevMin, nextMin) {
-      // อนุญาต 23:00–23:59 -> 00:00–05:00
       return (prevMin >= 23 * 60 && prevMin <= 23 * 60 + 59) &&
              (nextMin >= 0 && nextMin <= 5 * 60);
     }
@@ -739,7 +881,7 @@
       el.addEventListener("blur", () => validateTimeSteps(false));
     });
 
-    /* ---------------- Preview รูป DC ---------------- */
+    /* -------- Preview รูป DC -------- */
     const photoInput = document.getElementById("photoRear");
     const previewBox = document.getElementById("previewBox");
     const previewImage = document.getElementById("previewImage");
@@ -759,7 +901,7 @@
       reader.readAsDataURL(file);
     });
 
-    /* ---------------- Resize รูป ---------------- */
+    /* -------- Resize รูป -------- */
     function resizeImage(file, maxSize = 1280) {
       return new Promise((resolve, reject) => {
         const img = new Image();
@@ -796,9 +938,9 @@
       return `${value} น.`;
     }
 
-    /* ---------------- Submit: DC Form ---------------- */
-    const form = document.getElementById("dcForm");
-    form.addEventListener("submit", async function (e) {
+    /* -------- Submit: DC Form -------- */
+    const dcForm = document.getElementById("dcForm");
+    dcForm.addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const referenceRaw = document.getElementById("reference").value.trim();
@@ -894,7 +1036,7 @@
             text: result.message || "ระบบบันทึกข้อมูลงาน DC เรียบร้อยแล้ว",
           });
 
-          form.reset();
+          dcForm.reset();
           previewBox.style.display = "none";
           previewImage.src = "";
           clearTimeErrors();
@@ -918,7 +1060,7 @@
       }
     });
 
-    /* ---------------- Problem tab: load topics ---------------- */
+    /* -------- Problem tab: load topics -------- */
     const problemTypeSelect = document.getElementById("problemType");
     let isLoadingTopics = false;
 
@@ -960,7 +1102,7 @@
       }
     }
 
-    /* ---------------- Problem: preview multi images ---------------- */
+    /* -------- Problem: preview multi images -------- */
     const problemPhotosInput = document.getElementById("problemPhotos");
     const problemPreview = document.getElementById("problemPreview");
 
@@ -979,7 +1121,7 @@
       });
     });
 
-    /* ---------------- Submit: Problem Form ---------------- */
+    /* -------- Submit: Problem Form -------- */
     const problemForm = document.getElementById("problemForm");
     problemForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -1073,6 +1215,206 @@
         });
       }
     });
+
+    /* -------- Wave Status mapping EN -> TH + rank + สี -------- */
+    function mapWaveStatus(statusEn) {
+      const key = (statusEn || "").trim();
+      const map = {
+        "Wave Created": {
+          th: "สร้างเวฟแล้ว",
+          level: "neutral",
+          rank: 1,
+        },
+        "Allocated": {
+          th: "รอหยิบ",
+          level: "info",
+          rank: 2,
+        },
+        "Picking": {
+          th: "กำลังหยิบ/รอQC",
+          level: "warning",
+          rank: 3,
+        },
+        "Pick Completed": {
+          th: "หยิบเสร็จแล้ว",
+          level: "success",
+          rank: 4,
+        },
+        "Ship Completed": {
+          th: "จัดส่งแล้ว",
+          level: "success",
+          rank: 5,
+        },
+      };
+
+      if (map[key]) return map[key];
+
+      return {
+        th: statusEn || "-",
+        level: "neutral",
+        rank: 0,
+      };
+    }
+
+    /* -------- Booking Status: fetch (MULTI WAVE) + overall by highest rank -------- */
+    const searchBookingInput = document.getElementById("searchBooking");
+    const btnSearchBooking = document.getElementById("btnSearchBooking");
+    const bookingResultBox = document.getElementById("bookingResult");
+
+    btnSearchBooking.addEventListener("click", fetchBookingStatus);
+
+    async function fetchBookingStatus() {
+      const raw = searchBookingInput.value.trim();
+      const numericRef = raw.replace(/\D/g, "");
+      if (!numericRef || numericRef.length !== 9) {
+        Swal.fire(
+          "เลข Booking ไม่ถูกต้อง",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
+          "warning"
+        );
+        return;
+      }
+
+      try {
+        Swal.fire({
+          title: "กำลังค้นหาสถานะ Booking...",
+          html: "กำลังดึงข้อมูลจาก Wave",
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading(),
+        });
+
+        const params = new URLSearchParams();
+        params.set("action", "getBookingStatus");
+        params.set("booking", numericRef);
+
+        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
+          method: "GET",
+        });
+
+        const result = await res.json().catch(() => ({}));
+        Swal.close();
+
+        if (!result || !result.success) {
+          bookingResultBox.style.display = "block";
+          bookingResultBox.innerHTML = `
+            <div class="booking-result-title">ไม่สามารถดึงข้อมูลได้</div>
+            <div>กรุณาลองใหม่อีกครั้ง หรือแจ้งแอดมินตรวจสอบ</div>
+          `;
+          return;
+        }
+
+        if (!result.found) {
+          bookingResultBox.style.display = "block";
+          bookingResultBox.innerHTML = `
+            <div class="booking-result-title">ไม่พบข้อมูล Booking นี้</div>
+            <div>${result.message || ''}</div>
+          `;
+          return;
+        }
+
+        const d = result.data || {};
+        const waves = Array.isArray(d.waves) ? d.waves : [];
+
+        if (!waves.length) {
+          bookingResultBox.style.display = "block";
+          bookingResultBox.innerHTML = `
+            <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+            <div class="booking-empty">ไม่พบ Wave Number สำหรับ Booking นี้</div>
+          `;
+          return;
+        }
+
+        // เลือก Wave ที่มี rank สูงสุดจาก mapWaveStatus เป็น "สถานะโดยรวม"
+        let bestWave = null;
+        let bestRank = -1;
+
+        waves.forEach((w) => {
+          const mapped = mapWaveStatus(w.waveStatus || "");
+          if (mapped.rank > bestRank) {
+            bestRank = mapped.rank;
+            bestWave = { wave: w, mapped };
+          }
+        });
+
+        if (!bestWave) {
+          bestWave = {
+            wave: waves[0],
+            mapped: mapWaveStatus(waves[0].waveStatus || d.status || ""),
+          };
+        }
+
+        const overallWave = bestWave.wave;
+        const mappedOverall = bestWave.mapped;
+        const overallWaveStatus = overallWave.waveStatus || d.status || "";
+
+        const cardsHtml = waves.map((w, index) => {
+          const mapped = mapWaveStatus(w.waveStatus || "");
+
+          return `
+          <div class="booking-wave-card">
+            <div class="booking-wave-header">
+              Wave #${w.waveNumber || '-'}${waves.length > 1 ? ` (ลำดับที่ ${index + 1})` : ''}
+            </div>
+            <div class="booking-result-main-status">
+              <span class="booking-status-pill status-${mapped.level}">
+                ${mapped.th}
+              </span>
+            </div>
+            <div class="booking-wave-row">
+              <div class="booking-wave-label">Loading Status</div>
+              <div class="booking-wave-value">${w.loadingStatus || '-'}</div>
+            </div>
+            <div class="booking-wave-row">
+              <div class="booking-wave-label">Wave Status (EN)</div>
+              <div class="booking-wave-value">${w.waveStatus || '-'}</div>
+            </div>
+            <div class="booking-wave-row">
+              <div class="booking-wave-label">Pick-up date</div>
+              <div class="booking-wave-value">${w.pickUpDate || '-'}</div>
+            </div>
+            <div class="booking-wave-row">
+              <div class="booking-wave-label">Pick-up time</div>
+              <div class="booking-wave-value">${w.pickUpTime || '-'}</div>
+            </div>
+            <div class="booking-wave-row">
+              <div class="booking-wave-label">Logistics</div>
+              <div class="booking-wave-value">${w.logistics || '-'}</div>
+            </div>
+            <div class="booking-wave-row">
+              <div class="booking-wave-label">Dock</div>
+              <div class="booking-wave-value">${w.dock || '-'}</div>
+            </div>
+          </div>
+        `;
+        }).join("");
+
+        bookingResultBox.style.display = "block";
+        bookingResultBox.innerHTML = `
+          <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+          <div class="booking-result-main-status">
+            <span class="booking-status-pill status-${mappedOverall.level}">
+              สถานะโดยรวม: ${mappedOverall.th}
+            </span>
+          </div>
+          <div class="booking-result-meta">
+            ใช้สถานะรวมจาก Wave #${overallWave.waveNumber || '-'} · สถานะหลัก (EN): ${overallWaveStatus || '-'}<br/>
+            วันที่ Wave: ${d.pickDate || '-'} · เจ้าของ: ${d.owner || '-'}<br/>
+            รายละเอียด Wave: ${d.waveDescription || '-'}
+          </div>
+          <div class="booking-waves">
+            ${cardsHtml}
+          </div>
+        `;
+      } catch (err) {
+        console.error(err);
+        Swal.close();
+        bookingResultBox.style.display = "block";
+        bookingResultBox.innerHTML = `
+          <div class="booking-result-title">เกิดข้อผิดพลาด</div>
+          <div>ไม่สามารถดึงข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือลองใหม่อีกครั้ง</div>
+        `;
+      }
+    }
   </script>
 </body>
 </html>
