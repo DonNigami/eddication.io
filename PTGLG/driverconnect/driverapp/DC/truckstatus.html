@@ -408,12 +408,18 @@
         <form id="dcForm">
           <div class="grid-2">
             <div class="field">
-              <label for="reference">เลขอ้างอิงงาน (Reference) <span style="color:#9ca3af;">(ถ้ามี)</span></label>
+              <label for="reference">
+                เลข Booking (9 หลักท้ายหลังเครื่องหมาย -)<span class="required">*</span>
+              </label>
               <input
                 type="text"
                 id="reference"
                 name="reference"
-                placeholder="เช่น B001-251243448 / 6100xxxxxx"
+                placeholder="เช่น 251243448 (จาก B001-251243448)"
+                inputmode="numeric"
+                maxlength="9"
+                required
+                oninput="enforceBookingDigits(this)"
               />
             </div>
             <div class="field">
@@ -448,7 +454,7 @@
                 ตอนนี้
               </button>
             </div>
-          </div>
+          </div>>
 
           <div class="grid-2">
             <div class="field">
@@ -677,6 +683,13 @@
     }
     window.setNow = setNow;
 
+    /* --------- Booking helper: บังคับตัวเลข 9 หลัก --------- */
+    function enforceBookingDigits(el) {
+      // เอาเฉพาะตัวเลข และจำกัด 9 หลัก
+      el.value = el.value.replace(/\D/g, "").slice(0, 9);
+    }
+    window.enforceBookingDigits = enforceBookingDigits;
+
     /* --------- Preview รูป --------- */
     const photoInput = document.getElementById("photoRear");
     const previewBox = document.getElementById("previewBox");
@@ -729,6 +742,17 @@
       const remark       = document.getElementById("remark").value.trim();
       const file         = photoInput.files && photoInput.files[0];
 
+      // ✅ บังคับกรอกเลข booking 9 หลัก (ตัวเลขล้วน)
+      const numericRef = referenceRaw.replace(/\D/g, "");
+      if (!numericRef || numericRef.length !== 9) {
+        Swal.fire(
+          "เลข Booking ไม่ถูกต้อง",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลักสุดท้ายหลังเครื่องหมาย - เช่น 251243448",
+          "warning"
+        );
+        return;
+      }
+
       if (!truckPlate) {
         Swal.fire("กรุณากรอกทะเบียนรถ", "", "warning");
         return;
@@ -754,7 +778,8 @@
 
         const payload = {
           action: "saveDcLog",
-          reference: referenceRaw, // ไม่เช็ครูปแบบแล้ว ส่งไปตรง ๆ
+          // ส่งเลข 9 หลักไปตรง ๆ เป็น reference
+          reference: numericRef,
           truckPlate: truckPlate,
           arriveDcTime: formatTimeForPayload(arriveRaw),
           loadStartTime: formatTimeForPayload(loadStartRaw),
