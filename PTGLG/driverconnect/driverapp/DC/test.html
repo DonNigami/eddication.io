@@ -34,14 +34,14 @@
 
     .app {
       width: 100%;
-      max-width: 520px;
-      padding: 16px 12px 24px;
+      max-width: 480px;
+      padding: 16px 10px 24px;
     }
 
     .card {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
-      padding: 18px 16px 20px;
+      padding: 18px 14px 20px;
       box-shadow: var(--shadow-soft);
       border: 1px solid var(--border-subtle);
     }
@@ -49,8 +49,9 @@
     .card-header-main { margin-bottom: 12px; }
 
     h1 {
-      font-size: 20px;
+      font-size: 18px;
       margin: 4px 0 4px;
+      line-height: 1.3;
     }
 
     .badge {
@@ -139,7 +140,7 @@
       gap: 10px;
     }
 
-    @media (min-width: 480px) {
+    @media (min-width: 420px) {
       .grid-2.inline-desktop {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -167,7 +168,7 @@
     textarea,
     select {
       width: 100%;
-      padding: 10px 12px;
+      padding: 9px 11px;
       border-radius: 10px;
       border: 1px solid var(--border-subtle);
       background: #f9fafb;
@@ -193,7 +194,7 @@
     .btn {
       border: none;
       border-radius: 999px;
-      padding: 10px 16px;
+      padding: 9px 14px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
@@ -206,7 +207,7 @@
     }
 
     .btn-xs {
-      padding: 8px 12px;
+      padding: 7px 10px;
       font-size: 13px;
     }
 
@@ -321,7 +322,7 @@
       border: 1px solid #d1d5db;
     }
 
-    /* Booking result – card style (ไม่มีเลื่อนซ้ายขวา) */
+    /* Booking result – card style */
     .booking-result-box {
       margin-top: 12px;
       padding: 12px;
@@ -346,6 +347,7 @@
       color: #4b5563;
       margin-bottom: 8px;
       line-height: 1.4;
+      word-break: break-word;
     }
 
     .booking-empty {
@@ -371,6 +373,7 @@
       font-weight: 600;
       margin-bottom: 4px;
       color: #111827;
+      font-size: 13px;
     }
 
     .booking-wave-row {
@@ -394,7 +397,7 @@
       word-break: break-word;
     }
 
-    /* 🔵 สเตตัสใหญ่ + สี */
+    /* สเตตัสใหญ่ + สี */
     .booking-status-pill {
       display: inline-flex;
       align-items: center;
@@ -1206,42 +1209,47 @@
       }
     });
 
-    /* -------- Wave Status mapping EN -> TH + สี -------- */
+    /* -------- Wave Status mapping EN -> TH + rank + สี -------- */
     function mapWaveStatus(statusEn) {
       const key = (statusEn || "").trim();
       const map = {
-        "Allocated": {
-          th: "รอหยิบ",
-          level: "info",       // ฟ้า
-        },
-        "Pick Completed": {
-          th: "หยิบเสร็จแล้ว",
-          level: "success",    // เขียว
-        },
-        "Ship Completed": {
-          th: "จัดส่งแล้ว",
-          level: "success",    // เขียว
-        },
         "Wave Created": {
           th: "สร้างเวฟแล้ว",
-          level: "neutral",    // เทา
+          level: "neutral",
+          rank: 1,
+        },
+        "Allocated": {
+          th: "รอหยิบ",
+          level: "info",
+          rank: 2,
         },
         "Picking": {
           th: "กำลังหยิบ/รอQC",
-          level: "warning",    // เหลือง/ส้ม
+          level: "warning",
+          rank: 3,
+        },
+        "Pick Completed": {
+          th: "หยิบเสร็จแล้ว",
+          level: "success",
+          rank: 4,
+        },
+        "Ship Completed": {
+          th: "จัดส่งแล้ว",
+          level: "success",
+          rank: 5,
         },
       };
 
       if (map[key]) return map[key];
 
-      // ถ้าไม่ตรง mapping ข้างบน ให้ใช้สถานะเดิมภาษาอังกฤษ
       return {
         th: statusEn || "-",
         level: "neutral",
+        rank: 0,
       };
     }
 
-    /* -------- Booking Status: fetch (MULTI WAVE) + card layout + big status -------- */
+    /* -------- Booking Status: fetch (MULTI WAVE) + overall by highest rank -------- */
     const searchBookingInput = document.getElementById("searchBooking");
     const btnSearchBooking = document.getElementById("btnSearchBooking");
     const bookingResultBox = document.getElementById("bookingResult");
@@ -1309,9 +1317,28 @@
           return;
         }
 
-        // เลือก Wave แรกเป็นตัวแทนสถานะโดยรวม (สามารถเปลี่ยนเป็น wave ล่าสุดได้ถ้า backend ให้ข้อมูลเรียง)
-        const overallWaveStatus = waves[0].waveStatus || d.status || "";
-        const mappedOverall = mapWaveStatus(overallWaveStatus);
+        // 🧠 เลือก Wave ที่มี rank สูงสุดจาก mapWaveStatus เป็น "สถานะโดยรวม"
+        let bestWave = null;
+        let bestRank = -1;
+
+        waves.forEach((w) => {
+          const mapped = mapWaveStatus(w.waveStatus || "");
+          if (mapped.rank > bestRank) {
+            bestRank = mapped.rank;
+            bestWave = { wave: w, mapped };
+          }
+        });
+
+        if (!bestWave) {
+          bestWave = {
+            wave: waves[0],
+            mapped: mapWaveStatus(waves[0].waveStatus || d.status || ""),
+          };
+        }
+
+        const overallWave = bestWave.wave;
+        const mappedOverall = bestWave.mapped;
+        const overallWaveStatus = overallWave.waveStatus || d.status || "";
 
         const cardsHtml = waves.map((w, index) => {
           const mapped = mapWaveStatus(w.waveStatus || "");
@@ -1363,8 +1390,9 @@
             </span>
           </div>
           <div class="booking-result-meta">
+            ใช้สถานะรวมจาก Wave #${overallWave.waveNumber || '-'} · สถานะหลัก (EN): ${overallWaveStatus || '-'}<br/>
             วันที่ Wave: ${d.pickDate || '-'} · เจ้าของ: ${d.owner || '-'}<br/>
-            รายละเอียด Wave: ${d.waveDescription || '-'} · สถานะหลัก (EN): ${overallWaveStatus || '-'}
+            รายละเอียด Wave: ${d.waveDescription || '-'}
           </div>
           <div class="booking-waves">
             ${cardsHtml}
