@@ -130,6 +130,7 @@
       align-items: center;
       justify-content: space-between;
       color: var(--text-main);
+      gap: 8px;
     }
 
     .section-title span.hint {
@@ -420,6 +421,7 @@
                 ให้กรอกเฉพาะเลข 9 หลักสุดท้าย <strong>ไม่ต้องกรอก B001-</strong>
               </div>
             </div>
+
             <div class="field">
               <label for="truckPlate">
                 ทะเบียนรถ<span class="required">*</span>
@@ -431,12 +433,35 @@
                 placeholder="เช่น กท-1234 / 70-xxxx"
                 required
               />
+              <div class="note">
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);">
+                  <input type="checkbox" id="rememberPlate" style="width:16px;height:16px;">
+                  จำทะเบียนรถนี้ไว้ใช้ครั้งต่อไป
+                </label>
+                <button
+                  type="button"
+                  id="useLastPlateBtn"
+                  class="btn btn-xs btn-ghost"
+                  style="margin-top:4px;display:none;"
+                >
+                  ใช้ทะเบียนล่าสุด
+                </button>
+              </div>
             </div>
           </div>
 
           <div class="section-title">
             <span>เวลาที่ DC</span>
-            <span class="hint">เลือกเวลา หรือกด “ตอนนี้” เพื่อใช้เวลาปัจจุบัน</span>
+            <span class="hint" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+              <span>เลือกเวลา หรือกด “ตอนนี้”</span>
+              <button
+                type="button"
+                class="btn btn-xs btn-ghost"
+                onclick="fillNextTime()"
+              >
+                เติมเวลาตามลำดับ
+              </button>
+            </span>
           </div>
 
           <div class="field">
@@ -681,11 +706,52 @@
     }
     window.setNow = setNow;
 
+    // เติมเวลาตามลำดับ: ถึง DC → ขึ้นสินค้าเริ่ม → ขึ้นสินค้าจบ → ยื่นเอกสารเริ่ม → ยื่นเอกสารจบ → ออกจาก DC
+    function fillNextTime() {
+      const ids = [
+        "arriveDcTime",
+        "loadStartTime",
+        "loadEndTime",
+        "docStartTime",
+        "docEndTime",
+        "departTime",
+      ];
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el && !el.value) {
+          el.value = `${hh}:${mm}`;
+          el.focus();
+          break;
+        }
+      }
+    }
+    window.fillNextTime = fillNextTime;
+
     /* --------- Booking helper: บังคับตัวเลข 9 หลัก --------- */
     function enforceBookingDigits(el) {
       el.value = el.value.replace(/\D/g, "").slice(0, 9);
     }
     window.enforceBookingDigits = enforceBookingDigits;
+
+    /* --------- Remember plate (localStorage) --------- */
+    const LAST_PLATE_KEY = "dcLog:lastTruckPlate";
+    const truckPlateInput = document.getElementById("truckPlate");
+    const rememberPlateCheckbox = document.getElementById("rememberPlate");
+    const useLastPlateBtn = document.getElementById("useLastPlateBtn");
+
+    (function initLastPlate() {
+      const lastPlate = localStorage.getItem(LAST_PLATE_KEY);
+      if (lastPlate) {
+        useLastPlateBtn.style.display = "inline-flex";
+        useLastPlateBtn.addEventListener("click", () => {
+          truckPlateInput.value = lastPlate;
+          truckPlateInput.focus();
+        });
+      }
+    })();
 
     /* --------- Preview รูป --------- */
     const photoInput = document.getElementById("photoRear");
@@ -750,7 +816,7 @@
       e.preventDefault();
 
       const referenceRaw = document.getElementById("reference").value.trim();
-      const truckPlate   = document.getElementById("truckPlate").value.trim();
+      const truckPlate   = truckPlateInput.value.trim();
 
       const arriveRaw    = document.getElementById("arriveDcTime").value.trim();
       const loadStartRaw = document.getElementById("loadStartTime").value.trim();
@@ -832,11 +898,18 @@
         Swal.close();
 
         if (result && result.success) {
+          // ถ้าติ๊กจำทะเบียน ให้จำไว้
+          if (rememberPlateCheckbox.checked && truckPlate) {
+            localStorage.setItem(LAST_PLATE_KEY, truckPlate);
+            useLastPlateBtn.style.display = "inline-flex";
+          }
+
           Swal.fire({
             icon: "success",
             title: "บันทึกสำเร็จ",
             text: result.message || "ระบบบันทึกข้อมูลงาน DC เรียบร้อยแล้ว",
           });
+
           form.reset();
           previewBox.style.display = "none";
           previewImage.src = "";
