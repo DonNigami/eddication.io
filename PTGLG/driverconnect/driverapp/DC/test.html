@@ -46,9 +46,7 @@
       border: 1px solid var(--border-subtle);
     }
 
-    .card-header-main {
-      margin-bottom: 12px;
-    }
+    .card-header-main { margin-bottom: 12px; }
 
     h1 {
       font-size: 20px;
@@ -340,19 +338,53 @@
       color: #1d4ed8;
     }
 
-    .booking-result-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 4px;
+    .booking-result-meta {
+      font-size: 12px;
+      color: #4b5563;
+      margin-bottom: 8px;
     }
 
-    .booking-item-label {
+    .booking-table-wrapper {
+      margin-top: 6px;
+      border-radius: 10px;
+      border: 1px solid #c4d3f6;
+      overflow-x: auto;
+      background: #ffffff;
+    }
+
+    .booking-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 480px;
+    }
+
+    .booking-table th,
+    .booking-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .booking-table th {
+      background: #eff6ff;
       font-weight: 600;
-      color: #111827;
+      color: #1f2937;
     }
 
-    .booking-item-value {
-      color: #374151;
+    .booking-table tr:nth-child(even) td {
+      background: #f9fafb;
+    }
+
+    .booking-table tr:nth-child(odd) td {
+      background: #ffffff;
+    }
+
+    .booking-empty {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 6px;
     }
   </style>
 </head>
@@ -686,7 +718,7 @@
     }
     window.enforceBookingDigits = enforceBookingDigits;
 
-    /* -------- Time helpers & validation (เหมือนเดิม) -------- */
+    /* -------- Time helpers & validation -------- */
     function setNow(fieldId) {
       const el = document.getElementById(fieldId);
       if (!el) return;
@@ -1131,7 +1163,7 @@
       }
     });
 
-    /* -------- Booking Status: fetch -------- */
+    /* -------- Booking Status: fetch (MULTI WAVE) -------- */
     const searchBookingInput = document.getElementById("searchBooking");
     const btnSearchBooking = document.getElementById("btnSearchBooking");
     const bookingResultBox = document.getElementById("bookingResult");
@@ -1188,35 +1220,53 @@
         }
 
         const d = result.data || {};
+        const waves = Array.isArray(d.waves) ? d.waves : [];
+
+        if (!waves.length) {
+          bookingResultBox.style.display = "block";
+          bookingResultBox.innerHTML = `
+            <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+            <div class="booking-empty">ไม่พบ Wave Number สำหรับ Booking นี้</div>
+          `;
+          return;
+        }
+
+        const rowsHtml = waves.map(w => `
+          <tr>
+            <td>${w.waveNumber || '-'}</td>
+            <td>${w.loadingStatus || '-'}</td>
+            <td>${w.waveStatus || '-'}</td>
+            <td>${w.pickUpDate || '-'}</td>
+            <td>${w.pickUpTime || '-'}</td>
+            <td>${w.logistics || '-'}</td>
+            <td>${w.dock || '-'}</td>
+          </tr>
+        `).join("");
+
         bookingResultBox.style.display = "block";
         bookingResultBox.innerHTML = `
           <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
-          <div class="booking-result-grid">
-            <div><span class="booking-item-label">สถานะหลัก:</span>
-              <span class="booking-item-value"> ${d.status || '-'} </span></div>
-            <div><span class="booking-item-label">Wave Status:</span>
-              <span class="booking-item-value"> ${d.waveStatus || '-'} </span></div>
-            <div><span class="booking-item-label">Loading Status:</span>
-              <span class="booking-item-value"> ${d.loadingStatus || '-'} </span></div>
-            <div><span class="booking-item-label">Transport Status:</span>
-              <span class="booking-item-value"> ${d.transportStatus || '-'} </span></div>
-            <div><span class="booking-item-label">DC Status:</span>
-              <span class="booking-item-value"> ${d.dcStatus || '-'} </span></div>
-            <div><span class="booking-item-label">DC Status Details:</span>
-              <span class="booking-item-value"> ${d.dcStatusDetails || '-'} </span></div>
-            <div><span class="booking-item-label">Allocated Status:</span>
-              <span class="booking-item-value"> ${d.allocateStatus || '-'} </span></div>
-            <div><span class="booking-item-label">Allocated Details:</span>
-              <span class="booking-item-value"> ${d.allocateStatusDetails || '-'} </span></div>
-            <div><span class="booking-item-label">Pick-up Date/Time:</span>
-              <span class="booking-item-value"> ${d.pickUpDate || '-'} ${d.pickUpTime || ''} </span></div>
-            <div><span class="booking-item-label">Completion Time:</span>
-              <span class="booking-item-value"> ${d.completionTime || '-'} </span></div>
-            <div><span class="booking-item-label">Picked Qty:</span>
-              <span class="booking-item-value"> ${d.pickedQty || '-'} </span></div>
+          <div class="booking-result-meta">
+            วันที่ Wave: ${d.pickDate || '-'} · เจ้าของ: ${d.owner || '-'}<br/>
+            รายละเอียด Wave: ${d.waveDescription || '-'} · สถานะหลัก: ${d.status || '-'}
           </div>
-          <div class="note" style="margin-top:8px;">
-            Wave: ${d.waveNumber || '-'} · ${d.waveDescription || '-'}
+          <div class="booking-table-wrapper">
+            <table class="booking-table">
+              <thead>
+                <tr>
+                  <th>Wave Number</th>
+                  <th>Loading Status</th>
+                  <th>Wave Status</th>
+                  <th>Pick-up date</th>
+                  <th>Pick-up time</th>
+                  <th>Logistics</th>
+                  <th>Dock</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
           </div>
         `;
       } catch (err) {
