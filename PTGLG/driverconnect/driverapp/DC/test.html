@@ -22,6 +22,11 @@
 
     * { box-sizing: border-box; }
 
+    html {
+      /* ขนาดฟอนต์พื้นฐาน ปรับตามความกว้างจอ */
+      font-size: clamp(14px, 1.6vw + 10px, 16px);
+    }
+
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -34,29 +39,29 @@
 
     .app {
       width: 100%;
-      max-width: 480px;
-      padding: 16px 10px 24px;
+      max-width: 600px;             /* รองรับมือถือใหญ่ + แท็บเล็ตเล็ก */
+      padding: clamp(10px, 4vw, 20px) clamp(8px, 4vw, 16px);
     }
 
     .card {
       background: var(--bg-card);
       border-radius: var(--radius-lg);
-      padding: 18px 14px 20px;
+      padding: clamp(14px, 3.5vw, 20px);
       box-shadow: var(--shadow-soft);
       border: 1px solid var(--border-subtle);
     }
 
-    .card-header-main { margin-bottom: 12px; }
+    .card-header-main { margin-bottom: clamp(8px, 2vw, 14px); }
 
     h1 {
-      font-size: 18px;
-      margin: 4px 0 4px;
-      line-height: 1.3;
+      font-size: clamp(1rem, 2.4vw, 1.2rem);
+      margin: 4px 0;
+      line-height: 1.35;
     }
 
     .badge {
       display: inline-block;
-      font-size: 12px;
+      font-size: 0.75rem;
       padding: 4px 10px;
       border-radius: 999px;
       background: var(--accent-soft);
@@ -66,7 +71,7 @@
     }
 
     .subtitle {
-      font-size: 13px;
+      font-size: 0.8rem;
       color: var(--text-muted);
       margin: 0;
       line-height: 1.4;
@@ -81,7 +86,7 @@
       border-radius: 999px;
       background: #e5e7eb;
       border: 1px solid #d1d5db;
-      margin: 14px 0 12px;
+      margin: clamp(10px, 2.5vw, 16px) 0 10px;
     }
 
     .tab-btn {
@@ -91,19 +96,20 @@
       border: none;
       background: transparent;
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 0.8rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+      transition: background 0.12s ease, color 0.12s ease,
+                  box-shadow 0.12s ease, transform 0.12s ease;
       white-space: nowrap;
     }
 
     .tab-btn span.icon {
-      font-size: 16px;
+      font-size: 1rem;
     }
 
     .tab-btn.active {
@@ -117,7 +123,7 @@
     .hidden { display: none !important; }
 
     .section-title {
-      font-size: 15px;
+      font-size: 0.9rem;
       font-weight: 600;
       margin: 18px 0 6px;
       display: flex;
@@ -129,7 +135,7 @@
     }
 
     .section-title span.hint {
-      font-size: 12px;
+      font-size: 0.75rem;
       font-weight: 400;
       color: var(--text-muted);
     }
@@ -140,7 +146,7 @@
       gap: 10px;
     }
 
-    @media (min-width: 420px) {
+    @media (min-width: 480px) {
       .grid-2.inline-desktop {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -148,7 +154,7 @@
 
     label {
       display: block;
-      font-size: 14px;
+      font-size: 0.85rem;
       margin-bottom: 4px;
       color: var(--text-main);
     }
@@ -173,7 +179,7 @@
       border: 1px solid var(--border-subtle);
       background: #f9fafb;
       color: var(--text-main);
-      font-size: 14px;
+      font-size: 0.85rem;
       outline: none;
       transition: border 0.15s, box-shadow 0.15s, background 0.15s;
     }
@@ -195,20 +201,21 @@
       border: none;
       border-radius: 999px;
       padding: 9px 14px;
-      font-size: 14px;
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+      transition: transform 0.12s ease, box-shadow 0.12s ease,
+                  background 0.12s ease, opacity 0.12s ease;
       white-space: nowrap;
     }
 
     .btn-xs {
       padding: 7px 10px;
-      font-size: 13px;
+      font-size: 0.8rem;
     }
 
     .btn-accent,
@@ -236,7 +243,7 @@
     }
 
     .note {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-muted);
       margin-top: 6px;
       line-height: 1.4;
@@ -260,7 +267,7 @@
     }
 
     .image-preview span {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-muted);
       display: block;
       margin-bottom: 4px;
@@ -268,7 +275,7 @@
 
     .footer-hint {
       margin-top: 10px;
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
@@ -282,7 +289,7 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 12px;
+      font-size: 0.75rem;
       padding: 2px 8px;
       border-radius: 999px;
       background: #fef3c7;
@@ -291,7 +298,7 @@
     }
 
     #timeError {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: var(--danger);
       margin-top: 4px;
       padding: 6px 8px;
@@ -329,7 +336,7 @@
       border-radius: 12px;
       background: #eff6ff;
       border: 1px solid #bfdbfe;
-      font-size: 13px;
+      font-size: 0.8rem;
     }
 
     .booking-result-title {
@@ -343,7 +350,7 @@
     }
 
     .booking-result-meta {
-      font-size: 12px;
+      font-size: 0.75rem;
       color: #4b5563;
       margin-bottom: 8px;
       line-height: 1.4;
@@ -351,7 +358,7 @@
     }
 
     .booking-empty {
-      font-size: 13px;
+      font-size: 0.8rem;
       color: #6b7280;
       margin-top: 6px;
     }
@@ -373,14 +380,14 @@
       font-weight: 600;
       margin-bottom: 4px;
       color: #111827;
-      font-size: 13px;
+      font-size: 0.8rem;
     }
 
     .booking-wave-row {
       display: flex;
       justify-content: space-between;
       gap: 8px;
-      font-size: 12px;
+      font-size: 0.75rem;
       padding: 2px 0;
     }
 
@@ -404,7 +411,7 @@
       gap: 6px;
       padding: 4px 10px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 0.8rem;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -1317,7 +1324,7 @@
           return;
         }
 
-        // 🧠 เลือก Wave ที่มี rank สูงสุดจาก mapWaveStatus เป็น "สถานะโดยรวม"
+        // เลือก Wave ที่มี rank สูงสุดจาก mapWaveStatus เป็น "สถานะโดยรวม"
         let bestWave = null;
         let bestRank = -1;
 
