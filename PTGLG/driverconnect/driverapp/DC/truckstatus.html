@@ -124,7 +124,6 @@
       display: none !important;
     }
 
-    /* Form styles */
     .section-title {
       font-size: 14px;
       font-weight: 600;
@@ -173,6 +172,7 @@
     input[type="text"],
     input[type="date"],
     input[type="file"],
+    input[type="time"],
     textarea,
     select {
       width: 100%;
@@ -192,11 +192,6 @@
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
       background: #020617;
-    }
-
-    input[readonly] {
-      background: rgba(15, 23, 42, 0.6);
-      cursor: default;
     }
 
     textarea {
@@ -307,7 +302,6 @@
       border: 1px solid rgba(250, 204, 21, 0.4);
     }
 
-    /* Table */
     .table-wrapper {
       margin-top: 8px;
       border-radius: 18px;
@@ -378,18 +372,6 @@
       color: var(--text-muted);
     }
 
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: rgba(16, 185, 129, 0.08);
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-    }
-
     .scroll-container {
       max-height: 420px;
       overflow: auto;
@@ -436,7 +418,9 @@
                 placeholder="เช่น 251243448"
                 maxlength="9"
                 inputmode="numeric"
+                pattern="\\d{9}"
                 required
+                oninput="enforceBookingDigits(this)"
               />
               <div class="note">
                 รูปแบบ: <strong>YYMMXXXXX</strong> เช่น <code>251243448</code> (25=ปี, 12=เดือน, 43448=เลขอ้างอิง)
@@ -458,18 +442,16 @@
 
           <div class="section-title">
             <span>เวลาที่ DC</span>
-            <span class="hint">กด “ตอนนี้” เพื่อใช้เวลาปัจจุบัน</span>
+            <span class="hint">เลือกจากตัวเลือก หรือกด “ตอนนี้” เพื่อใช้เวลาปัจจุบัน</span>
           </div>
 
           <div class="field">
             <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
             <div class="field-inline">
               <input
-                type="text"
+                type="time"
                 id="arriveDcTime"
                 name="arriveDcTime"
-                placeholder="เช่น 09:00 น."
-                readonly
                 required
               />
               <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
@@ -483,11 +465,9 @@
               <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
               <div class="field-inline">
                 <input
-                  type="text"
+                  type="time"
                   id="loadStartTime"
                   name="loadStartTime"
-                  placeholder="เช่น 11:30 น."
-                  readonly
                 />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
                   ตอนนี้
@@ -498,11 +478,9 @@
               <label for="loadEndTime">ขึ้นสินค้า (เสร็จ)</label>
               <div class="field-inline">
                 <input
-                  type="text"
+                  type="time"
                   id="loadEndTime"
                   name="loadEndTime"
-                  placeholder="เช่น 12:15 น."
-                  readonly
                 />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
                   ตอนนี้
@@ -516,11 +494,9 @@
               <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
               <div class="field-inline">
                 <input
-                  type="text"
+                  type="time"
                   id="docStartTime"
                   name="docStartTime"
-                  placeholder="เช่น 12:20 น."
-                  readonly
                 />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
                   ตอนนี้
@@ -531,11 +507,9 @@
               <label for="docEndTime">ยื่นเอกสาร (เสร็จ)</label>
               <div class="field-inline">
                 <input
-                  type="text"
+                  type="time"
                   id="docEndTime"
                   name="docEndTime"
-                  placeholder="เช่น 13:20 น."
-                  readonly
                 />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
                   ตอนนี้
@@ -548,11 +522,9 @@
             <label for="departTime">ออกจาก DC</label>
             <div class="field-inline">
               <input
-                type="text"
+                type="time"
                 id="departTime"
                 name="departTime"
-                placeholder="เช่น 13:25 น."
-                readonly
               />
               <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
                 ตอนนี้
@@ -676,7 +648,7 @@
   </div>
 
   <script>
-    // 👇 URL Web App ของ Apps Script
+    // 👇 เปลี่ยน URL ถ้า deploy backend ใหม่
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
 
     /* --------- Tabs --------- */
@@ -704,22 +676,30 @@
       });
     });
 
-    /* --------- Form DC Log --------- */
-
-    function formatNowLabel() {
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm} น.`;
+    /* --------- Booking: only digits 9 ตัว --------- */
+    function enforceBookingDigits(el) {
+      el.value = el.value.replace(/\D/g, "").slice(0, 9);
     }
 
+    /* --------- Time: input type="time" --------- */
     function setNow(fieldId) {
       const el = document.getElementById(fieldId);
       if (!el) return;
-      el.value = formatNowLabel();
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      el.value = `${hh}:${mm}`;
     }
-
     window.setNow = setNow;
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
 
     const photoInput = document.getElementById("photoRear");
     const previewBox = document.getElementById("previewBox");
@@ -740,27 +720,32 @@
       reader.readAsDataURL(file);
     });
 
-    function readFileAsDataURL(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    function formatTimeForPayload(value) {
+      if (!value) return "";
+      return `${value} น.`; // ส่งให้ backend เก็บเป็น HH:MM น.
     }
 
+    /* --------- Form Submit --------- */
     const form = document.getElementById("dcForm");
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const referenceRaw = document.getElementById("reference").value.trim();
       const truckPlate   = document.getElementById("truckPlate").value.trim();
-      const arriveDcTime = document.getElementById("arriveDcTime").value.trim();
+
+      const arriveRaw    = document.getElementById("arriveDcTime").value.trim();
+      const loadStartRaw = document.getElementById("loadStartTime").value.trim();
+      const loadEndRaw   = document.getElementById("loadEndTime").value.trim();
+      const docStartRaw  = document.getElementById("docStartTime").value.trim();
+      const docEndRaw    = document.getElementById("docEndTime").value.trim();
+      const departRaw    = document.getElementById("departTime").value.trim();
+
+      const remark       = document.getElementById("remark").value.trim();
       const file         = photoInput.files && photoInput.files[0];
 
-      // ✅ ตรวจเลข booking 9 หลักฝั่ง frontend
-      let numericRef = referenceRaw.replace(/\D+/g, "");
-      if (!numericRef || numericRef.length !== 9) {
+      // ✅ ตรวจ booking: ต้องเป็นเลข 9 ตัว
+      const numericRef = referenceRaw;
+      if (!/^\d{9}$/.test(numericRef)) {
         Swal.fire(
           "เลข Booking ไม่ถูกต้อง",
           "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
@@ -783,8 +768,8 @@
         Swal.fire("กรุณากรอกทะเบียนรถ", "", "warning");
         return;
       }
-      if (!arriveDcTime) {
-        Swal.fire('กรุณาบันทึกเวลา "ถึง DC"', "", "warning");
+      if (!arriveRaw) {
+        Swal.fire('กรุณาเลือกเวลา "ถึง DC"', "", "warning");
         return;
       }
       if (!file) {
@@ -797,31 +782,28 @@
           title: "กำลังบันทึกข้อมูล...",
           html: "กรุณารอสักครู่",
           allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
+          didOpen: () => Swal.showLoading(),
         });
 
         const imageBase64 = await readFileAsDataURL(file);
 
         const payload = {
           action: "saveDcLog",
-          reference: numericRef, // ส่งเลข 9 หลักตรง ๆ
+          reference: numericRef,
           truckPlate: truckPlate,
-          arriveDcTime: arriveDcTime,
-          loadStartTime: document.getElementById("loadStartTime").value.trim(),
-          loadEndTime: document.getElementById("loadEndTime").value.trim(),
-          docStartTime: document.getElementById("docStartTime").value.trim(),
-          docEndTime: document.getElementById("docEndTime").value.trim(),
-          departTime: document.getElementById("departTime").value.trim(),
-          remark: document.getElementById("remark").value.trim(),
+          arriveDcTime: formatTimeForPayload(arriveRaw),
+          loadStartTime: formatTimeForPayload(loadStartRaw),
+          loadEndTime: formatTimeForPayload(loadEndRaw),
+          docStartTime: formatTimeForPayload(docStartRaw),
+          docEndTime: formatTimeForPayload(docEndRaw),
+          departTime: formatTimeForPayload(departRaw),
+          remark: remark,
           imageBase64: imageBase64,
         };
 
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
           headers: {
-            // ใช้ text/plain ให้ตรงกับ Code.gs ที่อ่าน e.postData.contents
             "Content-Type": "text/plain;charset=utf-8",
           },
           body: JSON.stringify(payload),
@@ -883,9 +865,7 @@
           title: "กำลังโหลดข้อมูล...",
           html: "กำลังดึงรายการจากระบบ",
           allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
+          didOpen: () => Swal.showLoading(),
         });
 
         const params = new URLSearchParams();
