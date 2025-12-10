@@ -2,22 +2,22 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>DC Log – บันทึก & ประวัติย้อนหลัง</title>
+  <title>DC Log – บันทึกเวลาที่ DC & ประวัติย้อนหลัง</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
     :root {
-      --bg: #020617;
-      --bg-card: #111827;
-      --border-subtle: #1f2937;
-      --accent: #38bdf8;
-      --accent-soft: rgba(56, 189, 248, 0.1);
-      --accent-strong: #06b6d4;
-      --text-main: #e5e7eb;
-      --text-muted: #9ca3af;
-      --danger: #f97373;
-      --radius-lg: 16px;
-      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.8);
+      --bg: #f3f4f6;
+      --bg-card: #ffffff;
+      --border-subtle: #d1d5db;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.08);
+      --accent-strong: #1d4ed8;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --danger: #b91c1c;
+      --radius-lg: 18px;
+      --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.12);
     }
 
     * { box-sizing: border-box; }
@@ -25,53 +25,52 @@
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top, #111827 0, #020617 55%);
+      background: var(--bg);
       color: var(--text-main);
       min-height: 100vh;
+      display: flex;
+      justify-content: center;
     }
 
     .app {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 16px;
+      width: 100%;
+      max-width: 520px;
+      padding: 16px 12px 24px;
     }
 
     .card {
-      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.98));
-      border-radius: 24px;
-      padding: 16px 14px 18px;
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      padding: 18px 16px 20px;
       box-shadow: var(--shadow-soft);
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      border: 1px solid var(--border-subtle);
     }
 
     .card-header-main {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
+      margin-bottom: 12px;
     }
 
     h1 {
       font-size: 20px;
-      margin: 0;
+      margin: 4px 0 4px;
     }
 
     .badge {
+      display: inline-block;
       font-size: 12px;
-      padding: 3px 10px;
+      padding: 4px 10px;
       border-radius: 999px;
       background: var(--accent-soft);
-      color: var(--accent);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      margin-right: 8px;
+      color: var(--accent-strong);
+      border: 1px solid rgba(37, 99, 235, 0.4);
+      margin-bottom: 4px;
     }
 
     .subtitle {
       font-size: 13px;
       color: var(--text-muted);
-      margin: 2px 0 12px;
+      margin: 0;
+      line-height: 1.4;
     }
 
     /* Tabs */
@@ -81,21 +80,20 @@
       gap: 6px;
       padding: 4px;
       border-radius: 999px;
-      background: rgba(15, 23, 42, 0.9);
-      border: 1px solid rgba(31, 41, 55, 0.9);
-      margin-bottom: 12px;
-      flex-wrap: wrap;
+      background: #e5e7eb;
+      border: 1px solid #d1d5db;
+      margin: 14px 0 12px;
     }
 
     .tab-btn {
       flex: 1 1 0;
       border-radius: 999px;
-      padding: 7px 10px;
+      padding: 8px 10px;
       border: none;
       background: transparent;
       color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 500;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -106,18 +104,18 @@
     }
 
     .tab-btn span.icon {
-      font-size: 14px;
+      font-size: 16px;
     }
 
     .tab-btn.active {
-      background: radial-gradient(circle at top left, var(--accent-soft), #0b1120);
-      color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+      background: #ffffff;
+      color: var(--accent-strong);
+      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
       transform: translateY(-1px);
     }
 
     .panel {
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .hidden {
@@ -125,38 +123,38 @@
     }
 
     .section-title {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       margin: 18px 0 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: #e5e7eb;
+      color: var(--text-main);
     }
 
     .section-title span.hint {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 400;
       color: var(--text-muted);
     }
 
     .grid-2 {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr;
       gap: 10px;
     }
 
-    @media (max-width: 720px) {
-      .grid-2 {
-        grid-template-columns: 1fr;
+    @media (min-width: 480px) {
+      .grid-2.inline-desktop {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
 
     label {
       display: block;
-      font-size: 13px;
+      font-size: 14px;
       margin-bottom: 4px;
-      color: var(--text-muted);
+      color: var(--text-main);
     }
 
     .field {
@@ -176,12 +174,12 @@
     textarea,
     select {
       width: 100%;
-      padding: 7px 10px;
+      padding: 10px 12px;
       border-radius: 10px;
       border: 1px solid var(--border-subtle);
-      background: rgba(15, 23, 42, 0.9);
+      background: #f9fafb;
       color: var(--text-main);
-      font-size: 13px;
+      font-size: 14px;
       outline: none;
       transition: border 0.15s, box-shadow 0.15s, background 0.15s;
     }
@@ -190,51 +188,51 @@
     textarea:focus,
     select:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
-      background: #020617;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+      background: #ffffff;
     }
 
     textarea {
-      min-height: 60px;
+      min-height: 70px;
       resize: vertical;
     }
 
     .btn {
       border: none;
       border-radius: 999px;
-      padding: 7px 14px;
-      font-size: 12px;
-      font-weight: 500;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease, opacity 0.12s ease;
       white-space: nowrap;
     }
 
     .btn-xs {
-      padding: 5px 10px;
-      font-size: 11px;
+      padding: 8px 12px;
+      font-size: 13px;
     }
 
     .btn-accent {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #0b1120;
-      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.45);
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
     }
 
     .btn-ghost {
-      background: rgba(15, 23, 42, 0.8);
-      color: var(--text-muted);
-      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: #e5e7eb;
+      color: var(--text-main);
+      border: 1px solid #d1d5db;
     }
 
     .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #0b1120;
-      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.45);
+      color: #ffffff;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
     }
 
     .btn:active {
@@ -249,38 +247,39 @@
     }
 
     .note {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       margin-top: 6px;
+      line-height: 1.4;
     }
 
-    .note strong { color: #fbbf24; }
+    .note strong { color: #b45309; }
 
     .image-preview {
       margin-top: 8px;
-      border-radius: 14px;
-      border: 1px dashed rgba(148, 163, 184, 0.35);
-      padding: 10px;
+      border-radius: 12px;
+      border: 1px dashed #cbd5f5;
+      padding: 8px;
       display: none;
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 55%);
+      background: #eff6ff;
     }
 
     .image-preview img {
       max-width: 100%;
-      border-radius: 12px;
+      border-radius: 10px;
       display: block;
     }
 
     .image-preview span {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       display: block;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .footer-hint {
       margin-top: 10px;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
@@ -288,78 +287,76 @@
       flex-wrap: wrap;
     }
 
-    .required { color: #f97373; margin-left: 2px; }
+    .required { color: var(--danger); margin-left: 2px; }
 
     .tag {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 11px;
+      font-size: 12px;
       padding: 2px 8px;
       border-radius: 999px;
-      background: rgba(251, 191, 36, 0.08);
-      color: #facc15;
-      border: 1px solid rgba(250, 204, 21, 0.4);
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #facc15;
     }
 
     .table-wrapper {
       margin-top: 8px;
-      border-radius: 18px;
-      border: 1px solid rgba(31, 41, 55, 0.9);
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
       overflow: hidden;
-      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), #020617 70%);
+      background: #f9fafb;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
       min-width: 600px;
-      font-size: 12px;
+      font-size: 13px;
     }
 
     thead {
-      background: rgba(15, 23, 42, 0.96);
+      background: #e5e7eb;
     }
 
     th, td {
       padding: 6px 8px;
-      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+      border-bottom: 1px solid #e5e7eb;
       text-align: left;
     }
 
     th {
       font-weight: 600;
-      color: #e5e7eb;
+      color: #111827;
       position: sticky;
       top: 0;
       z-index: 1;
     }
 
-    tbody tr:nth-child(even) { background: rgba(15, 23, 42, 0.7); }
-    tbody tr:nth-child(odd)  { background: rgba(15, 23, 42, 0.5); }
+    tbody tr:nth-child(even) { background: #f9fafb; }
+    tbody tr:nth-child(odd)  { background: #ffffff; }
 
     tbody tr:hover {
-      background: rgba(30, 64, 175, 0.4);
+      background: #dbeafe;
     }
 
     .no-data {
       padding: 12px;
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-muted);
       text-align: center;
     }
 
     .link {
-      color: var(--accent);
-      text-decoration: none;
-      font-size: 11px;
+      color: var(--accent-strong);
+      text-decoration: underline;
+      font-size: 12px;
     }
-
-    .link:hover { text-decoration: underline; }
 
     .footer-hint-small {
       margin-top: 8px;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       display: flex;
       justify-content: space-between;
@@ -368,12 +365,12 @@
     }
 
     .count-label {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
     }
 
     .scroll-container {
-      max-height: 420px;
+      max-height: 380px;
       overflow: auto;
     }
   </style>
@@ -382,13 +379,11 @@
   <div class="app">
     <div class="card">
       <div class="card-header-main">
-        <div>
-          <span class="badge">DC Log</span>
-          <h1>บันทึกเวลาที่ DC & ดูประวัติย้อนหลัง</h1>
-          <p class="subtitle">
-            บันทึกเวลาทำงานที่ DC พร้อมแนบรูปท้ายรถก่อนปิดตู้ และสามารถดูประวัติย้อนหลังได้ในที่เดียว
-          </p>
-        </div>
+        <span class="badge">DC Log</span>
+        <h1>บันทึกเวลาที่ DC & ดูประวัติย้อนหลัง</h1>
+        <p class="subtitle">
+          บันทึกเวลาทำงานที่ DC แนบรูปท้ายรถก่อนปิดตู้ และดูประวัติย้อนหลังได้ในหน้าเดียว
+        </p>
       </div>
 
       <!-- Tabs -->
@@ -421,6 +416,9 @@
                 required
                 oninput="enforceBookingDigits(this)"
               />
+              <div class="note">
+                ให้กรอกเฉพาะเลข 9 หลักสุดท้าย <strong>ไม่ต้องกรอก B001-</strong>
+              </div>
             </div>
             <div class="field">
               <label for="truckPlate">
@@ -438,7 +436,7 @@
 
           <div class="section-title">
             <span>เวลาที่ DC</span>
-            <span class="hint">เลือกจากตัวเลือก หรือกด “ตอนนี้” เพื่อใช้เวลาปัจจุบัน</span>
+            <span class="hint">เลือกเวลา หรือกด “ตอนนี้” เพื่อใช้เวลาปัจจุบัน</span>
           </div>
 
           <div class="field">
@@ -454,9 +452,9 @@
                 ตอนนี้
               </button>
             </div>
-          </div>>
+          </div>
 
-          <div class="grid-2">
+          <div class="grid-2 inline-desktop">
             <div class="field">
               <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
               <div class="field-inline">
@@ -485,7 +483,7 @@
             </div>
           </div>
 
-          <div class="grid-2">
+          <div class="grid-2 inline-desktop">
             <div class="field">
               <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
               <div class="field-inline">
@@ -555,8 +553,8 @@
               required
             />
             <div class="note">
-              • แนะนำให้ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
-              • ขนาดไฟล์ไม่ควรใหญ่เกิน ~4–5MB ต่อรูป
+              • ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
+              • ระบบจะบีบอัดรูปให้อัตโนมัติ เพื่อลดเวลาส่งข้อมูล
             </div>
 
             <div id="previewBox" class="image-preview">
@@ -570,16 +568,16 @@
           </button>
 
           <div class="footer-hint">
-            <div>ระบบจะบันทึกเวลาในรูปแบบ <code>HH:mm น.</code></div>
-            <div>กรณีมีปัญหาการบันทึก แจ้งแอดมินตรวจสอบได้ทันที</div>
+            <div>ระบบบันทึกเวลาเป็นรูปแบบ <code>HH:mm น.</code></div>
+            <div>การส่งข้อมูล (โดยเฉพาะรูป) อาจใช้เวลา 5–10 วินาที</div>
           </div>
         </form>
       </div>
 
       <!-- Panel: ประวัติย้อนหลัง -->
       <div class="panel hidden" data-panel="history">
-        <div class="field" style="margin-top:4px;">
-          <div class="grid-2" style="grid-template-columns: 2fr 1.5fr 1.5fr auto;">
+        <div class="field" style="margin-top:6px;">
+          <div class="grid-2 inline-desktop" style="grid-template-columns: 2fr 1.5fr 1.5fr auto;">
             <div>
               <label for="truckPlateHistory">ทะเบียนรถ (บางส่วน)</label>
               <input
@@ -619,7 +617,7 @@
                 <tr>
                   <th style="min-width:120px;">วันที่/เวลา</th>
                   <th style="min-width:80px;">ทะเบียนรถ</th>
-                  <th style="min-width:80px;">Reference</th>
+                  <th style="min-width:80px;">Booking</th>
                   <th style="min-width:90px;">ถึง DC</th>
                   <th style="min-width:110px;">ขึ้นสินค้า</th>
                   <th style="min-width:110px;">ยื่นเอกสาร</th>
@@ -637,14 +635,14 @@
 
         <div class="footer-hint-small">
           <span id="countLabel" class="count-label">แสดง 0 รายการ</span>
-          <span>Tip: ใส่ทะเบียนบางส่วน + วันที่ เพื่อให้ค้นเร็วขึ้น</span>
+          <span>Tip: ใส่ทะเบียนบางส่วน + ช่วงวันที่ เพื่อค้นได้เร็วขึ้น</span>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // 👇 เปลี่ยน URL ถ้า deploy backend เป็น Web App ตัวอื่น
+    // 👇 เปลี่ยน URL ให้ตรงกับ Web App ของ Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
 
     /* --------- Tabs --------- */
@@ -685,7 +683,6 @@
 
     /* --------- Booking helper: บังคับตัวเลข 9 หลัก --------- */
     function enforceBookingDigits(el) {
-      // เอาเฉพาะตัวเลข และจำกัด 9 หลัก
       el.value = el.value.replace(/\D/g, "").slice(0, 9);
     }
     window.enforceBookingDigits = enforceBookingDigits;
@@ -710,10 +707,33 @@
       reader.readAsDataURL(file);
     });
 
-    function readFileAsDataURL(file) {
+    /* --------- Resize รูปก่อนส่งเพื่อลดเวลาอัปโหลด --------- */
+    function resizeImage(file, maxSize = 1280) {
       return new Promise((resolve, reject) => {
+        const img = new Image();
         const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
+        reader.onload = (e) => {
+          img.onload = () => {
+            let { width, height } = img;
+            if (width <= maxSize && height <= maxSize) {
+              return resolve(e.target.result); // ไม่ต้องย่อ
+            }
+            const canvas = document.createElement("canvas");
+            if (width > height) {
+              canvas.width = maxSize;
+              canvas.height = (height * maxSize) / width;
+            } else {
+              canvas.height = maxSize;
+              canvas.width = (width * maxSize) / height;
+            }
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.7); // บีบอัดคุณภาพ 70%
+            resolve(dataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
@@ -721,7 +741,7 @@
 
     function formatTimeForPayload(value) {
       if (!value) return "";
-      return `${value} น.`; // ส่งให้ backend เก็บเป็น HH:MM น.
+      return `${value} น.`; // backend เก็บเป็น HH:MM น.
     }
 
     /* --------- Form Submit --------- */
@@ -742,7 +762,6 @@
       const remark       = document.getElementById("remark").value.trim();
       const file         = photoInput.files && photoInput.files[0];
 
-      // ✅ บังคับกรอกเลข booking 9 หลัก (ตัวเลขล้วน)
       const numericRef = referenceRaw.replace(/\D/g, "");
       if (!numericRef || numericRef.length !== 9) {
         Swal.fire(
@@ -769,16 +788,26 @@
       try {
         Swal.fire({
           title: "กำลังบันทึกข้อมูล...",
-          html: "กรุณารอสักครู่",
+          html: "ระบบกำลังอัปโหลดรูปและบันทึกข้อมูล อาจใช้เวลา 5–10 วินาที",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
         });
 
-        const imageBase64 = await readFileAsDataURL(file);
+        let imageBase64;
+        try {
+          imageBase64 = await resizeImage(file);
+        } catch (err) {
+          console.warn("Resize รูปล้มเหลว ใช้รูปต้นฉบับแทน", err);
+          imageBase64 = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = (e) => resolve(e.target.result);
+            r.onerror = reject;
+            r.readAsDataURL(file);
+          });
+        }
 
         const payload = {
           action: "saveDcLog",
-          // ส่งเลข 9 หลักไปตรง ๆ เป็น reference
           reference: numericRef,
           truckPlate: truckPlate,
           arriveDcTime: formatTimeForPayload(arriveRaw),
