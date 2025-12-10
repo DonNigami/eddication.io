@@ -6,8 +6,394 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
-    /* ... (CSS เดิมทั้งหมดเหมือนที่คุณให้มา ไม่ตัดอะไรออก) ... */
-    /* ตัดทอนในคำอธิบายนี้ แต่เวลาใช้งานให้ใช้ CSS ชุดเดิมของคุณเลย */
+    :root {
+      --bg: #020617;
+      --bg-card: #111827;
+      --border-subtle: #1f2937;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.1);
+      --accent-strong: #06b6d4;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --radius-lg: 16px;
+      --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.8);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #111827 0, #020617 55%);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    .card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.98));
+      border-radius: 24px;
+      padding: 16px 14px 18px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+    }
+
+    .card-header-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      margin-right: 8px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 2px 0 12px;
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      flex: 1 1 0;
+      border-radius: 999px;
+      padding: 7px 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn span.icon {
+      font-size: 14px;
+    }
+
+    .tab-btn.active {
+      background: radial-gradient(circle at top left, var(--accent-soft), #0b1120);
+      color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .panel {
+      margin-top: 6px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Form styles */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 18px 0 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #e5e7eb;
+    }
+
+    .section-title span.hint {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 720px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+      color: var(--text-muted);
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field-inline {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="file"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text-main);
+      font-size: 13px;
+      outline: none;
+      transition: border 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.5);
+      background: #020617;
+    }
+
+    input[readonly] {
+      background: rgba(15, 23, 42, 0.6);
+      cursor: default;
+    }
+
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+      white-space: nowrap;
+    }
+
+    .btn-xs {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #0b1120;
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.45);
+    }
+
+    .btn-ghost {
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-muted);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #0b1120;
+      box-shadow: 0 8px 22px rgba(56, 189, 248, 0.45);
+    }
+
+    .btn:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: none;
+    }
+
+    .btn-full {
+      width: 100%;
+      justify-content: center;
+      margin-top: 14px;
+    }
+
+    .note {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .note strong { color: #fbbf24; }
+
+    .image-preview {
+      margin-top: 8px;
+      border-radius: 14px;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      padding: 10px;
+      display: none;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 55%);
+    }
+
+    .image-preview img {
+      max-width: 100%;
+      border-radius: 12px;
+      display: block;
+    }
+
+    .image-preview span {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .footer-hint {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .required { color: #f97373; margin-left: 2px; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(251, 191, 36, 0.08);
+      color: #facc15;
+      border: 1px solid rgba(250, 204, 21, 0.4);
+    }
+
+    /* Table */
+    .table-wrapper {
+      margin-top: 8px;
+      border-radius: 18px;
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      overflow: hidden;
+      background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), #020617 70%);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+      font-size: 12px;
+    }
+
+    thead {
+      background: rgba(15, 23, 42, 0.96);
+    }
+
+    th, td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+      text-align: left;
+    }
+
+    th {
+      font-weight: 600;
+      color: #e5e7eb;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tbody tr:nth-child(even) { background: rgba(15, 23, 42, 0.7); }
+    tbody tr:nth-child(odd)  { background: rgba(15, 23, 42, 0.5); }
+
+    tbody tr:hover {
+      background: rgba(30, 64, 175, 0.4);
+    }
+
+    .no-data {
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .link {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 11px;
+    }
+
+    .link:hover { text-decoration: underline; }
+
+    .footer-hint-small {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .count-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.08);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .scroll-container {
+      max-height: 420px;
+      overflow: auto;
+    }
   </style>
 </head>
 <body>
@@ -47,14 +433,13 @@
                 type="text"
                 id="reference"
                 name="reference"
-                placeholder="เช่น 251243448 (ตัวเลข 9 หลัก)"
+                placeholder="เช่น 251243448"
                 maxlength="9"
                 inputmode="numeric"
                 required
               />
               <div class="note">
-                รูปแบบ: <strong>YYMMXXXXX</strong> เช่น <code>251243448</code><br>
-                • 25 = ปี 2025, 12 = เดือน 12, 43448 = เลขอ้างอิง
+                รูปแบบ: <strong>YYMMXXXXX</strong> เช่น <code>251243448</code> (25=ปี, 12=เดือน, 43448=เลขอ้างอิง)
               </div>
             </div>
             <div class="field">
@@ -71,10 +456,147 @@
             </div>
           </div>
 
-          <!-- (ฟอร์มเวลาต่าง ๆ + รูป เหมือนเดิมทุกอย่าง) -->
-          <!-- ... ตัดทอนเพื่อไม่ให้ยาวเกิน แต่ใช้ของเดิมคุณได้เลย ... -->
+          <div class="section-title">
+            <span>เวลาที่ DC</span>
+            <span class="hint">กด “ตอนนี้” เพื่อใช้เวลาปัจจุบัน</span>
+          </div>
 
-          <!-- ปุ่ม submit -->
+          <div class="field">
+            <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
+            <div class="field-inline">
+              <input
+                type="text"
+                id="arriveDcTime"
+                name="arriveDcTime"
+                placeholder="เช่น 09:00 น."
+                readonly
+                required
+              />
+              <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
+                ตอนนี้
+              </button>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
+              <div class="field-inline">
+                <input
+                  type="text"
+                  id="loadStartTime"
+                  name="loadStartTime"
+                  placeholder="เช่น 11:30 น."
+                  readonly
+                />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="loadEndTime">ขึ้นสินค้า (เสร็จ)</label>
+              <div class="field-inline">
+                <input
+                  type="text"
+                  id="loadEndTime"
+                  name="loadEndTime"
+                  placeholder="เช่น 12:15 น."
+                  readonly
+                />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
+              <div class="field-inline">
+                <input
+                  type="text"
+                  id="docStartTime"
+                  name="docStartTime"
+                  placeholder="เช่น 12:20 น."
+                  readonly
+                />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="docEndTime">ยื่นเอกสาร (เสร็จ)</label>
+              <div class="field-inline">
+                <input
+                  type="text"
+                  id="docEndTime"
+                  name="docEndTime"
+                  placeholder="เช่น 13:20 น."
+                  readonly
+                />
+                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
+                  ตอนนี้
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="departTime">ออกจาก DC</label>
+            <div class="field-inline">
+              <input
+                type="text"
+                id="departTime"
+                name="departTime"
+                placeholder="เช่น 13:25 น."
+                readonly
+              />
+              <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
+                ตอนนี้
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="remark">หมายเหตุเพิ่มเติม</label>
+            <textarea
+              id="remark"
+              name="remark"
+              placeholder="เช่น รอคิวโหลดนาน / มีปัญหาหน้างาน ฯลฯ"
+            ></textarea>
+          </div>
+
+          <div class="section-title">
+            <span>รูปท้ายรถก่อนปิดตู้</span>
+            <span class="tag">บังคับแนบทุกครั้ง</span>
+          </div>
+
+          <div class="field">
+            <label for="photoRear">
+              แนบรูปท้ายรถ <span class="required">*</span>
+            </label>
+            <input
+              type="file"
+              id="photoRear"
+              name="photoRear"
+              accept="image/*"
+              capture="environment"
+              required
+            />
+            <div class="note">
+              • แนะนำให้ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
+              • ขนาดไฟล์ไม่ควรใหญ่เกิน ~4–5MB ต่อรูป
+            </div>
+
+            <div id="previewBox" class="image-preview">
+              <span>รูปตัวอย่าง:</span>
+              <img id="previewImage" alt="ตัวอย่างรูปท้ายรถ" />
+            </div>
+          </div>
+
           <button type="submit" class="btn btn-accent btn-full">
             บันทึกข้อมูลงาน DC
           </button>
@@ -87,13 +609,74 @@
       </div>
 
       <!-- Panel: ประวัติย้อนหลัง -->
-      <!-- ... (ส่วน history เหมือนที่คุณให้มา) ... -->
+      <div class="panel hidden" data-panel="history">
+        <div class="field" style="margin-top:4px;">
+          <div class="grid-2" style="grid-template-columns: 2fr 1.5fr 1.5fr auto;">
+            <div>
+              <label for="truckPlateHistory">ทะเบียนรถ (บางส่วน)</label>
+              <input
+                type="text"
+                id="truckPlateHistory"
+                placeholder="เช่น 9508 / 70-xxxx / กท63"
+              />
+            </div>
+            <div>
+              <label for="dateFrom">จากวันที่</label>
+              <input type="date" id="dateFrom" />
+            </div>
+            <div>
+              <label for="dateTo">ถึงวันที่</label>
+              <input type="date" id="dateTo" />
+            </div>
+            <div style="display:flex; gap:6px; align-items:flex-end;">
+              <div style="flex:1;">
+                <label for="limitSelect">จำนวนรายการ</label>
+                <select id="limitSelect">
+                  <option value="20">20</option>
+                  <option value="50" selected>50</option>
+                  <option value="100">100</option>
+                </select>
+              </div>
+              <button id="btnSearch" class="btn btn-primary" style="margin-bottom:0;">
+                โหลดข้อมูล
+              </button>
+            </div>
+          </div>
+        </div>
 
+        <div class="table-wrapper">
+          <div class="scroll-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style="min-width:120px;">วันที่/เวลา</th>
+                  <th style="min-width:80px;">ทะเบียนรถ</th>
+                  <th style="min-width:80px;">Reference</th>
+                  <th style="min-width:90px;">ถึง DC</th>
+                  <th style="min-width:110px;">ขึ้นสินค้า</th>
+                  <th style="min-width:110px;">ยื่นเอกสาร</th>
+                  <th style="min-width:80px;">ออก DC</th>
+                  <th style="min-width:140px;">หมายเหตุ</th>
+                  <th style="min-width:80px;">รูป</th>
+                </tr>
+              </thead>
+              <tbody id="logBody">
+                <tr><td colspan="9" class="no-data">ยังไม่มีข้อมูล</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer-hint-small">
+          <span id="countLabel" class="count-label">แสดง 0 รายการ</span>
+          <span>Tip: ใส่ทะเบียนบางส่วน + วันที่ เพื่อให้ค้นเร็วขึ้น</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
-    // 👇 เปลี่ยนเป็น URL Web App ของ Apps Script (deployment ล่าสุด)
+    // 👇 URL Web App ของ Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
 
     /* --------- Tabs --------- */
@@ -122,6 +705,7 @@
     });
 
     /* --------- Form DC Log --------- */
+
     function formatNowLabel() {
       const now = new Date();
       const hh = String(now.getHours()).padStart(2, "0");
@@ -134,13 +718,14 @@
       if (!el) return;
       el.value = formatNowLabel();
     }
+
     window.setNow = setNow;
 
-    const photoInput   = document.getElementById("photoRear");
-    const previewBox   = document.getElementById("previewBox");
+    const photoInput = document.getElementById("photoRear");
+    const previewBox = document.getElementById("previewBox");
     const previewImage = document.getElementById("previewImage");
 
-    photoInput?.addEventListener("change", function () {
+    photoInput.addEventListener("change", function () {
       const file = this.files && this.files[0];
       if (!file) {
         previewBox.style.display = "none";
@@ -173,12 +758,12 @@
       const arriveDcTime = document.getElementById("arriveDcTime").value.trim();
       const file         = photoInput.files && photoInput.files[0];
 
-      // ⭐ Validation: booking 9 หลักฝั่ง frontend
+      // ✅ ตรวจเลข booking 9 หลักฝั่ง frontend
       let numericRef = referenceRaw.replace(/\D+/g, "");
       if (!numericRef || numericRef.length !== 9) {
         Swal.fire(
           "เลข Booking ไม่ถูกต้อง",
-          "กรุณากรอกเลข Booking ตัวเลข 9 หลัก เช่น 251243448",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
           "warning"
         );
         return;
@@ -212,14 +797,16 @@
           title: "กำลังบันทึกข้อมูล...",
           html: "กรุณารอสักครู่",
           allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
+          didOpen: () => {
+            Swal.showLoading();
+          },
         });
 
         const imageBase64 = await readFileAsDataURL(file);
 
         const payload = {
           action: "saveDcLog",
-          reference: numericRef, // ⭐ ส่งเป็นเลข 9 หลักเลย
+          reference: numericRef, // ส่งเลข 9 หลักตรง ๆ
           truckPlate: truckPlate,
           arriveDcTime: arriveDcTime,
           loadStartTime: document.getElementById("loadStartTime").value.trim(),
@@ -233,8 +820,8 @@
 
         const res = await fetch(SCRIPT_URL, {
           method: "POST",
-          // ⭐ ใช้ text/plain เพื่อลด preflight CORS
           headers: {
+            // ใช้ text/plain ให้ตรงกับ Code.gs ที่อ่าน e.postData.contents
             "Content-Type": "text/plain;charset=utf-8",
           },
           body: JSON.stringify(payload),
@@ -281,7 +868,9 @@
     const logBody         = document.getElementById("logBody");
     const countLabel      = document.getElementById("countLabel");
 
-    btnSearch.addEventListener("click", () => fetchLogs());
+    btnSearch.addEventListener("click", () => {
+      fetchLogs();
+    });
 
     async function fetchLogs() {
       const truckPlate = truckPlateHistoryInput.value.trim();
@@ -294,7 +883,9 @@
           title: "กำลังโหลดข้อมูล...",
           html: "กำลังดึงรายการจากระบบ",
           allowOutsideClick: false,
-          didOpen: () => Swal.showLoading(),
+          didOpen: () => {
+            Swal.showLoading();
+          },
         });
 
         const params = new URLSearchParams();
