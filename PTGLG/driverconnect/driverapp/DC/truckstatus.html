@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>DC Log – บันทึกเวลาที่ DC & ประวัติย้อนหลัง</title>
+  <title>DC Log – บันทึกเวลาที่ DC & แจ้งปัญหาขนส่ง</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <style>
@@ -219,7 +219,8 @@
       font-size: 13px;
     }
 
-    .btn-accent {
+    .btn-accent,
+    .btn-primary {
       background: linear-gradient(135deg, var(--accent), var(--accent-strong));
       color: #ffffff;
       box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
@@ -229,12 +230,6 @@
       background: #e5e7eb;
       color: var(--text-main);
       border: 1px solid #d1d5db;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-      color: #ffffff;
-      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
     }
 
     .btn:active {
@@ -303,80 +298,6 @@
       border: 1px solid #facc15;
     }
 
-    .table-wrapper {
-      margin-top: 8px;
-      border-radius: 12px;
-      border: 1px solid #e5e7eb;
-      overflow: hidden;
-      background: #f9fafb;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 600px;
-      font-size: 13px;
-    }
-
-    thead {
-      background: #e5e7eb;
-    }
-
-    th, td {
-      padding: 6px 8px;
-      border-bottom: 1px solid #e5e7eb;
-      text-align: left;
-    }
-
-    th {
-      font-weight: 600;
-      color: #111827;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-
-    tbody tr:nth-child(even) { background: #f9fafb; }
-    tbody tr:nth-child(odd)  { background: #ffffff; }
-
-    tbody tr:hover {
-      background: #dbeafe;
-    }
-
-    .no-data {
-      padding: 12px;
-      font-size: 13px;
-      color: var(--text-muted);
-      text-align: center;
-    }
-
-    .link {
-      color: var(--accent-strong);
-      text-decoration: underline;
-      font-size: 12px;
-    }
-
-    .footer-hint-small {
-      margin-top: 8px;
-      font-size: 12px;
-      color: var(--text-muted);
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .count-label {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .scroll-container {
-      max-height: 380px;
-      overflow: auto;
-    }
-
-    /* Inline time error */
     #timeError {
       font-size: 12px;
       color: var(--danger);
@@ -393,6 +314,21 @@
       box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.25) !important;
       background: #fef2f2 !important;
     }
+
+    .problem-preview-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .problem-preview-list img {
+      width: 70px;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+    }
   </style>
 </head>
 <body>
@@ -400,9 +336,9 @@
     <div class="card">
       <div class="card-header-main">
         <span class="badge">DC Log</span>
-        <h1>บันทึกเวลาที่ DC & ดูประวัติย้อนหลัง</h1>
+        <h1>บันทึกเวลาที่ DC & แจ้งปัญหาขนส่ง</h1>
         <p class="subtitle">
-          บันทึกเวลาทำงานที่ DC แนบรูปท้ายรถก่อนปิดตู้ และดูประวัติย้อนหลังได้ในหน้าเดียว
+          บันทึกเวลาทำงานที่ DC แนบรูปท้ายรถ และแจ้งปัญหาขนส่งได้ในหน้าเดียว
         </p>
       </div>
 
@@ -412,9 +348,9 @@
           <span class="icon">📝</span>
           <span>บันทึก DC วันนี้</span>
         </button>
-        <button class="tab-btn" data-tab="history">
-          <span class="icon">📂</span>
-          <span>ประวัติย้อนหลัง</span>
+        <button class="tab-btn" data-tab="problem">
+          <span class="icon">⚠️</span>
+          <span>แจ้งปัญหาขนส่ง</span>
         </button>
       </div>
 
@@ -437,7 +373,7 @@
                 oninput="enforceBookingDigits(this)"
               />
               <div class="note">
-                ให้กรอกเฉพาะเลข 9 หลักสุดท้าย <strong>ไม่ต้องกรอก B001-</strong>
+                กรอกเฉพาะเลข 9 หลักสุดท้าย <strong>ไม่ต้องกรอก B001-</strong>
               </div>
             </div>
 
@@ -452,38 +388,16 @@
                 placeholder="เช่น กท-1234 / 70-xxxx"
                 required
               />
-              <div class="note">
-                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);">
-                  <input type="checkbox" id="rememberPlate" style="width:16px;height:16px;">
-                  จำทะเบียนรถนี้ไว้ใช้ครั้งต่อไป
-                </label>
-                <button
-                  type="button"
-                  id="useLastPlateBtn"
-                  class="btn btn-xs btn-ghost"
-                  style="margin-top:4px;display:none;"
-                >
-                  ใช้ทะเบียนล่าสุด
-                </button>
-              </div>
             </div>
           </div>
 
           <div class="section-title">
             <span>เวลาที่ DC</span>
-            <span class="hint" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
-              <span>เลือกเวลา หรือกด “ตอนนี้”</span>
-              <button
-                type="button"
-                class="btn btn-xs btn-ghost"
-                onclick="fillNextTime()"
-              >
-                เติมเวลาตามลำดับ
-              </button>
+            <span class="hint">
+              เลือกเวลา หรือกด “ตอนนี้” ตามลำดับ
             </span>
           </div>
 
-          <!-- inline error for time logic -->
           <div id="timeError"></div>
 
           <div class="field">
@@ -505,11 +419,7 @@
             <div class="field">
               <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
               <div class="field-inline">
-                <input
-                  type="time"
-                  id="loadStartTime"
-                  name="loadStartTime"
-                />
+                <input type="time" id="loadStartTime" name="loadStartTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
                   ตอนนี้
                 </button>
@@ -518,11 +428,7 @@
             <div class="field">
               <label for="loadEndTime">ขึ้นสินค้า (เสร็จ)</label>
               <div class="field-inline">
-                <input
-                  type="time"
-                  id="loadEndTime"
-                  name="loadEndTime"
-                />
+                <input type="time" id="loadEndTime" name="loadEndTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
                   ตอนนี้
                 </button>
@@ -534,11 +440,7 @@
             <div class="field">
               <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
               <div class="field-inline">
-                <input
-                  type="time"
-                  id="docStartTime"
-                  name="docStartTime"
-                />
+                <input type="time" id="docStartTime" name="docStartTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
                   ตอนนี้
                 </button>
@@ -547,11 +449,7 @@
             <div class="field">
               <label for="docEndTime">ยื่นเอกสาร (เสร็จ)</label>
               <div class="field-inline">
-                <input
-                  type="time"
-                  id="docEndTime"
-                  name="docEndTime"
-                />
+                <input type="time" id="docEndTime" name="docEndTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
                   ตอนนี้
                 </button>
@@ -562,11 +460,7 @@
           <div class="field">
             <label for="departTime">ออกจาก DC</label>
             <div class="field-inline">
-              <input
-                type="time"
-                id="departTime"
-                name="departTime"
-              />
+              <input type="time" id="departTime" name="departTime" />
               <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
                 ตอนนี้
               </button>
@@ -616,83 +510,90 @@
 
           <div class="footer-hint">
             <div>ระบบบันทึกเวลาเป็นรูปแบบ <code>HH:mm น.</code></div>
-            <div>การส่งข้อมูล (โดยเฉพาะรูป) อาจใช้เวลา 5–10 วินาที</div>
+            <div>การส่งข้อมูลอาจใช้เวลา 5–10 วินาที</div>
           </div>
         </form>
       </div>
 
-      <!-- Panel: ประวัติย้อนหลัง -->
-      <div class="panel hidden" data-panel="history">
-        <div class="field" style="margin-top:6px;">
-          <div class="grid-2 inline-desktop" style="grid-template-columns: 2fr 1.5fr 1.5fr auto;">
-            <div>
-              <label for="truckPlateHistory">ทะเบียนรถ (บางส่วน)</label>
-              <input
-                type="text"
-                id="truckPlateHistory"
-                placeholder="เช่น 9508 / 70-xxxx / กท63"
-              />
-            </div>
-            <div>
-              <label for="dateFrom">จากวันที่</label>
-              <input type="date" id="dateFrom" />
-            </div>
-            <div>
-              <label for="dateTo">ถึงวันที่</label>
-              <input type="date" id="dateTo" />
-            </div>
-            <div style="display:flex; gap:6px; align-items:flex-end;">
-              <div style="flex:1;">
-                <label for="limitSelect">จำนวนรายการ</label>
-                <select id="limitSelect">
-                  <option value="20">20</option>
-                  <option value="50" selected>50</option>
-                  <option value="100">100</option>
-                </select>
-              </div>
-              <button id="btnSearch" class="btn btn-primary" style="margin-bottom:0;">
-                โหลดข้อมูล
-              </button>
+      <!-- Panel: แจ้งปัญหาขนส่ง -->
+      <div class="panel hidden" data-panel="problem">
+        <form id="problemForm">
+          <div class="field">
+            <label for="problemReference">เลข Booking (9 หลักท้าย)<span class="required">*</span></label>
+            <input
+              type="text"
+              id="problemReference"
+              placeholder="เช่น 251243448"
+              inputmode="numeric"
+              maxlength="9"
+              required
+              oninput="enforceBookingDigits(this)"
+            />
+          </div>
+
+          <div class="field">
+            <label for="problemTruckPlate">ทะเบียนรถ<span class="required">*</span></label>
+            <input
+              type="text"
+              id="problemTruckPlate"
+              placeholder="เช่น กท-1234 / 70-xxxx"
+              required
+            />
+          </div>
+
+          <div class="field">
+            <label for="problemType">
+              หัวข้อปัญหา<span class="required">*</span>
+            </label>
+            <select id="problemType" required>
+              <option value="">-- กำลังโหลดหัวข้อปัญหา --</option>
+            </select>
+            <div class="note">
+              ระบบจะโหลดหัวข้อจากชีท <strong>problem list (B2:B)</strong> ทุกครั้งที่เปิดแท็บนี้
             </div>
           </div>
-        </div>
 
-        <div class="table-wrapper">
-          <div class="scroll-container">
-            <table>
-              <thead>
-                <tr>
-                  <th style="min-width:120px;">วันที่/เวลา</th>
-                  <th style="min-width:80px;">ทะเบียนรถ</th>
-                  <th style="min-width:80px;">Booking</th>
-                  <th style="min-width:90px;">ถึง DC</th>
-                  <th style="min-width:110px;">ขึ้นสินค้า</th>
-                  <th style="min-width:110px;">ยื่นเอกสาร</th>
-                  <th style="min-width:80px;">ออก DC</th>
-                  <th style="min-width:140px;">หมายเหตุ</th>
-                  <th style="min-width:80px;">รูป</th>
-                </tr>
-              </thead>
-              <tbody id="logBody">
-                <tr><td colspan="9" class="no-data">ยังไม่มีข้อมูล</td></tr>
-              </tbody>
-            </table>
+          <div class="field">
+            <label for="problemDetail">รายละเอียดปัญหา<span class="required">*</span></label>
+            <textarea
+              id="problemDetail"
+              placeholder="อธิบายเหตุการณ์ / จุดที่เกิดปัญหา / ผู้ติดต่อหน้างาน ฯลฯ"
+              required
+            ></textarea>
           </div>
-        </div>
 
-        <div class="footer-hint-small">
-          <span id="countLabel" class="count-label">แสดง 0 รายการ</span>
-          <span>Tip: ใส่ทะเบียนบางส่วน + ช่วงวันที่ เพื่อค้นได้เร็วขึ้น</span>
-        </div>
+          <div class="section-title">
+            <span>แนบรูปประกอบ</span>
+            <span class="hint">แนบได้หลายรูป เช่น หน้างาน / เอกสาร / สภาพสินค้า</span>
+          </div>
+
+          <div class="field">
+            <label for="problemPhotos">เลือกรูปภาพ</label>
+            <input
+              type="file"
+              id="problemPhotos"
+              accept="image/*"
+              multiple
+            />
+            <div class="note">
+              สามารถเลือกหลายรูปได้ในครั้งเดียว ระบบจะย่อลดขนาดให้อัตโนมัติ
+            </div>
+            <div id="problemPreview" class="problem-preview-list"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">
+            ส่งแจ้งปัญหาขนส่ง
+          </button>
+        </form>
       </div>
     </div>
   </div>
 
   <script>
-    // 👇 เปลี่ยน URL ให้ตรงกับ Web App ของ Apps Script
+    // 👇 เปลี่ยนเป็น URL Web App ของ Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
 
-    /* --------- Tabs --------- */
+    /* ---------------- Tabs ---------------- */
     const tabButtons = document.querySelectorAll(".tab-btn");
     const panels = document.querySelectorAll(".panel");
 
@@ -710,14 +611,19 @@
           }
         });
 
-        if (tab === "history" && !window.__historyInitialized) {
-          window.__historyInitialized = true;
-          fetchLogs();
+        if (tab === "problem") {
+          loadProblemTopics();
+          // auto sync booking + plate จากฝั่ง DC log ถ้ามี
+          const refDC = document.getElementById("reference").value.trim();
+          const plateDC = document.getElementById("truckPlate").value.trim();
+          if (refDC) document.getElementById("problemReference").value = refDC.replace(/\D/g, "").slice(0, 9);
+          if (plateDC) document.getElementById("problemTruckPlate").value = plateDC;
         }
       });
     });
 
-    /* --------- Time helper --------- */
+    /* ---------------- Time helper + validation ---------------- */
+
     function setNow(fieldId) {
       const el = document.getElementById(fieldId);
       if (!el) return;
@@ -729,112 +635,11 @@
     }
     window.setNow = setNow;
 
-    // เติมเวลาตามลำดับ: ถึง DC → ขึ้นสินค้าเริ่ม → ขึ้นสินค้าจบ → ยื่นเอกสารเริ่ม → ยื่นเอกสารจบ → ออกจาก DC
-    function fillNextTime() {
-      const ids = [
-        "arriveDcTime",
-        "loadStartTime",
-        "loadEndTime",
-        "docStartTime",
-        "docEndTime",
-        "departTime",
-      ];
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, "0");
-      const mm = String(now.getMinutes()).padStart(2, "0");
-      for (const id of ids) {
-        const el = document.getElementById(id);
-        if (el && !el.value) {
-          el.value = `${hh}:${mm}`;
-          el.focus();
-          break;
-        }
-      }
-      validateTimeSteps(false);
-    }
-    window.fillNextTime = fillNextTime;
-
-    /* --------- Booking helper: บังคับตัวเลข 9 หลัก --------- */
     function enforceBookingDigits(el) {
       el.value = el.value.replace(/\D/g, "").slice(0, 9);
     }
     window.enforceBookingDigits = enforceBookingDigits;
 
-    /* --------- Remember plate (localStorage) --------- */
-    const LAST_PLATE_KEY = "dcLog:lastTruckPlate";
-    const truckPlateInput = document.getElementById("truckPlate");
-    const rememberPlateCheckbox = document.getElementById("rememberPlate");
-    const useLastPlateBtn = document.getElementById("useLastPlateBtn");
-
-    (function initLastPlate() {
-      const lastPlate = localStorage.getItem(LAST_PLATE_KEY);
-      if (lastPlate) {
-        useLastPlateBtn.style.display = "inline-flex";
-        useLastPlateBtn.addEventListener("click", () => {
-          truckPlateInput.value = lastPlate;
-          truckPlateInput.focus();
-        });
-      }
-    })();
-
-    /* --------- Preview รูป --------- */
-    const photoInput = document.getElementById("photoRear");
-    const previewBox = document.getElementById("previewBox");
-    const previewImage = document.getElementById("previewImage");
-
-    photoInput.addEventListener("change", function () {
-      const file = this.files && this.files[0];
-      if (!file) {
-        previewBox.style.display = "none";
-        previewImage.src = "";
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        previewImage.src = e.target.result;
-        previewBox.style.display = "block";
-      };
-      reader.readAsDataURL(file);
-    });
-
-    /* --------- Resize รูปก่อนส่งเพื่อลดเวลาอัปโหลด --------- */
-    function resizeImage(file, maxSize = 1280) {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          img.onload = () => {
-            let { width, height } = img;
-            if (width <= maxSize && height <= maxSize) {
-              return resolve(e.target.result); // ไม่ต้องย่อ
-            }
-            const canvas = document.createElement("canvas");
-            if (width > height) {
-              canvas.width = maxSize;
-              canvas.height = (height * maxSize) / width;
-            } else {
-              canvas.height = maxSize;
-              canvas.width = (width * maxSize) / height;
-            }
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.7); // บีบอัดคุณภาพ 70%
-            resolve(dataUrl);
-          };
-          img.onerror = reject;
-          img.src = e.target.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function formatTimeForPayload(value) {
-      if (!value) return "";
-      return `${value} น.`; // backend เก็บเป็น HH:MM น.
-    }
-
-    /* --------- Time validation logic --------- */
     const timeInputsConfig = [
       { id: "arriveDcTime", label: "ถึง DC" },
       { id: "loadStartTime", label: "ขึ้นสินค้า (เริ่ม)" },
@@ -850,8 +655,8 @@
       return h * 60 + m;
     }
 
-    // อนุญาตกรณีข้ามวัน: 23:00–23:59 ไป 00:00–05:00
     function isValidCrossDay(prevMin, nextMin) {
+      // อนุญาต 23:00–23:59 -> 00:00–05:00
       return (prevMin >= 23 * 60 && prevMin <= 23 * 60 + 59) &&
              (nextMin >= 0 && nextMin <= 5 * 60);
     }
@@ -898,7 +703,6 @@
         const prev = steps[i];
         const next = steps[i + 1];
 
-        // กรณี: next มีค่า แต่ prev ว่าง → ไม่อนุญาต (ห้ามข้ามสเต็ป)
         if (!prev.hasValue && next.hasValue) {
           showTimeError(
             `กรุณากรอกเวลา "${prev.label}" ก่อน "${next.label}"`,
@@ -913,10 +717,8 @@
         const prevMin = prev.minutes;
         const nextMin = next.minutes;
 
-        // กรณีอนุญาต 23:00–23:59 → 00:00–05:00
         if (isValidCrossDay(prevMin, nextMin)) continue;
 
-        // Next ต้องมากกว่า prev (กรณีวันเดียวกัน)
         if (nextMin < prevMin) {
           showTimeError(
             `"${next.label}" ต้องมีเวลามากกว่า "${prev.label}"`,
@@ -930,7 +732,6 @@
       return true;
     }
 
-    // ผูก real-time validation
     timeInputsConfig.forEach(({ id }) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -938,13 +739,71 @@
       el.addEventListener("blur", () => validateTimeSteps(false));
     });
 
-    /* --------- Form Submit --------- */
+    /* ---------------- Preview รูป DC ---------------- */
+    const photoInput = document.getElementById("photoRear");
+    const previewBox = document.getElementById("previewBox");
+    const previewImage = document.getElementById("previewImage");
+
+    photoInput.addEventListener("change", function () {
+      const file = this.files && this.files[0];
+      if (!file) {
+        previewBox.style.display = "none";
+        previewImage.src = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewImage.src = e.target.result;
+        previewBox.style.display = "block";
+      };
+      reader.readAsDataURL(file);
+    });
+
+    /* ---------------- Resize รูป ---------------- */
+    function resizeImage(file, maxSize = 1280) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          img.onload = () => {
+            let { width, height } = img;
+            if (width <= maxSize && height <= maxSize) {
+              return resolve(e.target.result);
+            }
+            const canvas = document.createElement("canvas");
+            if (width > height) {
+              canvas.width = maxSize;
+              canvas.height = (height * maxSize) / width;
+            } else {
+              canvas.height = maxSize;
+              canvas.width = (width * maxSize) / height;
+            }
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+            resolve(dataUrl);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function formatTimeForPayload(value) {
+      if (!value) return "";
+      return `${value} น.`;
+    }
+
+    /* ---------------- Submit: DC Form ---------------- */
     const form = document.getElementById("dcForm");
     form.addEventListener("submit", async function (e) {
       e.preventDefault();
 
       const referenceRaw = document.getElementById("reference").value.trim();
-      const truckPlate   = truckPlateInput.value.trim();
+      const numericRef   = referenceRaw.replace(/\D/g, "");
+      const truckPlate   = document.getElementById("truckPlate").value.trim();
 
       const arriveRaw    = document.getElementById("arriveDcTime").value.trim();
       const loadStartRaw = document.getElementById("loadStartTime").value.trim();
@@ -956,7 +815,6 @@
       const remark       = document.getElementById("remark").value.trim();
       const file         = photoInput.files && photoInput.files[0];
 
-      const numericRef = referenceRaw.replace(/\D/g, "");
       if (!numericRef || numericRef.length !== 9) {
         Swal.fire(
           "เลข Booking ไม่ถูกต้อง",
@@ -979,7 +837,6 @@
         return;
       }
 
-      // ⛔ เช็คลำดับเวลา + ห้ามข้ามสเต็ป
       if (!validateTimeSteps(true)) {
         return;
       }
@@ -996,7 +853,7 @@
         try {
           imageBase64 = await resizeImage(file);
         } catch (err) {
-          console.warn("Resize รูปล้มเหลว ใช้รูปต้นฉบับแทน", err);
+          console.warn("Resize รูปไม่สำเร็จ ใช้ไฟล์เดิม", err);
           imageBase64 = await new Promise((resolve, reject) => {
             const r = new FileReader();
             r.onload = (e) => resolve(e.target.result);
@@ -1031,12 +888,6 @@
         Swal.close();
 
         if (result && result.success) {
-          // ถ้าติ๊กจำทะเบียน ให้จำไว้
-          if (rememberPlateCheckbox.checked && truckPlate) {
-            localStorage.setItem(LAST_PLATE_KEY, truckPlate);
-            useLastPlateBtn.style.display = "inline-flex";
-          }
-
           Swal.fire({
             icon: "success",
             title: "บันทึกสำเร็จ",
@@ -1067,124 +918,161 @@
       }
     });
 
-    /* --------- History --------- */
-    const truckPlateHistoryInput = document.getElementById("truckPlateHistory");
-    const dateFromInput   = document.getElementById("dateFrom");
-    const dateToInput     = document.getElementById("dateTo");
-    const limitSelect     = document.getElementById("limitSelect");
-    const btnSearch       = document.getElementById("btnSearch");
-    const logBody         = document.getElementById("logBody");
-    const countLabel      = document.getElementById("countLabel");
+    /* ---------------- Problem tab: load topics ---------------- */
+    const problemTypeSelect = document.getElementById("problemType");
+    let isLoadingTopics = false;
 
-    btnSearch.addEventListener("click", () => {
-      fetchLogs();
+    async function loadProblemTopics() {
+      if (isLoadingTopics) return;
+      isLoadingTopics = true;
+      try {
+        problemTypeSelect.innerHTML = '<option value="">-- กำลังโหลดหัวข้อปัญหา --</option>';
+
+        const params = new URLSearchParams();
+        params.set("action", "getProblemList");
+
+        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: "GET" });
+        const result = await res.json().catch(() => ({}));
+
+        if (!result || !result.success) {
+          problemTypeSelect.innerHTML = '<option value="">โหลดหัวข้อไม่สำเร็จ</option>';
+          return;
+        }
+
+        const topics = Array.isArray(result.data) ? result.data : [];
+        if (!topics.length) {
+          problemTypeSelect.innerHTML = '<option value="">ยังไม่มีหัวข้อใน problem list</option>';
+          return;
+        }
+
+        problemTypeSelect.innerHTML = '<option value="">-- เลือกหัวข้อปัญหา --</option>';
+        topics.forEach((t) => {
+          const opt = document.createElement("option");
+          opt.value = t;
+          opt.textContent = t;
+          problemTypeSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error(err);
+        problemTypeSelect.innerHTML = '<option value="">เกิดข้อผิดพลาดในการโหลดหัวข้อ</option>';
+      } finally {
+        isLoadingTopics = false;
+      }
+    }
+
+    /* ---------------- Problem: preview multi images ---------------- */
+    const problemPhotosInput = document.getElementById("problemPhotos");
+    const problemPreview = document.getElementById("problemPreview");
+
+    problemPhotosInput.addEventListener("change", () => {
+      problemPreview.innerHTML = "";
+      const files = Array.from(problemPhotosInput.files || []);
+      if (!files.length) return;
+      files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = document.createElement("img");
+          img.src = e.target.result;
+          problemPreview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+      });
     });
 
-    async function fetchLogs() {
-      const truckPlate = truckPlateHistoryInput.value.trim();
-      const dateFrom   = dateFromInput.value;
-      const dateTo     = dateToInput.value;
-      const limit      = limitSelect.value;
+    /* ---------------- Submit: Problem Form ---------------- */
+    const problemForm = document.getElementById("problemForm");
+    problemForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const refRaw       = document.getElementById("problemReference").value.trim();
+      const numericRef   = refRaw.replace(/\D/g, "");
+      const truckPlate   = document.getElementById("problemTruckPlate").value.trim();
+      const problemType  = problemTypeSelect.value.trim();
+      const detail       = document.getElementById("problemDetail").value.trim();
+      const files        = Array.from(problemPhotosInput.files || []);
+
+      if (!numericRef || numericRef.length !== 9) {
+        Swal.fire(
+          "เลข Booking ไม่ถูกต้อง",
+          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
+          "warning"
+        );
+        return;
+      }
+      if (!truckPlate) {
+        Swal.fire("กรุณากรอกทะเบียนรถ", "", "warning");
+        return;
+      }
+      if (!problemType) {
+        Swal.fire("กรุณาเลือกหัวข้อปัญหา", "", "warning");
+        return;
+      }
+      if (!detail) {
+        Swal.fire("กรุณากรอกรายละเอียดปัญหา", "", "warning");
+        return;
+      }
 
       try {
         Swal.fire({
-          title: "กำลังโหลดข้อมูล...",
-          html: "กำลังดึงรายการจากระบบ",
+          title: "กำลังส่งแจ้งปัญหา...",
+          html: "ระบบกำลังอัปโหลดรูปและบันทึกข้อมูล",
           allowOutsideClick: false,
           didOpen: () => Swal.showLoading(),
         });
 
-        const params = new URLSearchParams();
-        params.set("action", "getDcLogs");
-        if (truckPlate) params.set("truckPlate", truckPlate);
-        if (dateFrom)   params.set("dateFrom", dateFrom);
-        if (dateTo)     params.set("dateTo", dateTo);
-        params.set("limit", limit);
+        let imagesBase64 = [];
+        if (files.length) {
+          imagesBase64 = await Promise.all(files.map((f) => resizeImage(f).catch(() => null)));
+          imagesBase64 = imagesBase64.filter((v) => !!v);
+        }
 
-        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
-          method: "GET",
+        const payload = {
+          action: "saveProblem",
+          reference: numericRef,
+          truckPlate: truckPlate,
+          problemType: problemType,
+          detail: detail,
+          imagesBase64: imagesBase64,
+        };
+
+        const res = await fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+          },
+          body: JSON.stringify(payload),
         });
 
         const result = await res.json().catch(() => ({}));
         Swal.close();
 
-        if (!result || !result.success) {
+        if (result && result.success) {
+          Swal.fire({
+            icon: "success",
+            title: "ส่งแจ้งปัญหาสำเร็จ",
+            text: result.message || "ระบบบันทึกปัญหาขนส่งเรียบร้อยแล้ว",
+          });
+          problemForm.reset();
+          problemPreview.innerHTML = "";
+        } else {
           Swal.fire({
             icon: "error",
-            title: "ไม่สามารถโหลดข้อมูลได้",
+            title: "ส่งแจ้งปัญหาไม่สำเร็จ",
             text:
               (result && result.message) ||
               "กรุณาลองใหม่อีกครั้ง หรือแจ้งแอดมินตรวจสอบ",
           });
-          return;
         }
-
-        renderLogs(result.data || []);
       } catch (err) {
         console.error(err);
         Swal.close();
         Swal.fire({
           icon: "error",
           title: "เกิดข้อผิดพลาด",
-          text: "ตรวจสอบอินเทอร์เน็ต หรือลองใหม่อีกครั้ง",
+          text: "ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือแจ้งแอดมิน",
         });
       }
-    }
-
-    function renderLogs(logs) {
-      logBody.innerHTML = "";
-
-      if (!logs.length) {
-        logBody.innerHTML =
-          '<tr><td colspan="9" class="no-data">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</td></tr>';
-        countLabel.textContent = "แสดง 0 รายการ";
-        return;
-      }
-
-      logs.forEach((log) => {
-        const tr = document.createElement("tr");
-
-        const loadRange =
-          (log.loadStart || "") && (log.loadEnd || "")
-            ? `${log.loadStart} - ${log.loadEnd}`
-            : (log.loadStart || log.loadEnd || "-");
-
-        const docRange =
-          (log.docStart || "") && (log.docEnd || "")
-            ? `${log.docStart} - ${log.docEnd}`
-            : (log.docStart || log.docEnd || "-");
-
-        tr.innerHTML = `
-          <td>${log.dateDisplay || log.timestamp || "-"}</td>
-          <td>${log.truckPlate || "-"}</td>
-          <td>${log.reference || "-"}</td>
-          <td>${log.arriveDc || "-"}</td>
-          <td>${loadRange || "-"}</td>
-          <td>${docRange || "-"}</td>
-          <td>${log.departDc || "-"}</td>
-          <td>${escapeHtml(log.remark || "-")}</td>
-          <td>
-            ${
-              log.imageUrl
-                ? `<a href="${log.imageUrl}" class="link" target="_blank">ดูรูป</a>`
-                : "-"
-            }
-          </td>
-        `;
-        logBody.appendChild(tr);
-      });
-
-      countLabel.textContent = `แสดง ${logs.length} รายการ`;
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
+    });
   </script>
 </body>
 </html>
