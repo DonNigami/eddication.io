@@ -125,12 +125,13 @@
     .section-title {
       font-size: 15px;
       font-weight: 600;
-      margin: 18px 0 8px;
+      margin: 18px 0 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       color: var(--text-main);
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .section-title span.hint {
@@ -374,6 +375,24 @@
       max-height: 380px;
       overflow: auto;
     }
+
+    /* Inline time error */
+    #timeError {
+      font-size: 12px;
+      color: var(--danger);
+      margin-top: 4px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: #fee2e2;
+      border: 1px solid #fecaca;
+      display: none;
+    }
+
+    .input-error {
+      border-color: var(--danger) !important;
+      box-shadow: 0 0 0 2px rgba(185, 28, 28, 0.25) !important;
+      background: #fef2f2 !important;
+    }
   </style>
 </head>
 <body>
@@ -463,6 +482,9 @@
               </button>
             </span>
           </div>
+
+          <!-- inline error for time logic -->
+          <div id="timeError"></div>
 
           <div class="field">
             <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
@@ -703,6 +725,7 @@
       const hh = String(now.getHours()).padStart(2, "0");
       const mm = String(now.getMinutes()).padStart(2, "0");
       el.value = `${hh}:${mm}`;
+      validateTimeSteps(false);
     }
     window.setNow = setNow;
 
@@ -727,6 +750,7 @@
           break;
         }
       }
+      validateTimeSteps(false);
     }
     window.fillNextTime = fillNextTime;
 
@@ -810,6 +834,110 @@
       return `${value} น.`; // backend เก็บเป็น HH:MM น.
     }
 
+    /* --------- Time validation logic --------- */
+    const timeInputsConfig = [
+      { id: "arriveDcTime", label: "ถึง DC" },
+      { id: "loadStartTime", label: "ขึ้นสินค้า (เริ่ม)" },
+      { id: "loadEndTime", label: "ขึ้นสินค้า (เสร็จ)" },
+      { id: "docStartTime", label: "ยื่นเอกสาร (เริ่ม)" },
+      { id: "docEndTime", label: "ยื่นเอกสาร (เสร็จ)" },
+      { id: "departTime", label: "ออกจาก DC" },
+    ];
+
+    function timeToMinutes(t) {
+      if (!t) return null;
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    // อนุญาตกรณีข้ามวัน: 23:00–23:59 ไป 00:00–05:00
+    function isValidCrossDay(prevMin, nextMin) {
+      return (prevMin >= 23 * 60 && prevMin <= 23 * 60 + 59) &&
+             (nextMin >= 0 && nextMin <= 5 * 60);
+    }
+
+    function clearTimeErrors() {
+      const errorBox = document.getElementById("timeError");
+      errorBox.style.display = "none";
+      errorBox.textContent = "";
+      timeInputsConfig.forEach(({ id }) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove("input-error");
+      });
+    }
+
+    function showTimeError(message, errorInputId, showAlert) {
+      const errorBox = document.getElementById("timeError");
+      errorBox.textContent = message;
+      errorBox.style.display = "block";
+
+      if (errorInputId) {
+        const el = document.getElementById(errorInputId);
+        if (el) el.classList.add("input-error");
+      }
+
+      if (showAlert) {
+        Swal.fire({
+          icon: "warning",
+          title: "เวลาไม่ถูกต้อง",
+          text: message,
+        });
+      }
+    }
+
+    function validateTimeSteps(showAlert = true) {
+      clearTimeErrors();
+
+      const steps = timeInputsConfig.map(({ id, label }) => {
+        const el = document.getElementById(id);
+        const val = el ? el.value.trim() : "";
+        return { id, label, minutes: timeToMinutes(val), hasValue: !!val };
+      });
+
+      for (let i = 0; i < steps.length - 1; i++) {
+        const prev = steps[i];
+        const next = steps[i + 1];
+
+        // กรณี: next มีค่า แต่ prev ว่าง → ไม่อนุญาต (ห้ามข้ามสเต็ป)
+        if (!prev.hasValue && next.hasValue) {
+          showTimeError(
+            `กรุณากรอกเวลา "${prev.label}" ก่อน "${next.label}"`,
+            next.id,
+            showAlert
+          );
+          return false;
+        }
+
+        if (!prev.hasValue || !next.hasValue) continue;
+
+        const prevMin = prev.minutes;
+        const nextMin = next.minutes;
+
+        // กรณีอนุญาต 23:00–23:59 → 00:00–05:00
+        if (isValidCrossDay(prevMin, nextMin)) continue;
+
+        // Next ต้องมากกว่า prev (กรณีวันเดียวกัน)
+        if (nextMin < prevMin) {
+          showTimeError(
+            `"${next.label}" ต้องมีเวลามากกว่า "${prev.label}"`,
+            next.id,
+            showAlert
+          );
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    // ผูก real-time validation
+    timeInputsConfig.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("change", () => validateTimeSteps(false));
+      el.addEventListener("blur", () => validateTimeSteps(false));
+    });
+
     /* --------- Form Submit --------- */
     const form = document.getElementById("dcForm");
     form.addEventListener("submit", async function (e) {
@@ -848,6 +976,11 @@
       }
       if (!file) {
         Swal.fire("กรุณาแนบรูปท้ายรถก่อนปิดตู้", "", "warning");
+        return;
+      }
+
+      // ⛔ เช็คลำดับเวลา + ห้ามข้ามสเต็ป
+      if (!validateTimeSteps(true)) {
         return;
       }
 
@@ -913,6 +1046,7 @@
           form.reset();
           previewBox.style.display = "none";
           previewImage.src = "";
+          clearTimeErrors();
         } else {
           Swal.fire({
             icon: "error",
