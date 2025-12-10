@@ -408,23 +408,13 @@
         <form id="dcForm">
           <div class="grid-2">
             <div class="field">
-              <label for="reference">
-                เลข Booking (9 หลัก)<span class="required">*</span>
-              </label>
+              <label for="reference">เลขอ้างอิงงาน (Reference) <span style="color:#9ca3af;">(ถ้ามี)</span></label>
               <input
                 type="text"
                 id="reference"
                 name="reference"
-                placeholder="เช่น 251243448"
-                maxlength="9"
-                inputmode="numeric"
-                pattern="\\d{9}"
-                required
-                oninput="enforceBookingDigits(this)"
+                placeholder="เช่น B001-251243448 / 6100xxxxxx"
               />
-              <div class="note">
-                รูปแบบ: <strong>YYMMXXXXX</strong> เช่น <code>251243448</code> (25=ปี, 12=เดือน, 43448=เลขอ้างอิง)
-              </div>
             </div>
             <div class="field">
               <label for="truckPlate">
@@ -648,7 +638,7 @@
   </div>
 
   <script>
-    // 👇 เปลี่ยน URL ถ้า deploy backend ใหม่
+    // 👇 เปลี่ยน URL ถ้า deploy backend เป็น Web App ตัวอื่น
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
 
     /* --------- Tabs --------- */
@@ -676,12 +666,7 @@
       });
     });
 
-    /* --------- Booking: only digits 9 ตัว --------- */
-    function enforceBookingDigits(el) {
-      el.value = el.value.replace(/\D/g, "").slice(0, 9);
-    }
-
-    /* --------- Time: input type="time" --------- */
+    /* --------- Time helper --------- */
     function setNow(fieldId) {
       const el = document.getElementById(fieldId);
       if (!el) return;
@@ -692,15 +677,7 @@
     }
     window.setNow = setNow;
 
-    function readFileAsDataURL(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
+    /* --------- Preview รูป --------- */
     const photoInput = document.getElementById("photoRear");
     const previewBox = document.getElementById("previewBox");
     const previewImage = document.getElementById("previewImage");
@@ -719,6 +696,15 @@
       };
       reader.readAsDataURL(file);
     });
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
 
     function formatTimeForPayload(value) {
       if (!value) return "";
@@ -742,17 +728,6 @@
 
       const remark       = document.getElementById("remark").value.trim();
       const file         = photoInput.files && photoInput.files[0];
-
-      // ✅ ตรวจ booking: ต้องเป็นตัวเลข 9 หลักเท่านั้น
-      const numericRef = referenceRaw.replace(/\D/g, "");
-      if (!numericRef || numericRef.length !== 9) {
-        Swal.fire(
-          "เลข Booking ไม่ถูกต้อง",
-          "กรุณากรอกเลข Booking เป็นตัวเลข 9 หลัก เช่น 251243448",
-          "warning"
-        );
-        return;
-      }
 
       if (!truckPlate) {
         Swal.fire("กรุณากรอกทะเบียนรถ", "", "warning");
@@ -779,7 +754,7 @@
 
         const payload = {
           action: "saveDcLog",
-          reference: numericRef,
+          reference: referenceRaw, // ไม่เช็ครูปแบบแล้ว ส่งไปตรง ๆ
           truckPlate: truckPlate,
           arriveDcTime: formatTimeForPayload(arriveRaw),
           loadStartTime: formatTimeForPayload(loadStartRaw),
