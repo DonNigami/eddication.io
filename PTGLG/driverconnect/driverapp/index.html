@@ -37,15 +37,15 @@
       }
 
       .app-shell {
-        min-height: 100vh;
+        min-block-size: 100vh;
         display: flex;
         justify-content: center;
         padding: 12px;
       }
 
       .container {
-        width: 100%;
-        max-width: 520px;
+        inline-size: 100%;
+        max-inline-size: 520px;
       }
 
       .card {
@@ -59,7 +59,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
+        margin-block-end: 12px;
       }
 
       .title {
@@ -81,22 +81,22 @@
       .status-text {
         font-size: 0.9rem;
         color: var(--text-sub);
-        margin-bottom: 10px;
+        margin-block-end: 10px;
       }
 
       .field-group {
-        margin-bottom: 10px;
+        margin-block-end: 10px;
       }
 
       label {
         display: block;
         font-size: 0.8rem;
         color: var(--text-sub);
-        margin-bottom: 4px;
+        margin-block-end: 4px;
       }
 
       input[type='text'] {
-        width: 100%;
+        inline-size: 100%;
         padding: 10px 12px;
         border-radius: 10px;
         border: 1px solid #dce2e0;
@@ -113,7 +113,7 @@
       }
 
       button {
-        width: 100%;
+        inline-size: 100%;
         padding: 11px 12px;
         border-radius: 999px;
         border: none;
@@ -149,7 +149,7 @@
       }
 
       .btn-small {
-        width: auto;
+        inline-size: auto;
         padding: 10px 16px;
         font-size: 0.95rem;
         border-radius: 999px;
@@ -178,7 +178,7 @@
       }
 
       .summary-card {
-        margin-top: 12px;
+        margin-block-start: 12px;
         padding: 10px 12px;
         border-radius: 10px;
         background: #f7faf9;
@@ -189,7 +189,7 @@
       .summary-row {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 4px;
+        margin-block-end: 4px;
       }
 
       .summary-label {
@@ -201,13 +201,13 @@
       }
 
       .timeline-container {
-        margin-top: 14px;
+        margin-block-start: 14px;
       }
 
       .timeline-title {
         font-weight: 600;
         font-size: 0.95rem;
-        margin-bottom: 6px;
+        margin-block-end: 6px;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -223,10 +223,10 @@
       .timeline::before {
         content: '';
         position: absolute;
-        left: 9px;
-        top: 0;
-        bottom: 0;
-        width: 2px;
+        inset-inline-start: 9px;
+        inset-block-start: 0;
+        inset-block-end: 0;
+        inline-size: 2px;
         background: linear-gradient(
           to bottom,
           rgba(26, 188, 156, 0.6),
@@ -236,15 +236,15 @@
 
       .timeline-item {
         position: relative;
-        margin-bottom: 14px;
+        margin-block-end: 14px;
       }
 
       .timeline-marker {
         position: absolute;
-        left: -1px;
-        top: 6px;
-        width: 12px;
-        height: 12px;
+        inset-inline-start: -1px;
+        inset-block-start: 6px;
+        inline-size: 12px;
+        block-size: 12px;
         border-radius: 50%;
         background: #ffffff;
         border: 2px solid var(--primary);
@@ -252,7 +252,7 @@
       }
 
       .timeline-content {
-        margin-left: 14px;
+        margin-inline-start: 14px;
         background: #ffffff;
         border-radius: 12px;
         padding: 8px 10px;
@@ -264,7 +264,7 @@
         display: flex;
         justify-content: space-between;
         align-items: baseline;
-        margin-bottom: 4px;
+        margin-block-end: 4px;
       }
 
       .timeline-stop-label {
@@ -284,17 +284,17 @@
       .timeline-sub {
         font-size: 0.82rem;
         color: var(--text-sub);
-        margin-bottom: 2px;
+        margin-block-end: 2px;
       }
 
       .materials-text {
         font-size: 0.8rem;
         color: #444;
-        margin-top: 4px;
+        margin-block-start: 4px;
       }
 
       .action-row {
-        margin-top: 6px;
+        margin-block-start: 6px;
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
@@ -314,7 +314,7 @@
         text-align: center;
         font-size: 0.8rem;
         border: none;
-        width: auto;
+        inline-size: auto;
       }
 
       .btn-nav:hover {
@@ -322,7 +322,7 @@
       }
 
       .footer-note {
-        margin-top: 8px;
+        margin-block-start: 8px;
         font-size: 0.78rem;
         color: var(--text-sub);
         text-align: center;
@@ -334,15 +334,15 @@
 
       .inline-flex {
         position: fixed;
-        top: 10px;
-        left: 50%;
+        inset-block-start: 10px;
+        inset-inline-start: 50%;
         transform: translateX(-50%) translateY(-20px);
-        width: calc(100% - 24px);
-        max-width: 520px;
+        inline-size: calc(100% - 24px);
+        max-inline-size: 520px;
         background: #ffffff;
         border-radius: 16px;
         box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
-        border-left: 4px solid var(--primary);
+        border-inline-start: 4px solid var(--primary);
         padding: 10px 12px 11px;
         z-index: 9999;
         opacity: 0;
@@ -350,8 +350,8 @@
       }
 
       .inline-flex-bar {
-        width: 42px;
-        height: 4px;
+        inline-size: 42px;
+        block-size: 4px;
         border-radius: 99px;
         background: rgba(26, 188, 156, 0.2);
         margin: 0 auto 6px;
@@ -361,14 +361,14 @@
         font-size: 0.95rem;
         font-weight: 700;
         color: var(--primary-dark);
-        margin-bottom: 2px;
-        text-align: left;
+        margin-block-end: 2px;
+        text-align: start;
       }
 
       .inline-flex-text {
         font-size: 0.8rem;
         color: var(--text-sub);
-        margin-bottom: 2px;
+        margin-block-end: 2px;
       }
 
       .inline-flex-sub {
@@ -406,7 +406,7 @@
         }
       }
 
-      @media (max-width: 480px) {
+      @media (max-inline-size: 480px) {
         .card {
           padding: 14px 14px 18px;
         }
@@ -458,7 +458,7 @@
           <div
             id="alcoholContainer"
             class="summary-card hidden"
-            style="margin-top:10px;"
+            style="margin-block-start:10px;"
           ></div>
 
           <div id="timelineContainer" class="timeline-container hidden">
@@ -471,18 +471,18 @@
             <ul id="timeline" class="timeline"></ul>
 
             <!-- ปุ่มปิดงาน + ปุ่มจบทริป -->
-            <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+            <div id="closeJobContainer" class="hidden" style="margin-block-start:8px;">
               <button
                 id="btnCloseJob"
                 class="btn-secondary"
-                style="width:100%;margin-bottom:6px;"
+                style="inline-size:100%;margin-block-end:6px;"
               >
                 ปิดงาน (รถพร้อมใช้งาน)
               </button>
               <button
                 id="btnEndTrip"
                 class="btn-secondary"
-                style="width:100%;display:none;"
+                style="inline-size:100%;display:none;"
               >
                 บันทึกจบทริป (เลขไมล์ + จุดจบทริป)
               </button>
@@ -647,10 +647,10 @@
                       type: 'box',
                       layout: 'vertical',
                       contents: [],
-                      width: '8px',
+                      inline-size: '8px',
                       backgroundColor: colorBar,
                       cornerRadius: '999px',
-                      height: '40px',
+                      block-size: '40px',
                     },
                   ],
                 },
@@ -893,8 +893,8 @@
         }
 
         let html = `
-          <div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
-          <div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:6px;">
+          <div style="font-weight:600;margin-block-end:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
+          <div style="font-size:0.8rem;color:var(--text-sub);margin-block-end:6px;">
             บันทึกผลแอลกอฮอล์ (ตัวเลข) พร้อมถ่ายรูปหลักฐาน ระบบจะบันทึกพิกัดและเวลาปัจจุบันให้
           </div>
         `;
@@ -903,7 +903,7 @@
           const checked = currentCheckedDrivers.includes(name);
           if (checked) {
             html += `
-              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="margin-block-end:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${name}</span>
                 <button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>
               </div>
@@ -911,7 +911,7 @@
           } else {
             const safeName = name.replace(/'/g, "\\'");
             html += `
-              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+              <div style="margin-block-end:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${name}</span>
                 <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
                   บันทึกผลแอลกอฮอล์
@@ -927,13 +927,13 @@
 
         if (alcoholAllDone) {
           html += `
-            <div style="margin-top:4px;font-size:0.78rem;color:var(--primary-dark);">
+            <div style="margin-block-start:4px;font-size:0.78rem;color:var(--primary-dark);">
               ✅ ตรวจแอลกอฮอล์ครบทุกคนแล้ว สามารถเริ่มงานได้
             </div>
           `;
         } else {
           html += `
-            <div style="margin-top:4px;font-size:0.78rem;color:#c0392b;">
+            <div style="margin-block-start:4px;font-size:0.78rem;color:#c0392b;">
               ⚠️ ยังตรวจแอลกอฮอล์ไม่ครบทุกคน
             </div>
           `;
@@ -965,18 +965,18 @@
         const { value: formValues } = await Swal.fire({
           title: 'บันทึกผลแอลกอฮอล์',
           html: `
-            <div style="text-align:left;">
+            <div style="text-align:start;">
               <label style="font-size:0.8rem;color:#555;">ชื่อคนขับ</label>
-              <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${driverName}</div>
+              <div style="font-size:0.9rem;font-weight:600;margin-block-end:6px;">${driverName}</div>
 
               <label style="font-size:0.8rem;color:#555;">ปริมาณแอลกอฮอล์ (มก./ลิตรลมหายใจ)</label>
               <input id="swalAlcoholValue" type="number" min="0" step="0.01"
                 class="swal2-input" placeholder="เช่น 0.00"
-                style="width:100%;margin:4px 0 10px;">
+                style="inline-size:100%;margin:4px 0 10px;">
 
               <label style="font-size:0.8rem;color:#555;">ถ่ายรูปหลักฐาน</label>
               <input id="swalAlcoholImage" type="file" accept="image/*" capture="environment"
-                style="margin-top:4px;font-size:0.8rem;">
+                style="margin-block-start:4px;font-size:0.8rem;">
             </div>
           `,
         focusConfirm: false,
@@ -1152,17 +1152,17 @@
         const { value: formValues } = await Swal.fire({
           title: 'ประเมินความพึงพอใจ',
           html: `
-            <div style="text-align:left;">
-              <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
+            <div style="text-align:start;">
+              <div style="font-size:0.85rem;color:#555;margin-block-end:6px;">
                 ปลายทาง: <b>${destName}</b>
               </div>
 
               <label style="font-size:0.8rem;color:#555;">ระดับความพึงพอใจ</label>
               <div style="margin:4px 0 10px;font-size:0.85rem;">
-                <label style="margin-right:10px;">
+                <label style="margin-inline-end:10px;">
                   <input type="radio" name="reviewScore" value="น้อย"> น้อย
                 </label>
-                <label style="margin-right:10px;">
+                <label style="margin-inline-end:10px;">
                   <input type="radio" name="reviewScore" value="ปานกลาง"> ปานกลาง
                 </label>
                 <label>
@@ -1171,10 +1171,10 @@
               </div>
 
               <label style="font-size:0.8rem;color:#555;">ลายเซ็นผู้รับสินค้า</label>
-              <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-top:4px;">
-                <canvas id="signCanvas" width="280" height="160" style="width:100%;height:auto;background:#fafafa;border-radius:6px;"></canvas>
+              <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-block-start:4px;">
+                <canvas id="signCanvas" width="280" height="160" style="inline-size:100%;block-size:auto;background:#fafafa;border-radius:6px;"></canvas>
                 <button type="button" id="btnClearSign"
-                  style="margin-top:4px;padding:4px 10px;border-radius:999px;border:1px solid #ccc;font-size:0.75rem;background:#fff;">
+                  style="margin-block-start:4px;padding:4px 10px;border-radius:999px;border:1px solid #ccc;font-size:0.75rem;background:#fff;">
                   ล้างลายเซ็น
                 </button>
               </div>
@@ -1555,12 +1555,12 @@
           icon: 'question',
           title: 'กรอกเลขไมล์รถ',
           html: `
-            <div style="text-align:left;">
+            <div style="text-align:start;">
               <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
               <input id="swalOdoInput" type="number" inputmode="numeric"
                 class="swal2-input"
                 placeholder="เช่น 123456"
-                style="width:100%;margin:6px 0 4px;">
+                style="inline-size:100%;margin:6px 0 4px;">
             </div>
           `,
           focusConfirm: false,
@@ -1669,8 +1669,8 @@
         const { value: formValues } = await Swal.fire({
           title: 'สรุปจบทริป',
           html: `
-            <div style="text-align:left;">
-              <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
+            <div style="text-align:start;">
+              <div style="font-size:0.85rem;color:#555;margin-block-end:6px;">
                 Reference: <b>${currentReference}</b>
               </div>
 
@@ -1678,15 +1678,15 @@
               <input id="swalEndOdo" type="number" min="0" step="1"
                 class="swal2-input"
                 placeholder="เช่น 234567"
-                style="width:100%;margin:4px 0 8px;">
+                style="inline-size:100%;margin:4px 0 8px;">
 
               <label style="font-size:0.8rem;color:#555;">ชื่อจุดจบทริป</label>
               <input id="swalEndPoint" type="text"
                 class="swal2-input"
                 placeholder="เช่น ศูนย์กระจายสินค้าบางนา / ลานจอดคลังหลัก"
-                style="width:100%;margin:4px 0 6px;">
+                style="inline-size:100%;margin:4px 0 6px;">
 
-              <div style="margin-top:6px;font-size:0.78rem;color:#888;">
+              <div style="margin-block-start:6px;font-size:0.78rem;color:#888;">
                 * ระบบจะบันทึกเลขไมล์ จุดจบทริป พร้อมพิกัด GPS (Lat/Long) ณ เวลาบันทึก
               </div>
             </div>
