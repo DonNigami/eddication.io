@@ -337,24 +337,19 @@
         <span class="badge">Driver Tracking</span>
       </h1>
       <div class="sub">
-          <span id="adminInfo">ยังไม่ได้ล็อกอิน</span>
-          <span id="adminRoleBadge" class="pill bad" style="display:none;">ไม่พบสิทธิ์ Admin</span>
-          <span id="envBadge" class="pill">WebApp</span>
-        </div>
-        <div id="globalMessage" class="msg"></div>
+        <span id="adminInfo">กำลังเชื่อมต่อ LINE ...</span>
+        <span id="adminRoleBadge" class="pill bad" style="display:none;">ไม่พบสิทธิ์ Admin</span>
+        <span id="envBadge" class="pill">WebApp</span>
+      </div>
+      <div id="globalMessage" class="msg"></div>
 
-        <!-- ✅ LOGIN PANEL -->
-        <div id="loginPanel" class="filters" style="background: #f9fafb; padding: 10px; border-radius: 8px; margin: 8px 0;">
-          <div>
-            <label>User ID *</label>
-            <input type="text" id="userIdInput" placeholder="เช่น U1234... หรือ C1234..." />
-          </div>
-          <div>
-            <label>&nbsp;</label>
-            <button class="btn-main" id="btnCheckAdmin">✔️ เช็คสิทธิ์ Admin</button>
-            <button class="btn-ghost" id="btnLogout" style="display:none;">🚪 ออกจากระบบ</button>
-          </div>
-        </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="jobdata">🧾 Jobdata</button>
+        <button class="tab-btn" data-tab="addstop">➕ Add Stop</button>
+        <button class="tab-btn" data-tab="alcohol">🍺 Alcohol Check</button>
+        <button class="tab-btn" data-tab="userprofile">👤 User Profile</button>
+      </div>
+    </header>
 
     <div class="tab-content">
 
@@ -581,42 +576,17 @@
 </div>
 
 <script>
+  // ✅ LIFF ID จริงของโปรเจ็กต์
+  const LIFF_ID = '2007705394-y4mV76Gv';
+
   // ✅ URL Web App ของ Google Apps Script (ลงท้าย /exec)
   const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
 
   let ADMIN_USER_ID = null;
   let ADMIN_NAME = '';
-  let IS_ADMIN = false;
 
   // ✅ cache ข้อมูลค้นหา reference ล่าสุด (ใช้ prefill)
   let LAST_REF_LOOKUP = null;
-
-  // ✅ ดึง userId จากหลายแหล่ง
-  function getUserIdFromUrl() {
-    // 1. ลองดึงจาก URL query parameter
-    const params = new URLSearchParams(window.location.search);
-    const urlUserId = params.get('userId');
-    if (urlUserId) return urlUserId;
-
-    // 2. ลองดึงจาก URL hash
-    const hashMatch = window.location.hash.match(/userId=([^&]+)/);
-    if (hashMatch) return hashMatch[1];
-
-    // 3. ลองดึงจาก localStorage
-    const storedUserId = localStorage.getItem('admin_user_id');
-    if (storedUserId) return storedUserId;
-
-    return null;
-  }
-
-  function saveUserIdToStorage(userId) {
-    localStorage.setItem('admin_user_id', userId);
-  }
-
-  function clearUserIdFromStorage() {
-    localStorage.removeItem('admin_user_id');
-    localStorage.removeItem('admin_is_admin');
-  }
 
   function getBaseUrl() {
     return GAS_BASE_URL;
@@ -627,37 +597,6 @@
     const label = document.getElementById('loadingText');
     if (text) label.textContent = text;
     overlay.classList.toggle('active', !!show);
-  }
-
-  // Reusable fetch with status/JSON guard
-  async function fetchJson(url, options = {}) {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status}: ${errText || res.statusText}`);
-    }
-    try {
-      return await res.json();
-    } catch (e) {
-      throw new Error('Invalid JSON response');
-    }
-  }
-
-  // Small DOM helpers to avoid innerHTML injection
-  function appendTextCell(tr, text, className) {
-    const td = document.createElement('td');
-    if (className) td.className = className;
-    td.textContent = text ?? '';
-    tr.appendChild(td);
-    return td;
-  }
-
-  function appendSpan(parent, text, className) {
-    const span = document.createElement('span');
-    if (className) span.className = className;
-    span.textContent = text ?? '';
-    parent.appendChild(span);
-    return span;
   }
 
   function setGlobalMessage(msg, type = '') {
@@ -708,54 +647,6 @@
     });
   }
 
-  // -------- Manual Admin / Auth ---------
-  async function initAdmin() {
-    // ลองดึง userId จาก URL หรือ localStorage
-    const storedUserId = getUserIdFromUrl();
-    
-    if (storedUserId) {
-      document.getElementById('userIdInput').value = storedUserId;
-      document.getElementById('loginPanel').style.display = 'none';
-      document.getElementById('btnLogout').style.display = 'inline-block';
-      await checkAdminPermission(storedUserId);
-    } else {
-      setAdminInfo('กรุณาใส่ User ID เพื่อเข้าสู่ระบบ');
-      document.getElementById('loginPanel').style.display = 'grid';
-    }
-  }
-
-  async function handleManualLogin() {
-    const userId = document.getElementById('userIdInput').value.trim();
-    
-    if (!userId) {
-      setGlobalMessage('❌ กรุณาใส่ User ID', 'error');
-      return;
-    }
-
-    if (!/^[UC][a-zA-Z0-9]{5,}/.test(userId)) {
-      setGlobalMessage('❌ User ID ต้องขึ้นต้นด้วย U หรือ C ตามด้วยตัวอักษรและตัวเลข เช่น Uaea04ce9a718e...', 'error');
-      return;
-    }
-
-    saveUserIdToStorage(userId);
-    ADMIN_USER_ID = userId;
-    document.getElementById('loginPanel').style.display = 'none';
-    document.getElementById('btnLogout').style.display = 'inline-block';
-    await checkAdminPermission(userId);
-  }
-
-  function handleLogout() {
-    clearUserIdFromStorage();
-    ADMIN_USER_ID = null;
-    IS_ADMIN = false;
-    document.getElementById('userIdInput').value = '';
-    setAdminInfo('ออกจากระบบแล้ว');
-    setGlobalMessage('ออกจากระบบแล้ว', 'success');
-    showAdminBadge(false);
-    document.getElementById('loginPanel').style.display = 'grid';
-    document.getElementById('btnLogout').style.display = 'none';
-  }
-
   // -------- LIFF / Auth ---------
   async function initLiff() {
     if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
@@ -795,7 +686,6 @@
       ADMIN_NAME = displayName;
 
       setAdminInfo(`เข้าสู่ระบบ: ${displayName} (${userId})`);
-      console.log('✅ userId from LIFF:', userId);
 
       await checkAdminPermission(userId);
     } catch (err) {
@@ -817,25 +707,19 @@
     try {
       const base = getBaseUrl();
       const url = `${base}?action=checkadmin&userId=${encodeURIComponent(userId)}`;
-      console.log('🔍 Checking admin permission at:', url);
-      const json = await fetchJson(url);
-      console.log('📨 Response from GAS:', json);
+      const res = await fetch(url);
+      const json = await res.json();
 
       if (!json.success || !json.isAdmin) {
-        IS_ADMIN = false;
         showAdminBadge(false);
-        setGlobalMessage('❌ คุณไม่มีสิทธิ์ใช้งานหน้า Admin โปรดติดต่อผู้ดูแล', 'error');
-        localStorage.removeItem('admin_is_admin');
+        setGlobalMessage('คุณไม่มีสิทธิ์ใช้งานหน้า Admin โปรดติดต่อผู้ดูแล', 'error');
       } else {
-        IS_ADMIN = true;
-        localStorage.setItem('admin_is_admin', 'true');
         showAdminBadge(true);
-        setAdminInfo(`เข้าสู่ระบบ: ${userId} (Admin)`);
-        setGlobalMessage('✅ ยินดีต้อนรับเข้าสู่หน้า Admin', 'success');
+        setGlobalMessage('ยินดีต้อนรับเข้าสู่หน้า Admin', 'success');
       }
     } catch (e) {
-      console.error('❌ Error checking admin:', e);
-      setGlobalMessage('❌ ตรวจสอบสิทธิ์ไม่สำเร็จ', 'error');
+      console.error(e);
+      setGlobalMessage('ตรวจสอบสิทธิ์ไม่สำเร็จ', 'error');
       showAdminBadge(false);
     } finally {
       setLoading(false);
@@ -865,7 +749,8 @@
         status: status,
         limit: '200'
       });
-      const json = await fetchJson(`${base}?${qs.toString()}`);
+      const res = await fetch(`${base}?${qs.toString()}`);
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('jobMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
@@ -886,14 +771,10 @@
 
   function renderJobdata(rows) {
     const tbody = document.getElementById('jobTableBody');
-    tbody.replaceChildren();
+    tbody.innerHTML = '';
     if (!rows || rows.length === 0) {
       const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 11;
-      td.className = 'center';
-      td.textContent = 'ไม่พบข้อมูล';
-      tr.appendChild(td);
+      tr.innerHTML = `<td colspan="11" class="center">ไม่พบข้อมูล</td>`;
       tbody.appendChild(tr);
       return;
     }
@@ -911,53 +792,31 @@
         return 'status-pill';
       })(r.status);
 
-      appendTextCell(tr, idx + 1);
-      appendTextCell(tr, r.referenceNo || '');
-      appendTextCell(tr, r.shipmentNo || '');
-
-      const destTd = document.createElement('td');
-      const destMain = document.createElement('div');
-      destMain.textContent = r.destination2 || '';
-      const destTag = document.createElement('div');
-      destTag.className = 'tag';
-      destTag.textContent = r.destination1 || '-';
-      destTd.append(destMain, destTag);
-      tr.appendChild(destTd);
-
-      const statusTd = document.createElement('td');
-      const select = document.createElement('select');
-      select.dataset.row = r.rowIndex;
-      select.className = 'job-status-select';
-      ['NEW','CHECKIN','CHECKOUT','REVIEWED','JOB_DONE','END_TRIP'].forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        if (s === r.status) opt.selected = true;
-        select.appendChild(opt);
-      });
-      statusTd.appendChild(select);
-      const pillWrap = document.createElement('div');
-      pillWrap.style.marginTop = '2px';
-      appendSpan(pillWrap, r.status || '', statusClass);
-      statusTd.appendChild(pillWrap);
-      tr.appendChild(statusTd);
-
-      appendTextCell(tr, r.checkInTime || '-');
-      appendTextCell(tr, r.checkOutTime || '-');
-      appendTextCell(tr, r.checkInOdo || '-');
-      appendTextCell(tr, r.updatedBy || '-');
-      appendTextCell(tr, r.updatedAt || '-');
-
-      const actionsTd = document.createElement('td');
-      actionsTd.className = 'actions';
-      const btn = document.createElement('button');
-      btn.className = 'btn-main';
-      btn.dataset.row = r.rowIndex;
-      btn.textContent = 'บันทึก';
-      btn.addEventListener('click', () => onSaveJobStatus(btn));
-      actionsTd.appendChild(btn);
-      tr.appendChild(actionsTd);
-
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${r.referenceNo || ''}</td>
+        <td>${r.shipmentNo || ''}</td>
+        <td>
+          <div>${r.destination2 || ''}</div>
+          <div class="tag">${r.destination1 || '-'}</div>
+        </td>
+        <td>
+          <select data-row="${r.rowIndex}" class="job-status-select">
+            ${['NEW','CHECKIN','CHECKOUT','REVIEWED','JOB_DONE','END_TRIP'].map(s => `
+              <option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>
+            `).join('')}
+          </select>
+          <div style="margin-top:2px;"><span class="${statusClass}">${r.status}</span></div>
+        </td>
+        <td>${r.checkInTime || '-'}</td>
+        <td>${r.checkOutTime || '-'}</td>
+        <td>${r.checkInOdo || '-'}</td>
+        <td>${r.updatedBy || '-'}</td>
+        <td>${r.updatedAt || '-'}</td>
+        <td class="actions">
+          <button class="btn-main" data-row="${r.rowIndex}" onclick="onSaveJobStatus(this)">บันทึก</button>
+        </td>
+      `;
       tbody.appendChild(tr);
     });
   }
@@ -984,7 +843,8 @@
       form.append('rowIndex', rowIndex);
       form.append('status', newStatus);
 
-      const json = await fetchJson(base, { method: 'POST', body: form });
+      const res = await fetch(base, { method: 'POST', body: form });
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('jobMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
@@ -1011,35 +871,27 @@
 
   function renderAddstopPreview(rows) {
     const tbody = document.getElementById('addstopPreviewBody');
-    tbody.replaceChildren();
+    tbody.innerHTML = '';
 
     if (!rows || rows.length === 0) {
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 10;
-      td.className = 'center';
-      td.textContent = 'ไม่พบข้อมูล';
-      tr.appendChild(td);
-      tbody.appendChild(tr);
+      tbody.innerHTML = `<tr><td colspan="10" class="center">ไม่พบข้อมูล</td></tr>`;
       return;
     }
 
     rows.forEach((r, idx) => {
       const tr = document.createElement('tr');
-      appendTextCell(tr, idx + 1);
-      appendTextCell(tr, r.referenceNo || '');
-      appendTextCell(tr, r.shipmentNo || '');
-      appendTextCell(tr, r.destination2 || '');
-      const codeTd = document.createElement('td');
-      appendSpan(codeTd, r.destination1 || '-', 'tag');
-      tr.appendChild(codeTd);
-      const statusTd = document.createElement('td');
-      appendSpan(statusTd, r.status || '', 'status-pill');
-      tr.appendChild(statusTd);
-      appendTextCell(tr, r.sourceRow || '-', 'mono');
-      appendTextCell(tr, `${r.destLat || '-'}, ${r.destLng || '-'} (${r.radiusM || '-'})`, 'mono');
-      appendTextCell(tr, r.updatedBy || '-', 'mono');
-      appendTextCell(tr, r.updatedAt || '-', 'mono');
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${r.referenceNo || ''}</td>
+        <td>${r.shipmentNo || ''}</td>
+        <td>${r.destination2 || ''}</td>
+        <td><span class="tag">${r.destination1 || '-'}</span></td>
+        <td><span class="status-pill">${r.status || ''}</span></td>
+        <td class="mono">${r.sourceRow || '-'}</td>
+        <td class="mono">${(r.destLat || '-')}, ${(r.destLng || '-')} (${r.radiusM || '-'})</td>
+        <td class="mono">${r.updatedBy || '-'}</td>
+        <td class="mono">${r.updatedAt || '-'}</td>
+      `;
       tbody.appendChild(tr);
     });
   }
@@ -1071,7 +923,8 @@
         status: '',
         limit: '200'
       });
-      const json = await fetchJson(`${base}?${qs.toString()}`);
+      const res = await fetch(`${base}?${qs.toString()}`);
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('addMessage', json.message || 'ค้นหาไม่สำเร็จ', 'error');
@@ -1112,7 +965,8 @@
           keyword: ref,
           userId: ADMIN_USER_ID
         });
-        const json2 = await fetchJson(`${base}?${qs2.toString()}`);
+        const res2 = await fetch(`${base}?${qs2.toString()}`);
+        const json2 = await res2.json();
         const v = json2 && json2.success && json2.data ? (json2.data.vehicleDescription || '') : '';
         if (v) {
           document.getElementById('refInfoVehicle').textContent = v;
@@ -1190,10 +1044,12 @@
       if (lng) form.append('lng', lng);
       if (radiusM) form.append('radiusM', radiusM);
 
-      const json = await fetchJson(base, {
+      const res = await fetch(base, {
         method: 'POST',
         body: form
       });
+
+      const json = await res.json();
       if (!json.success) {
         setPanelMessage('addMessage', json.message || 'เพิ่มจุดไม่สำเร็จ', 'error');
         return;
@@ -1242,7 +1098,8 @@
         driver: driver,
         limit: '200'
       });
-      const json = await fetchJson(`${base}?${qs.toString()}`);
+      const res = await fetch(`${base}?${qs.toString()}`);
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('alcMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
@@ -1263,14 +1120,10 @@
 
   function renderAlcohol(rows) {
     const tbody = document.getElementById('alcTableBody');
-    tbody.replaceChildren();
+    tbody.innerHTML = '';
     if (!rows || rows.length === 0) {
       const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 9;
-      td.className = 'center';
-      td.textContent = 'ไม่พบข้อมูล';
-      tr.appendChild(td);
+      tr.innerHTML = `<td colspan="9" class="center">ไม่พบข้อมูล</td>`;
       tbody.appendChild(tr);
       return;
     }
@@ -1278,47 +1131,24 @@
     rows.forEach((r, idx) => {
       const tr = document.createElement('tr');
       const val = r.alcoholValue != null ? r.alcoholValue : '';
-      appendTextCell(tr, idx + 1);
-      appendTextCell(tr, r.reference || '');
-      appendTextCell(tr, r.driverName || '');
-
-      const alcTd = document.createElement('td');
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.step = '0.01';
-      input.className = 'small-input alc-value-input';
-      input.dataset.row = r.rowIndex;
-      input.value = val;
-      alcTd.appendChild(input);
-      tr.appendChild(alcTd);
-
-      appendTextCell(tr, r.checkedAt || '-');
-      appendTextCell(tr, r.userId || '-');
-      appendTextCell(tr, `${r.lat || '-'}, ${r.lng || '-'}`);
-
-      const imgTd = document.createElement('td');
-      if (r.imageUrl) {
-        const a = document.createElement('a');
-        a.href = r.imageUrl;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        a.textContent = 'เปิดรูป';
-        imgTd.appendChild(a);
-      } else {
-        imgTd.textContent = '-';
-      }
-      tr.appendChild(imgTd);
-
-      const actionsTd = document.createElement('td');
-      actionsTd.className = 'actions';
-      const btn = document.createElement('button');
-      btn.className = 'btn-main';
-      btn.dataset.row = r.rowIndex;
-      btn.textContent = 'บันทึก';
-      btn.addEventListener('click', () => onSaveAlcohol(btn));
-      actionsTd.appendChild(btn);
-      tr.appendChild(actionsTd);
-
+      tr.innerHTML = `
+        <td>${idx + 1}</td>
+        <td>${r.reference || ''}</td>
+        <td>${r.driverName || ''}</td>
+        <td>
+          <input type="number" step="0.01" class="small-input alc-value-input"
+                 data-row="${r.rowIndex}" value="${val}" />
+        </td>
+        <td>${r.checkedAt || '-'}</td>
+        <td>${r.userId || '-'}</td>
+        <td>${r.lat || '-'}, ${r.lng || '-'}</td>
+        <td>
+          ${r.imageUrl ? `<a href="${r.imageUrl}" target="_blank">เปิดรูป</a>` : '-' }
+        </td>
+        <td class="actions">
+          <button class="btn-main" data-row="${r.rowIndex}" onclick="onSaveAlcohol(this)">บันทึก</button>
+        </td>
+      `;
       tbody.appendChild(tr);
     });
   }
@@ -1349,7 +1179,8 @@
       form.append('rowIndex', rowIndex);
       form.append('alcoholValue', value);
 
-      const json = await fetchJson(base, { method: 'POST', body: form });
+      const res = await fetch(base, { method: 'POST', body: form });
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('alcMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
@@ -1387,7 +1218,8 @@
         status: status,
         keyword: keyword
       });
-      const json = await fetchJson(`${base}?${qs.toString()}`);
+      const res = await fetch(`${base}?${qs.toString()}`);
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('userMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
@@ -1408,14 +1240,10 @@
 
   function renderUsers(rows) {
     const tbody = document.getElementById('userTableBody');
-    tbody.replaceChildren();
+    tbody.innerHTML = '';
     if (!rows || rows.length === 0) {
       const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 8;
-      td.className = 'center';
-      td.textContent = 'ไม่พบข้อมูล';
-      tr.appendChild(td);
+      tr.innerHTML = `<td colspan="8" class="center">ไม่พบข้อมูล</td>`;
       tbody.appendChild(tr);
       return;
     }
@@ -1430,71 +1258,30 @@
         return 'status-pill';
       })();
 
-      const avatarTd = document.createElement('td');
-      if (r.pictureUrl) {
-        const img = document.createElement('img');
-        img.src = r.pictureUrl;
-        img.alt = '';
-        img.style.width = '32px';
-        img.style.height = '32px';
-        img.style.borderRadius = '999px';
-        img.style.objectFit = 'cover';
-        avatarTd.appendChild(img);
-      } else {
-        const fallback = document.createElement('div');
-        fallback.style.width = '32px';
-        fallback.style.height = '32px';
-        fallback.style.borderRadius = '999px';
-        fallback.style.background = '#e5e7eb';
-        fallback.style.display = 'flex';
-        fallback.style.alignItems = 'center';
-        fallback.style.justifyContent = 'center';
-        fallback.style.fontSize = '0.7rem';
-        fallback.textContent = '?';
-        avatarTd.appendChild(fallback);
-      }
-      tr.appendChild(avatarTd);
-
-      appendTextCell(tr, r.displayName || '-');
-      const userTd = appendTextCell(tr, r.userId || '-');
-      userTd.style.maxWidth = '220px';
-      userTd.style.wordBreak = 'break-all';
-
-      const statusTd = document.createElement('td');
-      const select = document.createElement('select');
-      select.className = 'user-status-select';
-      select.dataset.user = r.userId;
-      ['PENDING','APPROVED','REJECTED'].forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = s;
-        if (s === r.status) opt.selected = true;
-        select.appendChild(opt);
-      });
-      statusTd.appendChild(select);
-      const statusWrap = document.createElement('div');
-      statusWrap.style.marginTop = '2px';
-      appendSpan(statusWrap, r.status || '', statusClass);
-      statusTd.appendChild(statusWrap);
-      tr.appendChild(statusTd);
-
-      const typeTd = document.createElement('td');
-      appendSpan(typeTd, r.userType || '-', 'tag');
-      tr.appendChild(typeTd);
-
-      appendTextCell(tr, r.createdAt || '-');
-      appendTextCell(tr, r.updatedAt || '-');
-
-      const actionsTd = document.createElement('td');
-      actionsTd.className = 'actions';
-      const btn = document.createElement('button');
-      btn.className = 'btn-main';
-      btn.dataset.user = r.userId;
-      btn.textContent = 'บันทึก';
-      btn.addEventListener('click', () => onSaveUserStatus(btn));
-      actionsTd.appendChild(btn);
-      tr.appendChild(actionsTd);
-
+      tr.innerHTML = `
+        <td>
+          ${r.pictureUrl
+            ? `<img src="${r.pictureUrl}" alt="" style="width:32px;height:32px;border-radius:999px;object-fit:cover;" />`
+            : `<div style="width:32px;height:32px;border-radius:999px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">?</div>`
+          }
+        </td>
+        <td>${r.displayName || '-'}</td>
+        <td style="max-width:220px;word-break:break-all;">${r.userId || '-'}</td>
+        <td>
+          <select class="user-status-select" data-user="${r.userId}">
+            ${['PENDING','APPROVED','REJECTED'].map(s => `
+              <option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>
+            `).join('')}
+          </select>
+          <div style="margin-top:2px;"><span class="${statusClass}">${r.status}</span></div>
+        </td>
+        <td><span class="tag">${r.userType || '-'}</span></td>
+        <td>${r.createdAt || '-'}</td>
+        <td>${r.updatedAt || '-'}</td>
+        <td class="actions">
+          <button class="btn-main" data-user="${r.userId}" onclick="onSaveUserStatus(this)">บันทึก</button>
+        </td>
+      `;
       tbody.appendChild(tr);
     });
   }
@@ -1521,7 +1308,8 @@
       form.append('userId', userId);
       form.append('status', newStatus);
 
-      const json = await fetchJson(base, { method: 'POST', body: form });
+      const res = await fetch(base, { method: 'POST', body: form });
+      const json = await res.json();
 
       if (!json.success) {
         setPanelMessage('userMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
@@ -1545,15 +1333,6 @@
     document.getElementById('btnLoadAlcohol').addEventListener('click', loadAlcohol);
     document.getElementById('btnLoadUsers').addEventListener('click', loadUsers);
 
-    // ✅ Login
-    document.getElementById('btnCheckAdmin').addEventListener('click', handleManualLogin);
-    document.getElementById('btnLogout').addEventListener('click', handleLogout);
-
-    // Enter to login
-    document.getElementById('userIdInput').addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter') handleManualLogin();
-    });
-
     // ✅ AddStop
     document.getElementById('btnFindRef').addEventListener('click', findReferenceForAddStop);
     document.getElementById('btnPrefillFromJob').addEventListener('click', prefillAddStopForm);
@@ -1564,7 +1343,7 @@
       if (ev.key === 'Enter') findReferenceForAddStop();
     });
 
-    initAdmin();
+    initLiff();
   });
 </script>
 </body>
