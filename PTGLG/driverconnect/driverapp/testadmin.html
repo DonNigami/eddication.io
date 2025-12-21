@@ -732,8 +732,8 @@
       return;
     }
 
-    if (!/^[UC]\d+/.test(userId)) {
-      setGlobalMessage('❌ User ID ต้องขึ้นต้นด้วย U หรือ C เช่น U1234... หรือ C1234...', 'error');
+    if (!/^[UC][a-zA-Z0-9]{5,}/.test(userId)) {
+      setGlobalMessage('❌ User ID ต้องขึ้นต้นด้วย U หรือ C ตามด้วยตัวอักษรและตัวเลข เช่น Uaea04ce9a718e...', 'error');
       return;
     }
 
