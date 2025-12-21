@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
   <title>Admin Console - Driver Tracking</title>
@@ -32,7 +33,7 @@
     }
 
     .app {
-      max-width: 1200px;
+      max-inline-size: 1200px;
       margin: 0 auto;
       padding: 16px;
     }
@@ -49,7 +50,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-block-end: 16px;
     }
 
     header h1 {
@@ -96,9 +97,9 @@
     .tabs {
       display: flex;
       gap: 8px;
-      margin-top: 12px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
+      margin-block-start: 12px;
+      border-block-end: 1px solid var(--border);
+      padding-block-end: 4px;
       overflow-x: auto;
     }
 
@@ -121,7 +122,7 @@
     }
 
     .tab-content {
-      margin-top: 16px;
+      margin-block-start: 16px;
     }
 
     .tab-panel {
@@ -136,7 +137,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 8px;
-      margin-bottom: 10px;
+      margin-block-end: 10px;
       align-items: flex-end;
     }
 
@@ -144,13 +145,13 @@
       font-size: 0.8rem;
       color: var(--text-sub);
       display: block;
-      margin-bottom: 2px;
+      margin-block-end: 2px;
     }
 
     input[type="text"],
     input[type="number"],
     select {
-      width: 100%;
+      inline-size: 100%;
       padding: 6px 8px;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -186,24 +187,25 @@
     }
 
     table {
-      width: 100%;
+      inline-size: 100%;
       border-collapse: collapse;
-      margin-top: 8px;
+      margin-block-start: 8px;
       font-size: 0.8rem;
     }
 
     thead {
       background: #f9fafb;
       position: sticky;
-      top: 0;
+      inset-block-start: 0;
       z-index: 1;
     }
 
-    th, td {
-      border-bottom: 1px solid var(--border);
+    th,
+    td {
+      border-block-end: 1px solid var(--border);
       padding: 6px 8px;
       vertical-align: middle;
-      text-align: left;
+      text-align: start;
     }
 
     th {
@@ -255,7 +257,7 @@
     }
 
     .small-input {
-      width: 80px;
+      inline-size: 80px;
     }
 
     .actions {
@@ -294,21 +296,23 @@
     }
 
     .spinner {
-      width: 18px;
-      height: 18px;
+      inline-size: 18px;
+      block-size: 18px;
       border-radius: 999px;
       border: 2px solid #e5e7eb;
-      border-top-color: var(--primary);
+      border-block-start-color: var(--primary);
       animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin {
-      to { transform: rotate(360deg); }
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     .msg {
       font-size: 0.8rem;
-      margin-top: 6px;
+      margin-block-start: 6px;
     }
 
     .msg.error {
@@ -320,401 +324,410 @@
     }
 
     .scroll-wrapper {
-      max-height: 55vh;
+      max-block-size: 55vh;
       overflow: auto;
       border-radius: 10px;
       border: 1px solid var(--border);
       background: white;
     }
 
-    @media (max-width: 768px) {
+    @media (max-inline-size: 768px) {
       .app {
         padding: 10px;
       }
+
       header h1 {
         font-size: 1.1rem;
       }
+
       .scroll-wrapper {
-        max-height: 60vh;
+        max-block-size: 60vh;
       }
     }
   </style>
 </head>
+
 <body>
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="loading-box">
-    <div class="spinner"></div>
-    <span id="loadingText">กำลังโหลด...</span>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <span id="loadingText">กำลังโหลด...</span>
+    </div>
   </div>
-</div>
 
-<div class="app">
-  <div class="card">
-    <header>
-      <h1>
-        Admin Console
-        <span class="badge">Driver Tracking</span>
-      </h1>
-      <div class="sub">
-        <span id="adminInfo">กำลังเชื่อมต่อ LINE ...</span>
-        <span id="adminRoleBadge" class="pill bad" style="display:none;">ไม่พบสิทธิ์ Admin</span>
-        <span id="envBadge" class="pill">WebApp</span>
-      </div>
-      <div id="globalMessage" class="msg"></div>
+  <div class="app">
+    <div class="card">
+      <header>
+        <h1>
+          Admin Console
+          <span class="badge">Driver Tracking</span>
+        </h1>
+        <div class="sub">
+          <span id="adminInfo">กำลังเชื่อมต่อ LINE ...</span>
+          <span id="adminRoleBadge" class="pill bad" style="display:none;">ไม่พบสิทธิ์ Admin</span>
+          <span id="envBadge" class="pill">WebApp</span>
+        </div>
+        <div id="globalMessage" class="msg"></div>
 
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="jobdata">🧾 Jobdata</button>
-        <button class="tab-btn" data-tab="alcohol">🍺 Alcohol Check</button>
-        <button class="tab-btn" data-tab="userprofile">👤 User Profile</button>
-      </div>
-    </header>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="jobdata">🧾 Jobdata</button>
+          <button class="tab-btn" data-tab="alcohol">🍺 Alcohol Check</button>
+          <button class="tab-btn" data-tab="userprofile">👤 User Profile</button>
+        </div>
+      </header>
 
-    <div class="tab-content">
-      <!-- JOBDATA PANEL -->
-      <div class="tab-panel active" id="tab-jobdata">
-        <div class="filters">
-          <div>
-            <label>Reference</label>
-            <input type="text" id="jobRef" placeholder="เช่น 12345" />
+      <div class="tab-content">
+        <!-- JOBDATA PANEL -->
+        <div class="tab-panel active" id="tab-jobdata">
+          <div class="filters">
+            <div>
+              <label>Reference</label>
+              <input type="text" id="jobRef" placeholder="เช่น 12345" />
+            </div>
+            <div>
+              <label>Status</label>
+              <select id="jobStatus">
+                <option value="">ทั้งหมด</option>
+                <option value="NEW">NEW</option>
+                <option value="CHECKIN">CHECKIN</option>
+                <option value="CHECKOUT">CHECKOUT</option>
+                <option value="REVIEWED">REVIEWED</option>
+                <option value="JOB_DONE">JOB_DONE</option>
+              </select>
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button class="btn-main" id="btnLoadJob">ค้นหา Jobdata</button>
+            </div>
           </div>
-          <div>
-            <label>Status</label>
-            <select id="jobStatus">
-              <option value="">ทั้งหมด</option>
-              <option value="NEW">NEW</option>
-              <option value="CHECKIN">CHECKIN</option>
-              <option value="CHECKOUT">CHECKOUT</option>
-              <option value="REVIEWED">REVIEWED</option>
-              <option value="JOB_DONE">JOB_DONE</option>
-            </select>
-          </div>
-          <div>
-            <label>&nbsp;</label>
-            <button class="btn-main" id="btnLoadJob">ค้นหา Jobdata</button>
+          <div id="jobMessage" class="msg"></div>
+          <div class="scroll-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Ref</th>
+                  <th>Shipment</th>
+                  <th>ปลายทาง</th>
+                  <th>Status</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>ODO</th>
+                  <th>อัปเดตโดย</th>
+                  <th>เวลาอัปเดต</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="jobTableBody">
+                <tr>
+                  <td colspan="11" class="center">ยังไม่มีข้อมูล</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div id="jobMessage" class="msg"></div>
-        <div class="scroll-wrapper">
-          <table>
-            <thead>
-            <tr>
-              <th>#</th>
-              <th>Ref</th>
-              <th>Shipment</th>
-              <th>ปลายทาง</th>
-              <th>Status</th>
-              <th>Check-in</th>
-              <th>Check-out</th>
-              <th>ODO</th>
-              <th>อัปเดตโดย</th>
-              <th>เวลาอัปเดต</th>
-              <th>จัดการ</th>
-            </tr>
-            </thead>
-            <tbody id="jobTableBody">
-            <tr><td colspan="11" class="center">ยังไม่มีข้อมูล</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      <!-- ALCOHOL PANEL -->
-      <div class="tab-panel" id="tab-alcohol">
-        <div class="filters">
-          <div>
-            <label>Reference</label>
-            <input type="text" id="alcRef" placeholder="เช่น 12345" />
+        <!-- ALCOHOL PANEL -->
+        <div class="tab-panel" id="tab-alcohol">
+          <div class="filters">
+            <div>
+              <label>Reference</label>
+              <input type="text" id="alcRef" placeholder="เช่น 12345" />
+            </div>
+            <div>
+              <label>ชื่อคนขับ</label>
+              <input type="text" id="alcDriver" placeholder="บางส่วนของชื่อ" />
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button class="btn-main" id="btnLoadAlcohol">ค้นหา Alcohol</button>
+            </div>
           </div>
-          <div>
-            <label>ชื่อคนขับ</label>
-            <input type="text" id="alcDriver" placeholder="บางส่วนของชื่อ" />
-          </div>
-          <div>
-            <label>&nbsp;</label>
-            <button class="btn-main" id="btnLoadAlcohol">ค้นหา Alcohol</button>
+          <div id="alcMessage" class="msg"></div>
+          <div class="scroll-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Ref</th>
+                  <th>คนขับ</th>
+                  <th>Alcohol</th>
+                  <th>เวลาเช็ค</th>
+                  <th>User</th>
+                  <th>พิกัด</th>
+                  <th>รูป</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="alcTableBody">
+                <tr>
+                  <td colspan="9" class="center">ยังไม่มีข้อมูล</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
-        <div id="alcMessage" class="msg"></div>
-        <div class="scroll-wrapper">
-          <table>
-            <thead>
-            <tr>
-              <th>#</th>
-              <th>Ref</th>
-              <th>คนขับ</th>
-              <th>Alcohol</th>
-              <th>เวลาเช็ค</th>
-              <th>User</th>
-              <th>พิกัด</th>
-              <th>รูป</th>
-              <th>จัดการ</th>
-            </tr>
-            </thead>
-            <tbody id="alcTableBody">
-            <tr><td colspan="9" class="center">ยังไม่มีข้อมูล</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
 
-      <!-- USERPROFILE PANEL -->
-      <div class="tab-panel" id="tab-userprofile">
-        <div class="filters">
-          <div>
-            <label>Status</label>
-            <select id="userStatus">
-              <option value="">ทั้งหมด</option>
-              <option value="PENDING">PENDING</option>
-              <option value="APPROVED">APPROVED</option>
-              <option value="REJECTED">REJECTED</option>
-            </select>
+        <!-- USERPROFILE PANEL -->
+        <div class="tab-panel" id="tab-userprofile">
+          <div class="filters">
+            <div>
+              <label>Status</label>
+              <select id="userStatus">
+                <option value="">ทั้งหมด</option>
+                <option value="PENDING">PENDING</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="REJECTED">REJECTED</option>
+              </select>
+            </div>
+            <div>
+              <label>ค้นหา (ชื่อ หรือ userId)</label>
+              <input type="text" id="userKeyword" placeholder="ชื่อ / userId" />
+            </div>
+            <div>
+              <label>&nbsp;</label>
+              <button class="btn-main" id="btnLoadUsers">โหลดผู้ใช้</button>
+            </div>
           </div>
-          <div>
-            <label>ค้นหา (ชื่อ หรือ userId)</label>
-            <input type="text" id="userKeyword" placeholder="ชื่อ / userId" />
+          <div id="userMessage" class="msg"></div>
+          <div class="scroll-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>รูป</th>
+                  <th>ชื่อ</th>
+                  <th>userId</th>
+                  <th>Status</th>
+                  <th>Type</th>
+                  <th>สร้างเมื่อ</th>
+                  <th>อัปเดตล่าสุด</th>
+                  <th>จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody">
+                <tr>
+                  <td colspan="8" class="center">ยังไม่มีข้อมูล</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div>
-            <label>&nbsp;</label>
-            <button class="btn-main" id="btnLoadUsers">โหลดผู้ใช้</button>
-          </div>
-        </div>
-        <div id="userMessage" class="msg"></div>
-        <div class="scroll-wrapper">
-          <table>
-            <thead>
-            <tr>
-              <th>รูป</th>
-              <th>ชื่อ</th>
-              <th>userId</th>
-              <th>Status</th>
-              <th>Type</th>
-              <th>สร้างเมื่อ</th>
-              <th>อัปเดตล่าสุด</th>
-              <th>จัดการ</th>
-            </tr>
-            </thead>
-            <tbody id="userTableBody">
-            <tr><td colspan="8" class="center">ยังไม่มีข้อมูล</td></tr>
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
   </div>
-</div>
 
-<script>
-  // ✅ LIFF ID จริงของโปรเจ็กต์
-  const LIFF_ID = '2007705394-Lq3mMYKA';
+  <script>
+    // ✅ LIFF ID จริงของโปรเจ็กต์
+    const LIFF_ID = '2007705394-Lq3mMYKA';
 
-  // ✅ URL Web App ของ Google Apps Script (ลงท้าย /exec)
-  const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
+    // ✅ URL Web App ของ Google Apps Script (ลงท้าย /exec)
+    const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
 
-  let ADMIN_USER_ID = null;
-  let ADMIN_NAME = '';
+    let ADMIN_USER_ID = null;
+    let ADMIN_NAME = '';
 
-  function getBaseUrl() {
-    return GAS_BASE_URL;
-  }
-
-  function setLoading(show, text) {
-    const overlay = document.getElementById('loadingOverlay');
-    const label = document.getElementById('loadingText');
-    if (text) label.textContent = text;
-    overlay.classList.toggle('active', !!show);
-  }
-
-  function setGlobalMessage(msg, type = '') {
-    const el = document.getElementById('globalMessage');
-    el.textContent = msg || '';
-    el.className = 'msg' + (type ? ' ' + type : '');
-  }
-
-  function setPanelMessage(id, msg, type = '') {
-    const el = document.getElementById(id);
-    el.textContent = msg || '';
-    el.className = 'msg' + (type ? ' ' + type : '');
-  }
-
-  function setAdminInfo(text) {
-    const el = document.getElementById('adminInfo');
-    el.textContent = text;
-  }
-
-  function showAdminBadge(isAdmin) {
-    const badge = document.getElementById('adminRoleBadge');
-    if (isAdmin) {
-      badge.textContent = 'Admin พร้อมใช้งาน';
-      badge.classList.remove('bad');
-      badge.classList.add('pill');
-      badge.style.display = 'inline-flex';
-      badge.style.background = '#dcfce7';
-      badge.style.color = '#166534';
-    } else {
-      badge.textContent = 'ไม่พบสิทธิ์ Admin';
-      badge.classList.add('bad');
-      badge.style.display = 'inline-flex';
+    function getBaseUrl() {
+      return GAS_BASE_URL;
     }
-  }
 
-  // -------- Tabs ---------
-  function initTabs() {
-    const buttons = document.querySelectorAll('.tab-btn');
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.getAttribute('data-tab');
-        buttons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.tab-panel').forEach(p => {
-          p.classList.toggle('active', p.id === 'tab-' + tab);
+    function setLoading(show, text) {
+      const overlay = document.getElementById('loadingOverlay');
+      const label = document.getElementById('loadingText');
+      if (text) label.textContent = text;
+      overlay.classList.toggle('active', !!show);
+    }
+
+    function setGlobalMessage(msg, type = '') {
+      const el = document.getElementById('globalMessage');
+      el.textContent = msg || '';
+      el.className = 'msg' + (type ? ' ' + type : '');
+    }
+
+    function setPanelMessage(id, msg, type = '') {
+      const el = document.getElementById(id);
+      el.textContent = msg || '';
+      el.className = 'msg' + (type ? ' ' + type : '');
+    }
+
+    function setAdminInfo(text) {
+      const el = document.getElementById('adminInfo');
+      el.textContent = text;
+    }
+
+    function showAdminBadge(isAdmin) {
+      const badge = document.getElementById('adminRoleBadge');
+      if (isAdmin) {
+        badge.textContent = 'Admin พร้อมใช้งาน';
+        badge.classList.remove('bad');
+        badge.classList.add('pill');
+        badge.style.display = 'inline-flex';
+        badge.style.background = '#dcfce7';
+        badge.style.color = '#166534';
+      } else {
+        badge.textContent = 'ไม่พบสิทธิ์ Admin';
+        badge.classList.add('bad');
+        badge.style.display = 'inline-flex';
+      }
+    }
+
+    // -------- Tabs ---------
+    function initTabs() {
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tab = btn.getAttribute('data-tab');
+          buttons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.tab-panel').forEach(p => {
+            p.classList.toggle('active', p.id === 'tab-' + tab);
+          });
         });
       });
-    });
-  }
-
-  // -------- LIFF / Auth ---------
-  async function initLiff() {
-    if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
-      setAdminInfo('⚠️ กรุณาตั้งค่า LIFF_ID ใน admin.html ก่อนใช้งาน');
-      setGlobalMessage('ยังไม่ได้ตั้งค่า LIFF ID', 'error');
-      return;
     }
 
-    try {
-      setLoading(true, 'กำลังเชื่อมต่อ LINE ...');
-      await liff.init({ liffId: LIFF_ID });
-
-      if (!liff.isLoggedIn()) {
-        liff.login();
+    // -------- LIFF / Auth ---------
+    async function initLiff() {
+      if (!LIFF_ID || LIFF_ID === 'YOUR_LIFF_ID_HERE') {
+        setAdminInfo('⚠️ กรุณาตั้งค่า LIFF_ID ใน admin.html ก่อนใช้งาน');
+        setGlobalMessage('ยังไม่ได้ตั้งค่า LIFF ID', 'error');
         return;
       }
-
-      let userId = null;
-      let displayName = '';
 
       try {
-        const decoded = liff.getDecodedIDToken();
-        if (decoded && decoded.sub) {
-          userId = decoded.sub;
+        setLoading(true, 'กำลังเชื่อมต่อ LINE ...');
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        let userId = null;
+        let displayName = '';
+
+        try {
+          const decoded = liff.getDecodedIDToken();
+          if (decoded && decoded.sub) {
+            userId = decoded.sub;
+          }
+        } catch (e) {
+          console.log('getDecodedIDToken error', e);
+        }
+
+        const profile = await liff.getProfile();
+        if (!userId && profile && profile.userId) {
+          userId = profile.userId;
+        }
+        displayName = profile.displayName || '';
+
+        ADMIN_USER_ID = userId;
+        ADMIN_NAME = displayName;
+
+        setAdminInfo(`เข้าสู่ระบบ: ${displayName} (${userId})`);
+
+        await checkAdminPermission(userId);
+      } catch (err) {
+        console.error(err);
+        setAdminInfo('ไม่สามารถเชื่อมต่อ LINE/LIFF ได้');
+        setGlobalMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function checkAdminPermission(userId) {
+      if (!userId) {
+        setGlobalMessage('ไม่พบ userId จาก LINE กรุณา Login ใหม่', 'error');
+        showAdminBadge(false);
+        return;
+      }
+      setLoading(true, 'กำลังตรวจสอบสิทธิ์ Admin ...');
+      try {
+        const base = getBaseUrl();
+        const url = `${base}?action=checkadmin&userId=${encodeURIComponent(userId)}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        if (!json.success || !json.isAdmin) {
+          showAdminBadge(false);
+          setGlobalMessage('คุณไม่มีสิทธิ์ใช้งานหน้า Admin โปรดติดต่อผู้ดูแล', 'error');
+        } else {
+          showAdminBadge(true);
+          setGlobalMessage('ยินดีต้อนรับเข้าสู่หน้า Admin', 'success');
         }
       } catch (e) {
-        console.log('getDecodedIDToken error', e);
-      }
-
-      const profile = await liff.getProfile();
-      if (!userId && profile && profile.userId) {
-        userId = profile.userId;
-      }
-      displayName = profile.displayName || '';
-
-      ADMIN_USER_ID = userId;
-      ADMIN_NAME = displayName;
-
-      setAdminInfo(`เข้าสู่ระบบ: ${displayName} (${userId})`);
-
-      await checkAdminPermission(userId);
-    } catch (err) {
-      console.error(err);
-      setAdminInfo('ไม่สามารถเชื่อมต่อ LINE/LIFF ได้');
-      setGlobalMessage('เกิดข้อผิดพลาดในการเชื่อมต่อ LIFF', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function checkAdminPermission(userId) {
-    if (!userId) {
-      setGlobalMessage('ไม่พบ userId จาก LINE กรุณา Login ใหม่', 'error');
-      showAdminBadge(false);
-      return;
-    }
-    setLoading(true, 'กำลังตรวจสอบสิทธิ์ Admin ...');
-    try {
-      const base = getBaseUrl();
-      const url = `${base}?action=checkadmin&userId=${encodeURIComponent(userId)}`;
-      const res = await fetch(url);
-      const json = await res.json();
-
-      if (!json.success || !json.isAdmin) {
+        console.error(e);
+        setGlobalMessage('ตรวจสอบสิทธิ์ไม่สำเร็จ', 'error');
         showAdminBadge(false);
-        setGlobalMessage('คุณไม่มีสิทธิ์ใช้งานหน้า Admin โปรดติดต่อผู้ดูแล', 'error');
-      } else {
-        showAdminBadge(true);
-        setGlobalMessage('ยินดีต้อนรับเข้าสู่หน้า Admin', 'success');
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error(e);
-      setGlobalMessage('ตรวจสอบสิทธิ์ไม่สำเร็จ', 'error');
-      showAdminBadge(false);
-    } finally {
-      setLoading(false);
     }
-  }
 
-  // -------- Jobdata ---------
-  async function loadJobdata() {
-    if (!ADMIN_USER_ID) {
-      setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE หรือยังไม่โหลดโปรไฟล์จาก LIFF', 'error');
-      await initLiff();
-      return;
-    }
-    setPanelMessage('jobMessage', '');
-    setLoading(true, 'กำลังโหลด Jobdata ...');
+    // -------- Jobdata ---------
+    async function loadJobdata() {
+      if (!ADMIN_USER_ID) {
+        setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE หรือยังไม่โหลดโปรไฟล์จาก LIFF', 'error');
+        await initLiff();
+        return;
+      }
+      setPanelMessage('jobMessage', '');
+      setLoading(true, 'กำลังโหลด Jobdata ...');
 
-    try {
-      const ref = document.getElementById('jobRef').value.trim();
-      const status = document.getElementById('jobStatus').value.trim();
-      const base = getBaseUrl();
-      const qs = new URLSearchParams({
-        action: 'adminjobdata',
-        adminUserId: ADMIN_USER_ID,
-        reference: ref,
-        status: status,
-        limit: '200'
-      });
-      const res = await fetch(`${base}?${qs.toString()}`);
-      const json = await res.json();
+      try {
+        const ref = document.getElementById('jobRef').value.trim();
+        const status = document.getElementById('jobStatus').value.trim();
+        const base = getBaseUrl();
+        const qs = new URLSearchParams({
+          action: 'adminjobdata',
+          adminUserId: ADMIN_USER_ID,
+          reference: ref,
+          status: status,
+          limit: '200'
+        });
+        const res = await fetch(`${base}?${qs.toString()}`);
+        const json = await res.json();
 
-      if (!json.success) {
-        setPanelMessage('jobMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
+        if (!json.success) {
+          setPanelMessage('jobMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
+          renderJobdata([]);
+          return;
+        }
+
+        renderJobdata(json.rows || []);
+        setPanelMessage('jobMessage', `พบ ${json.rows.length} รายการ`, 'success');
+      } catch (e) {
+        console.error(e);
+        setPanelMessage('jobMessage', 'เกิดข้อผิดพลาดในการโหลด Jobdata', 'error');
         renderJobdata([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderJobdata(rows) {
+      const tbody = document.getElementById('jobTableBody');
+      tbody.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="11" class="center">ไม่พบข้อมูล</td>`;
+        tbody.appendChild(tr);
         return;
       }
 
-      renderJobdata(json.rows || []);
-      setPanelMessage('jobMessage', `พบ ${json.rows.length} รายการ`, 'success');
-    } catch (e) {
-      console.error(e);
-      setPanelMessage('jobMessage', 'เกิดข้อผิดพลาดในการโหลด Jobdata', 'error');
-      renderJobdata([]);
-    } finally {
-      setLoading(false);
-    }
-  }
+      rows.forEach((r, idx) => {
+        const tr = document.createElement('tr');
 
-  function renderJobdata(rows) {
-    const tbody = document.getElementById('jobTableBody');
-    tbody.innerHTML = '';
-    if (!rows || rows.length === 0) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="11" class="center">ไม่พบข้อมูล</td>`;
-      tbody.appendChild(tr);
-      return;
-    }
+        const statusClass = (s => {
+          s = (s || '').toUpperCase();
+          if (s === 'JOB_DONE') return 'status-pill done';
+          if (s === 'NEW') return 'status-pill new';
+          if (s === 'REVIEWED') return 'status-pill reviewed';
+          if (s === 'CHECKIN') return 'status-pill alert';
+          return 'status-pill';
+        })(r.status);
 
-    rows.forEach((r, idx) => {
-      const tr = document.createElement('tr');
-
-      const statusClass = (s => {
-        s = (s || '').toUpperCase();
-        if (s === 'JOB_DONE') return 'status-pill done';
-        if (s === 'NEW') return 'status-pill new';
-        if (s === 'REVIEWED') return 'status-pill reviewed';
-        if (s === 'CHECKIN') return 'status-pill alert';
-        return 'status-pill';
-      })(r.status);
-
-      tr.innerHTML = `
+        tr.innerHTML = `
         <td>${idx + 1}</td>
         <td>${r.referenceNo || ''}</td>
         <td>${r.shipmentNo || ''}</td>
@@ -724,11 +737,11 @@
         </td>
         <td>
           <select data-row="${r.rowIndex}" class="job-status-select">
-            ${['NEW','CHECKIN','CHECKOUT','REVIEWED','JOB_DONE'].map(s => `
+            ${['NEW', 'CHECKIN', 'CHECKOUT', 'REVIEWED', 'JOB_DONE'].map(s => `
               <option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>
             `).join('')}
           </select>
-          <div style="margin-top:2px;"><span class="${statusClass}">${r.status}</span></div>
+          <div style="margin-block-start:2px;"><span class="${statusClass}">${r.status}</span></div>
         </td>
         <td>${r.checkInTime || '-'}</td>
         <td>${r.checkOutTime || '-'}</td>
@@ -739,108 +752,108 @@
           <button class="btn-main" data-row="${r.rowIndex}" onclick="onSaveJobStatus(this)">บันทึก</button>
         </td>
       `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // 🔧 เปลี่ยนมาใช้ form POST (URLSearchParams) แทน JSON เพื่อหลบ CORS preflight
-  async function onSaveJobStatus(btn) {
-    if (!ADMIN_USER_ID) {
-      setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
-      await initLiff();
-      return;
-    }
-    const rowIndex = btn.getAttribute('data-row');
-    const select = document.querySelector(`select.job-status-select[data-row="${rowIndex}"]`);
-    if (!select) return;
-    const newStatus = select.value;
-
-    if (!confirm(`ยืนยันเปลี่ยนสถานะ row ${rowIndex} เป็น ${newStatus} ?`)) return;
-
-    setLoading(true, 'กำลังบันทึกสถานะ Job ...');
-    try {
-      const base = getBaseUrl();
-      const form = new URLSearchParams();
-      form.append('action', 'adminUpdateJob');
-      form.append('adminUserId', ADMIN_USER_ID);
-      form.append('rowIndex', rowIndex);
-      form.append('status', newStatus);
-
-      const res = await fetch(base, {
-        method: 'POST',
-        body: form
+        tbody.appendChild(tr);
       });
+    }
 
-      const json = await res.json();
-      if (!json.success) {
-        setPanelMessage('jobMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
-      } else {
-        setPanelMessage('jobMessage', 'บันทึกสถานะสำเร็จ', 'success');
-        await loadJobdata();
+    // 🔧 เปลี่ยนมาใช้ form POST (URLSearchParams) แทน JSON เพื่อหลบ CORS preflight
+    async function onSaveJobStatus(btn) {
+      if (!ADMIN_USER_ID) {
+        setPanelMessage('jobMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+        await initLiff();
+        return;
       }
-    } catch (e) {
-      console.error(e);
-      setPanelMessage('jobMessage', 'เกิดข้อผิดพลาดระหว่างบันทึก', 'error');
-    } finally {
-      setLoading(false);
+      const rowIndex = btn.getAttribute('data-row');
+      const select = document.querySelector(`select.job-status-select[data-row="${rowIndex}"]`);
+      if (!select) return;
+      const newStatus = select.value;
+
+      if (!confirm(`ยืนยันเปลี่ยนสถานะ row ${rowIndex} เป็น ${newStatus} ?`)) return;
+
+      setLoading(true, 'กำลังบันทึกสถานะ Job ...');
+      try {
+        const base = getBaseUrl();
+        const form = new URLSearchParams();
+        form.append('action', 'adminUpdateJob');
+        form.append('adminUserId', ADMIN_USER_ID);
+        form.append('rowIndex', rowIndex);
+        form.append('status', newStatus);
+
+        const res = await fetch(base, {
+          method: 'POST',
+          body: form
+        });
+
+        const json = await res.json();
+        if (!json.success) {
+          setPanelMessage('jobMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
+        } else {
+          setPanelMessage('jobMessage', 'บันทึกสถานะสำเร็จ', 'success');
+          await loadJobdata();
+        }
+      } catch (e) {
+        console.error(e);
+        setPanelMessage('jobMessage', 'เกิดข้อผิดพลาดระหว่างบันทึก', 'error');
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
-  // -------- Alcohol ---------
-  async function loadAlcohol() {
-    if (!ADMIN_USER_ID) {
-      setPanelMessage('alcMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
-      await initLiff();
-      return;
-    }
-    setPanelMessage('alcMessage', '');
-    setLoading(true, 'กำลังโหลด Alcohol ...');
+    // -------- Alcohol ---------
+    async function loadAlcohol() {
+      if (!ADMIN_USER_ID) {
+        setPanelMessage('alcMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+        await initLiff();
+        return;
+      }
+      setPanelMessage('alcMessage', '');
+      setLoading(true, 'กำลังโหลด Alcohol ...');
 
-    try {
-      const ref = document.getElementById('alcRef').value.trim();
-      const driver = document.getElementById('alcDriver').value.trim();
-      const base = getBaseUrl();
-      const qs = new URLSearchParams({
-        action: 'adminalcohol',
-        adminUserId: ADMIN_USER_ID,
-        reference: ref,
-        driver: driver,
-        limit: '200'
-      });
-      const res = await fetch(`${base}?${qs.toString()}`);
-      const json = await res.json();
+      try {
+        const ref = document.getElementById('alcRef').value.trim();
+        const driver = document.getElementById('alcDriver').value.trim();
+        const base = getBaseUrl();
+        const qs = new URLSearchParams({
+          action: 'adminalcohol',
+          adminUserId: ADMIN_USER_ID,
+          reference: ref,
+          driver: driver,
+          limit: '200'
+        });
+        const res = await fetch(`${base}?${qs.toString()}`);
+        const json = await res.json();
 
-      if (!json.success) {
-        setPanelMessage('alcMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
+        if (!json.success) {
+          setPanelMessage('alcMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
+          renderAlcohol([]);
+          return;
+        }
+
+        renderAlcohol(json.rows || []);
+        setPanelMessage('alcMessage', `พบ ${json.rows.length} รายการ`, 'success');
+      } catch (e) {
+        console.error(e);
+        setPanelMessage('alcMessage', 'เกิดข้อผิดพลาดในการโหลด Alcohol', 'error');
         renderAlcohol([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function renderAlcohol(rows) {
+      const tbody = document.getElementById('alcTableBody');
+      tbody.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="9" class="center">ไม่พบข้อมูล</td>`;
+        tbody.appendChild(tr);
         return;
       }
 
-      renderAlcohol(json.rows || []);
-      setPanelMessage('alcMessage', `พบ ${json.rows.length} รายการ`, 'success');
-    } catch (e) {
-      console.error(e);
-      setPanelMessage('alcMessage', 'เกิดข้อผิดพลาดในการโหลด Alcohol', 'error');
-      renderAlcohol([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function renderAlcohol(rows) {
-    const tbody = document.getElementById('alcTableBody');
-    tbody.innerHTML = '';
-    if (!rows || rows.length === 0) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="9" class="center">ไม่พบข้อมูล</td>`;
-      tbody.appendChild(tr);
-      return;
-    }
-
-    rows.forEach((r, idx) => {
-      const tr = document.createElement('tr');
-      const val = r.alcoholValue != null ? r.alcoholValue : '';
-      tr.innerHTML = `
+      rows.forEach((r, idx) => {
+        const tr = document.createElement('tr');
+        const val = r.alcoholValue != null ? r.alcoholValue : '';
+        tr.innerHTML = `
         <td>${idx + 1}</td>
         <td>${r.reference || ''}</td>
         <td>${r.driverName || ''}</td>
@@ -852,139 +865,139 @@
         <td>${r.userId || '-'}</td>
         <td>${r.lat || '-'}, ${r.lng || '-'}</td>
         <td>
-          ${r.imageUrl ? `<a href="${r.imageUrl}" target="_blank">เปิดรูป</a>` : '-' }
+          ${r.imageUrl ? `<a href="${r.imageUrl}" target="_blank">เปิดรูป</a>` : '-'}
         </td>
         <td class="actions">
           <button class="btn-main" data-row="${r.rowIndex}" onclick="onSaveAlcohol(this)">บันทึก</button>
         </td>
       `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // 🔧 เปลี่ยนเป็น form POST เช่นกัน
-  async function onSaveAlcohol(btn) {
-    if (!ADMIN_USER_ID) {
-      setPanelMessage('alcMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
-      await initLiff();
-      return;
-    }
-    const rowIndex = btn.getAttribute('data-row');
-    const input = document.querySelector(`input.alc-value-input[data-row="${rowIndex}"]`);
-    if (!input) return;
-    const value = input.value.trim();
-    if (value === '' || isNaN(parseFloat(value))) {
-      alert('กรุณาใส่ค่าแอลกอฮอล์ให้ถูกต้อง');
-      return;
-    }
-
-    if (!confirm(`ยืนยันแก้ไขค่าแอลกอฮอล์ row ${rowIndex} เป็น ${value} ?`)) return;
-
-    setLoading(true, 'กำลังบันทึกค่า Alcohol ...');
-    try {
-      const base = getBaseUrl();
-      const form = new URLSearchParams();
-      form.append('action', 'adminUpdateAlcohol');
-      form.append('adminUserId', ADMIN_USER_ID);
-      form.append('rowIndex', rowIndex);
-      form.append('alcoholValue', value);
-
-      const res = await fetch(base, {
-        method: 'POST',
-        body: form
+        tbody.appendChild(tr);
       });
+    }
 
-      const json = await res.json();
-      if (!json.success) {
-        setPanelMessage('alcMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
-      } else {
-        setPanelMessage('alcMessage', 'บันทึกค่าตรวจแอลกอฮอล์สำเร็จ', 'success');
-        await loadAlcohol();
+    // 🔧 เปลี่ยนเป็น form POST เช่นกัน
+    async function onSaveAlcohol(btn) {
+      if (!ADMIN_USER_ID) {
+        setPanelMessage('alcMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+        await initLiff();
+        return;
       }
-    } catch (e) {
-      console.error(e);
-      setPanelMessage('alcMessage', 'เกิดข้อผิดพลาดระหว่างบันทึก', 'error');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // -------- Userprofile ---------
-  async function loadUsers() {
-    if (!ADMIN_USER_ID) {
-      setPanelMessage('userMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
-      await initLiff();
-      return;
-    }
-    setPanelMessage('userMessage', '');
-    setLoading(true, 'กำลังโหลด User ...');
-
-    try {
-      const status = document.getElementById('userStatus').value.trim();
-      const keyword = document.getElementById('userKeyword').value.trim();
-      const base = getBaseUrl();
-      const qs = new URLSearchParams({
-        action: 'adminuserprofile',
-        adminUserId: ADMIN_USER_ID,
-        status: status,
-        keyword: keyword
-      });
-      const res = await fetch(`${base}?${qs.toString()}`);
-      const json = await res.json();
-
-      if (!json.success) {
-        setPanelMessage('userMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
-        renderUsers([]);
+      const rowIndex = btn.getAttribute('data-row');
+      const input = document.querySelector(`input.alc-value-input[data-row="${rowIndex}"]`);
+      if (!input) return;
+      const value = input.value.trim();
+      if (value === '' || isNaN(parseFloat(value))) {
+        alert('กรุณาใส่ค่าแอลกอฮอล์ให้ถูกต้อง');
         return;
       }
 
-      renderUsers(json.rows || []);
-      setPanelMessage('userMessage', `พบ ${json.rows.length} user`, 'success');
-    } catch (e) {
-      console.error(e);
-      setPanelMessage('userMessage', 'เกิดข้อผิดพลาดในการโหลด User', 'error');
-      renderUsers([]);
-    } finally {
-      setLoading(false);
+      if (!confirm(`ยืนยันแก้ไขค่าแอลกอฮอล์ row ${rowIndex} เป็น ${value} ?`)) return;
+
+      setLoading(true, 'กำลังบันทึกค่า Alcohol ...');
+      try {
+        const base = getBaseUrl();
+        const form = new URLSearchParams();
+        form.append('action', 'adminUpdateAlcohol');
+        form.append('adminUserId', ADMIN_USER_ID);
+        form.append('rowIndex', rowIndex);
+        form.append('alcoholValue', value);
+
+        const res = await fetch(base, {
+          method: 'POST',
+          body: form
+        });
+
+        const json = await res.json();
+        if (!json.success) {
+          setPanelMessage('alcMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
+        } else {
+          setPanelMessage('alcMessage', 'บันทึกค่าตรวจแอลกอฮอล์สำเร็จ', 'success');
+          await loadAlcohol();
+        }
+      } catch (e) {
+        console.error(e);
+        setPanelMessage('alcMessage', 'เกิดข้อผิดพลาดระหว่างบันทึก', 'error');
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
-  function renderUsers(rows) {
-    const tbody = document.getElementById('userTableBody');
-    tbody.innerHTML = '';
-    if (!rows || rows.length === 0) {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="8" class="center">ไม่พบข้อมูล</td>`;
-      tbody.appendChild(tr);
-      return;
+    // -------- Userprofile ---------
+    async function loadUsers() {
+      if (!ADMIN_USER_ID) {
+        setPanelMessage('userMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+        await initLiff();
+        return;
+      }
+      setPanelMessage('userMessage', '');
+      setLoading(true, 'กำลังโหลด User ...');
+
+      try {
+        const status = document.getElementById('userStatus').value.trim();
+        const keyword = document.getElementById('userKeyword').value.trim();
+        const base = getBaseUrl();
+        const qs = new URLSearchParams({
+          action: 'adminuserprofile',
+          adminUserId: ADMIN_USER_ID,
+          status: status,
+          keyword: keyword
+        });
+        const res = await fetch(`${base}?${qs.toString()}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          setPanelMessage('userMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
+          renderUsers([]);
+          return;
+        }
+
+        renderUsers(json.rows || []);
+        setPanelMessage('userMessage', `พบ ${json.rows.length} user`, 'success');
+      } catch (e) {
+        console.error(e);
+        setPanelMessage('userMessage', 'เกิดข้อผิดพลาดในการโหลด User', 'error');
+        renderUsers([]);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      const statusClass = (() => {
-        const s = (r.status || '').toUpperCase();
-        if (s === 'APPROVED') return 'status-pill done';
-        if (s === 'PENDING') return 'status-pill new';
-        if (s === 'REJECTED') return 'status-pill alert';
-        return 'status-pill';
-      })();
+    function renderUsers(rows) {
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = '';
+      if (!rows || rows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="8" class="center">ไม่พบข้อมูล</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
 
-      tr.innerHTML = `
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const statusClass = (() => {
+          const s = (r.status || '').toUpperCase();
+          if (s === 'APPROVED') return 'status-pill done';
+          if (s === 'PENDING') return 'status-pill new';
+          if (s === 'REJECTED') return 'status-pill alert';
+          return 'status-pill';
+        })();
+
+        tr.innerHTML = `
         <td>
           ${r.pictureUrl
-            ? `<img src="${r.pictureUrl}" alt="" style="width:32px;height:32px;border-radius:999px;object-fit:cover;" />`
-            : `<div style="width:32px;height:32px;border-radius:999px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">?</div>`
+            ? `<img src="${r.pictureUrl}" alt="" style="inline-size:32px;block-size:32px;border-radius:999px;object-fit:cover;" />`
+            : `<div style="inline-size:32px;block-size:32px;border-radius:999px;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.7rem;">?</div>`
           }
         </td>
         <td>${r.displayName || '-'}</td>
-        <td style="max-width:220px;word-break:break-all;">${r.userId || '-'}</td>
+        <td style="max-inline-size:220px;word-break:break-all;">${r.userId || '-'}</td>
         <td>
           <select class="user-status-select" data-user="${r.userId}">
-            ${['PENDING','APPROVED','REJECTED'].map(s => `
+            ${['PENDING', 'APPROVED', 'REJECTED'].map(s => `
               <option value="${s}" ${s === r.status ? 'selected' : ''}>${s}</option>
             `).join('')}
           </select>
-          <div style="margin-top:2px;"><span class="${statusClass}">${r.status}</span></div>
+          <div style="margin-block-start:2px;"><span class="${statusClass}">${r.status}</span></div>
         </td>
         <td><span class="tag">${r.userType || '-'}</span></td>
         <td>${r.createdAt || '-'}</td>
@@ -993,62 +1006,63 @@
           <button class="btn-main" data-user="${r.userId}" onclick="onSaveUserStatus(this)">บันทึก</button>
         </td>
       `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // 🔧 เปลี่ยนเป็น form POST เช่นกัน
-  async function onSaveUserStatus(btn) {
-    if (!ADMIN_USER_ID) {
-      setPanelMessage('userMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
-      await initLiff();
-      return;
-    }
-    const userId = btn.getAttribute('data-user');
-    const select = document.querySelector(`select.user-status-select[data-user="${userId}"]`);
-    if (!select) return;
-    const newStatus = select.value;
-
-    if (!confirm(`ยืนยันเปลี่ยนสถานะผู้ใช้\n${userId}\nเป็น ${newStatus} ?`)) return;
-
-    setLoading(true, 'กำลังบันทึกสถานะ User ...');
-    try {
-      const base = getBaseUrl();
-      const form = new URLSearchParams();
-      form.append('action', 'updateUserStatus');
-      form.append('adminUserId', ADMIN_USER_ID);
-      form.append('userId', userId);
-      form.append('status', newStatus);
-
-      const res = await fetch(base, {
-        method: 'POST',
-        body: form
+        tbody.appendChild(tr);
       });
-      const json = await res.json();
-      if (!json.success) {
-        setPanelMessage('userMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
-      } else {
-        setPanelMessage('userMessage', 'บันทึกสถานะผู้ใช้สำเร็จ', 'success');
-        await loadUsers();
-      }
-    } catch (e) {
-      console.error(e);
-      setPanelMessage('userMessage', 'เกิดข้อผิดพลาดระหว่างบันทึก', 'error');
-    } finally {
-      setLoading(false);
     }
-  }
 
-  // -------- Init ---------
-  document.addEventListener('DOMContentLoaded', () => {
-    initTabs();
+    // 🔧 เปลี่ยนเป็น form POST เช่นกัน
+    async function onSaveUserStatus(btn) {
+      if (!ADMIN_USER_ID) {
+        setPanelMessage('userMessage', 'ยังไม่ได้ล็อกอิน LINE', 'error');
+        await initLiff();
+        return;
+      }
+      const userId = btn.getAttribute('data-user');
+      const select = document.querySelector(`select.user-status-select[data-user="${userId}"]`);
+      if (!select) return;
+      const newStatus = select.value;
 
-    document.getElementById('btnLoadJob').addEventListener('click', loadJobdata);
-    document.getElementById('btnLoadAlcohol').addEventListener('click', loadAlcohol);
-    document.getElementById('btnLoadUsers').addEventListener('click', loadUsers);
+      if (!confirm(`ยืนยันเปลี่ยนสถานะผู้ใช้\n${userId}\nเป็น ${newStatus} ?`)) return;
 
-    initLiff();
-  });
-</script>
+      setLoading(true, 'กำลังบันทึกสถานะ User ...');
+      try {
+        const base = getBaseUrl();
+        const form = new URLSearchParams();
+        form.append('action', 'updateUserStatus');
+        form.append('adminUserId', ADMIN_USER_ID);
+        form.append('userId', userId);
+        form.append('status', newStatus);
+
+        const res = await fetch(base, {
+          method: 'POST',
+          body: form
+        });
+        const json = await res.json();
+        if (!json.success) {
+          setPanelMessage('userMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
+        } else {
+          setPanelMessage('userMessage', 'บันทึกสถานะผู้ใช้สำเร็จ', 'success');
+          await loadUsers();
+        }
+      } catch (e) {
+        console.error(e);
+        setPanelMessage('userMessage', 'เกิดข้อผิดพลาดระหว่างบันทึก', 'error');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // -------- Init ---------
+    document.addEventListener('DOMContentLoaded', () => {
+      initTabs();
+
+      document.getElementById('btnLoadJob').addEventListener('click', loadJobdata);
+      document.getElementById('btnLoadAlcohol').addEventListener('click', loadAlcohol);
+      document.getElementById('btnLoadUsers').addEventListener('click', loadUsers);
+
+      initLiff();
+    });
+  </script>
 </body>
+
 </html>
