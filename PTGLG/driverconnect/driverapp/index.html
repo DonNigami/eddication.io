@@ -1543,16 +1543,10 @@
       }
 
       async function startCheckin(rowIndex, seq) {
-        if (
-          currentDrivers.length > 0 &&
-          !(
-            currentDrivers.length > 0 &&
-            currentDrivers.every((n) => currentCheckedDrivers.includes(n))
-          )
-        ) {
+        if (currentDrivers.length > 0 && currentCheckedDrivers.length === 0) {
           showInfo(
             'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
-            'ต้องตรวจแอลกอฮอล์ให้ครบทุกคนก่อนทำการ Check-in จุดส่งแรก'
+            'ต้องตรวจแอลกอฮอล์อย่างน้อย 1 คนก่อนทำการ Check-in จุดส่งแรก'
           );
           return;
         }
