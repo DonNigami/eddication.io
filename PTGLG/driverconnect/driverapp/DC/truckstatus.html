@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="UTF-8" />
   <title>DC Log – บันทึกเวลาที่ DC & แจ้งปัญหา & สถานะ Booking</title>
@@ -20,7 +21,9 @@
       --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.12);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     html {
       /* ขนาดฟอนต์พื้นฐาน ปรับตามความกว้างจอ */
@@ -39,7 +42,8 @@
 
     .app {
       width: 100%;
-      max-width: 600px;             /* รองรับมือถือใหญ่ + แท็บเล็ตเล็ก */
+      max-width: 600px;
+      /* รองรับมือถือใหญ่ + แท็บเล็ตเล็ก */
       padding: clamp(10px, 4vw, 20px) clamp(8px, 4vw, 16px);
     }
 
@@ -51,7 +55,9 @@
       border: 1px solid var(--border-subtle);
     }
 
-    .card-header-main { margin-bottom: clamp(8px, 2vw, 14px); }
+    .card-header-main {
+      margin-bottom: clamp(8px, 2vw, 14px);
+    }
 
     h1 {
       font-size: clamp(1rem, 2.4vw, 1.2rem);
@@ -104,7 +110,7 @@
       justify-content: center;
       gap: 6px;
       transition: background 0.12s ease, color 0.12s ease,
-                  box-shadow 0.12s ease, transform 0.12s ease;
+        box-shadow 0.12s ease, transform 0.12s ease;
       white-space: nowrap;
     }
 
@@ -119,8 +125,13 @@
       transform: translateY(-1px);
     }
 
-    .panel { margin-top: 4px; }
-    .hidden { display: none !important; }
+    .panel {
+      margin-top: 4px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
 
     .section-title {
       font-size: 0.9rem;
@@ -159,7 +170,9 @@
       color: var(--text-main);
     }
 
-    .field { margin-bottom: 12px; }
+    .field {
+      margin-bottom: 12px;
+    }
 
     .field-inline {
       display: flex;
@@ -209,7 +222,7 @@
       justify-content: center;
       gap: 6px;
       transition: transform 0.12s ease, box-shadow 0.12s ease,
-                  background 0.12s ease, opacity 0.12s ease;
+        background 0.12s ease, opacity 0.12s ease;
       white-space: nowrap;
     }
 
@@ -249,7 +262,9 @@
       line-height: 1.4;
     }
 
-    .note strong { color: #b45309; }
+    .note strong {
+      color: #b45309;
+    }
 
     .image-preview {
       margin-top: 8px;
@@ -283,7 +298,10 @@
       flex-wrap: wrap;
     }
 
-    .required { color: var(--danger); margin-left: 2px; }
+    .required {
+      color: var(--danger);
+      margin-left: 2px;
+    }
 
     .tag {
       display: inline-flex;
@@ -441,6 +459,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="app">
     <div class="card">
@@ -476,16 +495,8 @@
               <label for="reference">
                 เลข Booking (9 หลักท้ายหลังเครื่องหมาย -)<span class="required">*</span>
               </label>
-              <input
-                type="text"
-                id="reference"
-                name="reference"
-                placeholder="เช่น 251243448 (จาก B001-251243448)"
-                inputmode="numeric"
-                maxlength="9"
-                required
-                oninput="enforceBookingDigits(this)"
-              />
+              <input type="text" id="reference" name="reference" placeholder="เช่น 251243448 (จาก B001-251243448)"
+                inputmode="numeric" maxlength="9" required oninput="enforceBookingDigits(this)" />
               <div class="note">
                 กรอกเฉพาะเลข 9 หลักสุดท้าย <strong>ไม่ต้องกรอก B001-</strong>
               </div>
@@ -495,13 +506,7 @@
               <label for="truckPlate">
                 ทะเบียนรถ<span class="required">*</span>
               </label>
-              <input
-                type="text"
-                id="truckPlate"
-                name="truckPlate"
-                placeholder="เช่น กท-1234 / 70-xxxx"
-                required
-              />
+              <input type="text" id="truckPlate" name="truckPlate" placeholder="เช่น กท-1234 / 70-xxxx" required />
             </div>
           </div>
 
@@ -517,12 +522,7 @@
           <div class="field">
             <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
             <div class="field-inline">
-              <input
-                type="time"
-                id="arriveDcTime"
-                name="arriveDcTime"
-                required
-              />
+              <input type="time" id="arriveDcTime" name="arriveDcTime" required />
               <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
                 ตอนนี้
               </button>
@@ -583,11 +583,7 @@
 
           <div class="field">
             <label for="remark">หมายเหตุเพิ่มเติม</label>
-            <textarea
-              id="remark"
-              name="remark"
-              placeholder="เช่น รอคิวโหลดนาน / มีปัญหาหน้างาน ฯลฯ"
-            ></textarea>
+            <textarea id="remark" name="remark" placeholder="เช่น รอคิวโหลดนาน / มีปัญหาหน้างาน ฯลฯ"></textarea>
           </div>
 
           <div class="section-title">
@@ -599,14 +595,7 @@
             <label for="photoRear">
               แนบรูปท้ายรถ <span class="required">*</span>
             </label>
-            <input
-              type="file"
-              id="photoRear"
-              name="photoRear"
-              accept="image/*"
-              capture="environment"
-              required
-            />
+            <input type="file" id="photoRear" name="photoRear" accept="image/*" capture="environment" required />
             <div class="note">
               • ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
               • ระบบจะบีบอัดรูปให้อัตโนมัติ เพื่อลดเวลาส่งข้อมูล
@@ -634,25 +623,13 @@
         <form id="problemForm">
           <div class="field">
             <label for="problemReference">เลข Booking (9 หลักท้าย)<span class="required">*</span></label>
-            <input
-              type="text"
-              id="problemReference"
-              placeholder="เช่น 251243448"
-              inputmode="numeric"
-              maxlength="9"
-              required
-              oninput="enforceBookingDigits(this)"
-            />
+            <input type="text" id="problemReference" placeholder="เช่น 251243448" inputmode="numeric" maxlength="9"
+              required oninput="enforceBookingDigits(this)" />
           </div>
 
           <div class="field">
             <label for="problemTruckPlate">ทะเบียนรถ<span class="required">*</span></label>
-            <input
-              type="text"
-              id="problemTruckPlate"
-              placeholder="เช่น กท-1234 / 70-xxxx"
-              required
-            />
+            <input type="text" id="problemTruckPlate" placeholder="เช่น กท-1234 / 70-xxxx" required />
           </div>
 
           <div class="field">
@@ -669,11 +646,8 @@
 
           <div class="field">
             <label for="problemDetail">รายละเอียดปัญหา<span class="required">*</span></label>
-            <textarea
-              id="problemDetail"
-              placeholder="อธิบายเหตุการณ์ / จุดที่เกิดปัญหา / ผู้ติดต่อหน้างาน ฯลฯ"
-              required
-            ></textarea>
+            <textarea id="problemDetail" placeholder="อธิบายเหตุการณ์ / จุดที่เกิดปัญหา / ผู้ติดต่อหน้างาน ฯลฯ"
+              required></textarea>
           </div>
 
           <div class="section-title">
@@ -683,12 +657,7 @@
 
           <div class="field">
             <label for="problemPhotos">เลือกรูปภาพ</label>
-            <input
-              type="file"
-              id="problemPhotos"
-              accept="image/*"
-              multiple
-            />
+            <input type="file" id="problemPhotos" accept="image/*" multiple />
             <div class="note">
               สามารถเลือกหลายรูปได้ในครั้งเดียว ระบบจะย่อลดขนาดให้อัตโนมัติ
             </div>
@@ -707,14 +676,8 @@
           <label for="searchBooking">
             เลข Booking (9 หลักท้าย)<span class="required">*</span>
           </label>
-          <input
-            type="text"
-            id="searchBooking"
-            placeholder="เช่น 251243448"
-            inputmode="numeric"
-            maxlength="9"
-            oninput="enforceBookingDigits(this)"
-          />
+          <input type="text" id="searchBooking" placeholder="เช่น 251243448" inputmode="numeric" maxlength="9"
+            oninput="enforceBookingDigits(this)" />
           <div class="note">
             ใช้เลข 9 หลักท้ายเหมือนกับที่บันทึกในหน้า DC Log
           </div>
@@ -731,6 +694,31 @@
   <script>
     // 👇 เปลี่ยนเป็น URL Web App ของ Apps Script
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxQDbS5JZyzkbYxfdDLz8q2XCvBbRqQ9fE36Mn_dgvdabzzDcl4R5oV0tliQo_rLfv8RA/exec";
+
+    // --- Helpers: timeout + HTML escaping ---
+    const DEFAULT_TIMEOUT = 15000; // 15s
+    function fetchWithTimeout(resource, options = {}, timeout = DEFAULT_TIMEOUT) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+      return fetch(resource, { ...options, signal: controller.signal }).finally(() => clearTimeout(id));
+    }
+    function escapeHTML(str) {
+      return String(str).replace(/[&<>"'`=\/]/g, (s) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+        "/": "&#x2F;",
+        "`": "&#x60;",
+        "=": "&#x3D;",
+      }[s]));
+    }
+    // a11y: time error as an alert
+    document.addEventListener("DOMContentLoaded", () => {
+      const te = document.getElementById("timeError");
+      if (te) te.setAttribute("role", "alert");
+    });
 
     /* -------- Tabs -------- */
     const tabButtons = document.querySelectorAll(".tab-btn");
@@ -800,7 +788,7 @@
 
     function isValidCrossDay(prevMin, nextMin) {
       return (prevMin >= 23 * 60 && prevMin <= 23 * 60 + 59) &&
-             (nextMin >= 0 && nextMin <= 5 * 60);
+        (nextMin >= 0 && nextMin <= 5 * 60);
     }
 
     function clearTimeErrors() {
@@ -944,18 +932,18 @@
       e.preventDefault();
 
       const referenceRaw = document.getElementById("reference").value.trim();
-      const numericRef   = referenceRaw.replace(/\D/g, "");
-      const truckPlate   = document.getElementById("truckPlate").value.trim();
+      const numericRef = referenceRaw.replace(/\D/g, "");
+      const truckPlate = document.getElementById("truckPlate").value.trim();
 
-      const arriveRaw    = document.getElementById("arriveDcTime").value.trim();
+      const arriveRaw = document.getElementById("arriveDcTime").value.trim();
       const loadStartRaw = document.getElementById("loadStartTime").value.trim();
-      const loadEndRaw   = document.getElementById("loadEndTime").value.trim();
-      const docStartRaw  = document.getElementById("docStartTime").value.trim();
-      const docEndRaw    = document.getElementById("docEndTime").value.trim();
-      const departRaw    = document.getElementById("departTime").value.trim();
+      const loadEndRaw = document.getElementById("loadEndTime").value.trim();
+      const docStartRaw = document.getElementById("docStartTime").value.trim();
+      const docEndRaw = document.getElementById("docEndTime").value.trim();
+      const departRaw = document.getElementById("departTime").value.trim();
 
-      const remark       = document.getElementById("remark").value.trim();
-      const file         = photoInput.files && photoInput.files[0];
+      const remark = document.getElementById("remark").value.trim();
+      const file = photoInput.files && photoInput.files[0];
 
       if (!numericRef || numericRef.length !== 9) {
         Swal.fire(
@@ -984,6 +972,9 @@
       }
 
       try {
+        const submitBtn = dcForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
         Swal.fire({
           title: "กำลังบันทึกข้อมูล...",
           html: "ระบบกำลังอัปโหลดรูปและบันทึกข้อมูล อาจใช้เวลา 5–10 วินาที",
@@ -1018,14 +1009,12 @@
           imageBase64: imageBase64,
         };
 
-        const res = await fetch(SCRIPT_URL, {
+        const res = await fetchWithTimeout(SCRIPT_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8",
-          },
+          headers: { "Content-Type": "text/plain;charset=utf-8", "Accept": "application/json" },
           body: JSON.stringify(payload),
         });
-
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const result = await res.json().catch(() => ({}));
         Swal.close();
 
@@ -1057,6 +1046,9 @@
           title: "เกิดข้อผิดพลาด",
           text: "ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือแจ้งแอดมิน",
         });
+      } finally {
+        const submitBtn = dcForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
       }
     });
 
@@ -1073,7 +1065,8 @@
         const params = new URLSearchParams();
         params.set("action", "getProblemList");
 
-        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, { method: "GET" });
+        const res = await fetchWithTimeout(`${SCRIPT_URL}?${params.toString()}`, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const result = await res.json().catch(() => ({}));
 
         if (!result || !result.success) {
@@ -1102,36 +1095,17 @@
       }
     }
 
-    /* -------- Problem: preview multi images -------- */
-    const problemPhotosInput = document.getElementById("problemPhotos");
-    const problemPreview = document.getElementById("problemPreview");
-
-    problemPhotosInput.addEventListener("change", () => {
-      problemPreview.innerHTML = "";
-      const files = Array.from(problemPhotosInput.files || []);
-      if (!files.length) return;
-      files.forEach((file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = document.createElement("img");
-          img.src = e.target.result;
-          problemPreview.appendChild(img);
-        };
-        reader.readAsDataURL(file);
-      });
-    });
-
     /* -------- Submit: Problem Form -------- */
     const problemForm = document.getElementById("problemForm");
     problemForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const refRaw       = document.getElementById("problemReference").value.trim();
-      const numericRef   = refRaw.replace(/\D/g, "");
-      const truckPlate   = document.getElementById("problemTruckPlate").value.trim();
-      const problemType  = problemTypeSelect.value.trim();
-      const detail       = document.getElementById("problemDetail").value.trim();
-      const files        = Array.from(problemPhotosInput.files || []);
+      const refRaw = document.getElementById("problemReference").value.trim();
+      const numericRef = refRaw.replace(/\D/g, "");
+      const truckPlate = document.getElementById("problemTruckPlate").value.trim();
+      const problemType = problemTypeSelect.value.trim();
+      const detail = document.getElementById("problemDetail").value.trim();
+      const files = Array.from(problemPhotosInput.files || []);
 
       if (!numericRef || numericRef.length !== 9) {
         Swal.fire(
@@ -1155,6 +1129,9 @@
       }
 
       try {
+        const submitBtn = problemForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
         Swal.fire({
           title: "กำลังส่งแจ้งปัญหา...",
           html: "ระบบกำลังอัปโหลดรูปและบันทึกข้อมูล",
@@ -1177,14 +1154,12 @@
           imagesBase64: imagesBase64,
         };
 
-        const res = await fetch(SCRIPT_URL, {
+        const res = await fetchWithTimeout(SCRIPT_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8",
-          },
+          headers: { "Content-Type": "text/plain;charset=utf-8", "Accept": "application/json" },
           body: JSON.stringify(payload),
         });
-
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const result = await res.json().catch(() => ({}));
         Swal.close();
 
@@ -1213,6 +1188,9 @@
           title: "เกิดข้อผิดพลาด",
           text: "ไม่สามารถส่งข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือแจ้งแอดมิน",
         });
+      } finally {
+        const submitBtn = problemForm.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = false;
       }
     });
 
@@ -1276,6 +1254,8 @@
       }
 
       try {
+        btnSearchBooking.disabled = true;
+
         Swal.fire({
           title: "กำลังค้นหาสถานะ Booking...",
           html: "กำลังดึงข้อมูลจาก Wave",
@@ -1287,10 +1267,8 @@
         params.set("action", "getBookingStatus");
         params.set("booking", numericRef);
 
-        const res = await fetch(`${SCRIPT_URL}?${params.toString()}`, {
-          method: "GET",
-        });
-
+        const res = await fetchWithTimeout(`${SCRIPT_URL}?${params.toString()}`, { method: "GET" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const result = await res.json().catch(() => ({}));
         Swal.close();
 
@@ -1304,10 +1282,11 @@
         }
 
         if (!result.found) {
+          const msg = escapeHTML(result.message || "");
           bookingResultBox.style.display = "block";
           bookingResultBox.innerHTML = `
             <div class="booking-result-title">ไม่พบข้อมูล Booking นี้</div>
-            <div>${result.message || ''}</div>
+            <div>${msg}</div>
           `;
           return;
         }
@@ -1318,7 +1297,7 @@
         if (!waves.length) {
           bookingResultBox.style.display = "block";
           bookingResultBox.innerHTML = `
-            <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+            <div class="booking-result-title">ผลการค้นหา Booking: ${escapeHTML(d.booking || numericRef)}</div>
             <div class="booking-empty">ไม่พบ Wave Number สำหรับ Booking นี้</div>
           `;
           return;
@@ -1347,42 +1326,43 @@
         const mappedOverall = bestWave.mapped;
         const overallWaveStatus = overallWave.waveStatus || d.status || "";
 
+        const safe = (v) => escapeHTML(v ?? "-");
+
         const cardsHtml = waves.map((w, index) => {
           const mapped = mapWaveStatus(w.waveStatus || "");
-
           return `
           <div class="booking-wave-card">
             <div class="booking-wave-header">
-              Wave #${w.waveNumber || '-'}${waves.length > 1 ? ` (ลำดับที่ ${index + 1})` : ''}
+              Wave #${safe(w.waveNumber)}${waves.length > 1 ? ` (ลำดับที่ ${index + 1})` : ""}
             </div>
             <div class="booking-result-main-status">
-              <span class="booking-status-pill status-${mapped.level}">
-                ${mapped.th}
+              <span class="booking-status-pill status-${safe(mapped.level)}">
+                ${safe(mapped.th)}
               </span>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Loading Status</div>
-              <div class="booking-wave-value">${w.loadingStatus || '-'}</div>
+              <div class="booking-wave-value">${safe(w.loadingStatus)}</div>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Wave Status (EN)</div>
-              <div class="booking-wave-value">${w.waveStatus || '-'}</div>
+              <div class="booking-wave-value">${safe(w.waveStatus)}</div>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Pick-up date</div>
-              <div class="booking-wave-value">${w.pickUpDate || '-'}</div>
+              <div class="booking-wave-value">${safe(w.pickUpDate)}</div>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Pick-up time</div>
-              <div class="booking-wave-value">${w.pickUpTime || '-'}</div>
+              <div class="booking-wave-value">${safe(w.pickUpTime)}</div>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Logistics</div>
-              <div class="booking-wave-value">${w.logistics || '-'}</div>
+              <div class="booking-wave-value">${safe(w.logistics)}</div>
             </div>
             <div class="booking-wave-row">
               <div class="booking-wave-label">Dock</div>
-              <div class="booking-wave-value">${w.dock || '-'}</div>
+              <div class="booking-wave-value">${safe(w.dock)}</div>
             </div>
           </div>
         `;
@@ -1390,16 +1370,16 @@
 
         bookingResultBox.style.display = "block";
         bookingResultBox.innerHTML = `
-          <div class="booking-result-title">ผลการค้นหา Booking: ${d.booking || numericRef}</div>
+          <div class="booking-result-title">ผลการค้นหา Booking: ${safe(d.booking || numericRef)}</div>
           <div class="booking-result-main-status">
-            <span class="booking-status-pill status-${mappedOverall.level}">
-              สถานะโดยรวม: ${mappedOverall.th}
+            <span class="booking-status-pill status-${safe(mappedOverall.level)}">
+              สถานะโดยรวม: ${safe(mappedOverall.th)}
             </span>
           </div>
           <div class="booking-result-meta">
-            ใช้สถานะรวมจาก Wave #${overallWave.waveNumber || '-'} · สถานะหลัก (EN): ${overallWaveStatus || '-'}<br/>
-            วันที่ Wave: ${d.pickDate || '-'} · เจ้าของ: ${d.owner || '-'}<br/>
-            รายละเอียด Wave: ${d.waveDescription || '-'}
+            ใช้สถานะรวมจาก Wave #${safe(overallWave.waveNumber)} · สถานะหลัก (EN): ${safe(overallWaveStatus)}<br/>
+            วันที่ Wave: ${safe(d.pickDate)} · เจ้าของ: ${safe(d.owner)}<br/>
+            รายละเอียด Wave: ${safe(d.waveDescription)}
           </div>
           <div class="booking-waves">
             ${cardsHtml}
@@ -1413,8 +1393,11 @@
           <div class="booking-result-title">เกิดข้อผิดพลาด</div>
           <div>ไม่สามารถดึงข้อมูลได้ กรุณาตรวจสอบอินเทอร์เน็ต หรือลองใหม่อีกครั้ง</div>
         `;
+      } finally {
+        btnSearchBooking.disabled = false;
       }
     }
   </script>
 </body>
+
 </html>
