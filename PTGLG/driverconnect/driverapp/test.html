@@ -595,14 +595,21 @@
     }
 
     function sendFlexCheckInOut(type, stop) {
+      console.log('🔔 sendFlexCheckInOut called:', { type, stop });
+
       try {
+        // ตรวจสอบว่าอยู่ใน LINE context หรือไม่
         if (!liff.isInClient()) {
+          console.warn('⚠️ ไม่ได้เปิดจาก LINE app - ไม่สามารถส่ง Flex Message ได้');
           return;
         }
 
         if (type !== 'checkin' && type !== 'checkout') {
+          console.warn('⚠️ Type ไม่ใช่ checkin หรือ checkout:', type);
           return;
         }
+
+        console.log('✅ เตรียมส่ง Flex Message:', type);
 
         const labelMap = {
           checkin: 'Check-in สำเร็จ',
@@ -710,6 +717,8 @@
           },
         };
 
+        console.log('📤 กำลังส่ง Flex Message...', bubble);
+
         liff
           .sendMessages([
             {
@@ -718,11 +727,21 @@
               contents: bubble,
             },
           ])
+          .then(function () {
+            console.log('✅ ส่ง Flex Message สำเร็จ!');
+          })
           .catch(function (err) {
-            console.error('sendMessages error', err);
+            console.error('❌ Error sending Flex Message:', err);
+            console.error('Error details:', {
+              message: err.message,
+              stack: err.stack,
+              type: type,
+              stop: stop
+            });
           });
       } catch (err) {
-        console.error('sendFlexCheckInOut error', err);
+        console.error('❌ sendFlexCheckInOut fatal error:', err);
+        console.error('Error details:', err.message, err.stack);
       }
     }
 
