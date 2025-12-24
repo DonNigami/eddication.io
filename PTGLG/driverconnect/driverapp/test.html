@@ -758,6 +758,18 @@
         currentUserId = profile.userId;
         const statusEl = document.getElementById('status');
         statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
+
+        // โหลดค่าค้นหาล่าสุดจาก localStorage
+        const lastKeyword = localStorage.getItem('lastSearchKeyword');
+        if (lastKeyword) {
+          document.getElementById('keyword').value = lastKeyword;
+        }
+
+        // แสดง popup แจ้งเตือน
+        showInfo(
+          'ข้อมูลสำคัญ',
+          'กรุณาดำเนินการทุกขั้นตอน เนื่องจากมีผลต่อการบันทึกค่าเที่ยวของพนักงาน'
+        );
       } catch (err) {
         console.error(err);
         document.getElementById('status').innerText =
@@ -803,6 +815,9 @@
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
+
+        // บันทึกค่าค้นหาล่าสุดลงใน localStorage
+        localStorage.setItem('lastSearchKeyword', keyword);
 
         currentDrivers =
           (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
@@ -1675,6 +1690,27 @@
         return;
       }
 
+      // ตรวจสอบขั้นตอนที่ยังไม่ได้ทำ
+      const missingSteps = checkMissingSteps();
+
+      if (missingSteps.length > 0) {
+        // แสดงฟอร์มให้กรอกข้อมูลที่ขาด
+        const result = await showMissingStepsForm(missingSteps);
+        if (!result) {
+          return; // ยกเลิก
+        }
+
+        // บันทึกข้อมูลที่ขาดไปก่อน
+        const saveResult = await saveMissingStepsData(result.missingData);
+        if (!saveResult) {
+          showError('ไม่สามารถบันทึกข้อมูลที่ขาดได้ กรุณาลองใหม่อีกครั้ง');
+          return;
+        }
+
+        // Refresh ข้อมูล
+        await search();
+      }
+
       const { value: formValues } = await Swal.fire({
         title: 'สรุปจบทริป',
         html: `
@@ -1742,6 +1778,273 @@
       }
 
       await saveEndTripSummary(formValues);
+    }
+
+    // ตรวจสอบขั้นตอนที่ยังไม่ได้ทำ
+    function checkMissingSteps() {
+      const missing = [];
+
+      if (!lastStops || lastStops.length === 0) {
+        return missing;
+      }
+
+      lastStops.forEach((stop) => {
+        const isOrigin = !!stop.isOriginStop;
+        const stopInfo = {
+          rowIndex: stop.rowIndex,
+          seq: stop.seq,
+          destination: stop.destination2 || stop.destination1 || 'จุด ' + stop.seq,
+          isOrigin: isOrigin,
+          missing: []
+        };
+
+        // ตรวจสอบ Check-in
+        if (!stop.checkInTime) {
+          stopInfo.missing.push({
+            type: 'checkin',
+            label: 'Check-in',
+            needOdo: true,
+            needTime: true
+          });
+        }
+
+        // สำหรับจุดที่ไม่ใช่ Origin
+        if (!isOrigin) {
+          // ตรวจสอบลงน้ำมัน
+          if (stop.checkInTime && !stop.fuelingTime) {
+            stopInfo.missing.push({
+              type: 'fuel',
+              label: 'ลงน้ำมัน',
+              needOdo: false,
+              needTime: true
+            });
+          }
+
+          // ตรวจสอบลงเสร็จ
+          if (stop.fuelingTime && !stop.unloadDoneTime) {
+            stopInfo.missing.push({
+              type: 'unload',
+              label: 'ลงเสร็จ',
+              needOdo: false,
+              needTime: true
+            });
+          }
+
+          // ตรวจสอบประเมิน
+          if (stop.unloadDoneTime && !stop.reviewedTime) {
+            stopInfo.missing.push({
+              type: 'review',
+              label: 'ประเมิน',
+              needOdo: false,
+              needTime: true
+            });
+          }
+        }
+
+        // ตรวจสอบ Check-out
+        if (stop.checkInTime && !stop.checkOutTime) {
+          stopInfo.missing.push({
+            type: 'checkout',
+            label: 'Check-out',
+            needOdo: false,
+            needTime: true
+          });
+        }
+
+        if (stopInfo.missing.length > 0) {
+          missing.push(stopInfo);
+        }
+      });
+
+      return missing;
+    }
+
+    // แสดงฟอร์มให้กรอกข้อมูลที่ขาด
+    async function showMissingStepsForm(missingSteps) {
+      let formHtml = `
+        <div style="text-align:left;max-height:400px;overflow-y:auto;">
+          <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:8px;margin-bottom:10px;">
+            <div style="font-size:0.85rem;color:#856404;">
+              ⚠️ <b>พบขั้นตอนที่ยังไม่ได้ทำ ${missingSteps.length} จุด</b><br>
+              กรุณากรอกข้อมูลที่ขาดหายไปให้ครบถ้วน
+            </div>
+          </div>
+      `;
+
+      missingSteps.forEach((stop, stopIdx) => {
+        formHtml += `
+          <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:8px;color:#16a085;">
+              Stop ${stop.seq}: ${stop.destination}
+            </div>
+        `;
+
+        stop.missing.forEach((step, stepIdx) => {
+          const fieldPrefix = `stop${stopIdx}_step${stepIdx}`;
+
+          formHtml += `
+            <div style="margin-bottom:8px;padding:8px;background:#fff;border-radius:6px;">
+              <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">
+                ${step.label}
+              </div>
+          `;
+
+          if (step.needOdo) {
+            formHtml += `
+              <label style="font-size:0.75rem;color:#666;">เลขไมล์</label>
+              <input id="${fieldPrefix}_odo" type="number" 
+                class="swal2-input" 
+                data-stopidx="${stopIdx}" 
+                data-stepidx="${stepIdx}"
+                data-field="odo"
+                placeholder="กรอกเลขไมล์"
+                style="width:100%;margin:2px 0 6px;padding:6px 10px;font-size:0.85rem;">
+            `;
+          }
+
+          if (step.needTime) {
+            formHtml += `
+              <label style="font-size:0.75rem;color:#666;">วันที่และเวลา</label>
+              <input id="${fieldPrefix}_datetime" type="datetime-local" 
+                class="swal2-input"
+                data-stopidx="${stopIdx}"
+                data-stepidx="${stepIdx}"
+                data-field="datetime"
+                style="width:100%;margin:2px 0 4px;padding:6px 10px;font-size:0.85rem;">
+            `;
+          }
+
+          formHtml += `</div>`;
+        });
+
+        formHtml += `</div>`;
+      });
+
+      formHtml += `</div>`;
+
+      const { value: confirmed } = await Swal.fire({
+        title: 'กรอกข้อมูลที่ขาดหายไป',
+        html: formHtml,
+        width: '90%',
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกข้อมูล',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        cancelButtonColor: '#95a5a6',
+        preConfirm: () => {
+          const missingData = [];
+
+          missingSteps.forEach((stop, stopIdx) => {
+            stop.missing.forEach((step, stepIdx) => {
+              const fieldPrefix = `stop${stopIdx}_step${stepIdx}`;
+              const data = {
+                rowIndex: stop.rowIndex,
+                seq: stop.seq,
+                destination: stop.destination,
+                type: step.type,
+                label: step.label
+              };
+
+              if (step.needOdo) {
+                const odoEl = document.getElementById(`${fieldPrefix}_odo`);
+                const odoVal = odoEl ? odoEl.value.trim() : '';
+                if (!odoVal) {
+                  Swal.showValidationMessage(`กรุณากรอกเลขไมล์สำหรับ ${stop.destination} - ${step.label}`);
+                  return false;
+                }
+                data.odo = odoVal;
+              }
+
+              if (step.needTime) {
+                const dtEl = document.getElementById(`${fieldPrefix}_datetime`);
+                const dtVal = dtEl ? dtEl.value.trim() : '';
+                if (!dtVal) {
+                  Swal.showValidationMessage(`กรุณากรอกวันที่และเวลาสำหรับ ${stop.destination} - ${step.label}`);
+                  return false;
+                }
+                data.datetime = dtVal;
+              }
+
+              missingData.push(data);
+            });
+          });
+
+          return { missingData };
+        }
+      });
+
+      if (!confirmed) {
+        return null;
+      }
+
+      return confirmed;
+    }
+
+    // บันทึกข้อมูลที่ขาดไป
+    async function saveMissingStepsData(missingData) {
+      try {
+        showLoading('กำลังบันทึกข้อมูลที่ขาดหายไป...');
+
+        // ดึงพิกัดปัจจุบัน
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error('Geolocation error:', err);
+          closeLoading();
+          showError('ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง');
+          return false;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // ส่งข้อมูลไปยัง backend
+        const formData = new URLSearchParams();
+        formData.append('action', 'fillMissingSteps');
+        formData.append('reference', currentReference);
+        formData.append('userId', currentUserId);
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+        formData.append('missingData', JSON.stringify(missingData));
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const rawErr = await res.text().catch(() => '');
+          console.error('HTTP error saveMissingSteps:', res.status, rawErr);
+          closeLoading();
+          return false;
+        }
+
+        const raw = await res.text();
+        let json;
+        try {
+          json = JSON.parse(raw);
+        } catch (e) {
+          console.error('Response is not valid JSON:', raw);
+          closeLoading();
+          return false;
+        }
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'บันทึกข้อมูลที่ขาดไม่สำเร็จ');
+          return false;
+        }
+
+        await showSuccess('บันทึกสำเร็จ', 'บันทึกข้อมูลที่ขาดหายไปเรียบร้อยแล้ว');
+        return true;
+      } catch (err) {
+        console.error('saveMissingStepsData error:', err);
+        closeLoading();
+        return false;
+      }
     }
 
     // ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) + ซ่อนปุ่มทันที
@@ -1975,6 +2278,9 @@
     window.navigateToStop = navigateToStop;
     window.openEndTripDialog = openEndTripDialog;
     window.saveEndTripSummary = saveEndTripSummary;
+    window.checkMissingSteps = checkMissingSteps;
+    window.showMissingStepsForm = showMissingStepsForm;
+    window.saveMissingStepsData = saveMissingStepsData;
   </script>
 </body>
 
