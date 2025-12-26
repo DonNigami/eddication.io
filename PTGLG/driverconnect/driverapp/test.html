@@ -334,6 +334,28 @@
       text-align: center;
     }
 
+    .history-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .history-item {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid #dce2e0;
+      background: #ffffff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .history-item:hover {
+      border-color: var(--primary);
+      color: var(--primary-dark);
+      background: #f0fbf7;
+    }
+
     .hidden {
       display: none;
     }
@@ -479,6 +501,11 @@
           <span>ค้นหา / ดึงงาน</span>
         </button>
 
+        <div id="historyContainer" class="summary-card hidden" style="margin-top:10px;">
+          <div style="font-weight:600;margin-bottom:6px;">ประวัติการค้นหา</div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+
         <div id="summary" class="summary-card hidden"></div>
 
         <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
@@ -520,6 +547,7 @@
     const { MESSAGES, ACTIONS, STORAGE_KEYS } = window.CONSTANTS;
     const LIFF_ID = window.CONSTANTS.API.LIFF_ID;
     const LAST_SEARCH_MAP_KEY = 'driver_last_search_map_v1';
+    const LAST_SEARCH_HISTORY_KEY = 'driver_last_search_history_map_v1';
 
     let currentUserId = '';
     let currentReference = '';
@@ -585,17 +613,81 @@
       }
     }
 
+    function getSearchHistory(userId) {
+      if (!userId) return [];
+      try {
+        const raw = localStorage.getItem(LAST_SEARCH_HISTORY_KEY);
+        if (!raw) return [];
+        const map = JSON.parse(raw);
+        const list = map && typeof map === 'object' ? map[userId] : [];
+        return Array.isArray(list) ? list : [];
+      } catch (e) {
+        console.warn('history parse error', e);
+        return [];
+      }
+    }
+
+    function setSearchHistory(userId, keyword) {
+      if (!userId) return;
+      const kw = (keyword || '').trim();
+      if (!kw) return;
+      try {
+        const raw = localStorage.getItem(LAST_SEARCH_HISTORY_KEY);
+        const map = raw ? JSON.parse(raw) : {};
+        let list = Array.isArray(map[userId]) ? map[userId] : [];
+        list = list.filter((k) => k !== kw);
+        list.unshift(kw);
+        if (list.length > 8) list = list.slice(0, 8);
+        map[userId] = list;
+        localStorage.setItem(LAST_SEARCH_HISTORY_KEY, JSON.stringify(map));
+      } catch (e) {
+        console.warn('history write error', e);
+      }
+    }
+
     function migrateLegacyLastSearch(userId) {
       if (!userId) return;
       try {
         const legacy = localStorage.getItem(STORAGE_KEYS.LAST_SEARCH);
         if (legacy) {
           setLastSearch(userId, legacy);
+          setSearchHistory(userId, legacy);
           localStorage.removeItem(STORAGE_KEYS.LAST_SEARCH);
         }
       } catch (e) {
         console.warn('legacy last search migration failed', e);
       }
+    }
+
+    function renderSearchHistory() {
+      const container = document.getElementById('historyContainer');
+      const listEl = document.getElementById('historyList');
+      if (!container || !listEl) return;
+
+      const items = getSearchHistory(currentUserId);
+      listEl.innerHTML = '';
+
+      if (!currentUserId || !items.length) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      items.forEach((kw) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'history-item';
+        btn.textContent = kw;
+        btn.addEventListener('click', () => {
+          const kwEl = document.getElementById('keyword');
+          if (kwEl) {
+            kwEl.value = kw;
+            search();
+          }
+        });
+        listEl.appendChild(btn);
+      });
+
+      container.classList.remove('hidden');
     }
 
     let currentDrivers = [];
@@ -908,6 +1000,8 @@
         // Move legacy single-value storage into per-user map (one-time)
         migrateLegacyLastSearch(currentUserId);
 
+        renderSearchHistory();
+
         // Enable search button after LIFF is ready and user is logged in
         const btnSearchEl = document.getElementById('btnSearch');
         if (btnSearchEl) btnSearchEl.disabled = false;
@@ -959,6 +1053,8 @@
 
       // Persist latest keyword per-user immediately (so it survives even if API fails)
       setLastSearch(currentUserId, keyword);
+      setSearchHistory(currentUserId, keyword);
+      renderSearchHistory();
 
       btn.disabled = true;
       showLoading('กำลังค้นหางานจากระบบ...');
