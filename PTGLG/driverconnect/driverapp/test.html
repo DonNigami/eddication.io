@@ -583,9 +583,13 @@
      */
     function debounce(fn, delay) {
       let timeoutId;
-      return function (...args) {
+      return function () {
+        const args = Array.prototype.slice.call(arguments);
+        const self = this;
         clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+        timeoutId = setTimeout(function () {
+          fn.apply(self, args);
+        }, delay);
       };
     }
 
@@ -997,6 +1001,15 @@
           console.log('✅ LIFF ready');
         }
 
+        // ตรวจสอบว่าเปิดใน LINE app หรือไม่
+        if (liff.isInClient && !liff.isInClient()) {
+          console.warn('⚠️ Not in LINE app - LIFF features may not work properly');
+          const statusEl = document.getElementById('status');
+          if (statusEl) {
+            statusEl.innerHTML = '⚠️ <b>คำเตือน:</b> กรุณาเปิดผ่านแอพ LINE เท่านั้น (ไม่ใญ่ browser)';
+          }
+        }
+
         const isLoggedIn = liff.isLoggedIn();
         console.log('Login status:', isLoggedIn);
 
@@ -1109,7 +1122,8 @@
             Array.isArray(d.alcohol.checkedDrivers) &&
             d.alcohol.checkedDrivers) ||
           [];
-        currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
+        const uniqueSet = new Set(currentCheckedDrivers);
+        currentCheckedDrivers = Array.from ? Array.from(uniqueSet) : Array.prototype.slice.call(uniqueSet);
         alcoholAllDone =
           currentDrivers.length > 0 &&
           currentDrivers.every((n) => currentCheckedDrivers.includes(n));
@@ -1409,9 +1423,11 @@
 
         // Update checked drivers list from API response
         if (result.data && result.data.checkedDrivers && Array.isArray(result.data.checkedDrivers)) {
-          currentCheckedDrivers = [...new Set(result.data.checkedDrivers)];
+          const uniqueSet1 = new Set(result.data.checkedDrivers);
+          currentCheckedDrivers = Array.from ? Array.from(uniqueSet1) : Array.prototype.slice.call(uniqueSet1);
         } else {
-          currentCheckedDrivers = [...new Set(currentCheckedDrivers.concat([driverName]))];
+          const uniqueSet2 = new Set(currentCheckedDrivers.concat([driverName]));
+          currentCheckedDrivers = Array.from ? Array.from(uniqueSet2) : Array.prototype.slice.call(uniqueSet2);
         }
 
         renderAlcoholSection();
