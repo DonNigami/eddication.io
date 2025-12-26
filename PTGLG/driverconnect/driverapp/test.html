@@ -2647,7 +2647,7 @@
       if (lo) lo.textContent = `Login: ${loggedIn ? 'Yes' : 'No'}`;
       if (ui) ui.textContent = `UserId: ${userId || '-'}`;
       if (bu) bu.textContent = 'Backend URL: hidden';
-        }`;
+    } `;
     }
 
     async function runDiagnostics() {
@@ -2667,7 +2667,7 @@
         if (!base) {
           if (pingEl) pingEl.textContent = 'Ping: no WEB_APP_URL';
         } else {
-          const url = base.includes('?') ? `${base}&action=health` : `${base}?action=health`;
+          const url = base.includes('?') ? `${ base }& action=health` : `${ base }?action = health`;
           const ac = new AbortController();
           const t0 = performance.now();
           const timer = setTimeout(() => ac.abort(), 7000);
@@ -2675,22 +2675,22 @@
             const res = await fetch(url, { method: 'GET', signal: ac.signal, cache: 'no-store' });
             const t1 = performance.now();
             const ms = Math.round(t1 - t0);
-            if (pingEl) pingEl.textContent = `Ping: ${res.status} in ${ms}ms`;
+            if (pingEl) pingEl.textContent = `Ping: ${ res.status } in ${ ms } ms`;
           } finally {
             clearTimeout(timer);
           }
         }
       } catch (e) {
-        if (pingEl) pingEl.textContent = `Ping: error (${e && e.message ? e.message : 'unknown'})`;
+        if (pingEl) pingEl.textContent = `Ping: error(${ e && e.message ? e.message : 'unknown'})`;
       }
 
       // GPS check
       try {
         const pos = await getCurrentPositionAsync();
         const acc = pos && pos.coords ? Math.round(pos.coords.accuracy || 0) : null;
-        if (gpsEl) gpsEl.textContent = `GPS: OK${acc ? ` (±${acc}m)` : ''}`;
+        if (gpsEl) gpsEl.textContent = `GPS: OK${ acc ? ` (±${acc}m)` : '' } `;
       } catch (e) {
-        if (gpsEl) gpsEl.textContent = `GPS: error (${e && e.message ? e.message : 'unknown'})`;
+        if (gpsEl) gpsEl.textContent = `GPS: error(${ e && e.message ? e.message : 'unknown'})`;
       }
     }
 
