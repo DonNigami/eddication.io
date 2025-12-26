@@ -642,7 +642,7 @@
         const raw = localStorage.getItem(LAST_SEARCH_HISTORY_KEY);
         const map = raw ? JSON.parse(raw) : {};
         let list = Array.isArray(map[userId]) ? map[userId] : [];
-        list = list.filter((k) => k !== kw);
+        list = list.filter(function(k) { return k !== kw; });
         list.unshift(kw);
         if (list.length > 8) list = list.slice(0, 8);
         map[userId] = list;
@@ -679,12 +679,12 @@
         return;
       }
 
-      items.forEach((kw) => {
+      items.forEach(function(kw) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'history-item';
         btn.textContent = kw;
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', function() {
           const kwEl = document.getElementById('keyword');
           if (kwEl) {
             kwEl.value = kw;
@@ -715,7 +715,7 @@
       Swal.fire({
         title: message || 'กำลังประมวลผล...',
         allowOutsideClick: false,
-        didOpen: () => {
+        didOpen: function() {
           Swal.showLoading();
         },
       });
@@ -803,10 +803,10 @@
       if (inlineFlexTimer) {
         clearTimeout(inlineFlexTimer);
       }
-      inlineFlexTimer = setTimeout(() => {
+      inlineFlexTimer = setTimeout(function() {
         container.classList.remove('show');
         container.classList.add('hide');
-        setTimeout(() => {
+        setTimeout(function() {
           container.classList.add('hidden');
         }, 250);
       }, 4000);
@@ -1126,7 +1126,7 @@
         currentCheckedDrivers = Array.from ? Array.from(uniqueSet) : Array.prototype.slice.call(uniqueSet);
         alcoholAllDone =
           currentDrivers.length > 0 &&
-          currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+          currentDrivers.every(function(n) { return currentCheckedDrivers.includes(n); });
 
         jobClosed = !!d.jobClosed;
         tripEnded = !!d.tripEnded;
@@ -1223,7 +1223,7 @@
           </div>
         `;
 
-      currentDrivers.forEach((name) => {
+      currentDrivers.forEach(function(name) {
         const checked = currentCheckedDrivers.includes(name);
         if (checked) {
           html += `
@@ -1247,7 +1247,7 @@
 
       alcoholAllDone =
         currentDrivers.length > 0 &&
-        currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+        currentDrivers.every(function(n) { return currentCheckedDrivers.includes(n); });
 
       if (alcoholAllDone) {
         html += `
@@ -1273,11 +1273,11 @@
     }
 
     function loadImageFromFile(file) {
-      return new Promise((resolve, reject) => {
+      return new Promise(function (resolve, reject) {
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = function () {
           const img = new Image();
-          img.onload = () => resolve(img);
+          img.onload = function () { resolve(img); };
           img.onerror = reject;
           img.src = reader.result;
         };
@@ -1348,7 +1348,7 @@
         confirmButtonText: CONSTANTS.MESSAGES.BUTTON_SAVE,
         cancelButtonText: CONSTANTS.MESSAGES.BUTTON_CANCEL,
         confirmButtonColor: '#1abc9c',
-        preConfirm: () => {
+        preConfirm: function() {
           const val = document.getElementById('swalAlcoholValue').value.trim();
           const file = document.getElementById('swalAlcoholImage').files[0];
 
@@ -1447,7 +1447,7 @@
       const ctx = canvas.getContext('2d');
       let drawing = false;
 
-      const getPos = (e) => {
+      const getPos = function(e) {
         const rect = canvas.getBoundingClientRect();
         if (e.touches && e.touches.length > 0) {
           return {
@@ -1461,7 +1461,7 @@
         };
       };
 
-      const startDraw = (e) => {
+      const startDraw = function(e) {
         e.preventDefault();
         drawing = true;
         const pos = getPos(e);
@@ -1469,7 +1469,7 @@
         ctx.moveTo(pos.x, pos.y);
       };
 
-      const draw = (e) => {
+      const draw = function(e) {
         if (!drawing) return;
         e.preventDefault();
         const pos = getPos(e);
@@ -1481,7 +1481,7 @@
         ctx.stroke();
       };
 
-      const endDraw = (e) => {
+      const endDraw = function(e) {
         if (!drawing) return;
         e.preventDefault();
         drawing = false;
@@ -1497,7 +1497,7 @@
 
       const clearBtn = document.getElementById(clearBtnId);
       if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
+        clearBtn.addEventListener('click', function() {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
       }
@@ -1514,7 +1514,7 @@
         return;
       }
 
-      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      const stop = (lastStops || []).find(function(s) { return s.rowIndex === rowIndex; });
       const destName =
         (stop && (stop.destination2 || stop.destination1)) || 'จุดส่ง';
 
@@ -1549,7 +1549,7 @@
               </div>
             </div>
           `,
-        didOpen: () => {
+        didOpen: function() {
           initSwalSignaturePad('signCanvas', 'btnClearSign');
         },
         focusConfirm: false,
@@ -1557,7 +1557,7 @@
         confirmButtonText: CONSTANTS.MESSAGES.BUTTON_SAVE,
         cancelButtonText: CONSTANTS.MESSAGES.BUTTON_CANCEL,
         confirmButtonColor: '#1abc9c',
-        preConfirm: () => {
+        preConfirm: function() {
           const radio = document.querySelector(
             'input[name="reviewScore"]:checked'
           );
@@ -1933,7 +1933,7 @@
         confirmButtonText: 'ยืนยัน Check-in',
         cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#1abc9c',
-        preConfirm: () => {
+        preConfirm: function() {
           const val = document.getElementById('swalOdoInput').value.trim();
           if (!val) {
             Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
@@ -2089,7 +2089,7 @@
         cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#1abc9c',
         cancelButtonColor: '#95a5a6',
-        preConfirm: () => {
+        preConfirm: function() {
           const odoVal = document
             .getElementById('swalEndOdo')
             .value.trim();
@@ -2136,7 +2136,7 @@
         return missing;
       }
 
-      lastStops.forEach((stop) => {
+      lastStops.forEach(function(stop) {
         const isOrigin = !!stop.isOriginStop;
         const stopInfo = {
           rowIndex: stop.rowIndex,
@@ -2219,7 +2219,7 @@
           </div>
       `;
 
-      missingSteps.forEach((stop, stopIdx) => {
+      missingSteps.forEach(function(stop, stopIdx) {
         formHtml += `
           <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:8px;padding:10px;margin-bottom:10px;">
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:8px;color:#16a085;">
@@ -2227,7 +2227,7 @@
             </div>
         `;
 
-        stop.missing.forEach((step, stepIdx) => {
+        stop.missing.forEach(function(step, stepIdx) {
           const fieldPrefix = 'stop' + stopIdx + '_step' + stepIdx;
 
           formHtml += '<div style="margin-bottom:8px;padding:8px;background:#fff;border-radius:6px;">' +
@@ -2274,11 +2274,11 @@
         cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#1abc9c',
         cancelButtonColor: '#95a5a6',
-        preConfirm: () => {
+        preConfirm: function() {
           const missingData = [];
 
-          missingSteps.forEach((stop, stopIdx) => {
-            stop.missing.forEach((step, stepIdx) => {
+          missingSteps.forEach(function(stop, stopIdx) {
+            stop.missing.forEach(function(step, stepIdx) {
               const fieldPrefix = 'stop' + stopIdx + '_step' + stepIdx;
               const data = {
                 rowIndex: stop.rowIndex,
@@ -2401,7 +2401,7 @@
             confirmButtonText: CONSTANTS.MESSAGES.BUTTON_OK,
             cancelButtonText: CONSTANTS.MESSAGES.BUTTON_CANCEL,
             confirmButtonColor: '#1abc9c',
-            preConfirm: () => {
+            preConfirm: function() {
               const latStr = (document.getElementById('swalLat') || {}).value || '';
               const lngStr = (document.getElementById('swalLng') || {}).value || '';
               const latNum = latStr ? Number(latStr) : null;
@@ -2577,7 +2577,7 @@
     }
 
     function navigateToStop(rowIndex) {
-      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      const stop = (lastStops || []).find(function(s) { return s.rowIndex === rowIndex; });
       if (!stop) return;
 
       const lat =
@@ -2626,18 +2626,18 @@
       // Debounced auto-search on input (only when logged in)
       const debounced = (function () {
         let tId;
-        const fn = () => {
+        const fn = function() {
           const kw = document.getElementById('keyword').value.trim();
           if (!currentUserId) return;
           if (kw && kw.length >= 5) {
             search();
           }
         };
-        const wrapper = () => {
+        const wrapper = function() {
           clearTimeout(tId);
           tId = setTimeout(fn, 450);
         };
-        wrapper.cancel = () => clearTimeout(tId);
+        wrapper.cancel = function() { clearTimeout(tId); };
         return wrapper;
       })();
 
@@ -2663,7 +2663,7 @@
       const btnToggleDiag = document.getElementById('btnToggleDiag');
       const diagBody = document.getElementById('diagBody');
       if (btnToggleDiag && diagBody) {
-        btnToggleDiag.addEventListener('click', () => {
+        btnToggleDiag.addEventListener('click', function() {
           diagBody.classList.toggle('hidden');
         });
       }
@@ -2704,7 +2704,7 @@
           const url = base.includes('?') ? base + '&action=health' : base + '?action=health';
           const ac = new AbortController();
           const t0 = performance.now();
-          const timer = setTimeout(() => ac.abort(), 7000);
+          const timer = setTimeout(function() { ac.abort(); }, 7000);
           try {
             const res = await fetch(url, { method: 'GET', signal: ac.signal, cache: 'no-store' });
             const t1 = performance.now();
