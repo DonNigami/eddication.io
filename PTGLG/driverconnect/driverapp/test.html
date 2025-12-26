@@ -519,6 +519,7 @@
 
     const { MESSAGES, ACTIONS, STORAGE_KEYS } = window.CONSTANTS;
     const LIFF_ID = window.CONSTANTS.API.LIFF_ID;
+    const LAST_SEARCH_MAP_KEY = 'driver_last_search_map_v1';
 
     let currentUserId = '';
     let currentReference = '';
@@ -555,6 +556,33 @@
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => fn.apply(this, args), delay);
       };
+    }
+
+    function getLastSearch(userId) {
+      if (!userId) return '';
+      try {
+        const raw = localStorage.getItem(LAST_SEARCH_MAP_KEY);
+        if (!raw) return '';
+        const map = JSON.parse(raw);
+        if (map && typeof map === 'object') {
+          return map[userId] || '';
+        }
+      } catch (e) {
+        console.warn('last search map parse error', e);
+      }
+      return '';
+    }
+
+    function setLastSearch(userId, value) {
+      if (!userId) return;
+      try {
+        const raw = localStorage.getItem(LAST_SEARCH_MAP_KEY);
+        const map = raw ? JSON.parse(raw) : {};
+        map[userId] = value;
+        localStorage.setItem(LAST_SEARCH_MAP_KEY, JSON.stringify(map));
+      } catch (e) {
+        console.warn('last search map write error', e);
+      }
     }
 
     let currentDrivers = [];
@@ -868,10 +896,16 @@
         const btnSearchEl = document.getElementById('btnSearch');
         if (btnSearchEl) btnSearchEl.disabled = false;
 
-        // โหลดค่าค้นหาล่าสุดจาก localStorage
-        const lastKeyword = localStorage.getItem(STORAGE_KEYS.LAST_SEARCH);
+        // โหลดค่าค้นหาล่าสุดของ user นี้และแสดงทันที
+        const lastKeyword = getLastSearch(currentUserId);
         if (lastKeyword) {
-          document.getElementById('keyword').value = lastKeyword;
+          const kwEl = document.getElementById('keyword');
+          kwEl.value = lastKeyword;
+          try {
+            await search();
+          } catch (e) {
+            console.warn('auto search on init failed', e);
+          }
         }
 
         // แสดง popup แจ้งเตือน
@@ -933,8 +967,8 @@
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
 
-        // บันทึกค่าค้นหาล่าสุดลงใน localStorage
-        localStorage.setItem(STORAGE_KEYS.LAST_SEARCH, keyword);
+        // บันทึกค่าค้นหาล่าสุดแบบแยกตาม user
+        setLastSearch(currentUserId, keyword);
 
         currentDrivers =
           (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
