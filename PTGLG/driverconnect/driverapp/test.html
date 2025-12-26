@@ -451,6 +451,25 @@
 
         <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
 
+        <!-- Diagnostics Panel -->
+        <div id="diagCard" class="summary-card" style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="font-weight:600;">Diagnostics</div>
+            <div style="display:flex;gap:6px;">
+              <button id="btnRunDiag" type="button" class="btn-small btn-outline">ตรวจสอบระบบ</button>
+              <button id="btnToggleDiag" type="button" class="btn-small btn-outline">แสดง/ซ่อน</button>
+            </div>
+          </div>
+          <div id="diagBody" class="hidden" style="margin-top:6px;font-size:0.85rem;">
+            <div id="diagLiff">LIFF: -</div>
+            <div id="diagLogin">Login: -</div>
+            <div id="diagUser">UserId: -</div>
+            <div id="diagBackend">Backend URL: -</div>
+            <div id="diagPing">Ping: -</div>
+            <div id="diagGps">GPS: -</div>
+          </div>
+        </div>
+
         <div class="field-group">
           <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
           <input id="keyword" type="text" placeholder="กรอกเลข Reference เช่น 2511S15403" />
@@ -507,6 +526,7 @@
     let inlineFlexTimer = null;
     let isUpdatingStop = false;
     let searchAbortController = null;
+    let searchRequestId = 0;
 
     /**
      * Escape HTML entities to prevent XSS
@@ -634,8 +654,9 @@
       titleEl.textContent = title;
       mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${stop.shipmentNo || '-'
         }`;
+      const acc = stop.gpsAccuracy != null ? ` • ±${Math.round(stop.gpsAccuracy)}m` : '';
       subEl.textContent = `${stop.destination2 || stop.destination1 || 'ปลายทาง'
-        }${timeText ? ' • เวลา: ' + timeText : ''}${odoText}`;
+        }${timeText ? ' • เวลา: ' + timeText : ''}${odoText}${acc}`;
 
       container.classList.remove('hide', 'hidden');
       void container.offsetWidth;
@@ -857,6 +878,8 @@
         showInfo('ข้อมูลสำคัญ', MESSAGES.INFO_IMPORTANT);
 
         window.Logger.info('✅ LIFF initialized', { userId: currentUserId });
+        // Update diagnostics snapshot after init
+        try { updateDiagnosticsSnapshot({ liffReady: true, loggedIn: true, userId: currentUserId }); } catch (_) { }
       } catch (err) {
         window.Logger.error('❌ LIFF init failed', err);
         document.getElementById('status').innerText = 'เกิดข้อผิดพลาดในการโหลด LIFF';
@@ -868,6 +891,7 @@
      * Search for a job by reference
      */
     async function search() {
+      const reqId = ++searchRequestId;
       const keywordInput = document.getElementById('keyword');
       const keyword = keywordInput.value.trim();
       const btn = document.getElementById('btnSearch');
@@ -890,6 +914,12 @@
         const result = await window.API.search(keyword, currentUserId);
 
         closeLoading();
+
+        // Ignore outdated responses
+        if (reqId !== searchRequestId) {
+          window.Logger.warn('Search response ignored (outdated)', { reqId, latest: searchRequestId });
+          return;
+        }
 
         if (!result.success) {
           clearResult();
@@ -1058,17 +1088,49 @@
       container.classList.remove('hidden');
     }
 
+    // Compress image and return Base64 (re-encode strips EXIF)
     function fileToBase64(file) {
+      return compressImageFile(file, { maxW: 1280, maxH: 1280, targetKB: 700, mime: 'image/jpeg' });
+    }
+
+    function loadImageFromFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
-          const result = reader.result || '';
-          const base64 = result.toString().split(',')[1] || '';
-          resolve(base64);
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = reader.result;
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+    }
+
+    async function compressImageFile(file, opts) {
+      const { maxW = 1280, maxH = 1280, targetKB = 700, mime = 'image/jpeg' } = opts || {};
+      const img = await loadImageFromFile(file);
+      const origW = img.width || 1;
+      const origH = img.height || 1;
+      const ratio = Math.min(1, maxW / origW, maxH / origH);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.floor(origW * ratio));
+      canvas.height = Math.max(1, Math.floor(origH * ratio));
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      let quality = 0.85;
+      let dataUrl = canvas.toDataURL(mime, quality);
+      let base64 = dataUrl.split(',')[1] || '';
+      let sizeKB = Math.ceil((base64.length * 3) / 4 / 1024);
+
+      while (sizeKB > targetKB && quality > 0.55) {
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL(mime, quality);
+        base64 = dataUrl.split(',')[1] || '';
+        sizeKB = Math.ceil((base64.length * 3) / 4 / 1024);
+      }
+      return base64;
     }
 
     /**
@@ -1151,6 +1213,7 @@
 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy != null ? pos.coords.accuracy : undefined;
 
         const base64 = await fileToBase64(file);
 
@@ -1163,7 +1226,8 @@
           alcoholValue: parseFloat(alcoholValue),
           lat: lat,
           lng: lng,
-          imageBase64: base64
+          imageBase64: base64,
+          accuracy: acc
         });
 
         closeLoading();
@@ -1366,7 +1430,8 @@
           score: score,
           lat: lat,
           lng: lng,
-          signatureBase64: signatureBase64
+          signatureBase64: signatureBase64,
+          accuracy: acc
         });
 
         closeLoading();
@@ -1650,7 +1715,7 @@
           function (err) {
             reject(err);
           },
-          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
         );
       });
     }
@@ -1740,7 +1805,8 @@
           userId: currentUserId,
           lat: lat,
           lng: lng,
-          odo: type === 'checkin' ? odo : undefined
+          odo: type === 'checkin' ? odo : undefined,
+          accuracy: acc
         });
 
         closeLoading();
@@ -1757,6 +1823,7 @@
 
         const stopInfo = result.data && result.data.stop ? result.data.stop : null;
         if (stopInfo) {
+          if (acc != null) stopInfo.gpsAccuracy = acc;
           showInlineFlex(type, stopInfo);
           sendFlexCheckInOut(type, stopInfo);
         }
@@ -2104,7 +2171,8 @@
           userId: currentUserId,
           lat: lat,
           lng: lng,
-          missingData: missingData
+          missingData: missingData,
+          accuracy: acc
         });
 
         closeLoading();
@@ -2220,7 +2288,8 @@
           endOdo: values.endOdo || 0,
           endPointName: values.endPointName || '',
           lat: lat,
-          lng: lng
+          lng: lng,
+          accuracy: acc
         });
 
         closeLoading();
@@ -2369,13 +2438,32 @@
         .getElementById('btnSearch')
         .addEventListener('click', search);
 
-      document
-        .getElementById('keyword')
-        .addEventListener('keyup', function (e) {
-          if (e.key === 'Enter') {
+      // Debounced auto-search on input (only when logged in)
+      const debounced = (function () {
+        let tId;
+        const fn = () => {
+          const kw = document.getElementById('keyword').value.trim();
+          if (!currentUserId) return;
+          if (kw && kw.length >= 5) {
             search();
           }
-        });
+        };
+        const wrapper = () => {
+          clearTimeout(tId);
+          tId = setTimeout(fn, 450);
+        };
+        wrapper.cancel = () => clearTimeout(tId);
+        return wrapper;
+      })();
+
+      const kwEl = document.getElementById('keyword');
+      kwEl.addEventListener('input', debounced);
+      kwEl.addEventListener('keyup', function (e) {
+        if (e.key === 'Enter') {
+          debounced.cancel();
+          search();
+        }
+      });
 
       document
         .getElementById('btnCloseJob')
@@ -2384,7 +2472,77 @@
       document
         .getElementById('btnEndTrip')
         .addEventListener('click', openEndTripDialog);
+
+      // Diagnostics wiring
+      const btnRunDiag = document.getElementById('btnRunDiag');
+      const btnToggleDiag = document.getElementById('btnToggleDiag');
+      const diagBody = document.getElementById('diagBody');
+      if (btnToggleDiag && diagBody) {
+        btnToggleDiag.addEventListener('click', () => {
+          diagBody.classList.toggle('hidden');
+        });
+      }
+      if (btnRunDiag) {
+        btnRunDiag.addEventListener('click', runDiagnostics);
+      }
     });
+
+    // Diagnostics helpers
+    function updateDiagnosticsSnapshot({ liffReady, loggedIn, userId }) {
+      const li = document.getElementById('diagLiff');
+      const lo = document.getElementById('diagLogin');
+      const ui = document.getElementById('diagUser');
+      const bu = document.getElementById('diagBackend');
+      if (li) li.textContent = `LIFF: ${liffReady ? 'Ready' : 'Not ready'}`;
+      if (lo) lo.textContent = `Login: ${loggedIn ? 'Yes' : 'No'}`;
+      if (ui) ui.textContent = `UserId: ${userId || '-'}`;
+      if (bu) bu.textContent = `Backend URL: ${(window.CONSTANTS && window.CONSTANTS.API && window.CONSTANTS.API.WEB_APP_URL) || '-'
+        }`;
+    }
+
+    async function runDiagnostics() {
+      const diagBody = document.getElementById('diagBody');
+      if (diagBody) diagBody.classList.remove('hidden');
+
+      const hasLiff = typeof liff !== 'undefined';
+      const loggedIn = hasLiff && liff.isLoggedIn ? liff.isLoggedIn() : false;
+      updateDiagnosticsSnapshot({ liffReady: hasLiff, loggedIn, userId: currentUserId || '' });
+
+      const pingEl = document.getElementById('diagPing');
+      const gpsEl = document.getElementById('diagGps');
+
+      // Backend ping
+      try {
+        const base = window.CONSTANTS && window.CONSTANTS.API && window.CONSTANTS.API.WEB_APP_URL;
+        if (!base) {
+          if (pingEl) pingEl.textContent = 'Ping: no WEB_APP_URL';
+        } else {
+          const url = base.includes('?') ? `${base}&action=health` : `${base}?action=health`;
+          const ac = new AbortController();
+          const t0 = performance.now();
+          const timer = setTimeout(() => ac.abort(), 7000);
+          try {
+            const res = await fetch(url, { method: 'GET', signal: ac.signal, cache: 'no-store' });
+            const t1 = performance.now();
+            const ms = Math.round(t1 - t0);
+            if (pingEl) pingEl.textContent = `Ping: ${res.status} in ${ms}ms`;
+          } finally {
+            clearTimeout(timer);
+          }
+        }
+      } catch (e) {
+        if (pingEl) pingEl.textContent = `Ping: error (${e && e.message ? e.message : 'unknown'})`;
+      }
+
+      // GPS check
+      try {
+        const pos = await getCurrentPositionAsync();
+        const acc = pos && pos.coords ? Math.round(pos.coords.accuracy || 0) : null;
+        if (gpsEl) gpsEl.textContent = `GPS: OK${acc ? ` (±${acc}m)` : ''}`;
+      } catch (e) {
+        if (gpsEl) gpsEl.textContent = `GPS: error (${e && e.message ? e.message : 'unknown'})`;
+      }
+    }
 
     window.updateStopStatus = updateStopStatus;
     window.search = search;
