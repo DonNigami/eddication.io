@@ -972,7 +972,7 @@
         console.log('🔧 Initializing LIFF...');
         console.log('LIFF SDK loaded:', typeof liff !== 'undefined');
         console.log('LIFF_ID:', LIFF_ID);
-        console.log('WEB_APP_URL:', window.CONSTANTS?.API?.WEB_APP_URL);
+        console.log('WEB_APP_URL:', (window.CONSTANTS && window.CONSTANTS.API && window.CONSTANTS.API.WEB_APP_URL) || 'not set');
 
         if (typeof liff === 'undefined') {
           showError('LIFF SDK ไม่พร้อมใช้งาน โปรดรีเฟรชหรือเปิดผ่านแอพ LINE');
