@@ -35,7 +35,7 @@
 
       if (!res.ok) {
         const text = await res.text().catch(() => '');
-        const err = new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+        const err = new Error('HTTP ' + res.status + ': ' + (text || res.statusText));
         err.status = res.status;
         throw err;
       }
@@ -51,7 +51,7 @@
         (err.status >= 500 && err.status < 600); // Server error
 
       if (isRetryable && retryCount < MAX_RETRIES) {
-        window.Logger.warn(`⚠️ Retry ${retryCount + 1}/${MAX_RETRIES}: ${err.message}`);
+        window.Logger.warn('⚠️ Retry ' + (retryCount + 1) + '/' + MAX_RETRIES + ': ' + err.message);
         await sleep(RETRY_DELAY_MS * (retryCount + 1)); // Exponential backoff
         return fetchWithRetry(url, options, retryCount + 1);
       }
@@ -77,9 +77,9 @@
 
       try {
         const url =
-          `${WEB_APP_URL}?action=${ACTIONS.SEARCH}` +
-          `&keyword=${encodeURIComponent(keyword)}` +
-          `&userId=${encodeURIComponent(userId)}`;
+          WEB_APP_URL + '?action=' + ACTIONS.SEARCH +
+          '&keyword=' + encodeURIComponent(keyword) +
+          '&userId=' + encodeURIComponent(userId);
 
         const json = await fetchWithRetry(url);
 
@@ -112,7 +112,7 @@
       window.Logger.info('🔄 Updating stop status', { rowIndex, status, type });
 
       try {
-        const url = `${WEB_APP_URL}?action=${ACTIONS.UPDATE_STOP}`;
+        const url = WEB_APP_URL + '?action=' + ACTIONS.UPDATE_STOP;
         const form = new URLSearchParams();
         form.append('rowIndex', String(rowIndex));
         form.append('status', String(status));
@@ -133,14 +133,14 @@
           // Fallback to GET for backward compatibility
           window.Logger.warn('📌 POST failed, trying GET', e.message);
           const urlGet =
-            `${WEB_APP_URL}?action=${ACTIONS.UPDATE_STOP}` +
-            `&rowIndex=${encodeURIComponent(rowIndex)}` +
-            `&status=${encodeURIComponent(status)}` +
-            `&type=${encodeURIComponent(type)}` +
-            `&userId=${encodeURIComponent(userId)}` +
-            `&lat=${encodeURIComponent(lat)}` +
-            `&lng=${encodeURIComponent(lng)}` +
-            (type === 'checkin' ? `&odo=${encodeURIComponent(odo || '')}` : '');
+            WEB_APP_URL + '?action=' + ACTIONS.UPDATE_STOP +
+            '&rowIndex=' + encodeURIComponent(rowIndex) +
+            '&status=' + encodeURIComponent(status) +
+            '&type=' + encodeURIComponent(type) +
+            '&userId=' + encodeURIComponent(userId) +
+            '&lat=' + encodeURIComponent(lat) +
+            '&lng=' + encodeURIComponent(lng) +
+            (type === 'checkin' ? '&odo=' + encodeURIComponent(odo || '') : '');
           json = await fetchWithRetry(urlGet);
         }
 
@@ -298,9 +298,9 @@
 
       try {
         const url =
-          `${WEB_APP_URL}?action=${ACTIONS.CLOSE_JOB}` +
-          `&reference=${encodeURIComponent(reference)}` +
-          `&userId=${encodeURIComponent(userId)}`;
+          WEB_APP_URL + '?action=' + ACTIONS.CLOSE_JOB +
+          '&reference=' + encodeURIComponent(reference) +
+          '&userId=' + encodeURIComponent(userId);
 
         const json = await fetchWithRetry(url);
 

@@ -123,7 +123,7 @@
 
       for (const field of requiredFields) {
         if (!(field in response)) {
-          return { valid: false, error: `ข้อมูลที่ได้รับไม่สมบูรณ์ (ขาด ${field})` };
+          return { valid: false, error: 'ข้อมูลที่ได้รับไม่สมบูรณ์ (ขาด ' + field + ')' };
         }
       }
 

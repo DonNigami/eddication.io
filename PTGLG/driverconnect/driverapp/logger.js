@@ -28,7 +28,7 @@
      */
     debug(label, data) {
       if (this.currentLevel <= this.DEBUG) {
-        console.log(`%c[DEBUG] ${label}`, 'color: #888; font-weight: normal;', data || '');
+        console.log('%c[DEBUG] ' + label, 'color: #888; font-weight: normal;', data || '');
       }
     },
     
@@ -39,7 +39,7 @@
      */
     info(label, data) {
       if (this.currentLevel <= this.INFO) {
-        console.log(`%c[INFO] ${label}`, 'color: #0066cc; font-weight: 600;', data || '');
+        console.log('%c[INFO] ' + label, 'color: #0066cc; font-weight: 600;', data || '');
       }
     },
     
@@ -50,7 +50,7 @@
      */
     warn(label, data) {
       if (this.currentLevel <= this.WARN) {
-        console.warn(`%c[WARN] ${label}`, 'color: #ff9800; font-weight: 600;', data || '');
+        console.warn('%c[WARN] ' + label, 'color: #ff9800; font-weight: 600;', data || '');
       }
     },
     
@@ -61,7 +61,7 @@
      */
     error(label, error) {
       if (this.currentLevel <= this.ERROR) {
-        console.error(`%c[ERROR] ${label}`, 'color: #d32f2f; font-weight: bold;', error || '');
+        console.error('%c[ERROR] ' + label, 'color: #d32f2f; font-weight: bold;', error || '');
       }
     },
     
@@ -71,7 +71,7 @@
      */
     group(groupLabel) {
       if (isDev) {
-        console.group(`📦 ${groupLabel}`);
+        console.group('📦 ' + groupLabel);
       }
     },
     
