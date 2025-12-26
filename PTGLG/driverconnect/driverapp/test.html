@@ -534,7 +534,7 @@
           เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ
           และส่ง Flex เข้าแชท LINE
         </div>
-      </div>
+      </div><!-- end mainApp -->
     </div>
   </div>
 
@@ -1000,11 +1000,7 @@
         console.log('Login status:', isLoggedIn);
 
         if (!isLoggedIn) {
-          if (typeof liff.isInClient === 'function' && !liff.isInClient()) {
-            console.log('⚠️ Not in LINE client, showing info');
-            showInfo('เปิดใน LINE', MESSAGES.INFO_OPEN_IN_LINE);
-          }
-          console.log('🔐 Redirecting to login...');
+          console.log('🔐 User not logged in, trigger LINE login...');
           liff.login();
           return;
         }
@@ -1013,6 +1009,11 @@
         const profile = await liff.getProfile();
         console.log('Profile:', profile);
         currentUserId = profile.userId;
+
+        // แสดง main app และซ่อน login screen
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+
         const statusEl = document.getElementById('status');
         statusEl.textContent = 'สวัสดีคุณ ' + profile.displayName + ' 👋';
         migrateLegacyLastSearch(currentUserId);
@@ -2602,7 +2603,16 @@
       const btnSearchEl = document.getElementById('btnSearch');
       if (btnSearchEl) btnSearchEl.disabled = true;
 
-      initLiff();
+      // Login button handler
+      const btnLoginLine = document.getElementById('btnLoginLine');
+      if (btnLoginLine) {
+        btnLoginLine.addEventListener('click', function () {
+          console.log('🔐 Login button clicked');
+          initLiff();
+        });
+      }
+
+      // ไม่ auto-init LIFF - ให้ user กดปุ่ม login เอง
 
       document
         .getElementById('btnSearch')
