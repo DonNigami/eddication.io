@@ -3,8 +3,8 @@
  * Supports console grouping and styling for better debugging
  */
 (function(){
-  const isDev = (typeof window !== 'undefined' && window.location?.hostname === 'localhost') || 
-                (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+  const isDev = (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost') || 
+                (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development');
   
   window.Logger = {
     DEBUG: 0,

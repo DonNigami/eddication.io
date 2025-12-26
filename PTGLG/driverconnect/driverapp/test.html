@@ -544,7 +544,9 @@
     // Uses modular architecture: Logger → Constants → Validators → API → App
     // ============================================================================
 
-    const { MESSAGES, ACTIONS, STORAGE_KEYS } = window.CONSTANTS;
+    const MESSAGES = window.CONSTANTS.MESSAGES;
+    const ACTIONS = window.CONSTANTS.ACTIONS;
+    const STORAGE_KEYS = window.CONSTANTS.STORAGE_KEYS;
     const LIFF_ID = window.CONSTANTS.API.LIFF_ID;
     const LAST_SEARCH_MAP_KEY = 'driver_last_search_map_v1';
     const LAST_SEARCH_HISTORY_KEY = 'driver_last_search_history_map_v1';
@@ -1273,7 +1275,11 @@
     }
 
     async function compressImageFile(file, opts) {
-      const { maxW = 1280, maxH = 1280, targetKB = 700, mime = 'image/jpeg' } = opts || {};
+      const options = opts || {};
+      const maxW = options.maxW !== undefined ? options.maxW : 1280;
+      const maxH = options.maxH !== undefined ? options.maxH : 1280;
+      const targetKB = options.targetKB !== undefined ? options.targetKB : 700;
+      const mime = options.mime !== undefined ? options.mime : 'image/jpeg';
       const img = await loadImageFromFile(file);
       const origW = img.width || 1;
       const origH = img.height || 1;
@@ -1361,7 +1367,8 @@
         return;
       }
 
-      const { alcoholValue, file } = formValues;
+      const alcoholValue = formValues.alcoholValue;
+      const file = formValues.file;
 
       try {
         showLoading(CONSTANTS.MESSAGES.LOADING_GET_COORDINATES);
@@ -1562,7 +1569,8 @@
         return;
       }
 
-      const { score, signatureDataUrl } = formValues;
+      const score = formValues.score;
+      const signatureDataUrl = formValues.signatureDataUrl;
 
       try {
         showLoading(CONSTANTS.MESSAGES.LOADING_GET_COORDINATES);
@@ -1930,7 +1938,7 @@
         return;
       }
 
-      const { odo } = formValues;
+      const odo = formValues.odo;
       await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
     }
 
@@ -2036,7 +2044,7 @@
         await search();
       }
 
-      const { value: formValues } = await Swal.fire({
+      const formValuesResult = await Swal.fire({
         title: 'สรุปจบทริป',
         html: `
             <div style="text-align:left;">
@@ -2098,6 +2106,7 @@
         },
       });
 
+      const formValues = formValuesResult.value;
       if (!formValues) {
         return;
       }
@@ -2239,9 +2248,9 @@
         formHtml += '</div>';
       });
 
-      formHtml += `</div>`;
+      formHtml += '</div>';
 
-      const { value: confirmed } = await Swal.fire({
+      const confirmedResult = await Swal.fire({
         title: 'กรอกข้อมูลที่ขาดหายไป',
         html: formHtml,
         width: '90%',
@@ -2293,6 +2302,7 @@
         }
       });
 
+      const confirmed = confirmedResult.value;
       if (!confirmed) {
         return null;
       }
@@ -2368,7 +2378,7 @@
           closeLoading();
 
           // Fallback: Ask user to enter coordinates manually or proceed without GPS
-          const { value: fallback } = await Swal.fire({
+          const fallbackResult = await Swal.fire({
             title: CONSTANTS.MESSAGES.ERROR_GPS,
             html: '<div style="text-align:left;font-size:0.85rem;color:#555;">คุณสามารถกรอกพิกัดเองหรือบันทึกโดยไม่ระบุพิกัด</div>' +
               '<input id="swalLat" class="swal2-input" placeholder="ละติจูด (เช่น 13.7563)" type="number" step="0.0001">' +
@@ -2397,6 +2407,7 @@
             }
           });
 
+          const fallback = fallbackResult.value;
           if (!fallback) return;
 
           showLoading('กำลังบันทึกข้อมูลจบทริป...');

@@ -3,8 +3,12 @@
  * All requests go through this module for consistency and reliability
  */
 (function(){
-  const { WEB_APP_URL, TIMEOUT_MS, MAX_RETRIES, RETRY_DELAY_MS } = window.CONSTANTS.API;
-  const { ACTIONS, MESSAGES } = window.CONSTANTS;
+  const WEB_APP_URL = window.CONSTANTS.API.WEB_APP_URL;
+  const TIMEOUT_MS = window.CONSTANTS.API.TIMEOUT_MS;
+  const MAX_RETRIES = window.CONSTANTS.API.MAX_RETRIES;
+  const RETRY_DELAY_MS = window.CONSTANTS.API.RETRY_DELAY_MS;
+  const ACTIONS = window.CONSTANTS.ACTIONS;
+  const MESSAGES = window.CONSTANTS.MESSAGES;
 
   /**
    * Sleep utility for retry delays
@@ -27,11 +31,11 @@
     const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const res = await fetch(url, {
-        ...options,
+      const fetchOptions = Object.assign({}, options, {
         signal: controller.signal,
-        cache: 'no-store',
+        cache: 'no-store'
       });
+      const res = await fetch(url, fetchOptions);
 
       if (!res.ok) {
         const text = await res.text().catch(() => '');
