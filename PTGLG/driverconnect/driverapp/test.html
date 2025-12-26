@@ -551,13 +551,14 @@
      * Show loading modal
      * @param {string} message
      */
-    Swal.fire({
-      title: message || 'กำลังประมวลผล...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      },
-    });
+    function showLoading(message) {
+      Swal.fire({
+        title: message || 'กำลังประมวลผล...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
     }
 
     function closeLoading() {
@@ -568,12 +569,13 @@
      * Show error notification
      * @param {string} message
      */
-    Swal.fire({
-      icon: 'error',
-      title: 'เกิดข้อผิดพลาด',
-      text: message || 'โปรดลองใหม่อีกครั้ง',
-      confirmButtonColor: '#1abc9c',
-    });
+    function showError(message) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: message || 'โปรดลองใหม่อีกครั้ง',
+        confirmButtonColor: '#1abc9c',
+      });
     }
 
     function showSuccess(title, text) {
@@ -590,12 +592,13 @@
      * @param {string} title
      * @param {string} text
      */
-    Swal.fire({
-      icon: 'info',
-      title: title || 'แจ้งเตือน',
-      text: text || '',
-      confirmButtonColor: '#1abc9c',
-    });
+    function showInfo(title, text) {
+      Swal.fire({
+        icon: 'info',
+        title: title || 'แจ้งเตือน',
+        text: text || '',
+        confirmButtonColor: '#1abc9c',
+      });
     }
 
     function showInlineFlex(type, stop) {
@@ -811,6 +814,19 @@
 
     async function initLiff() {
       try {
+        // Guard: ensure LIFF SDK and configuration are available
+        if (typeof liff === 'undefined') {
+          showError('LIFF SDK ไม่พร้อมใช้งาน โปรดรีเฟรชหรือเปิดผ่านแอพ LINE');
+          return;
+        }
+        if (!LIFF_ID) {
+          showError('ไม่พบการตั้งค่า LIFF_ID ในระบบ');
+          return;
+        }
+        if (!window.CONSTANTS || !window.CONSTANTS.API || !window.CONSTANTS.API.WEB_APP_URL) {
+          showError('ไม่พบการตั้งค่า WEB_APP_URL สำหรับ backend');
+          return;
+        }
         await liff.init({ liffId: LIFF_ID });
         if (liff.ready) { await liff.ready; }
 
@@ -826,6 +842,10 @@
         currentUserId = profile.userId;
         const statusEl = document.getElementById('status');
         statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
+
+        // Enable search button after LIFF is ready and user is logged in
+        const btnSearchEl = document.getElementById('btnSearch');
+        if (btnSearchEl) btnSearchEl.disabled = false;
 
         // โหลดค่าค้นหาล่าสุดจาก localStorage
         const lastKeyword = localStorage.getItem(STORAGE_KEYS.LAST_SEARCH);
@@ -854,6 +874,12 @@
 
       if (!keyword) {
         showInfo('กรุณากรอกเลข Reference', MESSAGES.INFO_SEARCH_EMPTY);
+        return;
+      }
+
+      // Guard: ensure LINE login and profile loaded
+      if (!currentUserId) {
+        showInfo('ยังไม่ได้เข้าสู่ระบบ', 'กำลังโหลดโปรไฟล์จาก LINE');
         return;
       }
 
@@ -910,33 +936,7 @@
       }
     }
 
-    currentDrivers =
-      (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
-      [];
-    currentCheckedDrivers =
-      (d.alcohol &&
-        Array.isArray(d.alcohol.checkedDrivers) &&
-        d.alcohol.checkedDrivers) ||
-      [];
-    currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
-    alcoholAllDone =
-      currentDrivers.length > 0 &&
-      currentDrivers.every((n) => currentCheckedDrivers.includes(n));
-
-    jobClosed = !!d.jobClosed;     // จาก backend
-    tripEnded = !!d.tripEnded;     // ✅ รับ flag จบทริปจาก backend (ถ้ามี)
-
-    renderSummary(d);
-    renderAlcoholSection();
-    renderTimeline(stops);
-      } catch (err) {
-      console.error(err);
-      closeLoading();
-      showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
-    } finally {
-      btn.disabled = false;
-    }
-    }
+    // stray block removed: duplicated logic after search()
 
     function clearResult() {
       document.getElementById('summary').classList.add('hidden');
@@ -2359,6 +2359,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+      // Disable search until LIFF initializes
+      const btnSearchEl = document.getElementById('btnSearch');
+      if (btnSearchEl) btnSearchEl.disabled = true;
+
       initLiff();
 
       document
