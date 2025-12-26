@@ -1023,8 +1023,10 @@
         console.log('Login status:', isLoggedIn);
 
         if (!isLoggedIn) {
-          console.log('🔐 User not logged in, trigger LINE login...');
-          liff.login();
+          console.log('🔐 User not logged in, showing login screen...');
+          // แสดงหน้า login screen แทนการ auto-login
+          document.getElementById('loginScreen').classList.remove('hidden');
+          document.getElementById('mainApp').classList.add('hidden');
           return;
         }
 
@@ -2626,16 +2628,21 @@
       const btnSearchEl = document.getElementById('btnSearch');
       if (btnSearchEl) btnSearchEl.disabled = true;
 
-      // Login button handler
+      // Login button handler - เรียก liff.login() เพื่อ redirect ไป LINE OAuth
       const btnLoginLine = document.getElementById('btnLoginLine');
       if (btnLoginLine) {
         btnLoginLine.addEventListener('click', function () {
-          console.log('🔐 Login button clicked');
-          initLiff();
+          console.log('🔐 Login button clicked, trigger LINE OAuth...');
+          if (typeof liff !== 'undefined' && liff.login) {
+            liff.login();
+          } else {
+            showError('LIFF SDK ยังไม่พร้อม กรุณารอสักครู่และลองใหม่');
+          }
         });
       }
 
-      // ไม่ auto-init LIFF - ให้ user กดปุ่ม login เอง
+      // Auto-init LIFF เมื่อหน้าโหลด เพื่อตรวจสอบสถานะ login
+      initLiff();
 
       document
         .getElementById('btnSearch')
