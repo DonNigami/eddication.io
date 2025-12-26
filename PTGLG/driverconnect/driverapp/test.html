@@ -463,7 +463,30 @@
 
   <div class="app-shell">
     <div class="container">
-      <div class="card">
+      <!-- Login Screen -->
+      <div id="loginScreen" class="card">
+        <div class="header">
+          <div class="title">
+            🚗 Driver Tracking
+            <span class="badge">PTGLG</span>
+          </div>
+        </div>
+
+        <div style="text-align:center;padding:40px 20px;">
+          <div style="font-size:3rem;margin-bottom:16px;">🔐</div>
+          <h2 style="margin:0 0 8px;color:var(--text-main);">ยินดีต้อนรับ</h2>
+          <p style="color:var(--text-sub);margin:0 0 24px;font-size:0.9rem;">
+            กรุณาเข้าสู่ระบบด้วย LINE เพื่อใช้งาน Driver Tracking
+          </p>
+          <button id="btnLoginLine" type="button" style="max-width:300px;">
+            <span style="font-size:1.2rem;margin-right:8px;">💬</span>
+            <span>Login with LINE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main App (Hidden until logged in) -->
+      <div id="mainApp" class="card hidden">
         <div class="header">
           <div class="title">
             🚚 Driver Tracking
@@ -471,7 +494,7 @@
           </div>
         </div>
 
-        <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
+        <div id="status" class="status-text"></div>
 
         <!-- Diagnostics Panel -->
         <div id="diagCard" class="summary-card" style="margin-bottom:10px;">
