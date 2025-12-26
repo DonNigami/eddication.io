@@ -10,6 +10,46 @@
   const ACTIONS = window.CONSTANTS.ACTIONS;
   const MESSAGES = window.CONSTANTS.MESSAGES;
 
+  // ES5-safe Object.assign fallback
+  const assign = Object.assign || function(target) {
+    target = target || {};
+    for (var i = 1; i < arguments.length; i++) {
+      var src = arguments[i] || {};
+      for (var k in src) {
+        if (Object.prototype.hasOwnProperty.call(src, k)) {
+          target[k] = src[k];
+        }
+      }
+    }
+    return target;
+  };
+
+  // Build form body with URLSearchParams fallback for older WebViews
+  function makeFormBody(obj) {
+    if (typeof URLSearchParams !== 'undefined') {
+      var form = new URLSearchParams();
+      for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          var val = obj[key];
+          if (val !== undefined) {
+            form.append(key, String(val));
+          }
+        }
+      }
+      return form;
+    }
+    var parts = [];
+    for (var k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) {
+        var v = obj[k];
+        if (v !== undefined) {
+          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)));
+        }
+      }
+    }
+    return parts.join('&');
+  }
+
   /**
    * Sleep utility for retry delays
    * @param {number} ms
@@ -27,14 +67,23 @@
    * @returns {Promise<*>}
    */
   async function fetchWithRetry(url, options = {}, retryCount = 0) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    var controller = null;
+    var id = null;
+    if (typeof AbortController !== 'undefined') {
+      try {
+        controller = new AbortController();
+        id = setTimeout(function(){ try { controller.abort(); } catch(e){} }, TIMEOUT_MS);
+      } catch(e) {
+        controller = null;
+        id = null;
+      }
+    }
 
     try {
-      const fetchOptions = Object.assign({}, options, {
-        signal: controller.signal,
-        cache: 'no-store'
-      });
+      var fetchOptions = assign({}, options, { cache: 'no-store' });
+      if (controller && controller.signal) {
+        fetchOptions.signal = controller.signal;
+      }
       const res = await fetch(url, fetchOptions);
 
       if (!res.ok) {
@@ -46,7 +95,7 @@
 
       return await res.json();
     } catch (err) {
-      clearTimeout(id);
+      if (id) clearTimeout(id);
 
       // Retry logic for network/timeout errors (not 4xx client errors)
       const isRetryable =
@@ -117,17 +166,15 @@
 
       try {
         const url = WEB_APP_URL + '?action=' + ACTIONS.UPDATE_STOP;
-        const form = new URLSearchParams();
-        form.append('rowIndex', String(rowIndex));
-        form.append('status', String(status));
-        form.append('type', String(type));
-        form.append('userId', String(userId));
-        form.append('lat', String(lat));
-        form.append('lng', String(lng));
-
-        if (type === 'checkin') {
-          form.append('odo', String(odo || ''));
-        }
+        const form = makeFormBody({
+          rowIndex: String(rowIndex),
+          status: String(status),
+          type: String(type),
+          userId: String(userId),
+          lat: String(lat),
+          lng: String(lng),
+          odo: type === 'checkin' ? String(odo || '') : undefined
+        });
 
         let json;
         try {
@@ -172,18 +219,17 @@
       window.Logger.info('🍺 Uploading alcohol check', { driverName });
 
       try {
-        const form = new URLSearchParams();
-        form.append('action', ACTIONS.UPLOAD_ALCOHOL);
-        form.append('reference', reference);
-        form.append('driverName', driverName);
-        form.append('userId', userId);
-        form.append('alcoholValue', alcoholValue);
-        form.append('lat', String(lat));
-        form.append('lng', String(lng));
-        form.append('imageBase64', imageBase64);
-        if (accuracy !== undefined && accuracy !== null) {
-          form.append('accuracy', String(accuracy));
-        }
+        const form = makeFormBody({
+          action: ACTIONS.UPLOAD_ALCOHOL,
+          reference: reference,
+          driverName: driverName,
+          userId: userId,
+          alcoholValue: alcoholValue,
+          lat: String(lat),
+          lng: String(lng),
+          imageBase64: imageBase64,
+          accuracy: (accuracy !== undefined && accuracy !== null) ? String(accuracy) : undefined
+        });
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
@@ -208,18 +254,17 @@
       window.Logger.info('⭐ Uploading review', { rowIndex, score });
 
       try {
-        const form = new URLSearchParams();
-        form.append('action', ACTIONS.UPLOAD_REVIEW);
-        form.append('reference', reference);
-        form.append('rowIndex', String(rowIndex));
-        form.append('userId', userId);
-        form.append('score', score);
-        form.append('lat', String(lat));
-        form.append('lng', String(lng));
-        form.append('signatureBase64', signatureBase64);
-        if (accuracy !== undefined && accuracy !== null) {
-          form.append('accuracy', String(accuracy));
-        }
+        const form = makeFormBody({
+          action: ACTIONS.UPLOAD_REVIEW,
+          reference: reference,
+          rowIndex: String(rowIndex),
+          userId: userId,
+          score: score,
+          lat: String(lat),
+          lng: String(lng),
+          signatureBase64: signatureBase64,
+          accuracy: (accuracy !== undefined && accuracy !== null) ? String(accuracy) : undefined
+        });
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
@@ -244,13 +289,14 @@
       window.Logger.info('📝 Filling missing steps', { reference });
 
       try {
-        const form = new URLSearchParams();
-        form.append('action', ACTIONS.FILL_MISSING);
-        form.append('reference', reference);
-        form.append('userId', userId);
-        form.append('lat', String(lat));
-        form.append('lng', String(lng));
-        form.append('missingData', JSON.stringify(missingData));
+        const form = makeFormBody({
+          action: ACTIONS.FILL_MISSING,
+          reference: reference,
+          userId: userId,
+          lat: String(lat),
+          lng: String(lng),
+          missingData: JSON.stringify(missingData)
+        });
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
@@ -275,14 +321,15 @@
       window.Logger.info('🏁 Ending trip', { reference });
 
       try {
-        const form = new URLSearchParams();
-        form.append('action', ACTIONS.END_TRIP);
-        form.append('reference', reference);
-        form.append('userId', userId);
-        form.append('endOdo', endOdo || '');
-        form.append('endPointName', endPointName || '');
-        form.append('lat', String(lat || ''));
-        form.append('lng', String(lng || ''));
+        const form = makeFormBody({
+          action: ACTIONS.END_TRIP,
+          reference: reference,
+          userId: userId,
+          endOdo: endOdo || '',
+          endPointName: endPointName || '',
+          lat: String(lat || ''),
+          lng: String(lng || '')
+        });
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
