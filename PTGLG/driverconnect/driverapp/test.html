@@ -1601,6 +1601,7 @@
 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy != null ? pos.coords.accuracy : undefined;
 
         showLoading('กำลังบันทึกการประเมิน...');
 
@@ -1982,6 +1983,7 @@
 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy != null ? pos.coords.accuracy : undefined;
 
         showLoading(CONSTANTS.MESSAGES.LOADING_UPDATE);
 
@@ -2347,6 +2349,7 @@
 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy != null ? pos.coords.accuracy : undefined;
 
         // Submit missing data via centralized API
         const result = await window.API.fillMissingSteps({
@@ -2463,6 +2466,7 @@
 
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy != null ? pos.coords.accuracy : undefined;
 
         showLoading('กำลังบันทึกข้อมูลจบทริป...');
 
