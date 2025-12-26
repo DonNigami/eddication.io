@@ -969,6 +969,11 @@
     async function initLiff() {
       try {
         // Guard: ensure LIFF SDK and configuration are available
+        console.log('🔧 Initializing LIFF...');
+        console.log('LIFF SDK loaded:', typeof liff !== 'undefined');
+        console.log('LIFF_ID:', LIFF_ID);
+        console.log('WEB_APP_URL:', window.CONSTANTS?.API?.WEB_APP_URL);
+
         if (typeof liff === 'undefined') {
           showError('LIFF SDK ไม่พร้อมใช้งาน โปรดรีเฟรชหรือเปิดผ่านแอพ LINE');
           return;
@@ -981,18 +986,32 @@
           showError('ไม่พบการตั้งค่า WEB_APP_URL สำหรับ backend');
           return;
         }
-        await liff.init({ liffId: LIFF_ID });
-        if (liff.ready) { await liff.ready; }
 
-        if (!liff.isLoggedIn()) {
+        console.log('🚀 Starting LIFF init with ID:', LIFF_ID);
+        await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF init completed');
+
+        if (liff.ready) {
+          await liff.ready;
+          console.log('✅ LIFF ready');
+        }
+
+        const isLoggedIn = liff.isLoggedIn();
+        console.log('Login status:', isLoggedIn);
+
+        if (!isLoggedIn) {
           if (typeof liff.isInClient === 'function' && !liff.isInClient()) {
+            console.log('⚠️ Not in LINE client, showing info');
             showInfo('เปิดใน LINE', MESSAGES.INFO_OPEN_IN_LINE);
           }
+          console.log('🔐 Redirecting to login...');
           liff.login();
           return;
         }
 
+        console.log('👤 Getting profile...');
         const profile = await liff.getProfile();
+        console.log('Profile:', profile);
         currentUserId = profile.userId;
         const statusEl = document.getElementById('status');
         statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
