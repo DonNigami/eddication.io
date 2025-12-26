@@ -585,6 +585,19 @@
       }
     }
 
+    function migrateLegacyLastSearch(userId) {
+      if (!userId) return;
+      try {
+        const legacy = localStorage.getItem(STORAGE_KEYS.LAST_SEARCH);
+        if (legacy) {
+          setLastSearch(userId, legacy);
+          localStorage.removeItem(STORAGE_KEYS.LAST_SEARCH);
+        }
+      } catch (e) {
+        console.warn('legacy last search migration failed', e);
+      }
+    }
+
     let currentDrivers = [];
     let currentCheckedDrivers = [];
     let alcoholAllDone = false;
@@ -892,6 +905,9 @@
         const statusEl = document.getElementById('status');
         statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
 
+        // Move legacy single-value storage into per-user map (one-time)
+        migrateLegacyLastSearch(currentUserId);
+
         // Enable search button after LIFF is ready and user is logged in
         const btnSearchEl = document.getElementById('btnSearch');
         if (btnSearchEl) btnSearchEl.disabled = false;
@@ -941,6 +957,9 @@
         return;
       }
 
+      // Persist latest keyword per-user immediately (so it survives even if API fails)
+      setLastSearch(currentUserId, keyword);
+
       btn.disabled = true;
       showLoading('กำลังค้นหางานจากระบบ...');
 
@@ -966,9 +985,6 @@
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
-
-        // บันทึกค่าค้นหาล่าสุดแบบแยกตาม user
-        setLastSearch(currentUserId, keyword);
 
         currentDrivers =
           (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
