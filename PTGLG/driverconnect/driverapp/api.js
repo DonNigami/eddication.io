@@ -168,7 +168,7 @@
      * @param {object} params
      * @returns {Promise<{success: boolean, checkedDrivers?: string[], message?: string}>}
      */
-    async uploadAlcohol({ reference, driverName, userId, alcoholValue, lat, lng, imageBase64 }) {
+    async uploadAlcohol({ reference, driverName, userId, alcoholValue, lat, lng, imageBase64, accuracy }) {
       window.Logger.info('🍺 Uploading alcohol check', { driverName });
 
       try {
@@ -181,6 +181,9 @@
         form.append('lat', String(lat));
         form.append('lng', String(lng));
         form.append('imageBase64', imageBase64);
+        if (accuracy !== undefined && accuracy !== null) {
+          form.append('accuracy', String(accuracy));
+        }
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
@@ -201,7 +204,7 @@
      * @param {object} params
      * @returns {Promise<{success: boolean, stop?: *, message?: string}>}
      */
-    async uploadReview({ reference, rowIndex, userId, score, lat, lng, signatureBase64 }) {
+    async uploadReview({ reference, rowIndex, userId, score, lat, lng, signatureBase64, accuracy }) {
       window.Logger.info('⭐ Uploading review', { rowIndex, score });
 
       try {
@@ -214,6 +217,9 @@
         form.append('lat', String(lat));
         form.append('lng', String(lng));
         form.append('signatureBase64', signatureBase64);
+        if (accuracy !== undefined && accuracy !== null) {
+          form.append('accuracy', String(accuracy));
+        }
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
