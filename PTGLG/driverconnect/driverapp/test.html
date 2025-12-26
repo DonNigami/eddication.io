@@ -781,15 +781,13 @@
 
       const odoText =
         type === 'checkin' && stop.checkInOdo
-          ? ` • เลขไมล์: ${stop.checkInOdo}`
+          ? ' • เลขไมล์: ' + stop.checkInOdo
           : '';
 
       titleEl.textContent = title;
-      mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${stop.shipmentNo || '-'
-        }`;
-      const acc = stop.gpsAccuracy != null ? ` • ±${Math.round(stop.gpsAccuracy)}m` : '';
-      subEl.textContent = `${stop.destination2 || stop.destination1 || 'ปลายทาง'
-        }${timeText ? ' • เวลา: ' + timeText : ''}${odoText}${acc}`;
+      mainEl.textContent = 'Reference: ' + (stop.referenceNo || '-') + ' | Shipment: ' + (stop.shipmentNo || '-');
+      const acc = stop.gpsAccuracy != null ? ' • ±' + Math.round(stop.gpsAccuracy) + 'm' : '';
+      subEl.textContent = (stop.destination2 || stop.destination1 || 'ปลายทาง') + (timeText ? ' • เวลา: ' + timeText : '') + odoText + acc;
 
       container.classList.remove('hide', 'hidden');
       void container.offsetWidth;
@@ -1014,7 +1012,7 @@
         console.log('Profile:', profile);
         currentUserId = profile.userId;
         const statusEl = document.getElementById('status');
-        statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
+        statusEl.textContent = 'สวัสดีคุณ ' + profile.displayName + ' 👋';
         migrateLegacyLastSearch(currentUserId);
 
         renderSearchHistory();
@@ -1046,9 +1044,9 @@
         const statusEl = document.getElementById('status');
         const msg = err && err.message ? err.message : 'ไม่ทราบสาเหตุ';
         if (statusEl) {
-          statusEl.innerText = `เกิดข้อผิดพลาดในการโหลด LIFF: ${msg}`;
+          statusEl.innerText = 'เกิดข้อผิดพลาดในการโหลด LIFF: ' + msg;
         }
-        showError(`${MESSAGES.ERROR_LIFF_INIT}\nรายละเอียด: ${msg}`);
+        showError(MESSAGES.ERROR_LIFF_INIT + '\nรายละเอียด: ' + msg);
       }
     }
 
@@ -2207,44 +2205,38 @@
         `;
 
         stop.missing.forEach((step, stepIdx) => {
-          const fieldPrefix = `stop${stopIdx}_step${stepIdx}`;
+          const fieldPrefix = 'stop' + stopIdx + '_step' + stepIdx;
 
-          formHtml += `
-            <div style="margin-bottom:8px;padding:8px;background:#fff;border-radius:6px;">
-              <div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">
-                ${step.label}
-              </div>
-          `;
+          formHtml += '<div style="margin-bottom:8px;padding:8px;background:#fff;border-radius:6px;">' +
+            '<div style="font-size:0.85rem;font-weight:600;margin-bottom:4px;">' +
+            step.label +
+            '</div>';
 
           if (step.needOdo) {
-            formHtml += `
-              <label style="font-size:0.75rem;color:#666;">เลขไมล์</label>
-              <input id="${fieldPrefix}_odo" type="number" 
-                class="swal2-input" 
-                data-stopidx="${stopIdx}" 
-                data-stepidx="${stepIdx}"
-                data-field="odo"
-                placeholder="กรอกเลขไมล์"
-                style="width:100%;margin:2px 0 6px;padding:6px 10px;font-size:0.85rem;">
-            `;
+            formHtml += '<label style="font-size:0.75rem;color:#666;">\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c</label>' +
+              '<input id="' + fieldPrefix + '_odo" type="number" ' +
+              'class="swal2-input" ' +
+              'data-stopidx="' + stopIdx + '" ' +
+              'data-stepidx="' + stepIdx + '"' +
+              'data-field="odo"' +
+              'placeholder="\u0e01\u0e23\u0e2d\u0e01\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c"' +
+              'style="width:100%;margin:2px 0 6px;padding:6px 10px;font-size:0.85rem;">';
           }
 
           if (step.needTime) {
-            formHtml += `
-              <label style="font-size:0.75rem;color:#666;">วันที่และเวลา</label>
-              <input id="${fieldPrefix}_datetime" type="datetime-local" 
-                class="swal2-input"
-                data-stopidx="${stopIdx}"
-                data-stepidx="${stepIdx}"
-                data-field="datetime"
-                style="width:100%;margin:2px 0 4px;padding:6px 10px;font-size:0.85rem;">
-            `;
+            formHtml += '<label style="font-size:0.75rem;color:#666;">\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e40\u0e27\u0e25\u0e32</label>' +
+              '<input id="' + fieldPrefix + '_datetime" type="datetime-local" ' +
+              'class="swal2-input"' +
+              'data-stopidx="' + stopIdx + '"' +
+              'data-stepidx="' + stepIdx + '"' +
+              'data-field="datetime"' +
+              'style="width:100%;margin:2px 0 4px;padding:6px 10px;font-size:0.85rem;">';
           }
 
-          formHtml += `</div>`;
+          formHtml += '</div>';
         });
 
-        formHtml += `</div>`;
+        formHtml += '</div>';
       });
 
       formHtml += `</div>`;
@@ -2264,7 +2256,7 @@
 
           missingSteps.forEach((stop, stopIdx) => {
             stop.missing.forEach((step, stepIdx) => {
-              const fieldPrefix = `stop${stopIdx}_step${stepIdx}`;
+              const fieldPrefix = 'stop' + stopIdx + '_step' + stepIdx;
               const data = {
                 rowIndex: stop.rowIndex,
                 seq: stop.seq,
@@ -2274,20 +2266,20 @@
               };
 
               if (step.needOdo) {
-                const odoEl = document.getElementById(`${fieldPrefix}_odo`);
+                const odoEl = document.getElementById(fieldPrefix + '_odo');
                 const odoVal = odoEl ? odoEl.value.trim() : '';
                 if (!odoVal) {
-                  Swal.showValidationMessage(`กรุณากรอกเลขไมล์สำหรับ ${stop.destination} - ${step.label}`);
+                  Swal.showValidationMessage('\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a ' + stop.destination + ' - ' + step.label);
                   return false;
                 }
                 data.odo = odoVal;
               }
 
               if (step.needTime) {
-                const dtEl = document.getElementById(`${fieldPrefix}_datetime`);
+                const dtEl = document.getElementById(fieldPrefix + '_datetime');
                 const dtVal = dtEl ? dtEl.value.trim() : '';
                 if (!dtVal) {
-                  Swal.showValidationMessage(`กรุณากรอกวันที่และเวลาสำหรับ ${stop.destination} - ${step.label}`);
+                  Swal.showValidationMessage('\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e41\u0e25\u0e30\u0e40\u0e27\u0e25\u0e32\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a ' + stop.destination + ' - ' + step.label);
                   return false;
                 }
                 data.datetime = dtVal;
@@ -2660,9 +2652,9 @@
       const lo = document.getElementById('diagLogin');
       const ui = document.getElementById('diagUser');
       const bu = document.getElementById('diagBackend');
-      if (li) li.textContent = `LIFF: ${liffReady ? 'Ready' : 'Not ready'}`;
-      if (lo) lo.textContent = `Login: ${loggedIn ? 'Yes' : 'No'}`;
-      if (ui) ui.textContent = `UserId: ${userId || '-'}`;
+      if (li) li.textContent = 'LIFF: ' + (liffReady ? 'Ready' : 'Not ready');
+      if (lo) lo.textContent = 'Login: ' + (loggedIn ? 'Yes' : 'No');
+      if (ui) ui.textContent = 'UserId: ' + (userId || '-');
       if (bu) bu.textContent = 'Backend URL: hidden';
     } `;
     }
