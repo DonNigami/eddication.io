@@ -1026,8 +1026,12 @@
         try { updateDiagnosticsSnapshot({ liffReady: true, loggedIn: true, userId: currentUserId }); } catch (_) { }
       } catch (err) {
         window.Logger.error('❌ LIFF init failed', err);
-        document.getElementById('status').innerText = 'เกิดข้อผิดพลาดในการโหลด LIFF';
-        showError(MESSAGES.ERROR_LIFF_INIT);
+        const statusEl = document.getElementById('status');
+        const msg = err && err.message ? err.message : 'ไม่ทราบสาเหตุ';
+        if (statusEl) {
+          statusEl.innerText = `เกิดข้อผิดพลาดในการโหลด LIFF: ${msg}`;
+        }
+        showError(`${MESSAGES.ERROR_LIFF_INIT}\nรายละเอียด: ${msg}`);
       }
     }
 
