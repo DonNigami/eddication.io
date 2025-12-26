@@ -463,30 +463,8 @@
 
   <div class="app-shell">
     <div class="container">
-      <!-- Login Screen -->
-      <div id="loginScreen" class="card">
-        <div class="header">
-          <div class="title">
-            🚗 Driver Tracking
-            <span class="badge">PTGLG</span>
-          </div>
-        </div>
-
-        <div style="text-align:center;padding:40px 20px;">
-          <div style="font-size:3rem;margin-bottom:16px;">🔐</div>
-          <h2 style="margin:0 0 8px;color:var(--text-main);">ยินดีต้อนรับ</h2>
-          <p style="color:var(--text-sub);margin:0 0 24px;font-size:0.9rem;">
-            กรุณาเข้าสู่ระบบด้วย LINE เพื่อใช้งาน Driver Tracking
-          </p>
-          <button id="btnLoginLine" type="button" style="max-width:300px;">
-            <span style="font-size:1.2rem;margin-right:8px;">💬</span>
-            <span>Login with LINE</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Main App (Hidden until logged in) -->
-      <div id="mainApp" class="card hidden">
+      <!-- Main App -->
+      <div id="mainApp" class="card">
         <div class="header">
           <div class="title">
             🚚 Driver Tracking
@@ -1023,10 +1001,8 @@
         console.log('Login status:', isLoggedIn);
 
         if (!isLoggedIn) {
-          console.log('🔐 User not logged in, showing login screen...');
-          // แสดงหน้า login screen แทนการ auto-login
-          document.getElementById('loginScreen').classList.remove('hidden');
-          document.getElementById('mainApp').classList.add('hidden');
+          console.log('🔐 User not logged in, redirecting to LINE login...');
+          liff.login();
           return;
         }
 
@@ -1034,10 +1010,6 @@
         const profile = await liff.getProfile();
         console.log('Profile:', profile);
         currentUserId = profile.userId;
-
-        // แสดง main app และซ่อน login screen
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('mainApp').classList.remove('hidden');
 
         const statusEl = document.getElementById('status');
         statusEl.textContent = 'สวัสดีคุณ ' + profile.displayName + ' 👋';
@@ -2628,20 +2600,7 @@
       const btnSearchEl = document.getElementById('btnSearch');
       if (btnSearchEl) btnSearchEl.disabled = true;
 
-      // Login button handler - เรียก liff.login() เพื่อ redirect ไป LINE OAuth
-      const btnLoginLine = document.getElementById('btnLoginLine');
-      if (btnLoginLine) {
-        btnLoginLine.addEventListener('click', function () {
-          console.log('🔐 Login button clicked, trigger LINE OAuth...');
-          if (typeof liff !== 'undefined' && liff.login) {
-            liff.login();
-          } else {
-            showError('LIFF SDK ยังไม่พร้อม กรุณารอสักครู่และลองใหม่');
-          }
-        });
-      }
-
-      // Auto-init LIFF เมื่อหน้าโหลด เพื่อตรวจสอบสถานะ login
+      // Auto-init LIFF และบังคับ login ทันที
       initLiff();
 
       document
