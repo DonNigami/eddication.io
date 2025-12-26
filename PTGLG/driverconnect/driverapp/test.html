@@ -996,8 +996,6 @@
         currentUserId = profile.userId;
         const statusEl = document.getElementById('status');
         statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
-
-        // Move legacy single-value storage into per-user map (one-time)
         migrateLegacyLastSearch(currentUserId);
 
         renderSearchHistory();
