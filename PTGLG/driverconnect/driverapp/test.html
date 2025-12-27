@@ -761,11 +761,35 @@
       });
     }
 
+    // Resolve awareness image URL (supports Google Drive share links)
+    function resolveAwarenessImageUrl(url) {
+      try {
+        var raw = String(url || '').trim();
+        if (!raw) return '';
+        // Convert Google Drive share/view links to direct content
+        if (raw.indexOf('drive.google.com') !== -1) {
+          var m1 = raw.match(/\/file\/d\/([^/]+)/);
+          if (m1 && m1[1]) {
+            return 'https://drive.google.com/uc?id=' + m1[1];
+          }
+          var m2 = raw.match(/[?&]id=([^&]+)/);
+          if (m2 && m2[1]) {
+            return 'https://drive.google.com/uc?id=' + m2[1];
+          }
+        }
+        return raw;
+      } catch (_) {
+        return String(url || '');
+      }
+    }
+
     /**
      * Show awareness acknowledgment popup (display image only, no upload)
      */
     async function showAwarenessPopup() {
-      const awarenessImageUrl = window.CONSTANTS && window.CONSTANTS.API ? window.CONSTANTS.API.AWARENESS_IMAGE_URL : '';
+      const awarenessImageUrlRaw = (window.CONSTANTS && window.CONSTANTS.API && window.CONSTANTS.API.AWARENESS_IMAGE_URL) || '';
+      const awarenessImageUrl = resolveAwarenessImageUrl(awarenessImageUrlRaw);
+      try { console.log('Awareness image URL:', awarenessImageUrl); } catch (_) {}
 
       const { isConfirmed } = await Swal.fire({
         title: 'สำคัญ⚠️ โปรดอ่านและกดรับทราบ',
@@ -778,7 +802,10 @@
               <li>ระมัดระวังเวลาขับขี่บนท้องถนน</li>
               <li>รักษาสินค้าให้ปลอดภัยตลอดการขนส่ง</li>
             </ul>
-            ${awarenessImageUrl ? `<div style="margin-top:12px;text-align:center;"><img src="${awarenessImageUrl}" alt="Awareness" style="max-width:100%;max-height:260px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" /></div>` : ''}
+            ${awarenessImageUrl ? `<div style="margin-top:12px;text-align:center;">
+              <img src="${awarenessImageUrl}" alt="Awareness" style="max-width:100%;max-height:260px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" onerror="this.style.display='none'" />
+              <div style="margin-top:6px;font-size:0.8rem;color:#666;">หากรูปไม่แสดง <a href="${awarenessImageUrl}" target="_blank" rel="noopener">เปิดลิ้งค์รูป</a></div>
+            </div>` : ''}
           </div>
         `,
         focusConfirm: false,
