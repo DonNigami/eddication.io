@@ -789,7 +789,7 @@
     async function showAwarenessPopup() {
       const awarenessImageUrlRaw = (window.CONSTANTS && window.CONSTANTS.API && window.CONSTANTS.API.AWARENESS_IMAGE_URL) || '';
       const awarenessImageUrl = resolveAwarenessImageUrl(awarenessImageUrlRaw);
-      try { console.log('Awareness image URL:', awarenessImageUrl); } catch (_) {}
+      try { console.log('Awareness image URL:', awarenessImageUrl); } catch (_) { }
 
       const { isConfirmed } = await Swal.fire({
         title: 'สำคัญ⚠️ โปรดอ่านและกดรับทราบ',
