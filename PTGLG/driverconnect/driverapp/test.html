@@ -1146,7 +1146,7 @@
         currentUserId = profile.userId;
 
         // Clear login flag after successful login/profile fetch
-        try { sessionStorage.removeItem(LIFF_LOGIN_FLAG_KEY); } catch (_) {}
+        try { sessionStorage.removeItem(LIFF_LOGIN_FLAG_KEY); } catch (_) { }
 
         const statusEl = document.getElementById('status');
         statusEl.textContent = 'สวัสดีคุณ ' + profile.displayName + ' 👋';
