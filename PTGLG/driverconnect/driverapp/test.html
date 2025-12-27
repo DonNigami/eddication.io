@@ -1127,7 +1127,8 @@
         }
 
         const isLoggedIn = liff.isLoggedIn();
-        console.log('Login status:', isLoggedIn);
+        const isInClient = liff.isInClient ? liff.isInClient() : false;
+        console.log('Login status:', isLoggedIn, 'isInClient:', isInClient);
 
         if (!isLoggedIn) {
           if (sessionStorage.getItem(LIFF_LOGIN_FLAG_KEY)) {
@@ -1136,7 +1137,13 @@
           }
           console.log('🔐 User not logged in, redirecting to LINE login...');
           sessionStorage.setItem(LIFF_LOGIN_FLAG_KEY, '1');
-          liff.login({ redirectUri: window.location.href.split('#')[0] });
+          if (isInClient) {
+            // In LINE app, use default LIFF login (no redirectUri override to avoid 400)
+            liff.login();
+          } else {
+            // Outside LINE, provide explicit redirectUri
+            liff.login({ redirectUri: window.location.href.split('#')[0] });
+          }
           return;
         }
 
