@@ -644,7 +644,7 @@
         let list = Array.isArray(map[userId]) ? map[userId] : [];
         list = list.filter(function (k) { return k !== kw; });
         list.unshift(kw);
-        if (list.length > 8) list = list.slice(0, 8);
+        if (list.length > 2) list = list.slice(0, 2);
         map[userId] = list;
         localStorage.setItem(LAST_SEARCH_HISTORY_KEY, JSON.stringify(map));
       } catch (e) {
