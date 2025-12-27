@@ -449,6 +449,59 @@
         font-size: 0.9rem;
       }
     }
+
+    /* Status tray */
+    .status-tray {
+      position: fixed;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 24px);
+      max-width: 520px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e6eeeb;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      padding: 8px 10px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 9998;
+    }
+
+    .status-pill {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #dfe7e4;
+      background: #f7faf9;
+      color: #444;
+      white-space: nowrap;
+    }
+
+    .status-ok {
+      border-color: rgba(26, 188, 156, 0.35);
+      background: rgba(26, 188, 156, 0.08);
+      color: #16a085;
+    }
+
+    .status-bad {
+      border-color: rgba(231, 76, 60, 0.35);
+      background: rgba(231, 76, 60, 0.08);
+      color: #c0392b;
+    }
+
+    .status-unknown {
+      opacity: 0.7;
+    }
+
+    /* Timeline filter */
+    .btn-active {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      border: none;
+    }
   </style>
 </head>
 
@@ -459,6 +512,14 @@
     <div class="inline-flex-title" id="inlineFlexTitle"></div>
     <div class="inline-flex-text" id="inlineFlexMain"></div>
     <div class="inline-flex-sub" id="inlineFlexSub"></div>
+  </div>
+
+  <!-- Compact Status Tray -->
+  <div id="statusTray" class="status-tray hidden" aria-live="polite">
+    <span id="stLiff" class="status-pill status-unknown">LIFF</span>
+    <span id="stLogin" class="status-pill status-unknown">Login</span>
+    <span id="stBackend" class="status-pill status-unknown">Backend</span>
+    <span id="stGps" class="status-pill status-unknown">GPS</span>
   </div>
 
   <div class="app-shell">
@@ -517,6 +578,12 @@
             <span style="font-size:0.8rem;color:var(--text-sub);">
               (เรียงตามลำดับจุดส่ง)
             </span>
+          </div>
+          <!-- Timeline quick filters -->
+          <div id="timelineFilter" style="margin:6px 0 6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <button id="btnFilterAll" type="button" class="btn-small btn-outline">ทั้งหมด</button>
+            <button id="btnFilterPending" type="button" class="btn-small btn-outline">ที่ต้องทำ</button>
+            <span id="filterCounts" style="font-size:0.8rem;color:var(--text-sub);margin-left:auto;">-</span>
           </div>
           <ul id="timeline" class="timeline"></ul>
 
@@ -761,6 +828,21 @@
         confirmButtonColor: '#1abc9c',
       });
     }
+
+    // SweetAlert2 toast helpers (non-blocking notifications)
+    function showToast(type, title) {
+      const opts = {
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+      };
+      Swal.fire(Object.assign({}, opts, { icon: type || 'info', title: title || '' }));
+    }
+    function showToastSuccess(msg) { showToast('success', msg); }
+    function showToastInfo(msg) { showToast('info', msg); }
+    function showToastError(msg) { showToast('error', msg); }
 
     // Resolve awareness image URL (supports Google Drive share links)
     function resolveAwarenessImageUrl(url) {
@@ -1063,6 +1145,7 @@
           ])
           .then(function () {
             console.log('✅ ส่ง Flex Message สำเร็จ!');
+            try { showToastSuccess('ส่ง Flex สำเร็จ'); } catch (_) { }
           })
           .catch(async function (err) {
             console.warn('⚠️ sendMessages ล้มเหลว ลอง shareTargetPicker ต่อ', err);
@@ -1076,9 +1159,11 @@
                   },
                 ]);
                 console.log('✅ ส่งด้วย shareTargetPicker สำเร็จ');
+                try { showToastSuccess('แชร์ Flex สำเร็จ'); } catch (_) { }
               }
             } catch (e2) {
               console.error('❌ ส่ง Flex ไม่สำเร็จ:', e2);
+              try { showToastError('ส่ง Flex ไม่สำเร็จ'); } catch (_) { }
             }
           });
       } catch (err) {
@@ -1141,14 +1226,20 @@
             // In LINE app, use default LIFF login (no redirectUri override to avoid 400)
             liff.login();
           } else {
-            // Outside LINE, force redirect to the LIFF endpoint to match the channel allowlist
+            // Outside LINE: prefer current https URL (direct link) if available, else fall back to LIFF URL
             var redirectUri = (function () {
-              var href = window.location && window.location.href ? window.location.href : '';
-              if (href.indexOf('liff.line.me') !== -1) return href.split('#')[0];
+              var href = window.location && window.location.href ? window.location.href.split('#')[0] : '';
+              var isHttps = href.indexOf('https://') === 0;
+              if (isHttps) return href;
               return 'https://liff.line.me/' + LIFF_ID;
             })();
             console.log('↪️ Redirecting via', redirectUri);
-            liff.login({ redirectUri: redirectUri });
+            try {
+              liff.login({ redirectUri: redirectUri });
+            } catch (loginErr) {
+              sessionStorage.removeItem(LIFF_LOGIN_FLAG_KEY);
+              showError('ไม่สามารถเข้าสู่ระบบ LINE ได้ (' + (loginErr && loginErr.message ? loginErr.message : 'unknown') + ')');
+            }
           }
           return;
         }
@@ -1188,7 +1279,11 @@
 
         window.Logger.info('✅ LIFF initialized', { userId: currentUserId });
         // Update diagnostics snapshot after init
-        try { updateDiagnosticsSnapshot({ liffReady: true, loggedIn: true, userId: currentUserId }); } catch (_) { }
+        try {
+          updateDiagnosticsSnapshot({ liffReady: true, loggedIn: true, userId: currentUserId });
+          // kick a quick diagnostics run to populate tray
+          runDiagnostics();
+        } catch (_) { }
       } catch (err) {
         window.Logger.error('❌ LIFF init failed', err);
         const statusEl = document.getElementById('status');
@@ -1281,6 +1376,7 @@
         }
 
         window.Logger.info('✅ Search completed', { stops: stops.length, drivers: currentDrivers.length });
+        try { showToastSuccess('ดึงงานสำเร็จ (' + (stops.length || 0) + ' จุด)'); } catch (_) { }
       } catch (err) {
         window.Logger.error('❌ Search error', err);
         closeLoading();
@@ -1796,6 +1892,9 @@
     function renderTimeline(stops) {
       const container = document.getElementById('timelineContainer');
       const ul = document.getElementById('timeline');
+      const countsEl = document.getElementById('filterCounts');
+      const btnAll = document.getElementById('btnFilterAll');
+      const btnPending = document.getElementById('btnFilterPending');
       const closeJobContainer = document.getElementById('closeJobContainer');
       const btnCloseJob = document.getElementById('btnCloseJob');
       const btnEndTrip = document.getElementById('btnEndTrip');
@@ -1818,8 +1917,35 @@
         return;
       }
 
+      // compute pending per stop
+      function isStopPending(stop) {
+        const hasCheckIn = !!stop.checkInTime;
+        const hasFuel = !!stop.fuelingTime;
+        const hasUnloadDone = !!stop.unloadDoneTime;
+        const hasReviewed = !!stop.reviewedTime;
+        const hasCheckOut = !!stop.checkOutTime;
+        const isOrigin = !!stop.isOriginStop;
+        if (!hasCheckIn) return true;
+        if (isOrigin) return !hasCheckOut;
+        return (!hasFuel || !hasUnloadDone || !hasReviewed || !hasCheckOut);
+      }
+
+      // counts and active list
+      const totalAll = stops.length;
+      const totalPending = stops.filter(isStopPending).length;
+      const list = (window.timelineFilter === 'pending') ? stops.filter(isStopPending) : stops;
+
+      if (countsEl) {
+        countsEl.textContent = 'ทั้งหมด ' + totalAll + ' | ที่ต้องทำ ' + totalPending;
+      }
+      if (btnAll && btnPending) {
+        btnAll.classList.toggle('btn-active', window.timelineFilter !== 'pending');
+        btnPending.classList.toggle('btn-active', window.timelineFilter === 'pending');
+      }
+
       let allCheckout = true;
 
+      // use full list to compute footer buttons, but render filtered list
       stops.forEach(function (stop) {
         const hasCheckIn = !!stop.checkInTime;
         const hasFuel = !!stop.fuelingTime;
@@ -1831,6 +1957,23 @@
         if (!hasCheckOut) {
           allCheckout = false;
         }
+      });
+
+      // Render items
+      if (list.length === 0) {
+        const li = document.createElement('div');
+        li.style.cssText = 'padding:8px 12px;border:1px solid #e4ece9;border-radius:10px;background:#fff;color:#666;font-size:0.9rem;';
+        li.textContent = 'ไม่มีรายการที่ต้องทำ';
+        ul.appendChild(li);
+      }
+
+      list.forEach(function (stop) {
+        const hasCheckIn = !!stop.checkInTime;
+        const hasFuel = !!stop.fuelingTime;
+        const hasUnloadDone = !!stop.unloadDoneTime;
+        const hasReviewed = !!stop.reviewedTime;
+        const hasCheckOut = !!stop.checkOutTime;
+        const isOrigin = !!stop.isOriginStop;
 
         const statusLabel = stop.status || '-';
 
@@ -2807,6 +2950,23 @@
         .getElementById('btnEndTrip')
         .addEventListener('click', openEndTripDialog);
 
+      // Timeline filter events
+      window.timelineFilter = 'all';
+      const btnAll = document.getElementById('btnFilterAll');
+      const btnPending = document.getElementById('btnFilterPending');
+      if (btnAll) {
+        btnAll.addEventListener('click', function () {
+          window.timelineFilter = 'all';
+          renderTimeline(lastStops || []);
+        });
+      }
+      if (btnPending) {
+        btnPending.addEventListener('click', function () {
+          window.timelineFilter = 'pending';
+          renderTimeline(lastStops || []);
+        });
+      }
+
       // Diagnostics wiring
       const btnRunDiag = document.getElementById('btnRunDiag');
       const btnToggleDiag = document.getElementById('btnToggleDiag');
@@ -2831,6 +2991,33 @@
       if (lo) lo.textContent = 'Login: ' + (loggedIn ? 'Yes' : 'No');
       if (ui) ui.textContent = 'UserId: ' + (userId || '-');
       if (bu) bu.textContent = 'Backend URL: hidden';
+
+      // Update compact tray (backend/gps unknown here)
+      try { updateStatusTray({ liffReady: !!liffReady, loggedIn: !!loggedIn, backendOk: null, gpsOk: null }); } catch (_) { }
+    }
+
+    // Compact tray updater
+    function updateStatusTray({ liffReady, loggedIn, backendOk, gpsOk }) {
+      const tray = document.getElementById('statusTray');
+      const elLiff = document.getElementById('stLiff');
+      const elLogin = document.getElementById('stLogin');
+      const elBackend = document.getElementById('stBackend');
+      const elGps = document.getElementById('stGps');
+      if (!tray || !elLiff || !elLogin || !elBackend || !elGps) return;
+
+      function setPill(el, ok) {
+        el.classList.remove('status-ok', 'status-bad', 'status-unknown');
+        if (ok === null || ok === undefined) el.classList.add('status-unknown');
+        else if (ok) el.classList.add('status-ok');
+        else el.classList.add('status-bad');
+      }
+
+      setPill(elLiff, !!liffReady);
+      setPill(elLogin, !!loggedIn);
+      setPill(elBackend, backendOk == null ? null : !!backendOk);
+      setPill(elGps, gpsOk == null ? null : !!gpsOk);
+
+      tray.classList.remove('hidden');
     }
 
     async function runDiagnostics() {
@@ -2845,6 +3032,7 @@
       const gpsEl = document.getElementById('diagGps');
 
       // Backend ping
+      let backendOk = null;
       try {
         const base = window.CONSTANTS && window.CONSTANTS.API && window.CONSTANTS.API.WEB_APP_URL;
         if (!base) {
@@ -2859,22 +3047,30 @@
             const t1 = performance.now();
             const ms = Math.round(t1 - t0);
             if (pingEl) pingEl.textContent = 'Ping: ' + res.status + ' in ' + ms + ' ms';
+            backendOk = res.ok === true;
           } finally {
             clearTimeout(timer);
           }
         }
       } catch (e) {
         if (pingEl) pingEl.textContent = 'Ping: error(' + (e && e.message ? e.message : 'unknown') + ')';
+        backendOk = false;
       }
 
       // GPS check
+      let gpsOk = null;
       try {
         const pos = await getCurrentPositionAsync();
         const acc = pos && pos.coords ? Math.round(pos.coords.accuracy || 0) : null;
         if (gpsEl) gpsEl.textContent = 'GPS: OK' + (acc ? ' (±' + acc + 'm)' : '') + ' ';
+        gpsOk = true;
       } catch (e) {
         if (gpsEl) gpsEl.textContent = 'GPS: error(' + (e && e.message ? e.message : 'unknown') + ')';
+        gpsOk = false;
       }
+
+      try { updateStatusTray({ liffReady: typeof liff !== 'undefined', loggedIn: (liff && liff.isLoggedIn && liff.isLoggedIn()) || false, backendOk, gpsOk }); } catch (_) { }
+      try { showToastInfo('อัปเดตสถานะระบบแล้ว'); } catch (_) { }
     }
 
     window.updateStopStatus = updateStopStatus;
