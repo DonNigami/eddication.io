@@ -1141,8 +1141,14 @@
             // In LINE app, use default LIFF login (no redirectUri override to avoid 400)
             liff.login();
           } else {
-            // Outside LINE, provide explicit redirectUri
-            liff.login({ redirectUri: window.location.href.split('#')[0] });
+            // Outside LINE, force redirect to the LIFF endpoint to match the channel allowlist
+            var redirectUri = (function () {
+              var href = window.location && window.location.href ? window.location.href : '';
+              if (href.indexOf('liff.line.me') !== -1) return href.split('#')[0];
+              return 'https://liff.line.me/' + LIFF_ID;
+            })();
+            console.log('↪️ Redirecting via', redirectUri);
+            liff.login({ redirectUri: redirectUri });
           }
           return;
         }
