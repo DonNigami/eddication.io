@@ -582,7 +582,7 @@
   <div id="qrOverlay" class="qr-overlay hidden" role="dialog" aria-modal="true" aria-label="สแกน QR หรือบาร์โค้ด">
     <div class="qr-card">
       <div class="qr-video-wrap">
-        <video id="qrVideo"></video>
+        <video id="qrVideo" playsinline webkit-playsinline muted></video>
       </div>
       <div class="qr-controls">
         <span class="qr-title">สแกนรหัส</span>
@@ -1014,7 +1014,18 @@
     async function closeQrScanner() {
       const overlay = document.getElementById('qrOverlay');
       if (overlay) overlay.classList.add('hidden');
-      try { if (qrReader) await qrReader.reset(); } catch (_) { }
+      try {
+        if (qrReader) await qrReader.reset();
+      } catch (_) { }
+      // Stop video tracks to release camera and avoid stuck states on mobile
+      try {
+        const video = document.getElementById('qrVideo');
+        const stream = video && video.srcObject;
+        if (stream && stream.getTracks) {
+          stream.getTracks().forEach(function (t) { try { t.stop(); } catch (_) { } });
+          video.srcObject = null;
+        }
+      } catch (_) { }
     }
 
     // ==========================
