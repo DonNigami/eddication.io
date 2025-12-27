@@ -13,6 +13,8 @@
       MAX_RETRIES: 2,
       RETRY_DELAY_MS: 800,
       CACHE_DURATION_MS: 5000, // Cache search results for 5 seconds
+      // Awareness popup image URL (configurable via config.js)
+      AWARENESS_IMAGE_URL: (window.CONFIG && window.CONFIG.AWARENESS_IMAGE_URL) || ''
     },
 
     // Validation Ranges

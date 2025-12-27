@@ -381,7 +381,7 @@
      * @param {object} params
      * @returns {Promise<{success: boolean, message?: string}>}
      */
-    async saveAwareness({ reference, userId, imageBase64, lat, lng, accuracy, timestamp }) {
+    async saveAwareness({ reference, userId, imageBase64, imageUrl, lat, lng, accuracy, timestamp }) {
       window.Logger.info('📸 Saving awareness acknowledgment', { reference });
 
       try {
@@ -390,6 +390,7 @@
           reference: reference,
           userId: userId,
           imageBase64: imageBase64,
+          imageUrl: imageUrl,
           lat: String(lat || ''),
           lng: String(lng || ''),
           accuracy: accuracy !== undefined ? String(accuracy) : '',

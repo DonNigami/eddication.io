@@ -762,11 +762,13 @@
     }
 
     /**
-     * Show awareness acknowledgment popup with image upload
+     * Show awareness acknowledgment popup (display image only, no upload)
      */
     async function showAwarenessPopup() {
-      const { value: formValues } = await Swal.fire({
-        title: 'สำคัญ⚠️ อ่านและยืนยันให้ได้',
+      const awarenessImageUrl = window.CONSTANTS && window.CONSTANTS.API ? window.CONSTANTS.API.AWARENESS_IMAGE_URL : '';
+
+      const { isConfirmed } = await Swal.fire({
+        title: 'สำคัญ⚠️ โปรดอ่านและกดรับทราบ',
         html: `
           <div style="text-align:left;font-size:0.95rem;">
             <p><strong>ข้อมูลสำคัญประจำวัน:</strong></p>
@@ -776,64 +778,28 @@
               <li>ระมัดระวังเวลาขับขี่บนท้องถนน</li>
               <li>รักษาสินค้าให้ปลอดภัยตลอดการขนส่ง</li>
             </ul>
-            <p style="margin-top:12px;"><strong>โปรดถ่ายรูปหลักฐานการรับทราบ:</strong></p>
-            <input type="file" id="awarenessImage" accept="image/*" style="margin-top:8px;width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;" />
-            <div id="awarenessImagePreview" style="margin-top:8px;display:none;">
-              <img id="previewImg" style="max-width:100%;max-height:200px;border-radius:6px;" />
-            </div>
+            ${awarenessImageUrl ? `<div style="margin-top:12px;text-align:center;"><img src="${awarenessImageUrl}" alt="Awareness" style="max-width:100%;max-height:260px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.08);" /></div>` : ''}
           </div>
         `,
         focusConfirm: false,
         showCancelButton: false,
         allowOutsideClick: false,
         confirmButtonText: 'รับทราบ',
-        confirmButtonColor: '#1abc9c',
-        preConfirm: async function () {
-          const fileInput = document.getElementById('awarenessImage');
-          const file = fileInput.files[0];
-
-          if (!file) {
-            Swal.showValidationMessage('กรุณาเลือกรูปภาพ');
-            return false;
-          }
-
-          return { file: file };
-        },
-        didOpen: function () {
-          const fileInput = document.getElementById('awarenessImage');
-          if (fileInput) {
-            fileInput.addEventListener('change', function (e) {
-              const file = e.target.files[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                  const preview = document.getElementById('awarenessImagePreview');
-                  const img = document.getElementById('previewImg');
-                  if (preview && img) {
-                    img.src = event.target.result;
-                    preview.style.display = 'block';
-                  }
-                };
-                reader.readAsDataURL(file);
-              }
-            });
-          }
-        },
+        confirmButtonColor: '#1abc9c'
       });
 
-      if (!formValues || !formValues.file) {
+      if (!isConfirmed) {
         return;
       }
 
-      // Save awareness acknowledgment
-      await saveAwarenessAcknowledgment(formValues.file);
+      await saveAwarenessAcknowledgment();
     }
 
     /**
      * Save awareness acknowledgment to Google Sheet
      * @param {File} imageFile - Image file selected by user
      */
-    async function saveAwarenessAcknowledgment(imageFile) {
+    async function saveAwarenessAcknowledgment() {
       try {
         showLoading('กำลังบันทึกใบรับทราบ...');
 
@@ -849,14 +815,14 @@
         const lng = pos ? pos.coords.longitude : null;
         const acc = pos ? (pos.coords.accuracy != null ? pos.coords.accuracy : undefined) : undefined;
 
-        // Compress and convert image to base64
-        const base64 = await compressImageFile(imageFile, { maxW: 1280, maxH: 1280, targetKB: 700, mime: 'image/jpeg' });
+        const awarenessImageUrl = window.CONSTANTS && window.CONSTANTS.API ? window.CONSTANTS.API.AWARENESS_IMAGE_URL : '';
 
-        // Call API to save awareness
+        // Call API to save awareness (no upload required)
         const result = await window.API.saveAwareness({
           reference: currentReference,
           userId: currentUserId,
-          imageBase64: base64,
+          imageBase64: undefined,
+          imageUrl: awarenessImageUrl,
           lat: lat,
           lng: lng,
           accuracy: acc,
