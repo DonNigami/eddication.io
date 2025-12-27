@@ -6,3 +6,5 @@
     WEB_APP_URL: 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec',
     // Awareness popup image URL - แก้ไข URL นี้เป็นลิ้งค์รูปที่ต้องการแสดง
     AWARENESS_IMAGE_URL: 'https://drive.google.com/uc?id=1AODJfyZFFP4WsbrR7kyojPskoQWQcAY1'
+    };
+  })();
