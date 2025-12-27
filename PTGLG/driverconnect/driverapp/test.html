@@ -551,6 +551,7 @@
     const LIFF_ID = window.CONSTANTS.API.LIFF_ID;
     const LAST_SEARCH_MAP_KEY = 'driver_last_search_map_v1';
     const LAST_SEARCH_HISTORY_KEY = 'driver_last_search_history_map_v1';
+    const LIFF_LOGIN_FLAG_KEY = 'liff_login_attempted_v1';
 
     let currentUserId = '';
     let currentReference = '';
@@ -1129,8 +1130,13 @@
         console.log('Login status:', isLoggedIn);
 
         if (!isLoggedIn) {
+          if (sessionStorage.getItem(LIFF_LOGIN_FLAG_KEY)) {
+            console.warn('Login already attempted this session; skipping repeat login');
+            return;
+          }
           console.log('🔐 User not logged in, redirecting to LINE login...');
-          liff.login();
+          sessionStorage.setItem(LIFF_LOGIN_FLAG_KEY, '1');
+          liff.login({ redirectUri: window.location.href.split('#')[0] });
           return;
         }
 
@@ -1138,6 +1144,9 @@
         const profile = await liff.getProfile();
         console.log('Profile:', profile);
         currentUserId = profile.userId;
+
+        // Clear login flag after successful login/profile fetch
+        try { sessionStorage.removeItem(LIFF_LOGIN_FLAG_KEY); } catch (_) {}
 
         const statusEl = document.getElementById('status');
         statusEl.textContent = 'สวัสดีคุณ ' + profile.displayName + ' 👋';
