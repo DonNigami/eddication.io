@@ -12,6 +12,8 @@
 
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- ZXing for QR/Barcode scanning -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0"></script>
   <!-- App Config -->
   <script src="config.js"></script>
   <!-- Core Modules (load in order) -->
@@ -502,6 +504,59 @@
       color: #fff;
       border: none;
     }
+
+    /* QR Scanner Overlay */
+    .qr-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .qr-card {
+      width: 100%;
+      max-width: 520px;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    .qr-video-wrap {
+      position: relative;
+      background: #000;
+      padding-top: 56%;
+    }
+
+    .qr-video-wrap video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .qr-controls {
+      display: flex;
+      gap: 8px;
+      padding: 10px;
+      justify-content: space-between;
+      align-items: center;
+      background: #f7faf9;
+      border-top: 1px solid #e6eeeb;
+    }
+
+    .qr-title {
+      font-weight: 700;
+      color: #16a085;
+    }
   </style>
 </head>
 
@@ -520,6 +575,23 @@
     <span id="stLogin" class="status-pill status-unknown">Login</span>
     <span id="stBackend" class="status-pill status-unknown">Backend</span>
     <span id="stGps" class="status-pill status-unknown">GPS</span>
+    <button id="stSyncBtn" type="button" class="btn-small btn-outline" style="margin-left:auto;">Sync</button>
+  </div>
+
+  <!-- QR Scanner Overlay -->
+  <div id="qrOverlay" class="qr-overlay hidden" role="dialog" aria-modal="true" aria-label="สแกน QR หรือบาร์โค้ด">
+    <div class="qr-card">
+      <div class="qr-video-wrap">
+        <video id="qrVideo"></video>
+      </div>
+      <div class="qr-controls">
+        <span class="qr-title">สแกนรหัส</span>
+        <div style="display:flex;gap:6px;">
+          <button id="btnQrSwitch" type="button" class="btn-small btn-outline">สลับกล้อง</button>
+          <button id="btnQrClose" type="button" class="btn-small btn-outline">ปิด</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="app-shell">
@@ -556,7 +628,10 @@
 
         <div class="field-group">
           <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
-          <input id="keyword" type="text" placeholder="กรอกเลข Reference เช่น 2511S15403" />
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input id="keyword" type="text" placeholder="กรอกเลข Reference เช่น 2511S15403" style="flex:1;" />
+            <button id="btnScan" type="button" class="btn-small btn-outline" title="สแกน QR/บาร์โค้ด">สแกน</button>
+          </div>
         </div>
 
         <button id="btnSearch" type="button">
@@ -578,6 +653,11 @@
             <span style="font-size:0.8rem;color:var(--text-sub);">
               (เรียงตามลำดับจุดส่ง)
             </span>
+          </div>
+          <!-- Next Step Assistant -->
+          <div id="nextStepAssistant" class="summary-card hidden"
+            style="margin:6px 0 8px;padding:10px;border-left:4px solid #1abc9c;">
+            <!-- will be rendered dynamically -->
           </div>
           <!-- Timeline quick filters -->
           <div id="timelineFilter" style="margin:6px 0 6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -619,6 +699,7 @@
     const LAST_SEARCH_MAP_KEY = 'driver_last_search_map_v1';
     const LAST_SEARCH_HISTORY_KEY = 'driver_last_search_history_map_v1';
     const LIFF_LOGIN_FLAG_KEY = 'liff_login_attempted_v1';
+    const ACTION_QUEUE_KEY = 'driver_action_queue_v1';
 
     let currentUserId = '';
     let currentReference = '';
@@ -627,6 +708,9 @@
     let isUpdatingStop = false;
     let searchAbortController = null;
     let searchRequestId = 0;
+    let qrReader = null;
+    let qrDevices = [];
+    let qrDeviceIndex = 0;
 
     /**
      * Escape HTML entities to prevent XSS
@@ -864,6 +948,154 @@
       } catch (_) {
         return String(url || '');
       }
+    }
+
+    // ==========================
+    // QR Scanner (ZXing) helpers
+    // ==========================
+    async function openQrScanner() {
+      try {
+        const overlay = document.getElementById('qrOverlay');
+        const video = document.getElementById('qrVideo');
+        if (!overlay || !video) return;
+        overlay.classList.remove('hidden');
+        if (!qrReader) {
+          qrReader = new ZXing.BrowserMultiFormatReader();
+        }
+        qrDevices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+        if (!qrDevices || qrDevices.length === 0) {
+          showError('ไม่พบอุปกรณ์กล้อง');
+          closeQrScanner();
+          return;
+        }
+        // Prefer back camera
+        qrDeviceIndex = Math.max(0, qrDevices.findIndex(d => /back|rear/i.test(d.label)));
+        await startQrDevice();
+      } catch (e) {
+        showError('ไม่สามารถเปิดกล้องได้ กรุณาอนุญาตการใช้งานกล้อง');
+        closeQrScanner();
+      }
+    }
+
+    async function startQrDevice() {
+      try {
+        const deviceId = qrDevices[qrDeviceIndex] && qrDevices[qrDeviceIndex].deviceId;
+        const video = document.getElementById('qrVideo');
+        if (!deviceId || !video || !qrReader) return;
+        await qrReader.decodeFromVideoDevice(deviceId, video, (result, err) => {
+          if (result && result.getText) {
+            const text = result.getText();
+            const kwEl = document.getElementById('keyword');
+            if (kwEl) {
+              kwEl.value = text.trim();
+            }
+            showToastSuccess('สแกนสำเร็จ: ' + (text || ''));
+            closeQrScanner();
+            // trigger search automatically when logged in
+            if (currentUserId && text) {
+              search();
+            }
+          }
+        });
+      } catch (e) {
+        showError('เปิดกล้องไม่สำเร็จ');
+      }
+    }
+
+    async function switchQrCamera() {
+      if (!qrDevices || qrDevices.length < 2) return;
+      try {
+        qrDeviceIndex = (qrDeviceIndex + 1) % qrDevices.length;
+        if (qrReader) await qrReader.reset();
+        await startQrDevice();
+      } catch (e) { }
+    }
+
+    async function closeQrScanner() {
+      const overlay = document.getElementById('qrOverlay');
+      if (overlay) overlay.classList.add('hidden');
+      try { if (qrReader) await qrReader.reset(); } catch (_) { }
+    }
+
+    // ==========================
+    // Offline queue helpers
+    // ==========================
+    function isOnline() {
+      return navigator.onLine === true;
+    }
+
+    function loadQueue() {
+      try {
+        const raw = localStorage.getItem(ACTION_QUEUE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (_) { return []; }
+    }
+    function saveQueue(q) {
+      try { localStorage.setItem(ACTION_QUEUE_KEY, JSON.stringify(q || [])); } catch (_) { }
+    }
+    function enqueueAction(action) {
+      const q = loadQueue();
+      q.push(Object.assign({ ts: Date.now() }, action));
+      saveQueue(q);
+      try { showToastInfo('บันทึกคิวออฟไลน์แล้ว (' + (action && action.type ? action.type : 'action') + ')'); } catch (_) { }
+    }
+
+    async function processActionQueue() {
+      const q = loadQueue();
+      if (!q.length) { showToastInfo('คิวว่าง'); return; }
+      const remain = [];
+      let successCount = 0;
+      for (const item of q) {
+        try {
+          if (item.type === 'UPDATE_STOP') {
+            const r = await window.API.updateStop(item.payload);
+            if (!r || !r.success) throw new Error('update stop failed');
+          } else if (item.type === 'UPLOAD_ALCOHOL') {
+            const r = await window.API.uploadAlcohol(item.payload);
+            if (!r || !r.success) throw new Error('alcohol failed');
+          } else if (item.type === 'UPLOAD_REVIEW') {
+            const r = await window.API.uploadReview(item.payload);
+            if (!r || !r.success) throw new Error('review failed');
+          } else if (item.type === 'END_TRIP') {
+            const r = await window.API.endTrip(item.payload);
+            if (!r || !r.success) throw new Error('endTrip failed');
+          } else if (item.type === 'CLOSE_JOB') {
+            const r = await window.API.closeJob(item.payload);
+            if (!r || !r.success) throw new Error('closeJob failed');
+          } else if (item.type === 'FILL_MISSING') {
+            const r = await window.API.fillMissingSteps(item.payload);
+            if (!r || !r.success) throw new Error('fillMissing failed');
+          } else {
+            // unknown type keep it
+            remain.push(item);
+            continue;
+          }
+          successCount++;
+        } catch (e) {
+          remain.push(item);
+        }
+      }
+      saveQueue(remain);
+      if (successCount > 0) {
+        try { showToastSuccess('ซิงก์สำเร็จ ' + successCount + ' รายการ'); } catch (_) { }
+        // refresh if current reference is set
+        if (currentReference) {
+          try { document.getElementById('keyword').value = currentReference; await search(); } catch (_) { }
+        }
+      } else {
+        showToastInfo('ยังซิงก์ไม่สำเร็จ (' + remain.length + ' รายการคงค้าง)');
+      }
+    }
+
+    // Cache last search result per-user+reference
+    function cacheSearchResult(userId, reference, data) {
+      try { localStorage.setItem('driver_cache_' + userId + '_' + reference, JSON.stringify(data)); } catch (_) { }
+    }
+    function loadCachedSearchResult(userId, reference) {
+      try {
+        const raw = localStorage.getItem('driver_cache_' + userId + '_' + reference);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_) { return null; }
     }
 
     /**
@@ -1321,6 +1553,27 @@
       renderSearchHistory();
 
       btn.disabled = true;
+
+      // Offline fallback: serve from cache
+      if (!isOnline()) {
+        const cached = loadCachedSearchResult(currentUserId, keyword);
+        if (cached) {
+          const d = cached;
+          lastStops = d.stops || [];
+          currentReference = d.referenceNo || keyword;
+          currentDrivers = (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) || [];
+          currentCheckedDrivers = (d.alcohol && Array.isArray(d.alcohol.checkedDrivers) && d.alcohol.checkedDrivers) || [];
+          const uniqueSet = new Set(currentCheckedDrivers);
+          currentCheckedDrivers = Array.from ? Array.from(uniqueSet) : Array.prototype.slice.call(uniqueSet);
+          alcoholAllDone = currentDrivers.length > 0 && currentDrivers.every(function (n) { return currentCheckedDrivers.includes(n); });
+          jobClosed = !!d.jobClosed; tripEnded = !!d.tripEnded;
+          renderSummary(d); renderAlcoholSection(); renderTimeline(lastStops);
+          showToastInfo('โหมดออฟไลน์: แสดงข้อมูลจากแคช');
+          btn.disabled = false;
+          return;
+        }
+      }
+
       showLoading('กำลังค้นหางานจากระบบ...');
 
       try {
@@ -1366,6 +1619,9 @@
         renderSummary(d);
         renderAlcoholSection();
         renderTimeline(stops);
+
+        // cache successful result for offline usage
+        try { cacheSearchResult(currentUserId, currentReference, d); } catch (_) { }
 
         // Show awareness acknowledgment popup if not yet acknowledged for this reference
         const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
@@ -1644,7 +1900,7 @@
 
         showLoading(CONSTANTS.MESSAGES.LOADING_UPLOAD_ALCOHOL);
 
-        const result = await window.API.uploadAlcohol({
+        const payload = {
           reference: currentReference,
           driverName: driverName,
           userId: currentUserId,
@@ -1653,7 +1909,18 @@
           lng: lng,
           imageBase64: base64,
           accuracy: acc
-        });
+        };
+
+        let result;
+        try {
+          result = await window.API.uploadAlcohol(payload);
+        } catch (networkErr) {
+          // queue offline
+          enqueueAction({ type: 'UPLOAD_ALCOHOL', payload });
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (แอลกอฮอล์)');
+          return;
+        }
 
         closeLoading();
 
@@ -1677,6 +1944,21 @@
       } catch (err) {
         window.Logger.error('❌ Alcohol check error', err);
         closeLoading();
+        // queue if likely offline
+        try {
+          const fallback = {
+            reference: currentReference,
+            driverName: driverName,
+            userId: currentUserId,
+            alcoholValue: parseFloat(alcoholValue),
+            lat: undefined,
+            lng: undefined,
+            imageBase64: undefined,
+            accuracy: undefined
+          };
+          enqueueAction({ type: 'UPLOAD_ALCOHOL', payload: fallback });
+          showToastInfo('บันทึกคิวออฟไลน์ (แอลกอฮอล์)');
+        } catch (_) { }
         showError(CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE);
       }
     }
@@ -1852,7 +2134,7 @@
           signatureBase64 = parts[1] || '';
         }
 
-        const result = await window.API.uploadReview({
+        const payload = {
           reference: currentReference,
           rowIndex: rowIndex,
           userId: currentUserId,
@@ -1861,7 +2143,17 @@
           lng: lng,
           signatureBase64: signatureBase64,
           accuracy: acc
-        });
+        };
+
+        let result;
+        try {
+          result = await window.API.uploadReview(payload);
+        } catch (networkErr) {
+          enqueueAction({ type: 'UPLOAD_REVIEW', payload });
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (ประเมิน)');
+          return;
+        }
 
         closeLoading();
 
@@ -1885,6 +2177,18 @@
       } catch (err) {
         window.Logger.error('❌ Review upload error', err);
         closeLoading();
+        try {
+          enqueueAction({
+            type: 'UPLOAD_REVIEW', payload: {
+              reference: currentReference,
+              rowIndex: rowIndex,
+              userId: currentUserId,
+              score: score,
+              signatureBase64: signatureBase64
+            }
+          });
+          showToastInfo('บันทึกคิวออฟไลน์ (ประเมิน)');
+        } catch (_) { }
         showError(CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE);
       }
     }
@@ -1892,6 +2196,7 @@
     function renderTimeline(stops) {
       const container = document.getElementById('timelineContainer');
       const ul = document.getElementById('timeline');
+      const nextStepEl = document.getElementById('nextStepAssistant');
       const countsEl = document.getElementById('filterCounts');
       const btnAll = document.getElementById('btnFilterAll');
       const btnPending = document.getElementById('btnFilterPending');
@@ -1914,6 +2219,7 @@
 
       if (!stops || stops.length === 0) {
         container.classList.add('hidden');
+        if (nextStepEl) { nextStepEl.classList.add('hidden'); nextStepEl.innerHTML = ''; }
         return;
       }
 
@@ -2175,7 +2481,76 @@
         closeJobContainer.classList.add('hidden');
       }
 
+      // Render Next Step Assistant card
+      try { renderNextStepAssistant(stops); } catch (_) { }
       container.classList.remove('hidden');
+    }
+
+    // Next Step Assistant
+    function computeNextStep(stops) {
+      if (!stops || !stops.length) return null;
+      // find first stop with pending step
+      for (var i = 0; i < stops.length; i++) {
+        var s = stops[i];
+        var isOrigin = !!s.isOriginStop;
+        var hasCheckIn = !!s.checkInTime;
+        var hasFuel = !!s.fuelingTime;
+        var hasUnloadDone = !!s.unloadDoneTime;
+        var hasReviewed = !!s.reviewedTime;
+        var hasCheckOut = !!s.checkOutTime;
+        if (!hasCheckIn) return { rowIndex: s.rowIndex, seq: s.seq, type: 'checkin', label: 'Check-in', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+        if (!isOrigin && !hasFuel) return { rowIndex: s.rowIndex, seq: s.seq, type: 'fuel', label: 'ลงน้ำมัน', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+        if (!isOrigin && !hasUnloadDone) return { rowIndex: s.rowIndex, seq: s.seq, type: 'unload', label: 'ลงเสร็จ', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+        if (!isOrigin && !hasReviewed) return { rowIndex: s.rowIndex, seq: s.seq, type: 'review', label: 'ประเมิน', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+        if (!hasCheckOut) return { rowIndex: s.rowIndex, seq: s.seq, type: 'checkout', label: 'Check-out', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+      }
+      // no pending per-stop; suggest close job / end trip
+      var allCheckout = stops.every(function (s) { return !!s.checkOutTime; });
+      if (allCheckout && !jobClosed) return { type: 'close_job', label: 'ปิดงาน (รถพร้อมใช้งาน)' };
+      if (jobClosed && !tripEnded) return { type: 'end_trip', label: 'บันทึกจบทริป' };
+      return null;
+    }
+
+    function renderNextStepAssistant(stops) {
+      var card = document.getElementById('nextStepAssistant');
+      if (!card) return;
+      var next = computeNextStep(stops);
+      if (!next) { card.classList.add('hidden'); card.innerHTML = ''; return; }
+
+      var html = '';
+      if (next.type === 'close_job') {
+        html = '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">' +
+          '<div><div style="font-weight:700;color:#16a085;">ขั้นตอนถัดไป</div><div>ปิดงานให้เรียบร้อย</div></div>' +
+          '<button type="button" class="btn-small" onclick="closeJob()">ปิดงาน</button>' +
+          '</div>';
+      } else if (next.type === 'end_trip') {
+        html = '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">' +
+          '<div><div style="font-weight:700;color:#16a085;">ขั้นตอนถัดไป</div><div>บันทึกเลขไมล์และจุดจบทริป</div></div>' +
+          '<button type="button" class="btn-small" onclick="openEndTripDialog()">จบทริป</button>' +
+          '</div>';
+      } else {
+        var actionBtn = '';
+        if (next.type === 'checkin') {
+          actionBtn = '<button type="button" class="btn-small" onclick="startCheckin(' + next.rowIndex + ',' + next.seq + ')">ทำตอนนี้</button>';
+        } else if (next.type === 'fuel') {
+          actionBtn = '<button type="button" class="btn-small" onclick="updateStopStatus(' + next.rowIndex + ',\'FUELING\',\'fuel\',' + next.seq + ')">ทำตอนนี้</button>';
+        } else if (next.type === 'unload') {
+          actionBtn = '<button type="button" class="btn-small" onclick="updateStopStatus(' + next.rowIndex + ',\'UNLOAD_DONE\',\'unload\',' + next.seq + ')">ทำตอนนี้</button>';
+        } else if (next.type === 'review') {
+          actionBtn = '<button type="button" class="btn-small" onclick="startReview(' + next.rowIndex + ',' + next.seq + ')">ทำตอนนี้</button>';
+        } else if (next.type === 'checkout') {
+          actionBtn = '<button type="button" class="btn-small" onclick="updateStopStatus(' + next.rowIndex + ',\'CHECKOUT\',\'checkout\',' + next.seq + ')">ทำตอนนี้</button>';
+        }
+
+        html = '<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">' +
+          '<div>' +
+          '<div style="font-weight:700;color:#16a085;">ขั้นตอนถัดไป</div>' +
+          '<div>Stop ' + safe(next.seq) + ' • ' + safe(next.destination || '-') + ' → ' + safe(next.label) + '</div>' +
+          '</div>' + actionBtn + '</div>';
+      }
+
+      card.innerHTML = html;
+      card.classList.remove('hidden');
     }
 
     function getCurrentPositionAsync() {
@@ -2275,7 +2650,7 @@
 
         showLoading(CONSTANTS.MESSAGES.LOADING_UPDATE);
 
-        const result = await window.API.updateStop({
+        const payload = {
           rowIndex: rowIndex,
           status: newStatus,
           type: type,
@@ -2284,7 +2659,17 @@
           lng: lng,
           odo: type === 'checkin' ? odo : undefined,
           accuracy: acc
-        });
+        };
+
+        let result;
+        try {
+          result = await window.API.updateStop(payload);
+        } catch (networkErr) {
+          enqueueAction({ type: 'UPDATE_STOP', payload });
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (อัปเดตจุด)');
+          return;
+        }
 
         closeLoading();
 
@@ -2314,6 +2699,17 @@
       } catch (err) {
         window.Logger.error('❌ Update stop error', err);
         closeLoading();
+        try {
+          enqueueAction({
+            type: 'UPDATE_STOP', payload: {
+              rowIndex: rowIndex,
+              status: newStatus,
+              type: type,
+              userId: currentUserId
+            }
+          });
+          showToastInfo('บันทึกคิวออฟไลน์ (อัปเดตจุด)');
+        } catch (_) { }
         showError(CONSTANTS.MESSAGES.ERROR_UPDATE_FAILED);
       } finally {
         isUpdatingStop = false;
@@ -2639,7 +3035,26 @@
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy != null ? pos.coords.accuracy : undefined;
 
-        // Submit missing data via centralized API
+        // If offline, enqueue and exit as success
+        if (!isOnline()) {
+          enqueueAction({
+            type: 'FILL_MISSING',
+            payload: {
+              reference: currentReference,
+              userId: currentUserId,
+              lat: lat,
+              lng: lng,
+              missingData: missingData,
+              accuracy: acc
+            }
+          });
+          closeLoading();
+          showToastInfo('ออฟไลน์: บันทึกข้อมูลที่ขาดไปไว้ในคิวแล้ว');
+          window.Logger.info('📥 Queued missing steps data (offline)');
+          return true;
+        }
+
+        // Submit missing data via centralized API (online path)
         const result = await window.API.fillMissingSteps({
           reference: currentReference,
           userId: currentUserId,
@@ -2652,8 +3067,21 @@
         closeLoading();
 
         if (!result.success) {
-          showError(result.message);
-          return false;
+          // Enqueue for later sync on API failure
+          enqueueAction({
+            type: 'FILL_MISSING',
+            payload: {
+              reference: currentReference,
+              userId: currentUserId,
+              lat: lat,
+              lng: lng,
+              missingData: missingData,
+              accuracy: acc
+            }
+          });
+          showToastInfo('บันทึกเข้าคิวเพื่อซิงก์ภายหลัง');
+          window.Logger.warn('⚠️ fillMissing failed; queued for retry', result);
+          return true;
         }
 
         await showSuccess(CONSTANTS.MESSAGES.SUCCESS_TITLE, 'บันทึกข้อมูลที่ขาดหายไปเรียบร้อยแล้ว');
@@ -2661,8 +3089,25 @@
         return true;
       } catch (err) {
         window.Logger.error('❌ Missing steps save error', err);
+        // Enqueue on unexpected error
+        try {
+          // Best-effort to include last known coords if present above
+          const payload = {
+            reference: currentReference,
+            userId: currentUserId,
+            missingData: missingData
+          };
+          // Attempt to reuse last position from closure if available
+          if (typeof pos !== 'undefined' && pos && pos.coords) {
+            payload.lat = pos.coords.latitude;
+            payload.lng = pos.coords.longitude;
+            if (pos.coords.accuracy != null) payload.accuracy = pos.coords.accuracy;
+          }
+          enqueueAction({ type: 'FILL_MISSING', payload });
+          showToastInfo('เกิดข้อผิดพลาด: บันทึกเข้าคิวเพื่อซิงก์ภายหลัง');
+        } catch (_) { }
         closeLoading();
-        return false;
+        return true;
       }
     }
 
@@ -2758,7 +3203,7 @@
 
         showLoading('กำลังบันทึกข้อมูลจบทริป...');
 
-        const result = await window.API.endTrip({
+        const payload = {
           reference: currentReference,
           userId: currentUserId,
           endOdo: values.endOdo || 0,
@@ -2766,7 +3211,17 @@
           lat: lat,
           lng: lng,
           accuracy: acc
-        });
+        };
+
+        let result;
+        try {
+          result = await window.API.endTrip(payload);
+        } catch (networkErr) {
+          enqueueAction({ type: 'END_TRIP', payload });
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (จบทริป)');
+          return;
+        }
 
         closeLoading();
 
@@ -2806,6 +3261,17 @@
       } catch (err) {
         window.Logger.error('❌ End trip error', err);
         closeLoading();
+        try {
+          enqueueAction({
+            type: 'END_TRIP', payload: {
+              reference: currentReference,
+              userId: currentUserId,
+              endOdo: values.endOdo || 0,
+              endPointName: values.endPointName || ''
+            }
+          });
+          showToastInfo('บันทึกคิวออฟไลน์ (จบทริป)');
+        } catch (_) { }
         showError(CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE);
       }
     }
@@ -2834,10 +3300,19 @@
       try {
         showLoading('กำลังปิดงาน...');
 
-        const result = await window.API.closeJob({
+        const payload = {
           reference: currentReference,
           userId: currentUserId
-        });
+        };
+        let result;
+        try {
+          result = await window.API.closeJob(payload);
+        } catch (networkErr) {
+          enqueueAction({ type: 'CLOSE_JOB', payload });
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (ปิดงาน)');
+          return;
+        }
 
         closeLoading();
 
@@ -2864,6 +3339,7 @@
       } catch (err) {
         window.Logger.error('❌ Close job error', err);
         closeLoading();
+        try { enqueueAction({ type: 'CLOSE_JOB', payload: { reference: currentReference, userId: currentUserId } }); showToastInfo('บันทึกคิวออฟไลน์ (ปิดงาน)'); } catch (_) { }
         showError(CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE);
       }
     }
@@ -2979,6 +3455,36 @@
       if (btnRunDiag) {
         btnRunDiag.addEventListener('click', runDiagnostics);
       }
+
+      // Wire QR/Sync controls
+      const btnScan = document.getElementById('btnScan');
+      if (btnScan) btnScan.addEventListener('click', openQrScanner);
+      const btnQrClose = document.getElementById('btnQrClose');
+      if (btnQrClose) btnQrClose.addEventListener('click', closeQrScanner);
+      const btnQrSwitch = document.getElementById('btnQrSwitch');
+      if (btnQrSwitch) btnQrSwitch.addEventListener('click', switchQrCamera);
+      const stSyncBtn = document.getElementById('stSyncBtn');
+      if (stSyncBtn) stSyncBtn.addEventListener('click', processActionQueue);
+
+      // Auto-sync when network returns
+      window.addEventListener('online', async function () {
+        try { showToastInfo('กลับมาออนไลน์: กำลังซิงก์...'); } catch (_) { }
+        try { await processActionQueue(); } catch (_) { }
+        try {
+          const liffReady = typeof liff !== 'undefined';
+          const loggedIn = liffReady && liff.isLoggedIn ? liff.isLoggedIn() : false;
+          updateStatusTray({ liffReady, loggedIn, backendOk: null, gpsOk: null });
+        } catch (_) { }
+      });
+
+      window.addEventListener('offline', function () {
+        try { showToastInfo('ออฟไลน์: จะบันทึกข้อมูลเข้าคิว'); } catch (_) { }
+        try {
+          const liffReady = typeof liff !== 'undefined';
+          const loggedIn = liffReady && liff.isLoggedIn ? liff.isLoggedIn() : false;
+          updateStatusTray({ liffReady, loggedIn, backendOk: null, gpsOk: null });
+        } catch (_) { }
+      });
     });
 
     // Diagnostics helpers
