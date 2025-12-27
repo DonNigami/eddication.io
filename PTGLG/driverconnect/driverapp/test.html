@@ -761,6 +761,128 @@
       });
     }
 
+    /**
+     * Show awareness acknowledgment popup with image upload
+     */
+    async function showAwarenessPopup() {
+      const { value: formValues } = await Swal.fire({
+        title: 'สำคัญ⚠️ อ่านและยืนยันให้ได้',
+        html: `
+          <div style="text-align:left;font-size:0.95rem;">
+            <p><strong>ข้อมูลสำคัญประจำวัน:</strong></p>
+            <ul style="margin:10px 0;padding-left:20px;line-height:1.6;">
+              <li>ตรวจสอบสภาพพร้อมของรถก่อนเริ่มงาน</li>
+              <li>ปฏิบัติตามกฎจราจรอย่างเคร่งครัด</li>
+              <li>ระมัดระวังเวลาขับขี่บนท้องถนน</li>
+              <li>รักษาสินค้าให้ปลอดภัยตลอดการขนส่ง</li>
+            </ul>
+            <p style="margin-top:12px;"><strong>โปรดถ่ายรูปหลักฐานการรับทราบ:</strong></p>
+            <input type="file" id="awarenessImage" accept="image/*" style="margin-top:8px;width:100%;padding:6px;border:1px solid #ddd;border-radius:6px;" />
+            <div id="awarenessImagePreview" style="margin-top:8px;display:none;">
+              <img id="previewImg" style="max-width:100%;max-height:200px;border-radius:6px;" />
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: false,
+        allowOutsideClick: false,
+        confirmButtonText: 'รับทราบ',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: async function () {
+          const fileInput = document.getElementById('awarenessImage');
+          const file = fileInput.files[0];
+
+          if (!file) {
+            Swal.showValidationMessage('กรุณาเลือกรูปภาพ');
+            return false;
+          }
+
+          return { file: file };
+        },
+        didOpen: function () {
+          const fileInput = document.getElementById('awarenessImage');
+          if (fileInput) {
+            fileInput.addEventListener('change', function (e) {
+              const file = e.target.files[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                  const preview = document.getElementById('awarenessImagePreview');
+                  const img = document.getElementById('previewImg');
+                  if (preview && img) {
+                    img.src = event.target.result;
+                    preview.style.display = 'block';
+                  }
+                };
+                reader.readAsDataURL(file);
+              }
+            });
+          }
+        },
+      });
+
+      if (!formValues || !formValues.file) {
+        return;
+      }
+
+      // Save awareness acknowledgment
+      await saveAwarenessAcknowledgment(formValues.file);
+    }
+
+    /**
+     * Save awareness acknowledgment to Google Sheet
+     * @param {File} imageFile - Image file selected by user
+     */
+    async function saveAwarenessAcknowledgment(imageFile) {
+      try {
+        showLoading('กำลังบันทึกใบรับทราบ...');
+
+        // Get current position
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          window.Logger.warn('GPS error in awareness', err);
+        }
+
+        const lat = pos ? pos.coords.latitude : null;
+        const lng = pos ? pos.coords.longitude : null;
+        const acc = pos ? (pos.coords.accuracy != null ? pos.coords.accuracy : undefined) : undefined;
+
+        // Compress and convert image to base64
+        const base64 = await compressImageFile(imageFile, { maxW: 1280, maxH: 1280, targetKB: 700, mime: 'image/jpeg' });
+
+        // Call API to save awareness
+        const result = await window.API.saveAwareness({
+          reference: currentReference,
+          userId: currentUserId,
+          imageBase64: base64,
+          lat: lat,
+          lng: lng,
+          accuracy: acc,
+          timestamp: new Date().toISOString()
+        });
+
+        closeLoading();
+
+        if (!result.success) {
+          showError(result.message || 'ไม่สามารถบันทึกได้');
+          return;
+        }
+
+        // Mark as acknowledged in localStorage
+        const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
+        localStorage.setItem(awarenessKey, 'true');
+
+        await showSuccess('สำเร็จ', 'บันทึกใบรับทราบเรียบร้อยแล้ว');
+        window.Logger.info('✅ Awareness acknowledged', { reference: currentReference });
+      } catch (err) {
+        window.Logger.error('❌ Awareness save error', err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึก');
+      }
+    }
+
     function showInlineFlex(type, stop) {
       const container = document.getElementById('inlineFlex');
       const titleEl = document.getElementById('inlineFlexTitle');
@@ -1134,6 +1256,14 @@
         renderSummary(d);
         renderAlcoholSection();
         renderTimeline(stops);
+
+        // Show awareness acknowledgment popup if not yet acknowledged for this reference
+        const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
+        if (!localStorage.getItem(awarenessKey)) {
+          setTimeout(function () {
+            showAwarenessPopup();
+          }, 500);
+        }
 
         window.Logger.info('✅ Search completed', { stops: stops.length, drivers: currentDrivers.length });
       } catch (err) {
@@ -2745,6 +2875,8 @@
     window.checkMissingSteps = checkMissingSteps;
     window.showMissingStepsForm = showMissingStepsForm;
     window.saveMissingStepsData = saveMissingStepsData;
+    window.showAwarenessPopup = showAwarenessPopup;
+    window.saveAwarenessAcknowledgment = saveAwarenessAcknowledgment;
   </script>
 </body>
 

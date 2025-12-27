@@ -375,5 +375,39 @@
         };
       }
     },
+
+    /**
+     * Save awareness acknowledgment with image to Google Sheet
+     * @param {object} params
+     * @returns {Promise<{success: boolean, message?: string}>}
+     */
+    async saveAwareness({ reference, userId, imageBase64, lat, lng, accuracy, timestamp }) {
+      window.Logger.info('📸 Saving awareness acknowledgment', { reference });
+
+      try {
+        const form = makeFormBody({
+          action: 'saveAwareness',
+          reference: reference,
+          userId: userId,
+          imageBase64: imageBase64,
+          lat: String(lat || ''),
+          lng: String(lng || ''),
+          accuracy: accuracy !== undefined ? String(accuracy) : '',
+          timestamp: timestamp || ''
+        });
+
+        const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถบันทึกได้' };
+        }
+
+        window.Logger.debug('✅ Awareness saved');
+        return { success: true };
+      } catch (err) {
+        window.Logger.error('❌ Save awareness failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
   };
 })();
