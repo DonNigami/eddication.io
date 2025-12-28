@@ -20,7 +20,142 @@
           target[k] = src[k];
         }
       }
+    },
+
+    /**
+     * Admin: check permission
+     */
+    async adminCheck(userId) {
+      try {
+        const form = makeFormBody({ userId: userId });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/check', {
+          method: 'POST',
+          body: form
+        });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin check failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin: list jobdata
+     */
+    async adminJobdata(adminUserId, reference, status, limit) {
+      try {
+        const form = makeFormBody({
+          adminUserId: adminUserId,
+          reference: reference || '',
+          status: status || '',
+          limit: String(limit || 200)
+        });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/jobdata', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin jobdata failed', err);
+        return { success: false, rows: [], message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin: update job status
+     */
+    async adminUpdateJob(adminUserId, rowIndex, status) {
+      try {
+        const form = makeFormBody({ adminUserId: adminUserId, rowIndex: String(rowIndex), status: status });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/update-job', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin update job failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin: list alcohol checks
+     */
+    async adminAlcohol(adminUserId, reference, driver, limit) {
+      try {
+        const form = makeFormBody({
+          adminUserId: adminUserId,
+          reference: reference || '',
+          driver: driver || '',
+          limit: String(limit || 200)
+        });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/alcohol', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin alcohol failed', err);
+        return { success: false, rows: [], message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin: update alcohol value
+     */
+    async adminUpdateAlcohol(adminUserId, rowIndex, alcoholValue) {
+      try {
+        const form = makeFormBody({
+          adminUserId: adminUserId,
+          rowIndex: String(rowIndex),
+          alcoholValue: String(alcoholValue)
+        });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/update-alcohol', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin update alcohol failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin: list user profiles
+     */
+    async adminUserprofile(adminUserId, status, keyword) {
+      try {
+        const form = makeFormBody({
+          adminUserId: adminUserId,
+          status: status || '',
+          keyword: keyword || ''
+        });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/userprofile', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin userprofile failed', err);
+        return { success: false, rows: [], message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin: update user status
+     */
+    async adminUpdateUserStatus(adminUserId, userId, status) {
+      try {
+        const form = makeFormBody({ adminUserId: adminUserId, userId: userId, status: status });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/admin/update-user-status', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Admin update user status failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Link LINE rich menu to user
+     */
+    async linkRichMenu(userId, richMenuId) {
+      try {
+        const form = makeFormBody({ userId: userId, richMenuId: richMenuId });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/link-rich-menu', { method: 'POST', body: form });
+        return json;
+      } catch (err) {
+        window.Logger.error('❌ Link rich menu failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
     }
+  };
+})();
     return target;
   };
 
