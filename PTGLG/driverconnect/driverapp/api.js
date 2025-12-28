@@ -93,7 +93,14 @@
         throw err;
       }
 
-      return await res.json();
+      // Parse JSON with error handling for non-JSON responses
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (parseErr) {
+        window.Logger.error('❌ Invalid JSON response', { text: text.substring(0, 200) });
+        throw new Error('Backend returned invalid JSON: ' + text.substring(0, 100));
+      }
     } catch (err) {
       if (id) clearTimeout(id);
 

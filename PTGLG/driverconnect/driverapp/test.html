@@ -2051,7 +2051,11 @@
             return false;
           }
 
-          return { alcoholValue: String(alcoholValidation.value.toFixed(2)), file: file };
+          // alcoholValidation.value is already a number
+          const alcoholNum = typeof alcoholValidation.value === 'number' 
+            ? alcoholValidation.value 
+            : parseFloat(alcoholValidation.value);
+          return { alcoholValue: alcoholNum.toFixed(2), file: file };
         },
       });
 
