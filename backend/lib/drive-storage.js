@@ -4,6 +4,7 @@
  */
 
 const { google } = require('googleapis');
+const { Readable } = require('stream');
 
 class DriveStorage {
   constructor(credentialsSource) {
@@ -61,6 +62,8 @@ class DriveStorage {
    */
   async getOrCreateFolder(parentFolderId, folderName) {
     try {
+      console.log(`   📁 getOrCreateFolder: name=${folderName}, parent=${parentFolderId}`);
+      
       // Search for existing folder
       const response = await this.drive.files.list({
         q: `'${parentFolderId}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
@@ -70,11 +73,13 @@ class DriveStorage {
       });
 
       if (response.data.files && response.data.files.length > 0) {
-        console.log(`✅ Found existing folder: ${folderName}`);
-        return response.data.files[0].id;
+        const folderId = response.data.files[0].id;
+        console.log(`   ✅ Found existing folder: ${folderName} → ${folderId}`);
+        return folderId;
       }
 
       // Create new folder
+      console.log(`   🆕 Creating new folder: ${folderName}`);
       const createResponse = await this.drive.files.create({
         requestBody: {
           name: folderName,
@@ -84,8 +89,9 @@ class DriveStorage {
         fields: 'id'
       });
 
-      console.log(`✅ Created new folder: ${folderName}`);
-      return createResponse.data.id;
+      const newFolderId = createResponse.data.id;
+      console.log(`   ✅ Created new folder: ${folderName} → ${newFolderId}`);
+      return newFolderId;
     } catch (err) {
       console.error(`❌ Failed to get/create folder ${folderName}:`, err.message);
       throw err;
@@ -101,6 +107,11 @@ class DriveStorage {
    */
   async uploadImage(imageBuffer, filename, parentFolderId) {
     try {
+      console.log(`   📤 uploadImage: filename=${filename}, size=${imageBuffer.length} bytes`);
+      
+      // Convert buffer to stream for compatibility with newer googleapis
+      const stream = Readable.from(imageBuffer);
+      
       const response = await this.drive.files.create({
         requestBody: {
           name: filename,
@@ -109,7 +120,7 @@ class DriveStorage {
         },
         media: {
           mimeType: 'image/jpeg',
-          body: imageBuffer
+          body: stream
         },
         fields: 'id, webViewLink'
       });
@@ -130,7 +141,7 @@ class DriveStorage {
         console.warn('⚠️ Could not set public read permission:', permErr.message);
       }
 
-      console.log(`✅ Uploaded image: ${filename} (${fileId})`);
+      console.log(`   ✅ Uploaded to Drive: ${filename} → ${fileId}`);
       return { fileId, fileUrl };
     } catch (err) {
       console.error(`❌ Failed to upload image ${filename}:`, err.message);
