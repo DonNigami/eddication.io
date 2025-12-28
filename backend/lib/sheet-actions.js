@@ -555,6 +555,25 @@ class SheetActions {
         obj[header] = row[idx] || '';
       }
     });
+    
+    // Add mapped fields for frontend compatibility
+    // destination1 = shipToCode or Station code
+    // destination2 = shipToName or Station name
+    if (!obj.destination1 && obj.shipToCode) {
+      obj.destination1 = obj.shipToCode;
+    }
+    if (!obj.destination2 && obj.shipToName) {
+      obj.destination2 = obj.shipToName;
+    }
+    
+    // Also map common variations
+    if (!obj.destination1 && obj.stationCode) {
+      obj.destination1 = obj.stationCode;
+    }
+    if (!obj.destination2 && obj.stationName) {
+      obj.destination2 = obj.stationName;
+    }
+    
     return obj;
   }
 
