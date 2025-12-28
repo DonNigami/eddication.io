@@ -10,7 +10,24 @@ This is the **recommended approach** for customer notifications.
 
 ## 🚀 Quick Setup
 
-### 1. Enable Google Chat API
+### 1. เลือก Sheet ที่จะใช้
+
+ระบบค้นหาข้อมูลติดต่อจาก 3 sheets ตามลำดับ:
+
+**ตัวเลือก A: CustomerContacts (แนะนำ)**
+- มีข้อมูลครบถ้วนที่สุด
+- รองรับ chatEmail, chatWebhook, notification preferences
+- Auto-created โดยระบบ
+
+**ตัวเลือก B: Email_STA (ใช้ sheet ที่มีอยู่)**
+- ต้องมีคอลัมน์: `shipToCode`, `email` (หรือ E-mail)
+- ระบบจะค้นหาอัตโนมัติถ้าไม่มี CustomerContacts
+
+**ตัวเลือก C: Customer (fallback สุดท้าย)**
+- ต้องมีคอลัมน์: `shipToCode`, `email` (หรือ E-mail)
+- ใช้เมื่อไม่มีทั้ง CustomerContacts และ Email_STA
+
+### 2. Enable Google Chat API
 
 ```
 Google Cloud Console → APIs & Services → Library
@@ -18,7 +35,7 @@ Search: "Google Chat API"
 Click: Enable
 ```
 
-### 2. Set Service Account Scopes
+### 3. Set Service Account Scopes
 
 Ensure your service account JSON key has these scopes:
 - ✅ `https://www.googleapis.com/auth/chat.bot`
@@ -31,18 +48,25 @@ Keys → Create new JSON key → Download
 Replace in .env → GOOGLE_APPLICATION_CREDENTIALS
 ```
 
-### 3. Add Customer Email to Sheet
+### 4. Add Customer Email to Sheet
 
-**CustomerContacts sheet:**
+**ตัวเลือก A: CustomerContacts sheet (แนะนำ)**
 
 | shipToCode | shipToName | chatEmail | chatWebhook |
 |------------|------------|-----------|-------------|
 | 001234 | ABC Company | somchai@company.com | (leave blank) |
 
+**ตัวเลือก B: Email_STA หรือ Customer sheet**
+
+| shipToCode | email (หรือ E-mail) |
+|------------|---------------------|
+| 001234 | somchai@abc.com |
+
 - Use **Google Workspace email** (e.g., `user@company.com`)
 - Leave `chatWebhook` blank (optional)
+- ระบบจะค้นหาคอลัมน์ `email` หรือ `E-mail` โดยอัตโนมัติ (case-insensitive)
 
-### 4. Test
+### 5. Test
 
 ```bash
 # POST to backend
@@ -74,6 +98,26 @@ curl -X POST https://your-railway-backend/api/send-notification \
    ↓ (if fails or not provided)
 4. No notification sent
 ```
+
+### Sheet Search Order
+
+```
+1. CustomerContacts Sheet (แนะนำ)
+   └─ มีข้อมูลครบถ้วน: email, chatEmail, chatWebhook
+   ↓
+2. Email_STA Sheet (fallback)
+   └─ ค้นหา: shipToCode + email (หรือ E-mail)
+   ↓
+3. Customer Sheet (fallback สุดท้าย)
+   └─ ค้นหา: shipToCode + email (หรือ E-mail)
+   ↓
+4. ไม่พบข้อมูล → ข้ามการแจ้งเตือน
+```
+
+**รองรับชื่อคอลัมน์ (case-insensitive):**
+- `email`, `E-mail`, `EMAIL`, `e-mail`, `e_mail`
+- `shipToCode`, `shiptocode`, `ship_to_code`
+- `chatEmail`, `chatemail`, `chat_email`
 
 ### Message Flow
 

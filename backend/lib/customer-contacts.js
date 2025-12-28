@@ -11,50 +11,106 @@ class CustomerContacts {
 
   /**
    * Get customer contact info by ship-to code or name
+   * Searches multiple sheets: CustomerContacts → Email_STA → Customer
    */
   async getContactInfo(shipToCode) {
     try {
-      // Ensure sheet exists
-      await this.db.ensureSheet(this.SHEET_NAME);
-      
-      const contacts = await this.db.readRange(this.SHEET_NAME, 'A:Z');
-      if (!contacts || contacts.length === 0) {
-        return null;
+      // Try CustomerContacts first
+      const customerContact = await this._searchInSheet('CustomerContacts', shipToCode);
+      if (customerContact) {
+        return customerContact;
       }
 
-      const headers = contacts[0];
-      const shipToIdx = headers.indexOf('shipToCode');
-      
-      if (shipToIdx === -1) {
-        return null;
+      // Fallback to Email_STA sheet
+      const emailStaContact = await this._searchInSheet('Email_STA', shipToCode);
+      if (emailStaContact) {
+        return emailStaContact;
       }
 
-      // Find matching contact
-      for (let i = 1; i < contacts.length; i++) {
-        if (contacts[i][shipToIdx] && 
-            String(contacts[i][shipToIdx]).toUpperCase() === String(shipToCode).toUpperCase()) {
-          
-          return {
-            shipToCode: contacts[i][shipToIdx] || '',
-            shipToName: contacts[i][headers.indexOf('shipToName')] || '',
-            customerName: contacts[i][headers.indexOf('customerName')] || '',
-            email: contacts[i][headers.indexOf('email')] || '',
-            chatEmail: contacts[i][headers.indexOf('chatEmail')] || '',
-            chatWebhook: contacts[i][headers.indexOf('chatWebhook')] || '',
-            phoneNumber: contacts[i][headers.indexOf('phoneNumber')] || '',
-            notifyOnCheckIn: contacts[i][headers.indexOf('notifyOnCheckIn')] === 'TRUE',
-            notifyOnNearby: contacts[i][headers.indexOf('notifyOnNearby')] === 'TRUE',
-            notifyOnComplete: contacts[i][headers.indexOf('notifyOnComplete')] === 'TRUE',
-            notifyOnIssue: contacts[i][headers.indexOf('notifyOnIssue')] === 'TRUE'
-          };
-        }
+      // Fallback to Customer sheet
+      const customerSheetContact = await this._searchInSheet('Customer', shipToCode);
+      if (customerSheetContact) {
+        return customerSheetContact;
       }
 
+      console.log(`⚠️ No contact found for shipToCode: ${shipToCode}`);
       return null;
     } catch (err) {
       console.error('❌ Failed to get customer contact:', err);
       return null;
     }
+  }
+
+  /**
+   * Search for contact in a specific sheet
+   * Looks for email column (email, E-mail, EMAIL, etc.)
+   */
+  async _searchInSheet(sheetName, shipToCode) {
+    try {
+      const data = await this.db.readRange(sheetName, 'A:AZ');
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      const headers = data[0];
+      
+      // Find shipToCode column (case-insensitive)
+      const shipToIdx = this._findColumnIndex(headers, ['shipToCode', 'shiptocode', 'ship_to_code', 'ShipToCode']);
+      if (shipToIdx === -1) {
+        return null;
+      }
+
+      // Find email column (case-insensitive: email, E-mail, EMAIL, etc.)
+      const emailIdx = this._findColumnIndex(headers, ['email', 'e-mail', 'e_mail', 'Email', 'E-Mail']);
+      
+      // Find chatEmail column
+      const chatEmailIdx = this._findColumnIndex(headers, ['chatEmail', 'chatemail', 'chat_email', 'ChatEmail']);
+
+      // Search for matching row
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][shipToIdx] && 
+            String(data[i][shipToIdx]).toUpperCase() === String(shipToCode).toUpperCase()) {
+          
+          const contact = {
+            shipToCode: data[i][shipToIdx] || '',
+            shipToName: data[i][this._findColumnIndex(headers, ['shipToName', 'shiptoname', 'ship_to_name'])] || '',
+            customerName: data[i][this._findColumnIndex(headers, ['customerName', 'customername', 'customer_name'])] || '',
+            email: emailIdx !== -1 ? (data[i][emailIdx] || '') : '',
+            chatEmail: chatEmailIdx !== -1 ? (data[i][chatEmailIdx] || '') : '',
+            chatWebhook: data[i][this._findColumnIndex(headers, ['chatWebhook', 'chatwebhook', 'chat_webhook'])] || '',
+            phoneNumber: data[i][this._findColumnIndex(headers, ['phoneNumber', 'phonenumber', 'phone_number', 'phone'])] || '',
+            notifyOnCheckIn: data[i][this._findColumnIndex(headers, ['notifyOnCheckIn'])] === 'TRUE',
+            notifyOnNearby: data[i][this._findColumnIndex(headers, ['notifyOnNearby'])] === 'TRUE',
+            notifyOnComplete: data[i][this._findColumnIndex(headers, ['notifyOnComplete'])] === 'TRUE',
+            notifyOnIssue: data[i][this._findColumnIndex(headers, ['notifyOnIssue'])] === 'TRUE'
+          };
+
+          console.log(`✅ Found contact in ${sheetName}: ${contact.email || contact.chatEmail}`);
+          return contact;
+        }
+      }
+
+      return null;
+    } catch (err) {
+      // Sheet might not exist, just return null
+      console.log(`⚠️ Could not search in ${sheetName}:`, err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Find column index by multiple possible names (case-insensitive)
+   */
+  _findColumnIndex(headers, possibleNames) {
+    for (const name of possibleNames) {
+      const idx = headers.findIndex(h => 
+        h && String(h).toLowerCase().trim() === name.toLowerCase().trim()
+      );
+      if (idx !== -1) {
+        return idx;
+      }
+    }
+    return -1;
   }
 
   /**
