@@ -825,6 +825,34 @@ class SheetActions {
   }
 
   /**
+   * Get user status from userprofile sheet
+   */
+  async getUserStatus(userId) {
+    const uid = String(userId || '').trim();
+    if (!uid) return null;
+
+    try {
+      const userdata = await this.db.readRange(SHEETS.USER_PROFILE, 'A:J');
+      if (!userdata || userdata.length < 2) return null;
+
+      // Column A = userId, Column D (3) = status
+      for (let i = 1; i < userdata.length; i++) {
+        const row = userdata[i];
+        const id = String(row[0] || '').trim();
+        const status = row[3]; // Column D
+
+        if (id === uid) {
+          return status || null;
+        }
+      }
+      return null;
+    } catch (err) {
+      console.warn('⚠️ getUserStatus error:', err.message);
+      return null;
+    }
+  }
+
+  /**
    * Haversine distance calculation
    */
   _haversineDistance(lat1, lng1, lat2, lng2) {

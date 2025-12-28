@@ -17,6 +17,7 @@ const { ImageStorage } = require('./lib/image-storage');
 const { ErrorHandler } = require('./lib/error-handler');
 const { NotificationService } = require('./lib/notification-service');
 const { CustomerContacts } = require('./lib/customer-contacts');
+const SHEETS = require('./lib/sheet-names');
 
 // ============================================================================
 // Initialize Express App
@@ -502,6 +503,164 @@ app.post('/api/send-notification', async (req, res) => {
   } catch (err) {
     console.error('❌ POST /api/send-notification error:', err);
     return ErrorHandler.sendError(res, err);
+  }
+});
+
+// ============================================================================
+// LINE Webhook - Handle Follow & Message Events
+// ============================================================================
+
+/**
+ * Handle LINE follow event - Save user profile to userprofile sheet
+ */
+async function handleFollowEvent(event, sheetActions) {
+  try {
+    const userId = event.source.userId;
+    if (!userId) {
+      console.warn('⚠️ handleFollowEvent: no userId');
+      return;
+    }
+
+    // Get LINE user profile
+    const profile = await getLineUserProfile(userId);
+    const displayName = (profile && profile.displayName) || '';
+    const pictureUrl = (profile && profile.pictureUrl) || '';
+
+    // Read userprofile sheet
+    const userdata = await sheetActions.db.readRange(SHEETS.USER_PROFILE, 'A:J');
+    const headers = userdata[0];
+    
+    // Check if user already exists
+    let userExists = false;
+    for (let i = 1; i < userdata.length; i++) {
+      if (String(userdata[i][0] || '').trim() === String(userId).trim()) {
+        userExists = true;
+        break;
+      }
+    }
+
+    if (!userExists) {
+      // Append new user: [userId, displayName, pictureUrl, PENDING, now, now]
+      const now = new Date().toISOString();
+      await sheetActions.db.appendRow(SHEETS.USER_PROFILE, [
+        userId,
+        displayName,
+        pictureUrl,
+        'PENDING',
+        now,
+        now
+      ]);
+      console.log('✅ Added new user on follow event:', userId);
+    } else {
+      console.log('ℹ️ User already exists:', userId);
+    }
+  } catch (err) {
+    console.error('❌ handleFollowEvent error:', err);
+  }
+}
+
+/**
+ * Handle LINE message event
+ */
+async function handleMessageEvent(event, sheetActions) {
+  try {
+    const text = (event.message && event.message.text) ? String(event.message.text).trim() : '';
+    const userId = event.source.userId;
+    const replyToken = event.replyToken;
+
+    if (!replyToken) {
+      console.warn('⚠️ handleMessageEvent: no replyToken');
+      return;
+    }
+
+    let reply = '';
+    if (text.toLowerCase() === 'status') {
+      const status = await sheetActions.getUserStatus(userId);
+      reply = 'สถานะของคุณ: ' + (status || 'ไม่พบข้อมูล / ยังไม่ลงทะเบียน');
+    } else {
+      reply = 'หากคุณเป็นคนขับงานนี้ ให้กดเมนูด้านล่างเพื่อเข้าแอปรับงานครับ';
+    }
+
+    // Send reply via LINE Push API
+    await sendLineReply(process.env.CHANNEL_ACCESS_TOKEN, replyToken, reply);
+    console.log('✅ Replied to user:', userId);
+  } catch (err) {
+    console.error('❌ handleMessageEvent error:', err);
+  }
+}
+
+/**
+ * Get LINE user profile
+ */
+async function getLineUserProfile(userId) {
+  try {
+    const response = await fetch('https://api.line.biz/v2/bot/profile/' + userId, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.CHANNEL_ACCESS_TOKEN
+      }
+    });
+    if (!response.ok) {
+      console.warn('⚠️ getLineUserProfile failed:', response.status);
+      return null;
+    }
+    return await response.json();
+  } catch (err) {
+    console.error('❌ getLineUserProfile error:', err);
+    return null;
+  }
+}
+
+/**
+ * Send LINE reply message
+ */
+async function sendLineReply(channelAccessToken, replyToken, message) {
+  try {
+    const response = await fetch('https://api.line.biz/v2/bot/message/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + channelAccessToken
+      },
+      body: JSON.stringify({
+        replyToken: replyToken,
+        messages: [
+          {
+            type: 'text',
+            text: message
+          }
+        ]
+      })
+    });
+    if (!response.ok) {
+      console.warn('⚠️ sendLineReply failed:', response.status);
+    }
+  } catch (err) {
+    console.error('❌ sendLineReply error:', err);
+  }
+}
+
+/**
+ * POST /api/line-webhook - Handle LINE Bot webhook (both messages and rich menu linking)
+ */
+app.post('/api/line-webhook', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const events = body.events || [];
+
+    // Handle LINE events (follow, message)
+    for (const event of events) {
+      if (event.type === 'follow') {
+        await handleFollowEvent(event, sheetActions);
+      } else if (event.type === 'message') {
+        await handleMessageEvent(event, sheetActions);
+      }
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('❌ POST /api/line-webhook error:', err);
+    return res.json({ success: false, message: err.message });
   }
 });
 
