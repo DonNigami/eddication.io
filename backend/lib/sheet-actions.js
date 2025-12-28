@@ -82,7 +82,7 @@ class SheetActions {
 
       // Validate
       if (rowIndex === undefined || !status || !type) {
-        return { success: false, message: 'Missing required fields' };
+        return { success: false, message: 'Missing required fields: rowIndex, status, or type' };
       }
 
       // Read jobdata sheet
@@ -94,18 +94,27 @@ class SheetActions {
       const headers = jobdata[0];
       const targetRow = rowIndex + 2; // +1 for header, +1 for 1-based
 
+      // Generate unique UUID for this update
+      const updateId = uuidv4();
+      
       // Determine column to update based on type
       let colName = '';
+      let uuidColName = '';
       if (type === 'checkin') {
         colName = 'checkIn';
+        uuidColName = 'checkInId';
       } else if (type === 'checkout') {
         colName = 'checkOut';
+        uuidColName = 'checkOutId';
       } else if (type === 'fuel') {
         colName = 'fuelingTime';
+        uuidColName = 'fuelingId';
       } else if (type === 'unload') {
         colName = 'unloadDoneTime';
+        uuidColName = 'unloadDoneId';
       } else if (type === 'review') {
         colName = 'reviewedTime';
+        uuidColName = 'reviewedId';
       }
 
       const colIdx = headers.indexOf(colName);
@@ -113,12 +122,20 @@ class SheetActions {
         return { success: false, message: `Column ${colName} not found` };
       }
 
-      // Update the cell
+      // Update the cell with timestamp
       const timeStr = new Date().toLocaleTimeString('th-TH');
       const colLetter = this._getColumnLetter(colIdx);
       const updateRange = `${colLetter}${targetRow}`;
       
       await this.db.writeRange(SHEETS.JOBDATA, updateRange, [[timeStr]]);
+      
+      // Store UUID if column exists
+      const uuidColIdx = headers.indexOf(uuidColName);
+      if (uuidColIdx !== -1) {
+        const uuidLetter = this._getColumnLetter(uuidColIdx);
+        const uuidRange = `${uuidLetter}${targetRow}`;
+        await this.db.writeRange(SHEETS.JOBDATA, uuidRange, [[updateId]]);
+      }
 
       // Store odometer if check-in
       if (type === 'checkin' && odo) {

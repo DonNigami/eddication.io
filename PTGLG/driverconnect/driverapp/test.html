@@ -13,12 +13,12 @@
   <!-- SweetAlert2 -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <!-- App Config -->
-  <script src="config.js?v=20251228-7"></script>
+  <script src="config.js?v=20251228-8"></script>
   <!-- Core Modules (load in order) -->
-  <script src="logger.js?v=20251228-7"></script>
-  <script src="constants.js?v=20251228-7"></script>
-  <script src="validators.js?v=20251228-7"></script>
-  <script src="api.js?v=20251228-7"></script>
+  <script src="logger.js?v=20251228-8"></script>
+  <script src="constants.js?v=20251228-8"></script>
+  <script src="validators.js?v=20251228-8"></script>
+  <script src="api.js?v=20251228-8"></script>
 
   <style>
     :root {
@@ -2865,10 +2865,20 @@
         var hasUnloadDone = !!s.unloadDoneTime;
         var hasReviewed = !!s.reviewedTime;
         var hasCheckOut = !!s.checkOutTime;
+
+        // Check-in (all stops)
         if (!hasCheckIn) return { rowIndex: s.rowIndex, seq: s.seq, type: 'checkin', label: 'Check-in', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
-        if (!isOrigin && !hasFuel) return { rowIndex: s.rowIndex, seq: s.seq, type: 'fuel', label: 'ลงน้ำมัน', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
-        if (!isOrigin && !hasUnloadDone) return { rowIndex: s.rowIndex, seq: s.seq, type: 'unload', label: 'ลงเสร็จ', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
-        if (!isOrigin && !hasReviewed) return { rowIndex: s.rowIndex, seq: s.seq, type: 'review', label: 'ประเมิน', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+
+        // For Origin stop: skip fuel/unload/review - go straight to checkout
+        if (isOrigin) {
+          if (!hasCheckOut) return { rowIndex: s.rowIndex, seq: s.seq, type: 'checkout', label: 'Check-out', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+          continue; // Skip to next stop if origin is complete
+        }
+
+        // For non-Origin stops: full workflow
+        if (!hasFuel) return { rowIndex: s.rowIndex, seq: s.seq, type: 'fuel', label: 'ลงน้ำมัน', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+        if (!hasUnloadDone) return { rowIndex: s.rowIndex, seq: s.seq, type: 'unload', label: 'ลงเสร็จ', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
+        if (!hasReviewed) return { rowIndex: s.rowIndex, seq: s.seq, type: 'review', label: 'ประเมิน', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
         if (!hasCheckOut) return { rowIndex: s.rowIndex, seq: s.seq, type: 'checkout', label: 'Check-out', destination: s.destination2 || s.destination1 || ('จุด ' + s.seq), isOrigin: isOrigin };
       }
       // no pending per-stop; suggest close job / end trip
