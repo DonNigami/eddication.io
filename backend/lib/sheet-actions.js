@@ -164,15 +164,26 @@ class SheetActions {
       // Aggregate destination data
       // ============================================================
       const stationAgg = {};
-      const materials = {};
 
       zoileMatches.forEach(obj => {
         const row = obj.row;
-        const shipToCode = this._getZoileColumnByIndex(row, 29) || ''; // Column AD (0-based 29)
-        const shipToName = this._getZoileColumnByIndex(row, 30) || ''; // Column AE (0-based 30)
-        const material = this._getZoileColumnByIndex(row, 15) || '';   // Column P
-        const materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Column Q
-        const qtyStr = this._getZoileColumnByIndex(row, 17) || '';    // Column R
+        
+        // Different column indices for different source types
+        let shipToCode, shipToName;
+        if (sourceType === 'InputZoile30') {
+          shipToCode = this._getZoileColumnByIndex(row, 33) || ''; // Column AH
+          shipToName = this._getZoileColumnByIndex(row, 34) || '';  // Column AI
+        } else {
+          // ZoileData
+          shipToCode = this._getZoileColumnByIndex(row, 13) || ''; // Column N
+          shipToName = this._getZoileColumnByIndex(row, 14) || '';  // Column O
+        }
+
+        const material = this._getZoileColumnByIndex(row, 15) || '';   // Column P (same in both)
+        const materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Column Q (same in both)
+        const qtyStr = sourceType === 'InputZoile30'
+          ? this._getZoileColumnByIndex(row, 17) || ''      // For InputZoile30
+          : this._getZoileColumnByIndex(row, 17) || '';     // For ZoileData
         const qty = parseFloat(qtyStr) || 0;
         const distance = this._getZoileColumnByIndex(row, 14) || '';  // Column O
 

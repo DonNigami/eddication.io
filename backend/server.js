@@ -130,6 +130,79 @@ app.get('/ping', (req, res) => {
 // ============================================================================
 
 /**
+ * DEBUG: Show raw Zoile data for a reference
+ * GET /api/debug/zoile?keyword=REF001
+ */
+app.get('/api/debug/zoile', async (req, res) => {
+  try {
+    const { keyword } = req.query;
+    if (!keyword) {
+      return res.status(400).json({ success: false, message: 'Missing keyword param' });
+    }
+
+    const target = String(keyword).trim().toUpperCase();
+    const results = {
+      InputZoile30: null,
+      ZoileData: null
+    };
+
+    // Check InputZoile30
+    if (zoileDb) {
+      const inputZoile = await zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
+      if (inputZoile && inputZoile.length > 1) {
+        const refColIdx = 30;
+        for (let i = 1; i < inputZoile.length; i++) {
+          if (inputZoile[i][refColIdx] && String(inputZoile[i][refColIdx]).toUpperCase() === target) {
+            const row = inputZoile[i];
+            results.InputZoile30 = {
+              rowIndex: i + 1,
+              headers: inputZoile[0].slice(0, 35),
+              data: {
+                col_0_A: row[0], col_1_B: row[1], col_2_C: row[2], col_3_D: row[3], col_4_E: row[4],
+                col_5_F: row[5], col_6_G: row[6], col_7_H: row[7], col_8_I: row[8], col_9_J: row[9],
+                col_10_K: row[10], col_11_L: row[11], col_12_M: row[12], col_13_N: row[13], col_14_O: row[14],
+                col_15_P: row[15], col_16_Q: row[16], col_17_R: row[17], col_18_S: row[18], col_19_T: row[19],
+                col_20_U: row[20], col_21_V: row[21], col_22_W: row[22], col_23_X: row[23], col_24_Y: row[24],
+                col_25_Z: row[25], col_26_AA: row[26], col_27_AB: row[27], col_28_AC: row[28], col_29_AD: row[29],
+                col_30_AE: row[30], col_31_AF: row[31], col_32_AG: row[32], col_33_AH: row[33], col_34_AI: row[34]
+              }
+            };
+            break;
+          }
+        }
+      }
+
+      // Check ZoileData
+      const zoileData = await zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
+      if (zoileData && zoileData.length > 1) {
+        const refColIdx = 12;
+        for (let i = 1; i < zoileData.length; i++) {
+          if (zoileData[i][refColIdx] && String(zoileData[i][refColIdx]).toUpperCase() === target) {
+            const row = zoileData[i];
+            results.ZoileData = {
+              rowIndex: i + 1,
+              headers: zoileData[0].slice(0, 20),
+              data: {
+                col_0_A: row[0], col_1_B: row[1], col_2_C: row[2], col_3_D: row[3], col_4_E: row[4],
+                col_5_F: row[5], col_6_G: row[6], col_7_H: row[7], col_8_I: row[8], col_9_J: row[9],
+                col_10_K: row[10], col_11_L: row[11], col_12_M: row[12], col_13_N: row[13], col_14_O: row[14],
+                col_15_P: row[15], col_16_Q: row[16], col_17_R: row[17], col_18_S: row[18], col_19_T: row[19]
+              }
+            };
+            break;
+          }
+        }
+      }
+    }
+
+    return res.json({ success: true, keyword, results });
+  } catch (err) {
+    console.error('❌ Debug zoile error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
  * DEBUG: Detailed search trace for troubleshooting
  * GET /api/debug/search?keyword=REF001
  */
