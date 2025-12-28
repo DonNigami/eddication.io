@@ -1407,6 +1407,14 @@
           return;
         }
 
+        // ต้องเปิดผ่าน LINE ถึงจะส่งข้อความได้
+        var inClient = (liff.isInClient ? liff.isInClient() : false);
+        if (!inClient) {
+          console.warn('⚠️ ไม่ได้เปิดผ่านแอพ LINE จึงไม่สามารถส่ง Flex ได้');
+          try { showToastInfo('เปิดผ่านแอพ LINE เพื่อส่ง Flex'); } catch (_) { }
+          return;
+        }
+
         if (type !== 'checkin' && type !== 'checkout') {
           console.warn('⚠️ Type ไม่ใช่ checkin หรือ checkout:', type);
           return;
@@ -3044,6 +3052,18 @@
           if (acc != null) stopInfo.gpsAccuracy = acc;
           showInlineFlex(type, stopInfo);
           sendFlexCheckInOut(type, stopInfo);
+
+          // บันทึกเลขไมล์เริ่มต้นไว้ในเครื่องเพื่อใช้คำนวณสรุป
+          try {
+            if (type === 'checkin' && stopInfo.checkInOdo != null && currentUserId && currentReference) {
+              var key = 'trip_odo_' + currentUserId + '_' + currentReference;
+              var raw = localStorage.getItem(key);
+              var obj = raw ? JSON.parse(raw) : {};
+              obj.startOdo = Number(stopInfo.checkInOdo);
+              obj.startTime = stopInfo.checkInTime || obj.startTime || '';
+              localStorage.setItem(key, JSON.stringify(obj));
+            }
+          } catch (_) { }
         }
 
         if (currentReference) {
@@ -3537,6 +3557,19 @@
           tripEnded = true;
           await showSuccess(CONSTANTS.MESSAGES.SUCCESS_TITLE, 'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน');
 
+          // เก็บเลขไมล์จบทริปไว้ในเครื่องสำหรับสรุประยะทาง
+          try {
+            if (currentUserId && currentReference) {
+              var key = 'trip_odo_' + currentUserId + '_' + currentReference;
+              var raw = localStorage.getItem(key);
+              var obj = raw ? JSON.parse(raw) : {};
+              obj.endOdo = Number(values.endOdo || 0);
+              obj.endPointName = values.endPointName || obj.endPointName || '';
+              obj.endTime = (new Date()).toLocaleTimeString();
+              localStorage.setItem(key, JSON.stringify(obj));
+            }
+          } catch (_) { }
+
           // Hide end-trip buttons
           const closeJobContainer = document.getElementById('closeJobContainer');
           const btnCloseJob = document.getElementById('btnCloseJob');
@@ -3614,6 +3647,19 @@
           await search();
         }
         window.Logger.info('✅ End trip completed', { endOdo: values.endOdo });
+
+        // เก็บเลขไมล์จบทริปไว้ในเครื่องสำหรับสรุประยะทาง (กรณีนี้หลังบันทึกสำเร็จ)
+        try {
+          if (currentUserId && currentReference) {
+            var key2 = 'trip_odo_' + currentUserId + '_' + currentReference;
+            var raw2 = localStorage.getItem(key2);
+            var obj2 = raw2 ? JSON.parse(raw2) : {};
+            obj2.endOdo = Number(values.endOdo || 0);
+            obj2.endPointName = values.endPointName || obj2.endPointName || '';
+            obj2.endTime = (new Date()).toLocaleTimeString();
+            localStorage.setItem(key2, JSON.stringify(obj2));
+          }
+        } catch (_) { }
       } catch (err) {
         window.Logger.error('❌ End trip error', err);
         closeLoading();
@@ -3717,11 +3763,45 @@
         const completedStops = stops.filter(function (s) { return !!s.checkOutTime; }).length;
         const pendingStops = totalStops - completedStops;
 
-        // คำนวณระยะทาง (ถ้ามี)
+        // Helper: parse time string robustly
+        function parseTimeToDate(str) {
+          if (!str || typeof str !== 'string') return null;
+          var t = str.trim();
+          // If full ISO or date-time string
+          var d = new Date(t);
+          if (!isNaN(d.getTime())) return d;
+          // If HH:mm or HH:mm:ss
+          var m = t.match(/^\d{2}:\d{2}(?::\d{2})?$/);
+          if (m) {
+            // Ensure seconds present
+            var hhmmss = t.length === 5 ? (t + ':00') : t;
+            var dt = new Date('2000-01-01T' + hhmmss);
+            return isNaN(dt.getTime()) ? null : dt;
+          }
+          return null;
+        }
+
+        // คำนวณระยะทาง: ใช้เลขไมล์เริ่ม–จบ ถ้ามี, มิฉะนั้น sum ระยะทางรายจุด
+        var tripKey = (currentUserId && currentReference) ? ('trip_odo_' + currentUserId + '_' + currentReference) : null;
+        var tripOdo = null;
+        try { tripOdo = tripKey ? JSON.parse(localStorage.getItem(tripKey) || '{}') : null; } catch (_) { tripOdo = null; }
+        var startOdoCandidate = (function () {
+          // find first check-in odo from stops
+          var s = stops.find(function (x) { return x.checkInOdo != null && x.checkInOdo !== '' && !isNaN(Number(x.checkInOdo)); });
+          return s ? Number(s.checkInOdo) : null;
+        })();
+        var startOdo = (tripOdo && Number.isFinite(Number(tripOdo.startOdo))) ? Number(tripOdo.startOdo) : startOdoCandidate;
+        var endOdo = (tripOdo && Number.isFinite(Number(tripOdo.endOdo))) ? Number(tripOdo.endOdo) : null;
+
         let totalDistance = 0;
-        stops.forEach(function (s) {
-          if (s.distance && typeof s.distance === 'number') totalDistance += s.distance;
-        });
+        if (Number.isFinite(startOdo) && Number.isFinite(endOdo) && endOdo >= startOdo) {
+          totalDistance = endOdo - startOdo;
+        } else {
+          stops.forEach(function (s) {
+            var dist = (typeof s.distance === 'number') ? s.distance : Number(s.distance);
+            if (Number.isFinite(dist)) totalDistance += dist;
+          });
+        }
 
         // คำนวณเวลา (ถ้ามี check-in แรกและ check-out สุดท้าย)
         const firstCheckin = stops.find(function (s) { return !!s.checkInTime; });
@@ -3729,12 +3809,14 @@
         let workDuration = '-';
         if (firstCheckin && lastCheckout && firstCheckin.checkInTime && lastCheckout.checkOutTime) {
           try {
-            const start = new Date('2000-01-01 ' + firstCheckin.checkInTime);
-            const end = new Date('2000-01-01 ' + lastCheckout.checkOutTime);
-            const diffMs = end - start;
-            const diffHrs = Math.floor(diffMs / 3600000);
-            const diffMins = Math.floor((diffMs % 3600000) / 60000);
-            workDuration = diffHrs + ' ชม. ' + diffMins + ' นาที';
+            const start = parseTimeToDate(firstCheckin.checkInTime);
+            const end = parseTimeToDate(lastCheckout.checkOutTime);
+            if (start && end && end.getTime() >= start.getTime()) {
+              const diffMs = end.getTime() - start.getTime();
+              const diffHrs = Math.floor(diffMs / 3600000);
+              const diffMins = Math.floor((diffMs % 3600000) / 60000);
+              workDuration = diffHrs + ' ชม. ' + diffMins + ' นาที';
+            }
           } catch (_) { }
         }
 
@@ -3765,6 +3847,12 @@
         });
 
         if (confirm && liff && liff.isLoggedIn()) {
+          // ส่งเฉพาะเมื่ออยู่ใน LINE app เท่านั้น
+          var inClient = (liff.isInClient ? liff.isInClient() : false);
+          if (!inClient) {
+            showToastInfo('เปิดผ่านแอพ LINE เพื่อส่งรายงาน');
+            return;
+          }
           const msg =
             '📊 สรุปงานประจำวัน\n' +
             '📦 Reference: ' + currentReference + '\n' +
