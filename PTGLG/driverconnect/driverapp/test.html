@@ -648,7 +648,7 @@
           <ul id="timeline" class="timeline"></ul>
 
           <!-- ปุ่มปิดงาน + ปุ่มจบทริป -->
-          <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+          <div id="closeJobContainer" style="margin-top:8px;">
             <button id="btnCloseJob" type="button" class="btn-secondary" style="width:100%;margin-bottom:6px;">
               ปิดงาน (รถพร้อมใช้งาน)
             </button>
@@ -3685,6 +3685,27 @@
       if (!currentReference) {
         showInfo(CONSTANTS.MESSAGES.INFO_NOT_FOUND, 'กรุณาค้นหางานก่อนปิดงาน');
         return;
+      }
+
+      // ตรวจสอบขั้นตอนที่ยังไม่ได้ทำก่อนปิดงาน
+      const missingSteps = checkMissingSteps();
+
+      if (missingSteps.length > 0) {
+        // แสดงฟอร์มให้กรอกข้อมูลที่ขาด
+        const result = await showMissingStepsForm(missingSteps);
+        if (!result) {
+          return; // ยกเลิก
+        }
+
+        // บันทึกข้อมูลที่ขาดไปก่อน
+        const saveResult = await saveMissingStepsData(result.missingData);
+        if (!saveResult) {
+          showError('ไม่สามารถบันทึกข้อมูลที่ขาดได้ กรุณาลองใหม่อีกครั้ง');
+          return;
+        }
+
+        // Refresh ข้อมูล
+        await search();
       }
 
       const confirmResult = await Swal.fire({

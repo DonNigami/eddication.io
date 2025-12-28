@@ -30,6 +30,22 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Auto Commit & Push",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"scripts\\auto-commit.ps1",
+				"-Message",
+				"Show close & endtrip buttons from start + validate missing steps before close/endtrip"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
