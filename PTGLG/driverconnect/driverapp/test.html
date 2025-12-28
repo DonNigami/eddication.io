@@ -1190,6 +1190,9 @@
           } else if (item.type === 'FILL_MISSING') {
             const r = await window.API.fillMissingSteps(item.payload);
             if (!r || !r.success) throw new Error('fillMissing failed');
+          } else if (item.type === 'SAVE_AWARENESS') {
+            const r = await window.API.saveAwareness(item.payload);
+            if (!r || !r.success) throw new Error('saveAwareness failed');
           } else {
             // unknown type keep it
             remain.push(item);
@@ -1285,7 +1288,7 @@
         const awarenessImageUrl = window.CONSTANTS && window.CONSTANTS.API ? window.CONSTANTS.API.AWARENESS_IMAGE_URL : '';
 
         // Call API to save awareness (no upload required)
-        const result = await window.API.saveAwareness({
+        const payload = {
           reference: currentReference,
           userId: currentUserId,
           imageBase64: undefined,
@@ -1294,25 +1297,52 @@
           lng: lng,
           accuracy: acc,
           timestamp: new Date().toISOString()
-        });
+        };
+
+        const result = await window.API.saveAwareness(payload);
 
         closeLoading();
 
+        const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
         if (!result.success) {
-          showError(result.message || 'ไม่สามารถบันทึกได้');
+          // Fallback: mark local and queue for later sync
+          try {
+            localStorage.setItem(awarenessKey, 'true');
+          } catch (_) { }
+          try {
+            enqueueAction({ type: 'SAVE_AWARENESS', payload: payload });
+          } catch (_) { }
+          closeLoading();
+          showToastInfo('บันทึกการรับทราบไว้ในเครื่องแล้ว จะซิงก์เมื่อออนไลน์');
+          window.Logger.warn('⚠️ Awareness saved locally, queued for sync');
           return;
         }
 
-        // Mark as acknowledged in localStorage
-        const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
-        localStorage.setItem(awarenessKey, 'true');
-
+        // Success: mark local and notify
+        try { localStorage.setItem(awarenessKey, 'true'); } catch (_) { }
         await showSuccess('สำเร็จ', 'บันทึกใบรับทราบเรียบร้อยแล้ว');
         window.Logger.info('✅ Awareness acknowledged', { reference: currentReference });
       } catch (err) {
         window.Logger.error('❌ Awareness save error', err);
+        // Fallback on unexpected error: mark local and queue
+        try {
+          const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
+          localStorage.setItem(awarenessKey, 'true');
+          enqueueAction({
+            type: 'SAVE_AWARENESS', payload: {
+              reference: currentReference,
+              userId: currentUserId,
+              imageBase64: undefined,
+              imageUrl: (window.CONSTANTS && window.CONSTANTS.API ? window.CONSTANTS.API.AWARENESS_IMAGE_URL : ''),
+              lat: undefined,
+              lng: undefined,
+              accuracy: undefined,
+              timestamp: new Date().toISOString()
+            }
+          });
+          showToastInfo('บันทึกการรับทราบไว้ในเครื่องแล้ว จะซิงก์เมื่อออนไลน์');
+        } catch (_) { }
         closeLoading();
-        showError('เกิดข้อผิดพลาดในการบันทึก');
       }
     }
 
