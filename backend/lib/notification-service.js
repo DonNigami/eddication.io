@@ -11,6 +11,9 @@ class NotificationService {
     this.gmail = null;
     this.chat = null;
     this.auth = null;
+    // Admin notification webhook - receives copy of all notifications
+    this.ADMIN_WEBHOOK = process.env.ADMIN_NOTIFICATION_WEBHOOK || 
+      'https://chat.googleapis.com/v1/spaces/AAQAAH60ZLc/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=RJhjQpH0wC8IPM20dvfa9Z3aBSQL98UGc-udv4UEvFw';
   }
 
   /**
@@ -151,11 +154,13 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
   /**
    * Internal method to send notification via multiple channels
    * Supports: chatEmail (direct DM) → chatWebhook (space) → email
+   * Also sends copy to admin webhook for monitoring
    */
   async _sendNotification({ to, chatEmail, webhook, subject, message }) {
     const results = {
       chat: null,
-      email: null
+      email: null,
+      admin: null
     };
 
     // Priority 1: Send Google Chat direct message (if chatEmail provided)
@@ -171,6 +176,17 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
     // Priority 3: Send Email notification (if email provided)
     if (to) {
       results.email = await this._sendEmail(to, subject, message);
+    }
+
+    // Send copy to admin webhook (always)
+    if (this.ADMIN_WEBHOOK) {
+      const adminMessage = `📋 *สำเนาการแจ้งเตือน*\n\n` +
+        `👤 ถึง: ${to || chatEmail || 'N/A'}\n` +
+        `📝 หัวข้อ: ${subject || 'Notification'}\n` +
+        `⏰ เวลา: ${new Date().toLocaleString('th-TH')}\n\n` +
+        `${message}`;
+      
+      results.admin = await this._sendGoogleChatWebhook(this.ADMIN_WEBHOOK, adminMessage);
     }
 
     return results;
