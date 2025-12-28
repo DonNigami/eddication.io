@@ -1663,7 +1663,12 @@
           const kwEl = document.getElementById('keyword');
           kwEl.value = lastKeyword;
           try {
-            await search();
+            // Check if API module is loaded
+            if (window.API && typeof window.API.search === 'function') {
+              await search();
+            } else {
+              console.warn('API module not yet loaded, skipping auto-search');
+            }
           } catch (e) {
             console.warn('auto search on init failed', e);
           }
@@ -1740,6 +1745,14 @@
       showLoading('กำลังค้นหางานจากระบบ...');
 
       try {
+        // Check if API module is loaded
+        if (!window.API || typeof window.API.search !== 'function') {
+          closeLoading();
+          showError('ระบบยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่');
+          btn.disabled = false;
+          return;
+        }
+
         const result = await window.API.search(keyword, currentUserId);
 
         closeLoading();
@@ -3940,8 +3953,23 @@
       const btnSearchEl = document.getElementById('btnSearch');
       if (btnSearchEl) btnSearchEl.disabled = true;
 
-      // Auto-init LIFF และบังคับ login ทันที
-      initLiff();
+      // Wait for API module to load before init
+      const waitForAPI = setInterval(() => {
+        if (window.API && typeof window.API.search === 'function') {
+          clearInterval(waitForAPI);
+          // Auto-init LIFF และบังคับ login ทันที
+          initLiff();
+        }
+      }, 50);
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        clearInterval(waitForAPI);
+        if (!window.API) {
+          console.error('API module failed to load');
+          showError('ไม่สามารถโหลดระบบได้ กรุณารีเฟรชหน้าเว็บ');
+        }
+      }, 5000);
 
       document
         .getElementById('btnSearch')
