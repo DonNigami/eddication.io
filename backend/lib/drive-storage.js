@@ -110,7 +110,7 @@ class DriveStorage {
       });
 
       const fileId = response.data.id;
-      const fileUrl = response.data.webViewLink;
+      const fileUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
 
       // Make file publicly readable (optional - adjust as needed)
       try {
