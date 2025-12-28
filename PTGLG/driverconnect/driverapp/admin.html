@@ -649,14 +649,7 @@
       }
       setLoading(true, 'กำลังตรวจสอบสิทธิ์ Admin ...');
       try {
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('userId', userId);
-        const res = await fetch(base + '/api/admin/check', {
-          method: 'POST',
-          body: form
-        });
-        const json = await res.json();
+        const json = await window.API.adminCheck(userId);
 
         if (!json.success || !json.isAdmin) {
           showAdminBadge(false);
@@ -687,14 +680,7 @@
       try {
         const ref = document.getElementById('jobRef').value.trim();
         const status = document.getElementById('jobStatus').value.trim();
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('adminUserId', ADMIN_USER_ID);
-        form.append('reference', ref);
-        form.append('status', status);
-        form.append('limit', '200');
-        const res = await fetch(base + '/api/admin/jobdata', { method: 'POST', body: form });
-        const json = await res.json();
+        const json = await window.API.adminJobdata(ADMIN_USER_ID, ref, status, 200);
 
         if (!json.success) {
           setPanelMessage('jobMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
@@ -780,14 +766,7 @@
 
       setLoading(true, 'กำลังบันทึกสถานะ Job ...');
       try {
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('adminUserId', ADMIN_USER_ID);
-        form.append('rowIndex', rowIndex);
-        form.append('status', newStatus);
-
-        const res = await fetch(base + '/api/admin/update-job', { method: 'POST', body: form });
-        const json = await res.json();
+        const json = await window.API.adminUpdateJob(ADMIN_USER_ID, rowIndex, newStatus);
         if (!json.success) {
           setPanelMessage('jobMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
         } else {
@@ -815,14 +794,7 @@
       try {
         const ref = document.getElementById('alcRef').value.trim();
         const driver = document.getElementById('alcDriver').value.trim();
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('adminUserId', ADMIN_USER_ID);
-        form.append('reference', ref);
-        form.append('driver', driver);
-        form.append('limit', '200');
-        const res = await fetch(base + '/api/admin/alcohol', { method: 'POST', body: form });
-        const json = await res.json();
+        const json = await window.API.adminAlcohol(ADMIN_USER_ID, ref, driver, 200);
 
         if (!json.success) {
           setPanelMessage('alcMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
@@ -896,14 +868,7 @@
 
       setLoading(true, 'กำลังบันทึกค่า Alcohol ...');
       try {
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('adminUserId', ADMIN_USER_ID);
-        form.append('rowIndex', rowIndex);
-        form.append('alcoholValue', value);
-
-        const res = await fetch(base + '/api/admin/update-alcohol', { method: 'POST', body: form });
-        const json = await res.json();
+        const json = await window.API.adminUpdateAlcohol(ADMIN_USER_ID, rowIndex, value);
         if (!json.success) {
           setPanelMessage('alcMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
         } else {
@@ -931,13 +896,7 @@
       try {
         const status = document.getElementById('userStatus').value.trim();
         const keyword = document.getElementById('userKeyword').value.trim();
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('adminUserId', ADMIN_USER_ID);
-        form.append('status', status);
-        form.append('keyword', keyword);
-        const res = await fetch(base + '/api/admin/userprofile', { method: 'POST', body: form });
-        const json = await res.json();
+        const json = await window.API.adminUserprofile(ADMIN_USER_ID, status, keyword);
 
         if (!json.success) {
           setPanelMessage('userMessage', json.message || 'โหลดข้อมูลไม่สำเร็จ', 'error');
@@ -1020,14 +979,7 @@
 
       setLoading(true, 'กำลังบันทึกสถานะ User ...');
       try {
-        const base = getBaseUrl();
-        const form = new URLSearchParams();
-        form.append('adminUserId', ADMIN_USER_ID);
-        form.append('userId', userId);
-        form.append('status', newStatus);
-
-        const res = await fetch(base + '/api/admin/update-user-status', { method: 'POST', body: form });
-        const json = await res.json();
+        const json = await window.API.adminUpdateUserStatus(ADMIN_USER_ID, userId, newStatus);
         if (!json.success) {
           setPanelMessage('userMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
         } else {

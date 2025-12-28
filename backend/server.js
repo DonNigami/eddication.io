@@ -8,6 +8,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
@@ -27,7 +28,17 @@ const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Middleware
-app.use(express.json({ limit: '50mb' }));
+// Capture raw body to verify LINE webhook signatures
+app.use(express.json({
+  limit: '50mb',
+  verify: (req, res, buf) => {
+    try {
+      req.rawBody = buf.toString('utf8');
+    } catch (_) {
+      req.rawBody = '';
+    }
+  }
+}));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors({
   origin: (process.env.CORS_ORIGIN || 'http://localhost:8000').split(','),
@@ -116,6 +127,45 @@ app.get('/ping', (req, res) => {
 // ============================================================================
 // API Endpoints
 // ============================================================================
+
+// ----------------------------------------------------------------------------
+// LINE Webhook Security Helpers
+// ----------------------------------------------------------------------------
+function verifyLineSignature(req) {
+  const channelSecret = process.env.CHANNEL_SECRET;
+  if (!channelSecret) {
+    console.warn('⚠️ CHANNEL_SECRET not set; skipping signature verification');
+    return true; // Allow if not configured, to avoid breaking dev
+  }
+  const signatureHeader = req.get('X-Line-Signature') || req.get('x-line-signature') || '';
+  if (!signatureHeader) {
+    console.warn('⚠️ Missing X-Line-Signature header');
+    return false;
+  }
+  const raw = req.rawBody || '';
+  try {
+    const hmac = crypto.createHmac('sha256', channelSecret);
+    hmac.update(raw);
+    const expected = hmac.digest('base64');
+    const a = Buffer.from(signatureHeader, 'base64');
+    const b = Buffer.from(expected, 'base64');
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch (err) {
+    console.error('❌ Signature verification error:', err);
+    return false;
+  }
+}
+
+// Simple in-memory rate limiter for webhook endpoint
+const _webhookRate = new Map();
+function isRateLimited(ip, windowMs = 2000) {
+  const now = Date.now();
+  const last = _webhookRate.get(ip) || 0;
+  if (now - last < windowMs) return true;
+  _webhookRate.set(ip, now);
+  return false;
+}
 
 /**
  * Unified GET handler for query actions
@@ -804,6 +854,17 @@ app.post('/api/link-rich-menu', async (req, res) => {
  */
 app.post('/api/line-webhook', async (req, res) => {
   try {
+    // Basic rate limiting
+    if (isRateLimited(req.ip)) {
+      return res.status(429).json({ success: false, message: 'Too Many Requests' });
+    }
+
+    // Verify LINE signature
+    const ok = verifyLineSignature(req);
+    if (!ok) {
+      return res.status(401).json({ success: false, message: 'Invalid signature' });
+    }
+
     const body = req.body || {};
     const events = body.events || [];
 
@@ -819,7 +880,7 @@ app.post('/api/line-webhook', async (req, res) => {
     return res.json({ success: true });
   } catch (err) {
     console.error('❌ POST /api/line-webhook error:', err);
-    return res.json({ success: false, message: err.message });
+    return res.status(500).json({ success: false, message: err.message });
   }
 });
 
