@@ -1752,13 +1752,7 @@
         // cache successful result for offline usage
         try { cacheSearchResult(currentUserId, currentReference, d); } catch (_) { }
 
-        // Show awareness acknowledgment popup if not yet acknowledged for this reference
-        const awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
-        if (!localStorage.getItem(awarenessKey)) {
-          setTimeout(function () {
-            showAwarenessPopup();
-          }, 500);
-        }
+        // Awareness popup will be shown at first stop check-in instead of here
 
         window.Logger.info('✅ Search completed', { stops: stops.length, drivers: currentDrivers.length });
         try { showToastSuccess('ดึงงานสำเร็จ (' + (stops.length || 0) + ' จุด)'); } catch (_) { }
@@ -2894,6 +2888,15 @@
     }
 
     async function startCheckin(rowIndex, seq) {
+      // Show awareness popup once at first stop only
+      try {
+        if (seq === 1 && currentUserId && currentReference) {
+          var awarenessKey = 'awareness_ack_' + currentUserId + '_' + currentReference;
+          if (!localStorage.getItem(awarenessKey)) {
+            await showAwarenessPopup();
+          }
+        }
+      } catch (_) { }
       if (currentDrivers.length > 0 && currentCheckedDrivers.length === 0) {
         showInfo(
           'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
