@@ -122,6 +122,16 @@ class GoogleSheetsDB {
   }
 
   /**
+   * Append a single row to a sheet (alias for appendRange)
+   * @param {string} sheetName
+   * @param {Array<Array>} values
+   * @returns {Promise<Object>}
+   */
+  async appendRow(sheetName, values) {
+    return this.appendRange(sheetName, values);
+  }
+
+  /**
    * Get sheet metadata (column headers, etc.)
    * @param {string} sheetName
    * @returns {Promise<Object>}

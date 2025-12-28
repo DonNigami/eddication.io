@@ -1,10 +1,11 @@
 /**
- * Sheet Actions Module
+ * Sheet Actions Module - Adapted for Google Apps Script structure
  * Business logic for all API endpoints using Google Sheets
  */
 
 const { v4: uuidv4 } = require('uuid');
 const { ImageStorage } = require('./image-storage');
+const SHEETS = require('./sheet-names');
 
 class SheetActions {
   constructor(db) {
@@ -17,41 +18,50 @@ class SheetActions {
    */
   async search(keyword, userId) {
     try {
-      // Read Jobs sheet
-      const jobs = await this.db.readRange('Jobs', 'A:Z');
-      if (!jobs || jobs.length === 0) {
+      // Read jobdata sheet (contains all stops)
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
         return { success: false, message: 'No jobs found' };
       }
 
       // Parse headers
-      const headers = jobs[0];
-      const referenceIdx = headers.indexOf('Reference');
+      const headers = jobdata[0];
+      const referenceIdx = headers.indexOf('referenceNo');
       
       if (referenceIdx === -1) {
-        return { success: false, message: 'Invalid sheet structure' };
+        return { success: false, message: 'Invalid sheet structure - missing referenceNo column' };
       }
 
-      // Find matching job
-      const jobRow = jobs.find(row => 
-        row[referenceIdx] && 
-        String(row[referenceIdx]).toUpperCase() === String(keyword).toUpperCase()
-      );
+      // Find all matching stops for this reference
+      const matchingStops = [];
+      for (let i = 1; i < jobdata.length; i++) {
+        if (jobdata[i][referenceIdx] && 
+            String(jobdata[i][referenceIdx]).toUpperCase() === String(keyword).toUpperCase()) {
+          matchingStops.push(this._rowToObject(headers, jobdata[i]));
+        }
+      }
 
-      if (!jobRow) {
+      if (matchingStops.length === 0) {
         return { success: false, message: 'Job not found' };
       }
 
-      // Convert row to object
-      const job = this._rowToObject(headers, jobRow);
+      // Get first stop for main job info
+      const firstStop = matchingStops[0];
 
-      // Read stops for this job
-      const stopsData = await this._getStopsForReference(job.Reference);
+      // Read alcohol data for this reference
+      const alcoholData = await this._getAlcoholForReference(firstStop.referenceNo);
 
       return {
         success: true,
         data: {
-          job,
-          stops: stopsData || []
+          referenceNo: firstStop.referenceNo,
+          shipmentNo: firstStop.shipmentNo || '',
+          destination: firstStop.shipToName || '',
+          totalStops: matchingStops.length,
+          stops: matchingStops,
+          alcohol: alcoholData || { drivers: [], checkedDrivers: [] },
+          jobClosed: !!firstStop.jobClosedAt,
+          tripEnded: !!firstStop.tripEndedAt
         }
       };
     } catch (err) {
@@ -71,25 +81,31 @@ class SheetActions {
       const { rowIndex, status, type, userId, lat, lng, odo, accuracy } = payload;
 
       // Validate
-      if (!rowIndex || !status || !type) {
+      if (rowIndex === undefined || !status || !type) {
         return { success: false, message: 'Missing required fields' };
       }
 
-      // Read Stops sheet
-      const stops = await this.db.readRange('Stops', 'A:Z');
-      if (!stops || stops.length === 0) {
-        return { success: false, message: 'Stops sheet not found' };
+      // Read jobdata sheet
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'Jobdata sheet not found' };
       }
 
-      const headers = stops[0];
-      const targetRow = rowIndex + 1; // Account for header
+      const headers = jobdata[0];
+      const targetRow = rowIndex + 2; // +1 for header, +1 for 1-based
 
       // Determine column to update based on type
       let colName = '';
       if (type === 'checkin') {
-        colName = 'CheckInTime';
+        colName = 'checkInTime';
       } else if (type === 'checkout') {
-        colName = 'CheckOutTime';
+        colName = 'checkOutTime';
+      } else if (type === 'fuel') {
+        colName = 'fuelingTime';
+      } else if (type === 'unload') {
+        colName = 'unloadDoneTime';
+      } else if (type === 'review') {
+        colName = 'reviewedTime';
       }
 
       const colIdx = headers.indexOf(colName);
@@ -99,26 +115,63 @@ class SheetActions {
 
       // Update the cell
       const timeStr = new Date().toLocaleTimeString('th-TH');
-      const updateRange = `Stops!${String.fromCharCode(65 + colIdx)}${targetRow}`;
+      const colLetter = this._getColumnLetter(colIdx);
+      const updateRange = `${colLetter}${targetRow}`;
       
-      await this.db.writeRange('Stops', updateRange, [[timeStr]]);
+      await this.db.writeRange(SHEETS.JOBDATA, updateRange, [[timeStr]]);
 
       // Store odometer if check-in
       if (type === 'checkin' && odo) {
-        const odoColIdx = headers.indexOf('CheckInOdo');
+        const odoColIdx = headers.indexOf('checkInOdo');
         if (odoColIdx !== -1) {
-          const odoRange = `Stops!${String.fromCharCode(65 + odoColIdx)}${targetRow}`;
-          await this.db.writeRange('Stops', odoRange, [[String(odo)]]);
+          const odoLetter = this._getColumnLetter(odoColIdx);
+          const odoRange = `${odoLetter}${targetRow}`;
+          await this.db.writeRange(SHEETS.JOBDATA, odoRange, [[String(odo)]]);
         }
       }
 
-      // Get updated stop
-      const updatedStop = await this._getStopByIndex(rowIndex);
+      // Update GPS coordinates if provided
+      if (lat && lng) {
+        let latCol = '';
+        let lngCol = '';
+        
+        if (type === 'checkin') {
+          latCol = 'checkInLat';
+          lngCol = 'checkInLng';
+        } else if (type === 'checkout') {
+          latCol = 'checkOutLat';
+          lngCol = 'checkOutLng';
+        }
+
+        if (latCol && lngCol) {
+          const latIdx = headers.indexOf(latCol);
+          const lngIdx = headers.indexOf(lngCol);
+          
+          if (latIdx !== -1) {
+            const latLetter = this._getColumnLetter(latIdx);
+            await this.db.writeRange(SHEETS.JOBDATA, `${latLetter}${targetRow}`, [[String(lat)]]);
+          }
+          if (lngIdx !== -1) {
+            const lngLetter = this._getColumnLetter(lngIdx);
+            await this.db.writeRange(SHEETS.JOBDATA, `${lngLetter}${targetRow}`, [[String(lng)]]);
+          }
+        }
+      }
+
+      // Update status column
+      const statusIdx = headers.indexOf('status');
+      if (statusIdx !== -1) {
+        const statusLetter = this._getColumnLetter(statusIdx);
+        await this.db.writeRange(SHEETS.JOBDATA, `${statusLetter}${targetRow}`, [[status]]);
+      }
+
+      // Read updated row
+      const updatedRow = jobdata[rowIndex + 1];
+      const stop = this._rowToObject(headers, updatedRow);
 
       return {
         success: true,
-        message: `Stop ${colName} updated successfully`,
-        data: { stop: updatedStop }
+        data: { stop }
       };
     } catch (err) {
       console.error('❌ Update stop error:', err);
@@ -134,37 +187,37 @@ class SheetActions {
    */
   async uploadAlcohol(payload) {
     try {
-      const { driverName, result, timestamp, userId, reference, imageBuffer } = payload;
+      const { reference, driverName, userId, alcoholValue, lat, lng, imageBase64, accuracy } = payload;
 
-      if (!driverName || !result) {
-        return { success: false, message: 'Missing driver name or result' };
+      // Save image
+      let imageUrl = '';
+      if (imageBase64) {
+        const filename = `alcohol_${reference}_${driverName}_${Date.now()}.jpg`;
+        imageUrl = await this.imageStorage.saveBase64Image(imageBase64, filename);
       }
 
-      // Save image if provided
-      let imageUrl = null;
-      if (imageBuffer) {
-        imageUrl = await this.imageStorage.saveImage(
-          imageBuffer,
-          `alcohol_${driverName}_${Date.now()}`
-        );
-      }
-
-      // Append to Alcohol sheet
+      // Append to alcoholcheck sheet
+      const timestamp = new Date().toISOString();
       const row = [
-        timestamp || new Date().toISOString(),
+        timestamp,
         userId || '',
         reference || '',
-        driverName,
-        result,
+        driverName || '',
+        alcoholValue || '',
+        lat || '',
+        lng || '',
+        accuracy || '',
         imageUrl || ''
       ];
 
-      await this.db.appendRange('Alcohol', [row]);
+      await this.db.appendRow(SHEETS.ALCOHOL, [row]);
+
+      // Get updated list of checked drivers
+      const checkedDrivers = await this._getCheckedDriversForReference(reference);
 
       return {
         success: true,
-        message: 'Alcohol check saved',
-        data: { checkedDrivers: [driverName] }
+        data: { checkedDrivers }
       };
     } catch (err) {
       console.error('❌ Upload alcohol error:', err);
@@ -182,24 +235,16 @@ class SheetActions {
     try {
       const { userId, reference, timestamp, acknowledged } = payload;
 
-      if (!userId || !reference) {
-        return { success: false, message: 'Missing userId or reference' };
-      }
-
-      // Append to Awareness sheet
       const row = [
         timestamp || new Date().toISOString(),
-        userId,
-        reference,
+        userId || '',
+        reference || '',
         acknowledged ? 'YES' : 'NO'
       ];
 
-      await this.db.appendRange('Awareness', [row]);
+      await this.db.appendRow(SHEETS.AWARENESS, [row]);
 
-      return {
-        success: true,
-        message: 'Awareness saved'
-      };
+      return { success: true };
     } catch (err) {
       console.error('❌ Save awareness error:', err);
       return { 
@@ -214,37 +259,27 @@ class SheetActions {
    */
   async uploadPOD(payload) {
     try {
-      const { rowIndex, shipmentNo, userId, reference, timestamp, imageBuffer } = payload;
+      const { rowIndex, shipmentNo, userId, reference, timestamp, imageBase64 } = payload;
 
-      if (!shipmentNo) {
-        return { success: false, message: 'Missing shipment number' };
+      // Save image
+      let imageUrl = '';
+      if (imageBase64) {
+        const filename = `pod_${reference}_${shipmentNo}_${Date.now()}.jpg`;
+        imageUrl = await this.imageStorage.saveBase64Image(imageBase64, filename);
       }
 
-      // Save image if provided
-      let imageUrl = null;
-      if (imageBuffer) {
-        imageUrl = await this.imageStorage.saveImage(
-          imageBuffer,
-          `pod_${shipmentNo}_${Date.now()}`
-        );
-      }
-
-      // Append to POD sheet
       const row = [
         timestamp || new Date().toISOString(),
         userId || '',
         reference || '',
-        shipmentNo,
-        'COMPLETED',
+        shipmentNo || '',
+        'UPLOADED',
         imageUrl || ''
       ];
 
-      await this.db.appendRange('POD', [row]);
+      await this.db.appendRow(SHEETS.POD, [row]);
 
-      return {
-        success: true,
-        message: 'POD saved'
-      };
+      return { success: true };
     } catch (err) {
       console.error('❌ Upload POD error:', err);
       return { 
@@ -259,36 +294,32 @@ class SheetActions {
    */
   async emergencySOS(payload) {
     try {
-      const { type, description, userId, lat, lng, timestamp, imageBuffer } = payload;
+      const { userId, type, description, lat, lng, imageBase64, reference } = payload;
 
-      // Save image if provided
-      let imageUrl = null;
-      if (imageBuffer) {
-        imageUrl = await this.imageStorage.saveImage(
-          imageBuffer,
-          `sos_${type}_${Date.now()}`
-        );
+      // Save image
+      let imageUrl = '';
+      if (imageBase64) {
+        const filename = `sos_${userId}_${Date.now()}.jpg`;
+        imageUrl = await this.imageStorage.saveBase64Image(imageBase64, filename);
       }
 
-      // Append to SOS sheet
+      const timestamp = new Date().toISOString();
       const row = [
-        timestamp || new Date().toISOString(),
+        timestamp,
         userId || '',
-        type || 'UNKNOWN',
+        type || 'SOS',
         description || '',
         lat || '',
         lng || '',
-        imageUrl || 'REPORTED'
+        imageUrl || '',
+        reference || ''
       ];
 
-      await this.db.appendRange('SOS', [row]);
+      await this.db.appendRow(SHEETS.EMERGENCY, [row]);
 
-      return {
-        success: true,
-        message: 'Emergency SOS reported'
-      };
+      return { success: true };
     } catch (err) {
-      console.error('❌ SOS error:', err);
+      console.error('❌ Emergency SOS error:', err);
       return { 
         success: false, 
         message: err.message || 'SOS failed' 
@@ -301,17 +332,76 @@ class SheetActions {
    */
   async endTrip(payload) {
     try {
-      const { reference, userId, endOdo, endPointName, lat, lng, accuracy, timestamp } = payload;
+      const { reference, userId, endOdo, endPointName, lat, lng, accuracy } = payload;
 
-      if (!reference) {
-        return { success: false, message: 'Missing reference' };
+      // Find all stops for this reference and update tripEndedAt
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'Jobdata not found' };
       }
 
-      // Append to EndTrip sheet
+      const headers = jobdata[0];
+      const referenceIdx = headers.indexOf('referenceNo');
+      const tripEndOdoIdx = headers.indexOf('tripEndOdo');
+      const tripEndPlaceIdx = headers.indexOf('tripEndPlace');
+      const tripEndLatIdx = headers.indexOf('tripEndLat');
+      const tripEndLngIdx = headers.indexOf('tripEndLng');
+      const tripEndedAtIdx = headers.indexOf('tripEndedAt');
+
+      const timestamp = new Date().toISOString();
+
+      // Update all matching rows
+      for (let i = 1; i < jobdata.length; i++) {
+        if (jobdata[i][referenceIdx] && 
+            String(jobdata[i][referenceIdx]).toUpperCase() === String(reference).toUpperCase()) {
+          
+          const rowNum = i + 1;
+          
+          // Update multiple columns
+          const updates = [];
+          if (tripEndOdoIdx !== -1) {
+            updates.push({
+              range: `${this._getColumnLetter(tripEndOdoIdx)}${rowNum}`,
+              value: String(endOdo || '')
+            });
+          }
+          if (tripEndPlaceIdx !== -1) {
+            updates.push({
+              range: `${this._getColumnLetter(tripEndPlaceIdx)}${rowNum}`,
+              value: endPointName || ''
+            });
+          }
+          if (tripEndLatIdx !== -1 && lat) {
+            updates.push({
+              range: `${this._getColumnLetter(tripEndLatIdx)}${rowNum}`,
+              value: String(lat)
+            });
+          }
+          if (tripEndLngIdx !== -1 && lng) {
+            updates.push({
+              range: `${this._getColumnLetter(tripEndLngIdx)}${rowNum}`,
+              value: String(lng)
+            });
+          }
+          if (tripEndedAtIdx !== -1) {
+            updates.push({
+              range: `${this._getColumnLetter(tripEndedAtIdx)}${rowNum}`,
+              value: timestamp
+            });
+          }
+
+          // Execute all updates
+          for (const update of updates) {
+            await this.db.writeRange(SHEETS.JOBDATA, update.range, [[update.value]]);
+          }
+        }
+      }
+
+      // Also log to EndTrip sheet
       const row = [
-        timestamp || new Date().toISOString(),
+        timestamp,
         userId || '',
-        reference,
+        reference || '',
         endOdo || '',
         endPointName || '',
         lat || '',
@@ -319,12 +409,9 @@ class SheetActions {
         accuracy || ''
       ];
 
-      await this.db.appendRange('EndTrip', [row]);
+      await this.db.appendRow(SHEETS.ENDTRIP, [row]);
 
-      return {
-        success: true,
-        message: 'Trip ended successfully'
-      };
+      return { success: true };
     } catch (err) {
       console.error('❌ End trip error:', err);
       return { 
@@ -335,47 +422,73 @@ class SheetActions {
   }
 
   /**
-   * CLOSE_JOB: Mark job as completed
+   * FILL_MISSING_STEPS: Save missing steps data
+   */
+  async fillMissingSteps(payload) {
+    try {
+      const { userId, reference, data, lat, lng } = payload;
+
+      const timestamp = new Date().toISOString();
+      const row = [
+        timestamp,
+        userId || '',
+        reference || '',
+        JSON.stringify(data || {}),
+        lat || '',
+        lng || ''
+      ];
+
+      await this.db.appendRow(SHEETS.MISSING_STEPS, [row]);
+
+      return { success: true };
+    } catch (err) {
+      console.error('❌ Fill missing steps error:', err);
+      return { 
+        success: false, 
+        message: err.message || 'Fill missing steps failed' 
+      };
+    }
+  }
+
+  /**
+   * CLOSE_JOB: Mark job as closed
    */
   async closeJob(reference, userId) {
     try {
-      if (!reference) {
-        return { success: false, message: 'Missing reference' };
+      // Find all stops for this reference and update jobClosedAt
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'Jobdata not found' };
       }
 
-      // Find job row and update status
-      const jobs = await this.db.readRange('Jobs', 'A:Z');
-      if (!jobs || jobs.length === 0) {
-        return { success: false, message: 'No jobs found' };
-      }
+      const headers = jobdata[0];
+      const referenceIdx = headers.indexOf('referenceNo');
+      const jobClosedAtIdx = headers.indexOf('jobClosedAt');
 
-      const headers = jobs[0];
-      const refIdx = headers.indexOf('Reference');
-      const statusIdx = headers.indexOf('JobStatus');
-
-      if (refIdx === -1) {
+      if (referenceIdx === -1 || jobClosedAtIdx === -1) {
         return { success: false, message: 'Invalid sheet structure' };
       }
 
-      const jobRowIdx = jobs.findIndex(row => 
-        row[refIdx] && 
-        String(row[refIdx]).toUpperCase() === String(reference).toUpperCase()
-      );
+      const timestamp = new Date().toISOString();
+      const closedLetter = this._getColumnLetter(jobClosedAtIdx);
 
-      if (jobRowIdx === -1) {
-        return { success: false, message: 'Job not found' };
+      // Update all matching rows
+      let updatedCount = 0;
+      for (let i = 1; i < jobdata.length; i++) {
+        if (jobdata[i][referenceIdx] && 
+            String(jobdata[i][referenceIdx]).toUpperCase() === String(reference).toUpperCase()) {
+          
+          const rowNum = i + 1;
+          await this.db.writeRange(SHEETS.JOBDATA, `${closedLetter}${rowNum}`, [[timestamp]]);
+          updatedCount++;
+        }
       }
 
-      // Update status
-      if (statusIdx !== -1) {
-        const updateRange = `Jobs!${String.fromCharCode(65 + statusIdx)}${jobRowIdx + 1}`;
-        await this.db.writeRange('Jobs', updateRange, [['CLOSED']]);
+      if (updatedCount === 0) {
+        return { success: false, message: 'Reference not found' };
       }
 
-      return {
-        success: true,
-        message: 'Job closed successfully'
-      };
+      return { success: true, message: `Job closed (${updatedCount} stops updated)` };
     } catch (err) {
       console.error('❌ Close job error:', err);
       return { 
@@ -385,99 +498,77 @@ class SheetActions {
     }
   }
 
-  /**
-   * FILL_MISSING: Fill missing steps data
-   */
-  async fillMissing(payload) {
-    try {
-      const { reference, userId, missingData, lat, lng } = payload;
-
-      if (!reference || !missingData) {
-        return { success: false, message: 'Missing required data' };
-      }
-
-      // Append to MissingSteps sheet for audit trail
-      const row = [
-        new Date().toISOString(),
-        userId || '',
-        reference,
-        JSON.stringify(missingData),
-        lat || '',
-        lng || ''
-      ];
-
-      await this.db.appendRange('MissingSteps', [row]);
-
-      return {
-        success: true,
-        message: 'Missing data saved'
-      };
-    } catch (err) {
-      console.error('❌ Fill missing error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Fill missing failed' 
-      };
-    }
-  }
-
   // ============================================================================
   // Helper Methods
   // ============================================================================
 
   /**
-   * Convert sheet row to object using headers
+   * Get alcohol data for a reference
+   */
+  async _getAlcoholForReference(reference) {
+    try {
+      const alcoholData = await this.db.readRange(SHEETS.ALCOHOL, 'A:Z');
+      if (!alcoholData || alcoholData.length === 0) {
+        return { drivers: [], checkedDrivers: [] };
+      }
+
+      const headers = alcoholData[0];
+      const refIdx = headers.indexOf('reference') !== -1 ? headers.indexOf('reference') : 2;
+      const driverIdx = headers.indexOf('driverName') !== -1 ? headers.indexOf('driverName') : 3;
+
+      const checkedDrivers = [];
+      for (let i = 1; i < alcoholData.length; i++) {
+        if (alcoholData[i][refIdx] && 
+            String(alcoholData[i][refIdx]).toUpperCase() === String(reference).toUpperCase()) {
+          const driverName = alcoholData[i][driverIdx];
+          if (driverName && !checkedDrivers.includes(driverName)) {
+            checkedDrivers.push(driverName);
+          }
+        }
+      }
+
+      return {
+        drivers: [],
+        checkedDrivers
+      };
+    } catch (err) {
+      console.error('❌ Get alcohol data error:', err);
+      return { drivers: [], checkedDrivers: [] };
+    }
+  }
+
+  /**
+   * Get checked drivers for a reference
+   */
+  async _getCheckedDriversForReference(reference) {
+    const data = await this._getAlcoholForReference(reference);
+    return data.checkedDrivers || [];
+  }
+
+  /**
+   * Convert row array to object using headers
    */
   _rowToObject(headers, row) {
     const obj = {};
     headers.forEach((header, idx) => {
-      obj[header] = row[idx] || '';
+      if (header) {
+        obj[header] = row[idx] || '';
+      }
     });
     return obj;
   }
 
   /**
-   * Get stops for a specific reference
+   * Convert column index to letter (0 = A, 1 = B, etc.)
    */
-  async _getStopsForReference(reference) {
-    try {
-      const stops = await this.db.readRange('Stops', 'A:Z');
-      if (!stops || stops.length === 0) return [];
-
-      const headers = stops[0];
-      const refIdx = headers.indexOf('Reference');
-      if (refIdx === -1) return [];
-
-      return stops
-        .slice(1)
-        .filter(row => row[refIdx] === reference)
-        .map((row, idx) => {
-          const obj = this._rowToObject(headers, row);
-          obj.rowIndex = idx;
-          return obj;
-        });
-    } catch (err) {
-      console.error('Error getting stops:', err);
-      return [];
+  _getColumnLetter(index) {
+    let letter = '';
+    let temp = index;
+    while (temp >= 0) {
+      letter = String.fromCharCode((temp % 26) + 65) + letter;
+      temp = Math.floor(temp / 26) - 1;
     }
-  }
-
-  /**
-   * Get stop by row index
-   */
-  async _getStopByIndex(rowIndex) {
-    try {
-      const stops = await this.db.readRange('Stops', 'A:Z');
-      if (!stops || stops.length <= rowIndex + 1) return null;
-
-      const headers = stops[0];
-      const row = stops[rowIndex + 1];
-
-      return this._rowToObject(headers, row);
-    } catch (err) {
-      console.error('Error getting stop:', err);
-      return null;
-    }
+    return letter;
   }
 }
 
