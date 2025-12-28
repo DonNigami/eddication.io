@@ -23,8 +23,8 @@ Sheet ที่จะถูกสร้างอัตโนมัติ:
 
 เพิ่ม Sheet ใหม่ในไฟล์ Google Sheets ชื่อ `CustomerContacts` พร้อม Headers:
 
-| shipToCode | shipToName | customerName | email | chatWebhook | phoneNumber | notifyOnCheckIn | notifyOnNearby | notifyOnComplete | notifyOnIssue | createdAt | updatedAt |
-|------------|------------|--------------|-------|-------------|-------------|-----------------|----------------|------------------|---------------|-----------|-----------|
+| shipToCode | shipToName | customerName | email | chatEmail | chatWebhook | phoneNumber | notifyOnCheckIn | notifyOnNearby | notifyOnComplete | notifyOnIssue | createdAt | updatedAt |
+|------------|------------|--------------|-------|-----------|-------------|-------------|-----------------|----------------|------------------|---------------|-----------|-----------|
 
 ### 2. เพิ่มข้อมูลลูกค้า
 
@@ -34,7 +34,8 @@ shipToCode: 001234
 shipToName: บริษัท ABC จำกัด
 customerName: คุณสมชาย
 email: somchai@abc.com
-chatWebhook: https://chat.googleapis.com/v1/spaces/xxx/messages?key=xxx&token=xxx
+chatEmail: somchai@company.com  ← ส่งข้อความตรงไปยัง Personal Chat
+chatWebhook: https://chat.googleapis.com/v1/spaces/xxx/messages?key=xxx&token=xxx (ตัวเลือก)
 phoneNumber: 0812345678
 notifyOnCheckIn: TRUE
 notifyOnNearby: TRUE
@@ -44,7 +45,51 @@ notifyOnIssue: TRUE
 
 ---
 
-## 🔧 Google Chat Webhook Setup
+## 💬 Google Chat Direct Message Setup (แนะนำ)
+
+### วิธีส่งข้อความตรงไปยัง Personal Chat ของลูกค้า:
+
+1. **Enable Google Chat API:**
+   - Google Cloud Console → APIs & Services → Library
+   - ค้นหา **"Google Chat API"** 
+   - คลิก **"Enable"**
+
+2. **ตั้งค่า Service Account Scopes:**
+   - ไปที่ IAM & Admin → Service Accounts
+   - เลือก Service Account ของคุณ
+   - Tab "Keys" → ดู JSON key
+   - ในฟังก์ชั่น `initialize()` ของ `notification-service.js` 
+   - ตรวจสอบว่า auth นี้มี scopes:
+     - `https://www.googleapis.com/auth/chat.bot` ✅
+     - `https://www.googleapis.com/auth/chat.messages` ✅
+   
+   **หรือใส่ใน .env:**
+   ```env
+   GOOGLE_CHAT_SCOPES=https://www.googleapis.com/auth/chat.bot https://www.googleapis.com/auth/chat.messages
+   ```
+
+3. **ใส่ Email ของลูกค้าในคอลัมน์ `chatEmail`:**
+   - ใช้ Google Workspace email (เช่น somchai@company.com)
+   - ระบบจะสร้าง DM space ให้อัตโนมัติ
+   - ส่งข้อความตรงไปยัง Personal Chat
+   - ไม่ต้องสร้าง Webhook
+
+4. **ข้อมูลลูกค้าที่สมบูรณ์:**
+```
+shipToCode: 001234
+chatEmail: somchai@company.com     ← DM ไปยัง Personal Chat (ขอแนะนำ)
+chatWebhook: (ปล่อยว่าง)            ← ใช้เมื่อไม่มี chatEmail
+```
+
+**ลำดับความสำคัญในการส่ง:**
+1. `chatEmail` ถ้ามีค่า → ส่ง DM ไปยัง Personal Chat (✨ ขอแนะนำสุด)
+2. `chatWebhook` ถ้าไม่มี chatEmail → ส่งไปยัง Google Chat Space
+3. `email` ถ้าไม่มี Chat → ส่งอีเมล
+4. ไม่มีทั้งสามตัว → ข้ามไป
+
+---
+
+## 🔧 Google Chat Webhook Setup (ทางเลือก)
 
 ### สำหรับ Google Workspace:
 

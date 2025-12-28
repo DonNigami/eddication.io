@@ -9,26 +9,29 @@ const axios = require('axios');
 class NotificationService {
   constructor() {
     this.gmail = null;
+    this.chat = null;
     this.auth = null;
   }
 
   /**
-   * Initialize Gmail API (optional - only if email notifications needed)
+   * Initialize Gmail API and Google Chat API
    */
   async initializeGmail(auth) {
     try {
       this.auth = auth;
       this.gmail = google.gmail({ version: 'v1', auth });
+      this.chat = google.chat({ version: 'v1', auth });
       console.log('✅ Gmail API initialized');
+      console.log('✅ Google Chat API initialized');
     } catch (err) {
-      console.error('❌ Failed to initialize Gmail:', err.message);
+      console.error('❌ Failed to initialize APIs:', err.message);
     }
   }
 
   /**
    * Send notification to customer when driver checks in
    */
-  async notifyCheckIn({ customerName, customerEmail, chatWebhook, driverName, shipmentNo, destination, estimatedArrival }) {
+  async notifyCheckIn({ customerName, customerEmail, chatEmail, chatWebhook, driverName, shipmentNo, destination, estimatedArrival }) {
     const message = `
 🚛 *แจ้งเตือน: คนขับออกเดินทาง*
 
@@ -45,6 +48,7 @@ class NotificationService {
 
     return this._sendNotification({
       to: customerEmail,
+      chatEmail: chatEmail,
       webhook: chatWebhook,
       subject: `แจ้งเตือน: คนขับออกเดินทาง - ${shipmentNo}`,
       message
@@ -52,9 +56,9 @@ class NotificationService {
   }
 
   /**
-   * Send notification when driver is near destination
+   * Send notification when approaching destination
    */
-  async notifyNearby({ customerName, customerEmail, chatWebhook, driverName, shipmentNo, destination, minutesAway }) {
+  async notifyNearby({ customerName, customerEmail, chatEmail, chatWebhook, driverName, shipmentNo, destination, minutesAway }) {
     const message = `
 🚛 *แจ้งเตือน: คนขับใกล้ถึงแล้ว*
 
@@ -71,6 +75,7 @@ class NotificationService {
 
     return this._sendNotification({
       to: customerEmail,
+      chatEmail: chatEmail,
       webhook: chatWebhook,
       subject: `แจ้งเตือน: คนขับใกล้ถึงแล้ว - ${shipmentNo}`,
       message
@@ -80,7 +85,7 @@ class NotificationService {
   /**
    * Send notification when delivery is completed
    */
-  async notifyCompleted({ customerName, customerEmail, chatWebhook, driverName, shipmentNo, destination, deliveryTime }) {
+  async notifyCompleted({ customerName, customerEmail, chatEmail, chatWebhook, driverName, shipmentNo, destination, deliveryTime }) {
     const message = `
 ✅ *แจ้งเตือน: ส่งของสำเร็จ*
 
@@ -97,6 +102,7 @@ class NotificationService {
 
     return this._sendNotification({
       to: customerEmail,
+      chatEmail: chatEmail,
       webhook: chatWebhook,
       subject: `แจ้งเตือน: ส่งของสำเร็จ - ${shipmentNo}`,
       message
@@ -106,7 +112,7 @@ class NotificationService {
   /**
    * Send notification about delivery issue/delay
    */
-  async notifyIssue({ customerName, customerEmail, chatWebhook, driverName, shipmentNo, destination, issueType, issueDescription }) {
+  async notifyIssue({ customerName, customerEmail, chatEmail, chatWebhook, driverName, shipmentNo, destination, issueType, issueDescription }) {
     const issueIcons = {
       delay: '⏰',
       damaged: '📦',
@@ -135,6 +141,7 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
 
     return this._sendNotification({
       to: customerEmail,
+      chatEmail: chatEmail,
       webhook: chatWebhook,
       subject: `แจ้งเตือน: มีปัญหาในการจัดส่ง - ${shipmentNo}`,
       message
@@ -143,19 +150,25 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
 
   /**
    * Internal method to send notification via multiple channels
+   * Supports: chatEmail (direct DM) → chatWebhook (space) → email
    */
-  async _sendNotification({ to, webhook, subject, message }) {
+  async _sendNotification({ to, chatEmail, webhook, subject, message }) {
     const results = {
-      email: null,
-      chat: null
+      chat: null,
+      email: null
     };
 
-    // Send Google Chat notification (if webhook provided)
-    if (webhook) {
+    // Priority 1: Send Google Chat direct message (if chatEmail provided)
+    if (chatEmail) {
+      results.chat = await this._sendGoogleChat(chatEmail, message);
+    }
+    
+    // Priority 2: Send to webhook (if chatEmail not provided)
+    if (!chatEmail && webhook) {
       results.chat = await this._sendGoogleChat(webhook, message);
     }
 
-    // Send Email notification (if email provided)
+    // Priority 3: Send Email notification (if email provided)
     if (to) {
       results.email = await this._sendEmail(to, subject, message);
     }
@@ -164,18 +177,76 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
   }
 
   /**
-   * Send message to Google Chat via webhook
+   * Send message to Google Chat via webhook OR direct DM
+   * Supports both webhook (space) and direct message to user email
    */
-  async _sendGoogleChat(webhookUrl, message) {
+  async _sendGoogleChat(webhookUrlOrUserEmail, message) {
+    // Check if it's a webhook URL (starts with https://)
+    if (webhookUrlOrUserEmail && webhookUrlOrUserEmail.startsWith('https://')) {
+      return this._sendGoogleChatWebhook(webhookUrlOrUserEmail, message);
+    }
+    
+    // Otherwise treat as user email for direct message
+    if (webhookUrlOrUserEmail && webhookUrlOrUserEmail.includes('@')) {
+      return this._sendGoogleChatDM(webhookUrlOrUserEmail, message);
+    }
+
+    return { success: false, error: 'Invalid webhook URL or email address' };
+  }
+
+  /**
+   * Send message to Google Chat via webhook (space)
+   */
+  async _sendGoogleChatWebhook(webhookUrl, message) {
     try {
       const response = await axios.post(webhookUrl, {
         text: message
       });
 
-      console.log('✅ Google Chat notification sent');
+      console.log('✅ Google Chat webhook notification sent');
       return { success: true };
     } catch (err) {
-      console.error('❌ Failed to send Google Chat:', err.message);
+      console.error('❌ Failed to send Google Chat webhook:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Send direct message to user's personal Google Chat
+   * Requires service account with Chat API enabled and permission to send DMs
+   */
+  async _sendGoogleChatDM(userEmail, message) {
+    try {
+      if (!this.chat) {
+        console.warn('⚠️ Google Chat API not initialized, cannot send DM to', userEmail);
+        return { success: false, error: 'Chat API not initialized' };
+      }
+
+      // Create a direct message space with the user
+      // The space name format for DMs is: users/{user}/spaces/{space}
+      // We need to find or create the space first
+      
+      const response = await this.chat.users.spaces.createDirect({
+        requestBody: {
+          displayName: `Chat with ${userEmail}`
+        }
+      });
+
+      const spaceName = response.data.name;
+      
+      // Send message to the direct message space
+      await this.chat.spaces.messages.create({
+        parent: spaceName,
+        requestBody: {
+          text: message
+        }
+      });
+
+      console.log(`✅ Google Chat DM sent to ${userEmail}`);
+      return { success: true };
+    } catch (err) {
+      // If DM creation fails (user doesn't exist or permissions issue)
+      console.error(`❌ Failed to send Google Chat DM to ${userEmail}:`, err.message);
       return { success: false, error: err.message };
     }
   }

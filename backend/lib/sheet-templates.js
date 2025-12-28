@@ -10,6 +10,7 @@ const SHEET_TEMPLATES = {
       'shipToName',
       'customerName',
       'email',
+      'chatEmail',
       'chatWebhook',
       'phoneNumber',
       'notifyOnCheckIn',

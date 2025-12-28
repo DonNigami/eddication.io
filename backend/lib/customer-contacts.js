@@ -39,6 +39,7 @@ class CustomerContacts {
             shipToName: contacts[i][headers.indexOf('shipToName')] || '',
             customerName: contacts[i][headers.indexOf('customerName')] || '',
             email: contacts[i][headers.indexOf('email')] || '',
+            chatEmail: contacts[i][headers.indexOf('chatEmail')] || '',
             chatWebhook: contacts[i][headers.indexOf('chatWebhook')] || '',
             phoneNumber: contacts[i][headers.indexOf('phoneNumber')] || '',
             notifyOnCheckIn: contacts[i][headers.indexOf('notifyOnCheckIn')] === 'TRUE',
@@ -73,6 +74,7 @@ class CustomerContacts {
           'shipToName',
           'customerName',
           'email',
+          'chatEmail',
           'chatWebhook',
           'phoneNumber',
           'notifyOnCheckIn',
@@ -82,7 +84,7 @@ class CustomerContacts {
           'createdAt',
           'updatedAt'
         ];
-        await this.db.writeRange(this.SHEET_NAME, 'A1:L1', [headers]);
+        await this.db.writeRange(this.SHEET_NAME, 'A1:M1', [headers]);
       }
 
       const headers = contacts[0] || [];
@@ -106,20 +108,21 @@ class CustomerContacts {
         contactData.shipToName || '',
         contactData.customerName || '',
         contactData.email || '',
+        contactData.chatEmail || '',
         contactData.chatWebhook || '',
         contactData.phoneNumber || '',
         contactData.notifyOnCheckIn ? 'TRUE' : 'FALSE',
         contactData.notifyOnNearby ? 'TRUE' : 'FALSE',
         contactData.notifyOnComplete ? 'TRUE' : 'FALSE',
         contactData.notifyOnIssue ? 'TRUE' : 'FALSE',
-        existingRowIndex === -1 ? timestamp : (contacts[existingRowIndex][10] || timestamp),
+        existingRowIndex === -1 ? timestamp : (contacts[existingRowIndex][11] || timestamp),
         timestamp
       ];
 
       if (existingRowIndex !== -1) {
         // Update existing
         const rowNum = existingRowIndex + 1;
-        await this.db.writeRange(this.SHEET_NAME, `A${rowNum}:L${rowNum}`, [row]);
+        await this.db.writeRange(this.SHEET_NAME, `A${rowNum}:M${rowNum}`, [row]);
         console.log('✅ Updated customer contact:', contactData.shipToCode);
       } else {
         // Append new

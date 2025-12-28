@@ -386,6 +386,7 @@ app.post('/api/send-notification', async (req, res) => {
     const notifyData = {
       customerName: contact.customerName || contact.shipToName,
       customerEmail: contact.email,
+      chatEmail: contact.chatEmail,
       chatWebhook: contact.chatWebhook,
       driverName: driverName || 'คนขับ',
       shipmentNo: shipmentNo || '',
