@@ -243,6 +243,120 @@ app.post('/api/reviewUpload', async (req, res) => {
   }
 });
 
+// =============================================================================
+// Admin APIs
+// =============================================================================
+
+/**
+ * ADMIN_CHECK: Check admin privileges
+ * POST /api/admin/check
+ */
+app.post('/api/admin/check', async (req, res) => {
+  try {
+    const { userId } = req.body || {};
+    if (!userId) return res.status(400).json({ success: false, message: 'Missing userId' });
+    const result = await sheetActions.adminCheck(userId);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/check error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ADMIN_JOBDATA: List jobdata
+ * POST /api/admin/jobdata
+ */
+app.post('/api/admin/jobdata', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const result = await sheetActions.adminJobdata(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/jobdata error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ADMIN_ALCOHOL: List alcohol checks
+ * POST /api/admin/alcohol
+ */
+app.post('/api/admin/alcohol', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const result = await sheetActions.adminAlcohol(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/alcohol error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ADMIN_USERPROFILE: List user profiles
+ * POST /api/admin/userprofile
+ */
+app.post('/api/admin/userprofile', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const result = await sheetActions.adminUserprofile(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/userprofile error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ADMIN_UPDATE_JOB: Update jobdata status
+ * POST /api/admin/update-job
+ */
+app.post('/api/admin/update-job', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const result = await sheetActions.adminUpdateJob(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/update-job error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ADMIN_UPDATE_ALCOHOL: Update alcohol value
+ * POST /api/admin/update-alcohol
+ */
+app.post('/api/admin/update-alcohol', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const result = await sheetActions.adminUpdateAlcohol(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/update-alcohol error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ADMIN_UPDATE_USER_STATUS: Update user status and link rich menu when APPROVED
+ * POST /api/admin/update-user-status
+ */
+app.post('/api/admin/update-user-status', async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const result = await sheetActions.adminUpdateUserStatus(payload);
+    if (result.success && result.linkRichMenu && result.userId) {
+      // Best-effort link rich menu; ignore failure
+      await linkRichMenuToUser(result.userId, process.env.RICH_MENU_ID_MENU1 || '');
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/admin/update-user-status error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
 /**
  * UPLOAD_ALCOHOL: Save alcohol check result
  * POST /api/uploadAlcohol (multipart/form-data)

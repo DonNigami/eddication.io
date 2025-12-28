@@ -1276,6 +1276,381 @@ class SheetActions {
     }
   }
 
+  /**
+   * ADMIN LOG: Write admin actions to ADMIN_LOG sheet
+   */
+  async logAdminAction(adminUserId, action, detailObj = {}) {
+    try {
+      await this.db.ensureSheet(SHEETS.ADMIN_LOG, ['timestamp', 'adminUserId', 'action', 'detailJson']);
+      const now = new Date().toISOString();
+      const row = [now, String(adminUserId || ''), String(action || ''), JSON.stringify(detailObj || {})];
+      await this.db.appendRow(SHEETS.ADMIN_LOG, [row]);
+      return true;
+    } catch (err) {
+      console.warn('⚠️ logAdminAction error:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * ADMIN: Check admin privileges
+   */
+  async adminCheck(userId) {
+    const isAdmin = await this.isAdminUser(userId);
+    return { success: true, isAdmin };
+  }
+
+  /**
+   * ADMIN: List jobdata with optional filters
+   */
+  async adminJobdata(payload) {
+    try {
+      const { adminUserId, reference = '', status = '', limit = 200 } = payload || {};
+      if (!(await this.isAdminUser(adminUserId))) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งาน (admin)' };
+      }
+
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length < 2) {
+        return { success: true, rows: [] };
+      }
+
+      const headers = jobdata[0];
+      const rows = [];
+
+      for (let i = 1; i < jobdata.length; i++) {
+        const row = jobdata[i];
+        const obj = this._rowToObject(headers, row);
+
+        const ref = String(obj.referenceNo || obj.reference || '').trim();
+        const stat = String(obj.status || '').trim().toUpperCase();
+
+        if (reference && ref.indexOf(reference) === -1) continue;
+        if (status && stat !== String(status).toUpperCase()) continue;
+
+        rows.push({
+          rowIndex: i + 1,
+          referenceNo: ref,
+          shipmentNo: String(obj.shipmentNo || ''),
+          destination1: String(obj.destination1 || obj.shipToCode || ''),
+          destination2: String(obj.destination2 || obj.shipToName || ''),
+          status: stat,
+          checkInTime: obj.checkInTime || '',
+          checkOutTime: obj.checkOutTime || '',
+          checkInOdo: obj.checkInOdo || '',
+          updatedBy: obj.updatedBy || '',
+          updatedAtObj: obj.updatedAt || null,
+          updatedAt: obj.updatedAt || ''
+        });
+      }
+
+      rows.sort((a, b) => {
+        const da = a.updatedAtObj ? new Date(a.updatedAtObj).getTime() : 0;
+        const db = b.updatedAtObj ? new Date(b.updatedAtObj).getTime() : 0;
+        return db - da;
+      });
+
+      const limited = rows.slice(0, Number(limit) || 200).map(r => {
+        delete r.updatedAtObj;
+        return r;
+      });
+
+      await this.logAdminAction(adminUserId, 'READ_JOBDATA', { reference, status, count: limited.length });
+      return { success: true, rows: limited };
+    } catch (err) {
+      console.error('❌ adminJobdata error:', err);
+      return { success: false, message: 'SERVER_ERROR: ' + (err.message || err) };
+    }
+  }
+
+  /**
+   * ADMIN: List alcohol checks
+   */
+  async adminAlcohol(payload) {
+    try {
+      const { adminUserId, reference = '', driver = '', limit = 200 } = payload || {};
+      if (!(await this.isAdminUser(adminUserId))) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งาน (admin)' };
+      }
+
+      const data = await this.db.readRange(SHEETS.ALCOHOL, 'A:H');
+      if (!data || data.length < 2) {
+        return { success: true, rows: [] };
+      }
+
+      const rows = [];
+      for (let i = 1; i < data.length; i++) {
+        const r = data[i];
+        const ref = String(r[0] || '').trim();
+        const driverName = String(r[1] || '').trim();
+        const alcoholVal = r[2];
+        const checkedAt = r[3];
+        const userId = String(r[4] || '').trim();
+        const lat = r[5];
+        const lng = r[6];
+        const imageUrl = String(r[7] || '').trim();
+
+        if (reference && ref.indexOf(reference) === -1) continue;
+        if (driver && driverName.toLowerCase().indexOf(String(driver).toLowerCase()) === -1) continue;
+
+        rows.push({
+          rowIndex: i + 1,
+          reference: ref,
+          driverName,
+          alcoholValue: alcoholVal,
+          checkedAtObj: checkedAt,
+          checkedAt: checkedAt ? new Date(checkedAt).toISOString() : '',
+          userId,
+          lat,
+          lng,
+          imageUrl
+        });
+      }
+
+      rows.sort((a, b) => {
+        const da = a.checkedAtObj ? new Date(a.checkedAtObj).getTime() : 0;
+        const db = b.checkedAtObj ? new Date(b.checkedAtObj).getTime() : 0;
+        return db - da;
+      });
+
+      const limited = rows.slice(0, Number(limit) || 200).map(r => {
+        delete r.checkedAtObj;
+        return r;
+      });
+
+      await this.logAdminAction(adminUserId, 'READ_ALCOHOL', { reference, driver, count: limited.length });
+      return { success: true, rows: limited };
+    } catch (err) {
+      console.error('❌ adminAlcohol error:', err);
+      return { success: false, message: 'SERVER_ERROR: ' + (err.message || err) };
+    }
+  }
+
+  /**
+   * ADMIN: List user profiles
+   */
+  async adminUserprofile(payload) {
+    try {
+      const { adminUserId, status = '', keyword = '' } = payload || {};
+      if (!(await this.isAdminUser(adminUserId))) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งาน (admin)' };
+      }
+
+      const data = await this.db.readRange(SHEETS.USER_PROFILE, 'A:J');
+      if (!data || data.length < 2) {
+        return { success: true, rows: [] };
+      }
+
+      const rows = [];
+      for (let i = 1; i < data.length; i++) {
+        const r = data[i];
+        const userId = String(r[0] || '').trim();
+        const displayName = String(r[1] || '').trim();
+        const pictureUrl = String(r[2] || '').trim();
+        const stat = String(r[3] || '').trim().toUpperCase();
+        const createdAt = r[4];
+        const updatedAt = r[5];
+        const userType = String(r[9] || '').trim().toUpperCase();
+
+        if (status && stat !== String(status).toUpperCase()) continue;
+
+        if (keyword) {
+          const combined = (userId + ' ' + displayName).toLowerCase();
+          if (combined.indexOf(String(keyword).toLowerCase()) === -1) continue;
+        }
+
+        rows.push({
+          userId,
+          displayName,
+          pictureUrl,
+          status: stat,
+          userType,
+          createdAtObj: createdAt,
+          updatedAtObj: updatedAt,
+          createdAt: createdAt ? new Date(createdAt).toISOString() : '',
+          updatedAt: updatedAt ? new Date(updatedAt).toISOString() : ''
+        });
+      }
+
+      rows.sort((a, b) => {
+        const da = a.createdAtObj ? new Date(a.createdAtObj).getTime() : 0;
+        const db = b.createdAtObj ? new Date(b.createdAtObj).getTime() : 0;
+        return db - da;
+      });
+
+      const cleaned = rows.map(r => {
+        delete r.createdAtObj;
+        delete r.updatedAtObj;
+        return r;
+      });
+
+      await this.logAdminAction(adminUserId, 'READ_USERPROFILE', { status, keyword, count: cleaned.length });
+      return { success: true, rows: cleaned };
+    } catch (err) {
+      console.error('❌ adminUserprofile error:', err);
+      return { success: false, message: 'SERVER_ERROR: ' + (err.message || err) };
+    }
+  }
+
+  /**
+   * ADMIN: Update jobdata status
+   */
+  async adminUpdateJob(payload) {
+    try {
+      const { adminUserId, rowIndex, status } = payload || {};
+      if (!(await this.isAdminUser(adminUserId))) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งาน (admin)' };
+      }
+      const idx = parseInt(rowIndex, 10);
+      const newStatus = String(status || '').trim();
+      if (!idx || !newStatus) {
+        return { success: false, message: 'ข้อมูลไม่ครบ (rowIndex/status)' };
+      }
+
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length < 2) {
+        return { success: false, message: 'ไม่พบชีท jobdata ในไฟล์หลัก' };
+      }
+      const headers = jobdata[0];
+      if (idx < 2 || idx > jobdata.length) {
+        return { success: false, message: 'rowIndex ไม่ถูกต้อง' };
+      }
+      const now = new Date();
+      const row = jobdata[idx - 1];
+      const rowData = [...row];
+
+      const statusIdx = headers.indexOf('status');
+      const updatedAtIdx = headers.indexOf('updatedAt');
+      const updatedByIdx = headers.indexOf('updatedBy');
+
+      if (statusIdx !== -1) rowData[statusIdx] = newStatus;
+      if (updatedAtIdx !== -1) rowData[updatedAtIdx] = now;
+      if (updatedByIdx !== -1) rowData[updatedByIdx] = adminUserId;
+
+      const range = `A${idx}:AZ${idx}`;
+      await this.db.writeRange(SHEETS.JOBDATA, range, [rowData]);
+
+      await this.logAdminAction(adminUserId, 'UPDATE_JOBDATA', { rowIndex: idx, newStatus });
+
+      return {
+        success: true,
+        row: {
+          rowIndex: idx,
+          referenceNo: String(row[headers.indexOf('referenceNo')] || '').trim(),
+          shipmentNo: String(row[headers.indexOf('shipmentNo')] || '').trim(),
+          status: newStatus,
+          updatedAt: now.toISOString(),
+          updatedBy: String(adminUserId || '')
+        }
+      };
+    } catch (err) {
+      console.error('❌ adminUpdateJob error:', err);
+      return { success: false, message: 'SERVER_ERROR: ' + (err.message || err) };
+    }
+  }
+
+  /**
+   * ADMIN: Update alcohol value
+   */
+  async adminUpdateAlcohol(payload) {
+    try {
+      const { adminUserId, rowIndex, alcoholValue } = payload || {};
+      if (!(await this.isAdminUser(adminUserId))) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งาน (admin)' };
+      }
+      const idx = parseInt(rowIndex, 10);
+      const valueNum = parseFloat(alcoholValue);
+      if (!idx || isNaN(valueNum)) {
+        return { success: false, message: 'ข้อมูลไม่ครบหรือค่าแอลกอฮอล์ไม่ถูกต้อง' };
+      }
+
+      const data = await this.db.readRange(SHEETS.ALCOHOL, 'A:H');
+      if (!data || data.length < 2) {
+        return { success: false, message: 'ไม่พบชีท alcoholcheck ในไฟล์หลัก' };
+      }
+      if (idx < 2 || idx > data.length) {
+        return { success: false, message: 'rowIndex ไม่ถูกต้อง' };
+      }
+      const now = new Date();
+      const row = data[idx - 1];
+      const rowData = [...row];
+
+      rowData[2] = valueNum; // C: alcoholValue
+      rowData[3] = now;      // D: checkedAt
+
+      const range = `A${idx}:H${idx}`;
+      await this.db.writeRange(SHEETS.ALCOHOL, range, [rowData]);
+
+      await this.logAdminAction(adminUserId, 'UPDATE_ALCOHOL', { rowIndex: idx, alcoholValue: valueNum });
+
+      return {
+        success: true,
+        row: {
+          rowIndex: idx,
+          reference: String(row[0] || '').trim(),
+          driverName: String(row[1] || '').trim(),
+          alcoholValue: valueNum,
+          checkedAt: now.toISOString()
+        }
+      };
+    } catch (err) {
+      console.error('❌ adminUpdateAlcohol error:', err);
+      return { success: false, message: 'SERVER_ERROR: ' + (err.message || err) };
+    }
+  }
+
+  /**
+   * ADMIN: Update user status (and signal to link rich menu)
+   */
+  async adminUpdateUserStatus(payload) {
+    try {
+      const { adminUserId, userId, status } = payload || {};
+      if (!(await this.isAdminUser(adminUserId))) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์เข้าใช้งาน (admin)' };
+      }
+      const uid = String(userId || '').trim();
+      const newStatus = String(status || '').trim().toUpperCase();
+      if (!uid || !newStatus) {
+        return { success: false, message: 'ข้อมูลไม่ครบ (userId/status)' };
+      }
+
+      const data = await this.db.readRange(SHEETS.USER_PROFILE, 'A:J');
+      if (!data || data.length < 2) {
+        return { success: false, message: 'ยังไม่มีข้อมูล userprofile' };
+      }
+
+      let targetRow = -1;
+      for (let i = 1; i < data.length; i++) {
+        const id = String(data[i][0] || '').trim();
+        if (id === uid) { targetRow = i + 1; break; }
+      }
+      if (targetRow === -1) {
+        return { success: false, message: 'ไม่พบ userId นี้ใน userprofile' };
+      }
+
+      const now = new Date();
+      const row = data[targetRow - 1];
+      const rowData = [...row];
+
+      rowData[3] = newStatus; // D: status
+      rowData[5] = now;       // F: updatedAt
+
+      const range = `A${targetRow}:J${targetRow}`;
+      await this.db.writeRange(SHEETS.USER_PROFILE, range, [rowData]);
+
+      await this.logAdminAction(adminUserId, 'UPDATE_USER_STATUS', { targetUserId: uid, newStatus });
+
+      return {
+        success: true,
+        linkRichMenu: newStatus === 'APPROVED',
+        userId: uid
+      };
+    } catch (err) {
+      console.error('❌ adminUpdateUserStatus error:', err);
+      return { success: false, message: 'SERVER_ERROR: ' + (err.message || err) };
+    }
+  }
+
   _getColumnLetter(index) {
     let letter = '';
     let temp = index;
