@@ -507,46 +507,29 @@ class SheetActions {
       // Ensure target sheet exists with correct headers
       await this.db.ensureSheet(SHEETS.ALCOHOL);
 
-      // Save image to Drive (if provided and driveStorage available)
+      // Save image to Drive only (no local fallback)
       let imageUrl = '';
       if (imageBuffer) {
         console.log(`📸 Image provided. Drive available: ${!!this.driveStorage}, ALC_PARENT_FOLDER_ID: ${!!process.env.ALC_PARENT_FOLDER_ID}`);
-        
-        if (this.driveStorage && process.env.ALC_PARENT_FOLDER_ID) {
-          try {
-            const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
-            console.log(`   📤 Uploading to Drive with parentFolderId=${process.env.ALC_PARENT_FOLDER_ID}, userId=${userId}`);
-            const driveResult = await this.driveStorage.uploadImageWithUserFolder(
-              imageBuffer,
-              filename,
-              process.env.ALC_PARENT_FOLDER_ID,
-              userId
-            );
-            imageUrl = driveResult.fileUrl;
-            console.log(`✅ Alcohol image uploaded to Drive: ${filename} → ${imageUrl}`);
-          } catch (driveErr) {
-            console.warn('⚠️ Drive upload failed:', driveErr.message);
-            console.log('   📥 Falling back to local storage...');
-            try {
-              const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
-              imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
-              console.log(`✅ Fallback: saved locally → ${imageUrl}`);
-            } catch (localErr) {
-              console.error('❌ Local save also failed:', localErr.message);
-              imageUrl = '';
-            }
-          }
-        } else {
-          // No Drive configured, use local storage directly
-          console.log('   📥 Using local storage (no Drive configured)');
-          try {
-            const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
-            imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
-            console.log(`✅ Saved to local storage → ${imageUrl}`);
-          } catch (localErr) {
-            console.error('❌ Local save failed:', localErr.message);
-            imageUrl = '';
-          }
+
+        if (!this.driveStorage || !process.env.ALC_PARENT_FOLDER_ID) {
+          throw new Error('Drive storage not configured. Please set ALC_PARENT_FOLDER_ID and credentials.');
+        }
+
+        try {
+          const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
+          console.log(`   📤 Uploading to Drive with parentFolderId=${process.env.ALC_PARENT_FOLDER_ID}, userId=${userId}`);
+          const driveResult = await this.driveStorage.uploadImageWithUserFolder(
+            imageBuffer,
+            filename,
+            process.env.ALC_PARENT_FOLDER_ID,
+            userId
+          );
+          imageUrl = driveResult.fileUrl;
+          console.log(`✅ Alcohol image uploaded to Drive: ${filename} → ${imageUrl}`);
+        } catch (driveErr) {
+          console.error('❌ Drive upload failed:', driveErr.message);
+          throw new Error(`Drive upload failed: ${driveErr.message}`);
         }
       } else {
         console.log('📸 No image provided');
