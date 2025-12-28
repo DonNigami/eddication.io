@@ -6,6 +6,7 @@
 const { google } = require('googleapis');
 const path = require('path');
 const fs = require('fs');
+const { SHEET_TEMPLATES } = require('./sheet-templates');
 
 class GoogleSheetsDB {
   constructor(spreadsheetId, credentialsSource) {
@@ -169,6 +170,141 @@ class GoogleSheetsDB {
       console.error(`❌ Failed to clear ${sheetName}!${range}:`, err.message);
       throw err;
     }
+  }
+
+  /**
+   * Check if a sheet exists
+   * @param {string} sheetName
+   * @returns {Promise<boolean>}
+   */
+  async sheetExists(sheetName) {
+    try {
+      const response = await this.sheets.spreadsheets.get({
+        spreadsheetId: this.spreadsheetId,
+        fields: 'sheets(properties(title))'
+      });
+
+      const exists = response.data.sheets.some(s => s.properties.title === sheetName);
+      return exists;
+    } catch (err) {
+      console.error(`❌ Failed to check if ${sheetName} exists:`, err.message);
+      return false;
+    }
+  }
+
+  /**
+   * Create a new sheet with headers
+   * @param {string} sheetName
+   * @param {Array<string>} headers
+   * @returns {Promise<Object>}
+   */
+  async createSheet(sheetName, headers) {
+    try {
+      console.log(`🔧 Creating sheet: ${sheetName}...`);
+      
+      // Create the sheet
+      const response = await this.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: this.spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: sheetName
+              }
+            }
+          }]
+        }
+      });
+
+      // Add headers if provided
+      if (headers && headers.length > 0) {
+        await this.writeRange(sheetName, `A1:${this._getColumnLetter(headers.length - 1)}1`, [headers]);
+        console.log(`✅ Created sheet "${sheetName}" with ${headers.length} headers`);
+      } else {
+        console.log(`✅ Created sheet "${sheetName}"`);
+      }
+
+      return response.data;
+    } catch (err) {
+      console.error(`❌ Failed to create sheet ${sheetName}:`, err.message);
+      throw err;
+    }
+  }
+
+  /**
+   * Ensure sheet exists, create if not
+   * @param {string} sheetName
+   * @param {Array<string>} headers (optional)
+   * @returns {Promise<boolean>} true if created, false if already exists
+   */
+  async ensureSheet(sheetName, headers = null) {
+    try {
+      const exists = await this.sheetExists(sheetName);
+      
+      if (!exists) {
+        // Use template headers if available
+        const template = SHEET_TEMPLATES[sheetName];
+        const headersToUse = headers || (template ? template.headers : null);
+        
+        await this.createSheet(sheetName, headersToUse);
+        
+        if (template && template.description) {
+          console.log(`   📝 ${template.description}`);
+        }
+        
+        return true; // Created
+      }
+      
+      return false; // Already exists
+    } catch (err) {
+      console.error(`❌ Failed to ensure sheet ${sheetName}:`, err.message);
+      throw err;
+    }
+  }
+
+  /**
+   * Initialize all required sheets from templates
+   * @returns {Promise<Array>} List of created sheets
+   */
+  async initializeRequiredSheets() {
+    try {
+      console.log('🔧 Checking required sheets...');
+      
+      const createdSheets = [];
+      
+      for (const [sheetName, template] of Object.entries(SHEET_TEMPLATES)) {
+        const created = await this.ensureSheet(sheetName, template.headers);
+        if (created) {
+          createdSheets.push(sheetName);
+        }
+      }
+      
+      if (createdSheets.length > 0) {
+        console.log(`✅ Created ${createdSheets.length} new sheet(s): ${createdSheets.join(', ')}`);
+      } else {
+        console.log('✅ All required sheets already exist');
+      }
+      
+      return createdSheets;
+    } catch (err) {
+      console.error('❌ Failed to initialize required sheets:', err.message);
+      throw err;
+    }
+  }
+
+  /**
+   * Convert column index to letter (0 = A, 1 = B, etc.)
+   * @param {number} index
+   * @returns {string}
+   */
+  _getColumnLetter(index) {
+    let letter = '';
+    let temp = index;
+    while (temp >= 0) {
+      letter = String.fromCharCode((temp % 26) + 65) + letter;
+      temp = Math.floor(temp / 26) - 1;
+    }
+    return letter;
   }
 }
 

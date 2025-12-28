@@ -14,6 +14,9 @@ class CustomerContacts {
    */
   async getContactInfo(shipToCode) {
     try {
+      // Ensure sheet exists
+      await this.db.ensureSheet(this.SHEET_NAME);
+      
       const contacts = await this.db.readRange(this.SHEET_NAME, 'A:Z');
       if (!contacts || contacts.length === 0) {
         return null;

@@ -68,6 +68,10 @@ async function initializeServices() {
     await db.initialize();
     console.log('✅ Google Sheets connected');
 
+    // Auto-create missing sheets
+    console.log('🔧 Checking and creating required sheets...');
+    await db.initializeRequiredSheets();
+
     sheetActions = new SheetActions(db);
     imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
     notificationService = new NotificationService();
