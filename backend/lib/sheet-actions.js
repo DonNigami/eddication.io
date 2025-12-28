@@ -837,6 +837,417 @@ class SheetActions {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
+  /**
+   * ADMIN_ADD_STOP: Add extra stop for a reference
+   */
+  async adminAddStop(payload) {
+    try {
+      const { adminUserId, reference, shipToCode, shipToName, lat, lng, radiusM } = payload;
+
+      if (!adminUserId) {
+        return { success: false, message: 'ไม่พบ adminUserId' };
+      }
+      if (!reference) {
+        return { success: false, message: 'กรุณาใส่เลข reference' };
+      }
+      if (!shipToName) {
+        return { success: false, message: 'กรุณาใส่ชื่อจุด (shipToName)' };
+      }
+
+      // Check admin permission
+      const isAdmin = await this.isAdminUser(adminUserId);
+      if (!isAdmin) {
+        return { success: false, message: 'คุณไม่มีสิทธิ์ admin' };
+      }
+
+      // Find reference in jobdata to get shipmentNo
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'ไม่พบชีท jobdata' };
+      }
+
+      const headers = jobdata[0];
+      const refIdx = headers.indexOf('referenceNo');
+      const shipIdx = headers.indexOf('shipmentNo');
+
+      let baseShipmentNo = '';
+      for (let i = 1; i < jobdata.length; i++) {
+        if (String(jobdata[i][refIdx] || '').trim() === reference) {
+          baseShipmentNo = String(jobdata[i][shipIdx] || '').trim();
+          break;
+        }
+      }
+
+      if (!baseShipmentNo) {
+        return { success: false, message: 'ไม่พบ reference นี้ใน jobdata (ให้ค้น/สร้างงานก่อน)' };
+      }
+
+      const now = new Date();
+      const latNum = lat !== undefined && lat !== '' ? parseFloat(lat) : '';
+      const lngNum = lng !== undefined && lng !== '' ? parseFloat(lng) : '';
+      const radiusMNum = radiusM !== undefined && radiusM !== '' ? parseFloat(radiusM) : '';
+      const finalRadius = (radiusMNum !== '' && !isNaN(radiusMNum)) ? radiusMNum : 50;
+
+      // Create new row
+      const newRow = new Array(35).fill('');
+      newRow[refIdx] = reference;
+      newRow[shipIdx] = baseShipmentNo;
+      newRow[headers.indexOf('shipToCode')] = shipToCode;
+      newRow[headers.indexOf('shipToName')] = shipToName;
+      newRow[headers.indexOf('status')] = 'NEW';
+      newRow[headers.indexOf('sourceRow')] = 'ADMIN_EXTRA_STOP';
+
+      const destLatIdx = headers.indexOf('destLat');
+      const destLngIdx = headers.indexOf('destLng');
+      const radiusIdx = headers.indexOf('radiusMeters');
+
+      if (destLatIdx !== -1 && latNum !== '' && !isNaN(latNum)) newRow[destLatIdx] = latNum;
+      if (destLngIdx !== -1 && lngNum !== '' && !isNaN(lngNum)) newRow[destLngIdx] = lngNum;
+      if (radiusIdx !== -1) newRow[radiusIdx] = finalRadius;
+
+      newRow[headers.indexOf('updatedBy')] = adminUserId;
+      newRow[headers.indexOf('updatedAt')] = now;
+
+      await this.db.appendRow(SHEETS.JOBDATA, [newRow]);
+
+      return {
+        success: true,
+        message: 'เพิ่มจุดเพิ่มเรียบร้อย',
+        data: {
+          reference,
+          shipmentNo: baseShipmentNo,
+          shipToCode,
+          shipToName,
+          lat: latNum,
+          lng: lngNum,
+          radiusM: finalRadius
+        }
+      };
+    } catch (err) {
+      console.error('❌ Admin add stop error:', err);
+      return { success: false, message: err.message || 'Admin add stop failed' };
+    }
+  }
+
+  /**
+   * CLOSE_JOB: Close job (all stops completed)
+   */
+  async closeJob(payload) {
+    try {
+      const { reference, userId } = payload;
+
+      if (!reference) {
+        return { success: false, message: 'ไม่พบเลข Reference สำหรับปิดงาน' };
+      }
+      if (!userId) {
+        return { success: false, message: 'ไม่พบ userId' };
+      }
+
+      // Find all rows for this reference
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'ไม่พบชีท jobdata' };
+      }
+
+      const headers = jobdata[0];
+      const refIdx = headers.indexOf('referenceNo');
+      const statusIdx = headers.indexOf('status');
+      const checkoutIdx = headers.indexOf('checkOut');
+      const jobClosedIdx = headers.indexOf('jobClosedAt');
+
+      const refRows = [];
+      for (let i = 1; i < jobdata.length; i++) {
+        if (String(jobdata[i][refIdx] || '').trim() === reference) {
+          refRows.push({ rowIndex: i + 2, row: jobdata[i] });
+        }
+      }
+
+      if (refRows.length === 0) {
+        return { success: false, message: 'ไม่พบข้อมูลงาน Reference นี้ใน jobdata' };
+      }
+
+      // Check if already closed
+      const alreadyClosed = refRows.every(r => {
+        const status = String(r.row[statusIdx] || '').trim();
+        const closedAt = r.row[jobClosedIdx];
+        return status === 'JOB_DONE' || !!closedAt;
+      });
+
+      if (alreadyClosed) {
+        return { success: false, message: 'งานนี้ถูกปิดงานเรียบร้อยแล้ว' };
+      }
+
+      // Check all checkout
+      const notCheckout = refRows.filter(r => !r.row[checkoutIdx]);
+      if (notCheckout.length > 0) {
+        return { success: false, message: 'ยังมีจุดส่งที่ยังไม่ได้ Check-out ครบทุกจุด ไม่สามารถปิดงานได้' };
+      }
+
+      // Update all rows to JOB_DONE
+      const now = new Date();
+      for (const info of refRows) {
+        const updateData = {};
+        updateData[statusIdx] = 'JOB_DONE';
+        updateData[jobClosedIdx] = now;
+        updateData[headers.indexOf('updatedBy')] = userId;
+        updateData[headers.indexOf('updatedAt')] = now;
+
+        const range = `A${info.rowIndex}:AZ${info.rowIndex}`;
+        const rowData = [...info.row];
+        Object.keys(updateData).forEach(idx => {
+          rowData[idx] = updateData[idx];
+        });
+        await this.db.writeRange(SHEETS.JOBDATA, range, [rowData]);
+      }
+
+      return {
+        success: true,
+        message: 'ปิดงานสำเร็จ รถพร้อมใช้งานแล้ว',
+        stop: refRows[0]
+      };
+    } catch (err) {
+      console.error('❌ Close job error:', err);
+      return { success: false, message: err.message || 'Close job failed' };
+    }
+  }
+
+  /**
+   * END_TRIP_SUMMARY: Record end trip information
+   */
+  async endTripSummary(payload) {
+    try {
+      const { reference, userId, endOdo, endPointName, lat, lng } = payload;
+
+      if (!reference) {
+        return { success: false, message: 'ไม่พบเลข Reference สำหรับจบทริป' };
+      }
+      if (!userId) {
+        return { success: false, message: 'ไม่พบ userId' };
+      }
+      if (!endOdo) {
+        return { success: false, message: 'กรุณากรอกเลขไมล์จบทริป' };
+      }
+      if (!endPointName) {
+        return { success: false, message: 'กรุณากรอกชื่อจุดจบทริป' };
+      }
+
+      const latNum = parseFloat(lat);
+      const lngNum = parseFloat(lng);
+
+      // Find all rows for reference
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'ไม่พบชีท jobdata' };
+      }
+
+      const headers = jobdata[0];
+      const refIdx = headers.indexOf('referenceNo');
+
+      const refRows = [];
+      for (let i = 1; i < jobdata.length; i++) {
+        if (String(jobdata[i][refIdx] || '').trim() === reference) {
+          refRows.push({ rowIndex: i + 2, row: jobdata[i] });
+        }
+      }
+
+      if (refRows.length === 0) {
+        return { success: false, message: 'ไม่พบข้อมูลงาน Reference นี้ใน jobdata' };
+      }
+
+      // Update all rows with end trip data
+      const now = new Date();
+      for (const info of refRows) {
+        const rowData = [...info.row];
+        const statusIdx = headers.indexOf('status');
+
+        rowData[headers.indexOf('tripEndOdo')] = endOdo;
+        rowData[headers.indexOf('tripEndLat')] = isNaN(latNum) ? '' : latNum;
+        rowData[headers.indexOf('tripEndLng')] = isNaN(lngNum) ? '' : lngNum;
+        rowData[headers.indexOf('tripEndPlace')] = endPointName;
+        rowData[headers.indexOf('tripEndedAt')] = now;
+
+        // Only update status if not JOB_DONE
+        const currentStatus = String(rowData[statusIdx] || '').trim();
+        if (currentStatus !== 'JOB_DONE') {
+          rowData[statusIdx] = 'END_TRIP';
+        }
+
+        rowData[headers.indexOf('updatedBy')] = userId;
+        rowData[headers.indexOf('updatedAt')] = now;
+
+        const range = `A${info.rowIndex}:AZ${info.rowIndex}`;
+        await this.db.writeRange(SHEETS.JOBDATA, range, [rowData]);
+      }
+
+      return { success: true, message: 'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว' };
+    } catch (err) {
+      console.error('❌ End trip summary error:', err);
+      return { success: false, message: err.message || 'End trip summary failed' };
+    }
+  }
+
+  /**
+   * ALCOHOL_UPLOAD: Record alcohol check
+   */
+  async alcoholUpload(payload) {
+    try {
+      const { reference, driverName, userId, alcoholValue, imageBase64, lat, lng } = payload;
+
+      if (!reference || !driverName) {
+        return { success: false, message: 'ข้อมูลไม่ครบ (reference/driverName)' };
+      }
+      if (!userId) {
+        return { success: false, message: 'ไม่พบ userId' };
+      }
+
+      const alcoholNum = parseFloat(alcoholValue);
+      if (isNaN(alcoholNum)) {
+        return { success: false, message: 'ปริมาณแอลกอฮอล์ต้องเป็นตัวเลข' };
+      }
+
+      const now = new Date();
+
+      // Append to alcohol sheet
+      const alcoholRow = [
+        reference,
+        driverName,
+        alcoholNum,
+        now,
+        userId,
+        lat || '',
+        lng || '',
+        '' // imageUrl (would be from image upload)
+      ];
+
+      await this.db.appendRow(SHEETS.ALCOHOL, [alcoholRow]);
+
+      // Get checked drivers for this reference
+      const alcoholData = await this._getAlcoholForReference(reference);
+
+      return {
+        success: true,
+        message: 'บันทึกการตรวจแอลกอฮอล์สำเร็จ',
+        checkedDrivers: alcoholData.checkedDrivers || []
+      };
+    } catch (err) {
+      console.error('❌ Alcohol upload error:', err);
+      return { success: false, message: err.message || 'Alcohol upload failed' };
+    }
+  }
+
+  /**
+   * REVIEW_UPLOAD: Record delivery review
+   */
+  async reviewUpload(payload) {
+    try {
+      const { reference, rowIndex, userId, score, lat, lng, signatureBase64 } = payload;
+
+      if (!reference || !rowIndex) {
+        return { success: false, message: 'ข้อมูลไม่ครบ (reference/rowIndex)' };
+      }
+      if (!userId) {
+        return { success: false, message: 'ไม่พบ userId' };
+      }
+      if (!score) {
+        return { success: false, message: 'กรุณาเลือกความพึงพอใจ' };
+      }
+
+      const latNum = parseFloat(lat);
+      const lngNum = parseFloat(lng);
+
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        return { success: false, message: 'ไม่สามารถอ่านพิกัดจากอุปกรณ์ได้' };
+      }
+
+      // Get jobdata row
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (!jobdata || jobdata.length === 0) {
+        return { success: false, message: 'ไม่พบชีท jobdata' };
+      }
+
+      const headers = jobdata[0];
+      const row = jobdata[rowIndex + 1];
+
+      if (!row) {
+        return { success: false, message: 'rowIndex ไม่ถูกต้อง' };
+      }
+
+      const refInRow = String(row[headers.indexOf('referenceNo')] || '').trim();
+      if (refInRow !== reference) {
+        return { success: false, message: 'อ้างอิงเลขงานไม่ตรงกับข้อมูลในระบบ' };
+      }
+
+      // Check distance
+      const destLatIdx = headers.indexOf('destLat');
+      const destLngIdx = headers.indexOf('destLng');
+      const radiusIdx = headers.indexOf('radiusMeters');
+
+      let finalRadius = 50;
+      if (radiusIdx !== -1) {
+        const r = parseFloat(row[radiusIdx]);
+        finalRadius = !isNaN(r) && r > 0 ? r : 50;
+      }
+
+      if (destLatIdx !== -1 && destLngIdx !== -1) {
+        const destLat = parseFloat(row[destLatIdx]);
+        const destLng = parseFloat(row[destLngIdx]);
+
+        if (!isNaN(destLat) && !isNaN(destLng)) {
+          const distance = this._haversineDistance(destLat, destLng, latNum, lngNum);
+          if (distance > finalRadius) {
+            return {
+              success: false,
+              message: `คุณอยู่นอกพื้นที่ที่กำหนด (ห่างจากจุดหมาย ${Math.round(distance)} เมตร)`
+            };
+          }
+        }
+      }
+
+      const now = new Date();
+
+      // Append to review sheet
+      const shipmentNo = String(row[headers.indexOf('shipmentNo')] || '').trim();
+      const destCode = String(row[headers.indexOf('shipToCode')] || '').trim();
+      const destName = String(row[headers.indexOf('shipToName')] || '').trim();
+
+      const reviewRow = [
+        reference,
+        rowIndex,
+        shipmentNo,
+        destCode,
+        destName,
+        score,
+        now,
+        userId,
+        latNum,
+        lngNum,
+        '' // signatureUrl
+      ];
+
+      await this.db.appendRow(SHEETS.REVIEW, [reviewRow]);
+
+      // Update jobdata status
+      const rowData = [...row];
+      rowData[headers.indexOf('status')] = 'REVIEWED';
+      rowData[headers.indexOf('reviewedTime')] = now;
+      rowData[headers.indexOf('updatedBy')] = userId;
+      rowData[headers.indexOf('updatedAt')] = now;
+
+      const targetRow = rowIndex + 2;
+      const range = `A${targetRow}:AZ${targetRow}`;
+      await this.db.writeRange(SHEETS.JOBDATA, range, [rowData]);
+
+      return {
+        success: true,
+        message: 'บันทึกการประเมินสำเร็จ',
+        stop: this._rowToObject(headers, rowData)
+      };
+    } catch (err) {
+      console.error('❌ Review upload error:', err);
+      return { success: false, message: err.message || 'Review upload failed' };
+    }
+  }
+
   _getColumnLetter(index) {
     let letter = '';
     let temp = index;

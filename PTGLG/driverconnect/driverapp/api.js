@@ -497,5 +497,174 @@
         return { success: false, message: MESSAGES.ERROR_NETWORK };
       }
     },
-  };
-})();
+
+    /**
+     * Close job (all stops completed)
+     */
+    async closeJob(reference, userId) {
+      window.Logger.info('🔄 Closing job', { reference, userId });
+
+      try {
+        const url = WEB_APP_URL + '/api/closeJob';
+        const payload = { reference, userId };
+
+        const json = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถปิดงานได้' };
+        }
+
+        window.Logger.debug('✅ Job closed');
+        return { success: true };
+      } catch (err) {
+        window.Logger.error('❌ Close job failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * End trip summary
+     */
+    async endTripSummary(reference, userId, endOdo, endPointName, lat, lng) {
+      window.Logger.info('🔄 Ending trip', { reference, userId, endOdo, endPointName });
+
+      try {
+        const url = WEB_APP_URL + '/api/endTripSummary';
+        const payload = {
+          reference,
+          userId,
+          endOdo,
+          endPointName,
+          lat,
+          lng
+        };
+
+        const json = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถบันทึกจบทริปได้' };
+        }
+
+        window.Logger.debug('✅ Trip summary recorded');
+        return { success: true };
+      } catch (err) {
+        window.Logger.error('❌ End trip failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Admin add stop
+     */
+    async adminAddStop(adminUserId, reference, shipToCode, shipToName, lat, lng, radiusM) {
+      window.Logger.info('🔄 Adding stop (admin)', { reference, shipToName });
+
+      try {
+        const url = WEB_APP_URL + '/api/adminAddStop';
+        const payload = {
+          adminUserId,
+          reference,
+          shipToCode,
+          shipToName,
+          lat,
+          lng,
+          radiusM
+        };
+
+        const json = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถเพิ่มจุดได้' };
+        }
+
+        window.Logger.debug('✅ Stop added');
+        return { success: true, data: json.data };
+      } catch (err) {
+        window.Logger.error('❌ Admin add stop failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Review upload (modified to use REST API)
+     */
+    async reviewUpload(reference, rowIndex, userId, score, lat, lng, signatureBase64) {
+      window.Logger.info('🔄 Uploading review', { reference, score });
+
+      try {
+        const url = WEB_APP_URL + '/api/reviewUpload';
+        const payload = {
+          reference,
+          rowIndex,
+          userId,
+          score,
+          lat,
+          lng,
+          signatureBase64
+        };
+
+        const json = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถบันทึกการประเมินได้' };
+        }
+
+        window.Logger.debug('✅ Review uploaded');
+        return { success: true, data: json.data };
+      } catch (err) {
+        window.Logger.error('❌ Review upload failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Alcohol upload (modified to use REST API)
+     */
+    async alcoholUpload(reference, driverName, userId, alcoholValue, imageBase64, lat, lng) {
+      window.Logger.info('🔄 Uploading alcohol check', { reference, driverName, alcoholValue });
+
+      try {
+        const url = WEB_APP_URL + '/api/alcoholUpload';
+        const payload = {
+          reference,
+          driverName,
+          userId,
+          alcoholValue,
+          imageBase64,
+          lat,
+          lng
+        };
+
+        const json = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ' };
+        }
+
+        window.Logger.debug('✅ Alcohol check recorded', { reference });
+        return { success: true, checkedDrivers: json.checkedDrivers || [] };
+      } catch (err) {
+        window.Logger.error('❌ Alcohol upload failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    }

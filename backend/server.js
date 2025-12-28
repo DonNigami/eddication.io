@@ -168,6 +168,81 @@ app.post('/api/updateStop', async (req, res) => {
 });
 
 /**
+ * ADMIN_ADD_STOP: Add extra stop for a reference
+ * POST /api/adminAddStop
+ */
+app.post('/api/adminAddStop', async (req, res) => {
+  try {
+    const payload = req.body;
+    const result = await sheetActions.adminAddStop(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/adminAddStop error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * CLOSE_JOB: Close job (all stops completed)
+ * POST /api/closeJob
+ */
+app.post('/api/closeJob', async (req, res) => {
+  try {
+    const payload = req.body;
+    const result = await sheetActions.closeJob(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/closeJob error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * END_TRIP_SUMMARY: Record end trip information
+ * POST /api/endTripSummary
+ */
+app.post('/api/endTripSummary', async (req, res) => {
+  try {
+    const payload = req.body;
+    const result = await sheetActions.endTripSummary(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/endTripSummary error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * ALCOHOL_UPLOAD: Record alcohol check
+ * POST /api/alcoholUpload
+ */
+app.post('/api/alcoholUpload', async (req, res) => {
+  try {
+    const payload = req.body;
+    const result = await sheetActions.alcoholUpload(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/alcoholUpload error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * REVIEW_UPLOAD: Record delivery review
+ * POST /api/reviewUpload
+ */
+app.post('/api/reviewUpload', async (req, res) => {
+  try {
+    const payload = req.body;
+    const result = await sheetActions.reviewUpload(payload);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/reviewUpload error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
  * UPLOAD_ALCOHOL: Save alcohol check result
  * POST /api/uploadAlcohol (multipart/form-data)
  */
