@@ -74,12 +74,27 @@ class SheetActions {
         return { success: false, message: 'Invalid sheet structure - missing referenceNo column' };
       }
 
-      // Find all matching stops for this reference
+      // Find all matching stops for this reference (exact match first)
       const matchingStops = [];
+      const target = String(searchRef || '').trim().toUpperCase();
       for (let i = 1; i < jobdata.length; i++) {
-        if (jobdata[i][referenceIdx] && 
-            String(jobdata[i][referenceIdx]).toUpperCase() === String(searchRef).toUpperCase()) {
+        const cell = jobdata[i][referenceIdx];
+        if (!cell) continue;
+        const value = String(cell).trim().toUpperCase();
+        if (value === target) {
           matchingStops.push(this._rowToObject(headers, jobdata[i]));
+        }
+      }
+
+      // Fallback: relaxed matching (contains) if exact match not found
+      if (matchingStops.length === 0) {
+        for (let i = 1; i < jobdata.length; i++) {
+          const cell = jobdata[i][referenceIdx];
+          if (!cell) continue;
+          const value = String(cell).trim().toUpperCase();
+          if (value.includes(target) || target.includes(value)) {
+            matchingStops.push(this._rowToObject(headers, jobdata[i]));
+          }
         }
       }
 
