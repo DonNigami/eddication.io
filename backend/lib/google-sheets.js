@@ -110,7 +110,7 @@ class GoogleSheetsDB {
     try {
       const response = await this.sheets.spreadsheets.values.append({
         spreadsheetId: this.spreadsheetId,
-        range: `${sheetName}!A:Z`,
+        range: `${sheetName}!A1`,
         valueInputOption: 'USER_ENTERED',
         resource: { values }
       });
