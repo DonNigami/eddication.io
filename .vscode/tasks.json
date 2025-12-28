@@ -62,6 +62,22 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Auto Commit & Push",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"scripts\\auto-commit.ps1",
+				"-Message",
+				"Revert to Google Apps Script backend (original version)"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
 		}
 	]
 }
