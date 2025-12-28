@@ -11,7 +11,7 @@
         var u = localStorage.getItem('backend_url');
         if (u && /^https?:\/\//.test(u)) return u;
       } catch (_) {}
-      return 'https://your-project.up.railway.app';
+      return 'https://eddicationio-production.up.railway.app';
     })(),
 
     // Awareness popup image URL - แก้ไข URL นี้เป็นลิ้งค์รูปที่ต้องการแสดง
