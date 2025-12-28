@@ -16,118 +16,259 @@ class SheetActions {
 
   /**
    * SEARCH: Find a job by reference number
+   * Returns comprehensive job data with all stops and aggregated information
    */
   async search(keyword, userId) {
     try {
       const target = String(keyword || '').trim().toUpperCase();
-      let matchingStops = [];
+      const now = new Date();
 
-      // Step 1: Search in jobdata (contains S-type references)
+      // Step 1: Try jobdata first
       const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      let jobRowsForRef = [];
+
       if (jobdata && jobdata.length > 1) {
         const headers = jobdata[0];
         const referenceIdx = headers.indexOf('referenceNo');
         
         if (referenceIdx !== -1) {
-          // Exact match first
+          // Exact match
           for (let i = 1; i < jobdata.length; i++) {
             const cell = jobdata[i][referenceIdx];
             if (!cell) continue;
             const value = String(cell).trim().toUpperCase();
             if (value === target) {
-              matchingStops.push(this._rowToObject(headers, jobdata[i]));
+              jobRowsForRef.push({ rowIndex: i + 1, row: jobdata[i], headers });
             }
           }
 
-          // Fallback: relaxed matching (contains) if exact match not found
-          if (matchingStops.length === 0) {
+          // Fallback: relaxed matching
+          if (jobRowsForRef.length === 0) {
             for (let i = 1; i < jobdata.length; i++) {
               const cell = jobdata[i][referenceIdx];
               if (!cell) continue;
               const value = String(cell).trim().toUpperCase();
               if (value.includes(target) || target.includes(value)) {
-                matchingStops.push(this._rowToObject(headers, jobdata[i]));
+                jobRowsForRef.push({ rowIndex: i + 1, row: jobdata[i], headers });
               }
             }
           }
         }
       }
 
-      // Step 2: If no match in jobdata, search Zoile sheets (for M-type references and other data)
-      if (matchingStops.length === 0 && this.zoileDb) {
-        try {
-          let zoileRow = null;
+      // If found in jobdata, use it directly
+      if (jobRowsForRef.length > 0) {
+        const stops = [];
+        const shipmentSet = {};
+
+        jobRowsForRef.forEach((obj, idx) => {
+          const row = obj.row;
+          const headers = obj.headers;
           
-          // Search in InputZoile30 (column 31 = Reference, 0-based index = 30)
-          const inputZoile = await this.zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
-          if (inputZoile && inputZoile.length > 1) {
-            const refColIdx = 30;
-            for (let i = 1; i < inputZoile.length; i++) {
-              if (inputZoile[i][refColIdx] && 
-                  String(inputZoile[i][refColIdx]).toUpperCase() === target) {
-                zoileRow = { source: 'InputZoile30', headers: inputZoile[0], data: inputZoile[i] };
-                break;
-              }
-            }
-          }
+          stops.push({
+            seq: idx + 1,
+            ...this._rowToObject(headers, row)
+          });
 
-          // If not found in InputZoile30, search in data sheet (column 13 = Reference, 0-based index = 12)
-          if (!zoileRow) {
-            const zoileData = await this.zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
-            if (zoileData && zoileData.length > 1) {
-              const refColIdx = 12;
-              for (let i = 1; i < zoileData.length; i++) {
-                if (zoileData[i][refColIdx] && 
-                    String(zoileData[i][refColIdx]).toUpperCase() === target) {
-                  zoileRow = { source: 'ZoileData', headers: zoileData[0], data: zoileData[i] };
-                  break;
-                }
-              }
-            }
-          }
+          const shipmentNo = String(row[headers.indexOf('shipmentNo')] || '').trim();
+          if (shipmentNo) shipmentSet[shipmentNo] = true;
+        });
 
-          // If found in Zoile, create a stop object from it
-          if (zoileRow) {
-            console.log(`✅ Found in ${zoileRow.source}:`, target);
-            // Map Zoile columns to stop object
-            const stopObj = {
-              referenceNo: target,
-              shipmentNo: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Shipment No.') || '',
-              shipToName: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Ship to Name') || '',
-              shipToCode: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Ship to') || '',
-              distance: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Distance') || '',
-              sourceRow: 'zoile',
-              source: zoileRow.source
-            };
-            matchingStops.push(stopObj);
+        const firstStop = jobRowsForRef[0];
+        const firstStopObj = this._rowToObject(firstStop.headers, firstStop.row);
+        const alcoholData = await this._getAlcoholForReference(target);
+        const shipmentList = Object.keys(shipmentSet);
+
+        return {
+          success: true,
+          data: {
+            referenceNo: target,
+            shipmentNos: shipmentList,
+            shipmentNo: shipmentList.length === 1 ? shipmentList[0] : '',
+            totalStops: stops.length,
+            stops: stops,
+            alcohol: alcoholData || { drivers: [], checkedDrivers: [] },
+            jobClosed: !!firstStopObj.jobClosedAt,
+            tripEnded: !!firstStopObj.tripEndedAt
           }
-        } catch (zoileErr) {
-          console.warn('⚠️ Could not search zoile sheets:', zoileErr.message);
-        }
+        };
       }
 
-      if (matchingStops.length === 0) {
+      // Step 2: If not in jobdata, search Zoile sheets
+      if (!this.zoileDb) {
         return { success: false, message: 'Job not found' };
       }
 
-      // Get first stop for main job info
-      const firstStop = matchingStops[0];
+      let zoileMatches = [];
+      let sourceType = null;
 
-      // Read alcohol data for this reference
-      const alcoholData = await this._getAlcoholForReference(firstStop.referenceNo);
+      // Search InputZoile30 first (column 31 = Reference, 0-based index = 30)
+      const inputZoile = await this.zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
+      if (inputZoile && inputZoile.length > 1) {
+        const refColIdx = 30;
+        for (let i = 1; i < inputZoile.length; i++) {
+          if (inputZoile[i][refColIdx] && 
+              String(inputZoile[i][refColIdx]).toUpperCase() === target) {
+            zoileMatches.push({ index: i, row: inputZoile[i] });
+          }
+        }
+        if (zoileMatches.length > 0) {
+          sourceType = 'InputZoile30';
+        }
+      }
+
+      // If not found, search data sheet (column 13 = Reference, 0-based index = 12)
+      if (zoileMatches.length === 0) {
+        const zoileData = await this.zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
+        if (zoileData && zoileData.length > 1) {
+          const refColIdx = 12;
+          for (let i = 1; i < zoileData.length; i++) {
+            if (zoileData[i][refColIdx] && 
+                String(zoileData[i][refColIdx]).toUpperCase() === target) {
+              zoileMatches.push({ index: i, row: zoileData[i] });
+            }
+          }
+          if (zoileMatches.length > 0) {
+            sourceType = 'ZoileData';
+          }
+        }
+      }
+
+      if (zoileMatches.length === 0) {
+        return { success: false, message: 'Job not found' };
+      }
+
+      console.log(`✅ Found ${zoileMatches.length} matches in ${sourceType} for ${target}`);
+
+      // ============================================================
+      // Build comprehensive response from Zoile data
+      // ============================================================
+      const firstRow = zoileMatches[0].row;
+
+      // Extract core info from first matching row
+      const shipmentNo = this._getZoileColumnByIndex(firstRow, 1) || ''; // Column B = Shipment No.
+      const driverName = sourceType === 'InputZoile30' 
+        ? this._getZoileColumnByIndex(firstRow, 11) || '' // Column L for input
+        : this._getZoileColumnByIndex(firstRow, 4) || '';  // Column E for data
+      const vehicleDesc = sourceType === 'InputZoile30'
+        ? this._getZoileColumnByIndex(firstRow, 5) || ''  // Column F
+        : '';
+      const routeValue = this._getZoileColumnByIndex(firstRow, 13) || ''; // Column N
+
+      // Parse drivers
+      const drivers = driverName
+        ? driverName.split('/').map(d => d.trim()).filter(d => d)
+        : [];
+
+      // ============================================================
+      // Aggregate destination data
+      // ============================================================
+      const stationAgg = {};
+      const materials = {};
+
+      zoileMatches.forEach(obj => {
+        const row = obj.row;
+        const shipToCode = this._getZoileColumnByIndex(row, 29) || ''; // Column AD (0-based 29)
+        const shipToName = this._getZoileColumnByIndex(row, 30) || ''; // Column AE (0-based 30)
+        const material = this._getZoileColumnByIndex(row, 15) || '';   // Column P
+        const materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Column Q
+        const qtyStr = this._getZoileColumnByIndex(row, 17) || '';    // Column R
+        const qty = parseFloat(qtyStr) || 0;
+        const distance = this._getZoileColumnByIndex(row, 14) || '';  // Column O
+
+        const stationKey = shipToCode || ('NAME:' + shipToName);
+
+        if (!stationAgg[stationKey]) {
+          stationAgg[stationKey] = {
+            shipToCode,
+            shipToName,
+            totalQty: 0,
+            linesCount: 0,
+            distance: distance,
+            materials: {}
+          };
+        }
+
+        stationAgg[stationKey].totalQty += qty;
+        stationAgg[stationKey].linesCount += 1;
+
+        const matKey = material || materialDesc || 'UNKNOWN';
+        if (!stationAgg[stationKey].materials[matKey]) {
+          stationAgg[stationKey].materials[matKey] = {
+            material,
+            materialDesc,
+            totalQty: 0
+          };
+        }
+        stationAgg[stationKey].materials[matKey].totalQty += qty;
+      });
+
+      // ============================================================
+      // Build stops array (origin + destinations)
+      // ============================================================
+      const stops = [];
+
+      // Origin stop (empty sourceRow)
+      const originLat = '13.1100258';  // Default Sriracha
+      const originLng = '100.9144418';
+      const originRadius = 200;
+
+      stops.push({
+        seq: 1,
+        shipmentNo: shipmentNo,
+        referenceNo: target,
+        destination1: 'TOP_SR',
+        destination2: 'ไทยออยล์ ศรีราชา',
+        status: 'NEW',
+        totalQty: null,
+        linesCount: 0,
+        materials: [],
+        destLat: originLat,
+        destLng: originLng,
+        radiusMeters: originRadius,
+        isOriginStop: true
+      });
+
+      // Destination stops
+      let seq = 2;
+      Object.keys(stationAgg).forEach(key => {
+        const agg = stationAgg[key];
+        const materialsArray = Object.keys(agg.materials).map(k => agg.materials[k]);
+
+        stops.push({
+          seq: seq++,
+          shipmentNo: shipmentNo,
+          referenceNo: target,
+          destination1: agg.shipToCode,
+          destination2: agg.shipToName,
+          status: 'NEW',
+          totalQty: agg.totalQty,
+          linesCount: agg.linesCount,
+          materials: materialsArray,
+          distanceKm: agg.distance,
+          isOriginStop: false
+        });
+      });
+
+      // Get alcohol data
+      const alcoholData = await this._getAlcoholForReference(target);
 
       return {
         success: true,
         data: {
-          referenceNo: firstStop.referenceNo,
-          shipmentNo: firstStop.shipmentNo || '',
-          destination: firstStop.shipToName || '',
-          totalStops: matchingStops.length,
-          stops: matchingStops,
-          alcohol: alcoholData || { drivers: [], checkedDrivers: [] },
-          jobClosed: !!firstStop.jobClosedAt,
-          tripEnded: !!firstStop.tripEndedAt,
-          foundInZoile: firstStop.source === 'zoile'
+          referenceNo: target,
+          shipmentNos: [shipmentNo],
+          shipmentNo: shipmentNo,
+          vehicleDescription: vehicleDesc,
+          totalStops: stops.length,
+          stops: stops,
+          alcohol: {
+            drivers: drivers,
+            checkedDrivers: alcoholData?.checkedDrivers || []
+          },
+          jobClosed: false,
+          tripEnded: false,
+          source: sourceType
         }
       };
     } catch (err) {
@@ -137,6 +278,14 @@ class SheetActions {
         message: err.message || 'Search failed' 
       };
     }
+  }
+
+  /**
+   * Helper: Get Zoile column value by index
+   */
+  _getZoileColumnByIndex(row, index) {
+    if (!row || index < 0 || index >= row.length) return '';
+    return String(row[index] || '').trim();
   }
 
   /**
