@@ -219,6 +219,17 @@ class SheetActions {
       });
 
       // ============================================================
+      // Format quantity as displayValue with thousands separator
+      // ============================================================
+      const formatQty = (qty) => {
+        if (typeof qty !== 'number') return qty;
+        return qty.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+      };
+
+      // ============================================================
       // Build stops array (origin + destinations)
       // ============================================================
       const stops = [];
@@ -248,7 +259,13 @@ class SheetActions {
       let seq = 2;
       Object.keys(stationAgg).forEach(key => {
         const agg = stationAgg[key];
-        const materialsArray = Object.keys(agg.materials).map(k => agg.materials[k]);
+        const materialsArray = Object.keys(agg.materials).map(k => {
+          const mat = agg.materials[k];
+          return {
+            ...mat,
+            totalQty: formatQty(mat.totalQty)  // Format material quantity
+          };
+        });
 
         stops.push({
           seq: seq++,
@@ -257,7 +274,7 @@ class SheetActions {
           destination1: agg.shipToCode,
           destination2: agg.shipToName,
           status: 'NEW',
-          totalQty: agg.totalQty,
+          totalQty: formatQty(agg.totalQty),  // Format stop total quantity
           linesCount: agg.linesCount,
           materials: materialsArray,
           distanceKm: agg.distance,
