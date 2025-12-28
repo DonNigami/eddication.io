@@ -18,6 +18,7 @@
   <script src="logger.js?v=20251228-12"></script>
   <script src="constants.js?v=20251228-12"></script>
   <script src="validators.js?v=20251228-12"></script>
+  <script src="thai-time.js?v=20251228-12"></script>
   <script src="api.js?v=20251228-12"></script>
 
   <style>
@@ -972,7 +973,7 @@
           lat: lat,
           lng: lng,
           accuracy: acc,
-          timestamp: new Date().toISOString()
+          timestamp: getThaiTimeISO()
         };
 
         let result;
@@ -1296,7 +1297,7 @@
           lat: lat,
           lng: lng,
           accuracy: acc,
-          timestamp: new Date().toISOString()
+          timestamp: getThaiTimeISO()
         };
 
         const result = await window.API.saveAwareness(payload);
@@ -1337,7 +1338,7 @@
               lat: undefined,
               lng: undefined,
               accuracy: undefined,
-              timestamp: new Date().toISOString()
+              timestamp: getThaiTimeISO()
             }
           });
           showToastInfo('บันทึกการรับทราบไว้ในเครื่องแล้ว จะซิงก์เมื่อออนไลน์');
@@ -2357,7 +2358,7 @@
           lat: lat,
           lng: lng,
           accuracy: acc,
-          timestamp: new Date().toISOString()
+          timestamp: getThaiTimeISO()
         };
 
         let result;
@@ -3593,7 +3594,7 @@
               var obj = raw ? JSON.parse(raw) : {};
               obj.endOdo = Number(values.endOdo || 0);
               obj.endPointName = values.endPointName || obj.endPointName || '';
-              obj.endTime = (new Date()).toLocaleTimeString();
+              obj.endTime = getThaiTimeString();
               localStorage.setItem(key, JSON.stringify(obj));
             }
           } catch (_) { }
@@ -3684,7 +3685,7 @@
             var obj2 = raw2 ? JSON.parse(raw2) : {};
             obj2.endOdo = Number(values.endOdo || 0);
             obj2.endPointName = values.endPointName || obj2.endPointName || '';
-            obj2.endTime = (new Date()).toLocaleTimeString();
+            obj2.endTime = getThaiTimeString();
             localStorage.setItem(key2, JSON.stringify(obj2));
           }
         } catch (_) { }
