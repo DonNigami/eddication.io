@@ -641,6 +641,51 @@ async function sendLineReply(channelAccessToken, replyToken, message) {
 }
 
 /**
+ * Link LINE Rich Menu to a specific user
+ */
+async function linkRichMenuToUser(userId, richMenuId) {
+  try {
+    const url = `https://api.line.biz/v2/bot/user/${encodeURIComponent(userId)}/richmenu/${encodeURIComponent(richMenuId)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + process.env.CHANNEL_ACCESS_TOKEN
+      }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn('⚠️ linkRichMenuToUser failed:', response.status, text);
+      return { success: false, status: response.status, body: text };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error('❌ linkRichMenuToUser error:', err);
+    return { success: false, message: err.message };
+  }
+}
+
+/**
+ * POST /api/link-rich-menu
+ * Body: { userId: string, richMenuId: string }
+ */
+app.post('/api/link-rich-menu', async (req, res) => {
+  try {
+    const { userId, richMenuId } = req.body || {};
+    if (!userId || !richMenuId) {
+      return res.status(400).json({ success: false, message: 'Missing userId or richMenuId' });
+    }
+
+    const result = await linkRichMenuToUser(userId, richMenuId);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/link-rich-menu error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
  * POST /api/line-webhook - Handle LINE Bot webhook (both messages and rich menu linking)
  */
 app.post('/api/line-webhook', async (req, res) => {
