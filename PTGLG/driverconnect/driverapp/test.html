@@ -4050,14 +4050,14 @@
       if (li) li.textContent = 'LIFF: ' + (liffReady ? 'Ready' : 'Not ready');
       if (lo) lo.textContent = 'Login: ' + (loggedIn ? 'Yes' : 'No');
       if (ui) ui.textContent = 'UserId: ' + (userId || '-');
-      
+
       // Detect backend source
       if (bu) {
         let backendSource = 'default (railway)';
         try {
           const customUrl = localStorage.getItem('backend_url');
           const mode = localStorage.getItem('backend_mode');
-          
+
           if (customUrl) {
             backendSource = 'custom URL';
           } else if (mode) {
@@ -4066,7 +4066,7 @@
             backendSource = 'railway';
           }
         } catch (_) { }
-        
+
         bu.textContent = 'Backend: ' + backendSource;
       }
 
