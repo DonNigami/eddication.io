@@ -681,7 +681,7 @@ app.post('/api/admin/update-user-status', async (req, res) => {
  */
 app.post('/api/uploadAlcohol', upload.single('image'), async (req, res) => {
   try {
-    const { driverName, result, timestamp, userId, reference } = req.body;
+    const { driverName, result, timestamp, userId, reference, lat, lng, accuracy } = req.body;
     const imageBuffer = req.file ? req.file.buffer : null;
 
     const payload = {
@@ -691,6 +691,9 @@ app.post('/api/uploadAlcohol', upload.single('image'), async (req, res) => {
       userId,
       reference,
       imageBuffer,
+      lat: lat ? parseFloat(lat) : undefined,
+      lng: lng ? parseFloat(lng) : undefined,
+      accuracy: accuracy ? parseFloat(accuracy) : undefined,
       imageSize: imageBuffer ? imageBuffer.length : 0
     };
 

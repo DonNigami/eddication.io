@@ -499,7 +499,7 @@ class SheetActions {
    */
   async uploadAlcohol(payload) {
     try {
-      const { reference, driverName, userId, result, timestamp, imageBuffer } = payload;
+      const { reference, driverName, userId, result, timestamp, imageBuffer, lat, lng } = payload;
 
       // Ensure target sheet exists with correct headers
       await this.db.ensureSheet(SHEETS.ALCOHOL);
@@ -530,15 +530,22 @@ class SheetActions {
       }
 
       // Match GAS sheet structure: reference, driverName, alcoholValue, checkedAt, userId, lat, lng, imageUrl
-      const checkedAt = timestamp || new Date().toISOString();
+      const d = timestamp ? new Date(timestamp) : new Date();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      const checkedAt = `${mm}/${dd}/${yyyy} ${hh}:${min}:${ss}`;
       const row = [
         reference || '',
         driverName || '',
         result || '',           // alcoholValue
         checkedAt,              // checkedAt
         userId || '',
-        '', // lat (unused)
-        '', // lng (unused)
+        lat !== undefined && lat !== null ? String(lat) : '',
+        lng !== undefined && lng !== null ? String(lng) : '',
         imageUrl || ''
       ];
 

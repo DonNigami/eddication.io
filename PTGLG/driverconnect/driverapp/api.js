@@ -397,6 +397,9 @@
         formData.append('userId', userId || '');
         formData.append('result', String(alcoholValue || '')); // Backend expects 'result' not 'alcoholValue'
         formData.append('timestamp', new Date().toISOString());
+        if (lat !== undefined && lat !== null) formData.append('lat', String(lat));
+        if (lng !== undefined && lng !== null) formData.append('lng', String(lng));
+        if (accuracy !== undefined && accuracy !== null) formData.append('accuracy', String(accuracy));
         if (imageBlob) {
           formData.append('image', imageBlob, 'alcohol.jpg');
         }
@@ -405,7 +408,9 @@
           reference, 
           driverName,
           hasImage: !!imageBlob,
-          result: alcoholValue
+          result: alcoholValue,
+          lat,
+          lng
         });
 
         const json = await fetchWithRetry(WEB_APP_URL + '/api/uploadAlcohol', { 
