@@ -206,11 +206,12 @@ class SheetActions {
         stationAgg[stationKey].totalQty += qty;
         stationAgg[stationKey].linesCount += 1;
 
-        const matKey = material || materialDesc || 'UNKNOWN';
+        // Use materialDesc as the key for aggregation (display-friendly)
+        const matKey = materialDesc || material || 'UNKNOWN';
         if (!stationAgg[stationKey].materials[matKey]) {
           stationAgg[stationKey].materials[matKey] = {
-            material,
-            materialDesc,
+            material: materialDesc,  // Display the description as primary
+            materialDesc: material,  // Store code as secondary
             totalQty: 0
           };
         }
