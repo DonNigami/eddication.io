@@ -126,6 +126,152 @@ app.get('/ping', (req, res) => {
 });
 
 // ============================================================================
+// DEBUG Endpoints (development troubleshooting)
+// ============================================================================
+
+/**
+ * DEBUG: Detailed search trace for troubleshooting
+ * GET /api/debug/search?keyword=REF001
+ */
+app.get('/api/debug/search', async (req, res) => {
+  try {
+    const { keyword } = req.query;
+    if (!keyword) {
+      return res.status(400).json({ success: false, message: 'Missing keyword param' });
+    }
+
+    const trace = [];
+    const log = (msg) => {
+      console.log('[DEBUG-SEARCH]', msg);
+      trace.push(msg);
+    };
+
+    log(`🔍 Starting debug search for: "${keyword}"`);
+
+    // Step 1: Check Zoile sheets
+    let zoileRef = null;
+    if (zoileDb) {
+      try {
+        log('📖 Reading Zoile InputZoile30 sheet...');
+        const inputZoile = await zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
+        log(`   Found ${inputZoile.length} rows in InputZoile30`);
+        
+        if (inputZoile.length > 1) {
+          log(`   Headers: ${inputZoile[0].slice(0, 35).join(' | ')}`);
+          const refColIdx = 30; // Column 31 (0-based)
+          log(`   Looking for reference in column index ${refColIdx} (column ${String.fromCharCode(65 + refColIdx)})`);
+          
+          for (let i = 1; i < Math.min(inputZoile.length, 10); i++) {
+            const cellValue = inputZoile[i][refColIdx];
+            log(`   Row ${i+1}: col[${refColIdx}] = "${cellValue}"`);
+            if (cellValue && String(cellValue).toUpperCase() === String(keyword).toUpperCase()) {
+              zoileRef = String(cellValue);
+              log(`   ✅ MATCH in InputZoile30 row ${i+1}!`);
+              break;
+            }
+          }
+        }
+
+        if (!zoileRef) {
+          log('📖 Reading Zoile data sheet...');
+          const zoileData = await zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
+          log(`   Found ${zoileData.length} rows in data`);
+          
+          if (zoileData.length > 1) {
+            log(`   Headers: ${zoileData[0].slice(0, 20).join(' | ')}`);
+            const refColIdx = 12; // Column M (0-based)
+            log(`   Looking for reference in column index ${refColIdx} (column ${String.fromCharCode(65 + refColIdx)})`);
+            
+            for (let i = 1; i < Math.min(zoileData.length, 10); i++) {
+              const cellValue = zoileData[i][refColIdx];
+              log(`   Row ${i+1}: col[${refColIdx}] = "${cellValue}"`);
+              if (cellValue && String(cellValue).toUpperCase() === String(keyword).toUpperCase()) {
+                zoileRef = String(cellValue);
+                log(`   ✅ MATCH in data sheet row ${i+1}!`);
+                break;
+              }
+            }
+          }
+        }
+      } catch (zoileErr) {
+        log(`⚠️ Zoile read error: ${zoileErr.message}`);
+      }
+    } else {
+      log('⚠️ zoileDb not initialized');
+    }
+
+    const searchRef = zoileRef || keyword;
+    log(`🔎 Final search reference: "${searchRef}"`);
+
+    // Step 2: Search in jobdata
+    log('📖 Reading jobdata sheet...');
+    const jobdata = await db.readRange(SHEETS.JOBDATA, 'A:AZ');
+    log(`   Found ${jobdata.length} rows in jobdata`);
+
+    if (jobdata.length > 1) {
+      const headers = jobdata[0];
+      log(`   Headers (first 15): ${headers.slice(0, 15).join(' | ')}`);
+      
+      const referenceIdx = headers.indexOf('referenceNo');
+      log(`   referenceNo column index: ${referenceIdx} (column ${referenceIdx >= 0 ? String.fromCharCode(65 + referenceIdx) : 'NOT FOUND'})`);
+
+      if (referenceIdx === -1) {
+        log(`❌ ERROR: referenceNo column not found!`);
+        log(`   Available columns: ${headers.map((h, i) => `${i}:${h}`).join(', ')}`);
+        return res.json({ success: false, message: 'referenceNo column not found', trace });
+      }
+
+      // Show first 10 rows of jobdata
+      log('   Sample jobdata rows:');
+      for (let i = 1; i < Math.min(jobdata.length, 11); i++) {
+        const refVal = jobdata[i][referenceIdx];
+        log(`   Row ${i+1}: referenceNo="${refVal}"`);
+      }
+
+      // Search
+      const matchingStops = [];
+      const target = String(searchRef || '').trim().toUpperCase();
+      log(`   Searching for exact match: "${target}"`);
+
+      for (let i = 1; i < jobdata.length; i++) {
+        const cell = jobdata[i][referenceIdx];
+        if (!cell) continue;
+        const value = String(cell).trim().toUpperCase();
+        if (value === target) {
+          matchingStops.push(i + 1); // Store row number (1-based)
+          log(`   ✅ MATCH at row ${i+1}`);
+        }
+      }
+
+      if (matchingStops.length > 0) {
+        log(`🎯 Found ${matchingStops.length} matching stops at rows: ${matchingStops.join(', ')}`);
+      } else {
+        log(`❌ No exact matches found, trying partial/contains match...`);
+        for (let i = 1; i < jobdata.length; i++) {
+          const cell = jobdata[i][referenceIdx];
+          if (!cell) continue;
+          const value = String(cell).trim().toUpperCase();
+          if (value.includes(target) || target.includes(value)) {
+            matchingStops.push(i + 1);
+            log(`   ⚠️ PARTIAL MATCH at row ${i+1}: "${cell}"`);
+          }
+        }
+        if (matchingStops.length > 0) {
+          log(`   Found ${matchingStops.length} partial matches`);
+        } else {
+          log(`   No partial matches either`);
+        }
+      }
+    }
+
+    return res.json({ success: true, trace, zoileConnected: !!zoileDb });
+  } catch (err) {
+    console.error('❌ Debug search error:', err);
+    return res.status(500).json({ success: false, message: err.message, stack: err.stack });
+  }
+});
+
+// ============================================================================
 // API Endpoints
 // ============================================================================
 
