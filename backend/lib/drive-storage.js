@@ -14,24 +14,29 @@ class DriveStorage {
 
   async initialize() {
     try {
+      console.log('🔧 DriveStorage.initialize() starting...');
       let credentials;
       
       if (!this.credentialsSource) {
         throw new Error('GOOGLE_SHEETS_CREDENTIALS_JSON or GOOGLE_SHEETS_KEY_FILE environment variable is required');
       }
       
+      console.log('   Parsing credentials...');
       if (this.credentialsSource.startsWith('{')) {
         credentials = JSON.parse(this.credentialsSource);
+        console.log('   ✓ Parsed from JSON string');
       } else {
         const fs = require('fs');
         if (fs.existsSync(this.credentialsSource)) {
           const raw = fs.readFileSync(this.credentialsSource, 'utf-8');
           credentials = JSON.parse(raw);
+          console.log(`   ✓ Loaded from file: ${this.credentialsSource}`);
         } else {
           throw new Error(`Credentials not found: ${this.credentialsSource}`);
         }
       }
 
+      console.log('   Authenticating with Google...');
       this.auth = new google.auth.GoogleAuth({
         credentials,
         scopes: [
@@ -41,7 +46,7 @@ class DriveStorage {
       });
 
       this.drive = google.drive({ version: 'v3', auth: this.auth });
-      console.log('✅ Google Drive authenticated');
+      console.log('✅ Google Drive authenticated successfully');
     } catch (err) {
       console.error('❌ Failed to initialize Google Drive:', err.message);
       throw err;
@@ -143,11 +148,17 @@ class DriveStorage {
    */
   async uploadImageWithUserFolder(imageBuffer, filename, parentFolderId, userId) {
     try {
+      console.log(`📤 uploadImageWithUserFolder: filename=${filename}, parentId=${parentFolderId}, userId=${userId}`);
+      
       // Create/get user subfolder
+      console.log(`   Step 1: Get/create user folder...`);
       const userFolderId = await this.getOrCreateFolder(parentFolderId, userId);
+      console.log(`   ✓ User folder ID: ${userFolderId}`);
 
       // Upload image to user folder
+      console.log(`   Step 2: Upload image to user folder...`);
       const result = await this.uploadImage(imageBuffer, filename, userFolderId);
+      console.log(`   ✓ File uploaded: ${result.fileId}`);
 
       return {
         fileId: result.fileId,

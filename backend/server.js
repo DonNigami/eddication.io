@@ -684,6 +684,9 @@ app.post('/api/uploadAlcohol', upload.single('image'), async (req, res) => {
     const { driverName, result, timestamp, userId, reference, lat, lng, accuracy } = req.body;
     const imageBuffer = req.file ? req.file.buffer : null;
 
+    console.log(`🍷 POST /api/uploadAlcohol - ref=${reference}, driver=${driverName}, user=${userId}, result=${result}`);
+    console.log(`   lat=${lat}, lng=${lng}, accuracy=${accuracy}, imageSize=${imageBuffer ? imageBuffer.length : 0}`);
+
     const payload = {
       driverName,
       result,
@@ -697,7 +700,10 @@ app.post('/api/uploadAlcohol', upload.single('image'), async (req, res) => {
       imageSize: imageBuffer ? imageBuffer.length : 0
     };
 
+    console.log(`   Payload after parse: lat=${payload.lat}, lng=${payload.lng}`);
+
     const result_data = await sheetActions.uploadAlcohol(payload);
+    console.log(`✅ uploadAlcohol returned:`, result_data);
     return res.json(result_data);
   } catch (err) {
     console.error('❌ POST /api/uploadAlcohol error:', err);

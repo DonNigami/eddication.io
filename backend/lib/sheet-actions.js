@@ -501,32 +501,54 @@ class SheetActions {
     try {
       const { reference, driverName, userId, result, timestamp, imageBuffer, lat, lng } = payload;
 
+      console.log(`📝 uploadAlcohol called: ref=${reference}, driver=${driverName}, user=${userId}, result=${result}, lat=${lat}, lng=${lng}`);
+
       // Ensure target sheet exists with correct headers
       await this.db.ensureSheet(SHEETS.ALCOHOL);
 
       // Save image to Drive (if provided and driveStorage available)
       let imageUrl = '';
-      if (imageBuffer && this.driveStorage && process.env.ALC_PARENT_FOLDER_ID) {
-        try {
-          const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
-          const driveResult = await this.driveStorage.uploadImageWithUserFolder(
-            imageBuffer,
-            filename,
-            process.env.ALC_PARENT_FOLDER_ID,
-            userId
-          );
-          imageUrl = driveResult.fileUrl;
-          console.log(`✅ Alcohol image uploaded to Drive: ${filename}`);
-        } catch (driveErr) {
-          console.warn('⚠️ Drive upload failed, falling back to local storage:', driveErr.message);
-          // Fallback to local storage
-          const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
-          imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
+      if (imageBuffer) {
+        console.log(`📸 Image provided. Drive available: ${!!this.driveStorage}, ALC_PARENT_FOLDER_ID: ${!!process.env.ALC_PARENT_FOLDER_ID}`);
+        
+        if (this.driveStorage && process.env.ALC_PARENT_FOLDER_ID) {
+          try {
+            const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
+            console.log(`   📤 Uploading to Drive with parentFolderId=${process.env.ALC_PARENT_FOLDER_ID}, userId=${userId}`);
+            const driveResult = await this.driveStorage.uploadImageWithUserFolder(
+              imageBuffer,
+              filename,
+              process.env.ALC_PARENT_FOLDER_ID,
+              userId
+            );
+            imageUrl = driveResult.fileUrl;
+            console.log(`✅ Alcohol image uploaded to Drive: ${filename} → ${imageUrl}`);
+          } catch (driveErr) {
+            console.warn('⚠️ Drive upload failed:', driveErr.message);
+            console.log('   📥 Falling back to local storage...');
+            try {
+              const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
+              imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
+              console.log(`✅ Fallback: saved locally → ${imageUrl}`);
+            } catch (localErr) {
+              console.error('❌ Local save also failed:', localErr.message);
+              imageUrl = '';
+            }
+          }
+        } else {
+          // No Drive configured, use local storage directly
+          console.log('   📥 Using local storage (no Drive configured)');
+          try {
+            const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
+            imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
+            console.log(`✅ Saved to local storage → ${imageUrl}`);
+          } catch (localErr) {
+            console.error('❌ Local save failed:', localErr.message);
+            imageUrl = '';
+          }
         }
-      } else if (imageBuffer) {
-        // No Drive storage configured, use local
-        const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
-        imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
+      } else {
+        console.log('📸 No image provided');
       }
 
       // Match GAS sheet structure: reference, driverName, alcoholValue, checkedAt, userId, lat, lng, imageUrl
@@ -549,14 +571,19 @@ class SheetActions {
         imageUrl || ''
       ];
 
+      console.log(`📝 Writing row to ALCOHOL sheet:`, row);
+
       // Primary write
       try {
         await this.db.appendRow(SHEETS.ALCOHOL, [row]);
+        console.log(`✅ Row written successfully`);
       } catch (err) {
+        console.error(`❌ appendRow failed: ${err.message}`);
         // Fallback to Zoile DB if main sheet is protected
         if (this.zoileDb) {
-          console.warn('⚠️ Main ALCOHOL sheet protected, falling back to zoileDb:', err.message);
+          console.warn('⚠️ Main ALCOHOL sheet protected, falling back to zoileDb');
           await this.zoileDb.appendRow(SHEETS.ALCOHOL, [row]);
+          console.log(`✅ Row written to zoileDb fallback`);
         } else {
           throw err;
         }
@@ -566,7 +593,7 @@ class SheetActions {
 
       return {
         success: true,
-        data: { checkedDrivers }
+        data: { checkedDrivers, imageUrl }
       };
     } catch (err) {
       console.error('❌ Upload alcohol error:', err);

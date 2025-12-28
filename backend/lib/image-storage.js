@@ -31,11 +31,17 @@ class ImageStorage {
       const safeFilename = `${filename}_${timestamp}${ext}`;
       const filepath = path.join(this.dataDir, safeFilename);
 
+      console.log(`💾 Saving image to local storage: ${safeFilename}`);
+      console.log(`   Full path: ${filepath}`);
+
       // Save file
       fs.writeFileSync(filepath, imageBuffer);
+      console.log(`✅ Image saved: ${safeFilename} (${imageBuffer.length} bytes)`);
 
       // Return relative path (can be served by static middleware)
-      return `/images/${safeFilename}`;
+      const url = `/images/${safeFilename}`;
+      console.log(`   URL: ${url}`);
+      return url;
     } catch (err) {
       console.error('❌ Image save error:', err);
       throw err;
