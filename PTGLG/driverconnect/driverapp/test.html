@@ -327,6 +327,43 @@
       opacity: 0.9;
     }
 
+    .btn-pod {
+      background: linear-gradient(135deg, #3498db, #2980b9);
+    }
+
+    .btn-sos {
+      position: fixed;
+      bottom: 80px;
+      right: 16px;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 700;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+      z-index: 9997;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      animation: sosGlow 2s ease-in-out infinite;
+    }
+
+    @keyframes sosGlow {
+
+      0%,
+      100% {
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+      }
+
+      50% {
+        box-shadow: 0 4px 20px rgba(231, 76, 60, 0.8);
+      }
+    }
+
     .footer-note {
       margin-top: 8px;
       font-size: 0.78rem;
@@ -531,6 +568,9 @@
     <button id="stSyncBtn" type="button" class="btn-small btn-outline" style="margin-left:auto;">Sync</button>
   </div>
 
+  <!-- Emergency SOS Button -->
+  <button id="btnSOS" class="btn-sos" type="button" title="ฉุกเฉิน SOS">🚨</button>
+
   <div class="app-shell">
     <div class="container">
       <!-- Main App -->
@@ -582,6 +622,10 @@
         <div id="summary" class="summary-card hidden"></div>
 
         <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
+
+        <button id="btnDailySummary" class="btn-small btn-outline hidden" type="button"
+          style="margin-top:10px;background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;border:none;"
+          onclick="generateDailySummary()">📊 สรุปงานประจำวัน</button>
 
         <div id="timelineContainer" class="timeline-container hidden">
           <div class="timeline-title">
@@ -861,6 +905,122 @@
     function showToastInfo(msg) { showToast('info', msg); }
     function showToastError(msg) { showToast('error', msg); }
 
+    /**
+     * Emergency SOS function
+     */
+    async function triggerSOS() {
+      const { value: emergencyType } = await Swal.fire({
+        title: '🚨 แจ้งเหตุฉุกเฉิน',
+        html: `
+          <div style="text-align:left;margin-bottom:10px;">
+            <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:6px;">ประเภทเหตุการณ์</label>
+            <select id="sosType" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;">
+              <option value="อุบัติเหตุ">🚗 อุบัติเหตุ</option>
+              <option value="รถเสีย">🔧 รถเสีย/ปัญหาเครื่องยนต์</option>
+              <option value="สุขภาพ">🏥 ปัญหาสุขภาพ</option>
+              <option value="อื่นๆ">⚠️ อื่นๆ</option>
+            </select>
+          </div>
+          <div style="text-align:left;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">รายละเอียดเพิ่มเติม</label>
+            <textarea id="sosDetail" rows="3" placeholder="อธิบายสถานการณ์..." 
+              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;resize:vertical;"></textarea>
+          </div>
+          <div style="margin-top:12px;padding:10px;background:#fff3cd;border-radius:8px;border:1px solid #ffc107;">
+            <div style="font-size:0.85rem;color:#856404;margin-bottom:6px;">📞 เบอร์ฉุกเฉิน</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <a href="tel:191" style="flex:1;min-width:80px;padding:8px;background:#fff;border:1px solid #ddd;border-radius:6px;text-align:center;text-decoration:none;color:#333;font-size:0.85rem;">🚨 191</a>
+              <a href="tel:1669" style="flex:1;min-width:80px;padding:8px;background:#fff;border:1px solid #ddd;border-radius:6px;text-align:center;text-decoration:none;color:#333;font-size:0.85rem;">🚑 1669</a>
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'ส่งแจ้งเตือนฉุกเฉิน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#e74c3c',
+        preConfirm: function () {
+          const type = document.getElementById('sosType').value;
+          const detail = document.getElementById('sosDetail').value.trim();
+          return { type: type, detail: detail };
+        },
+      });
+
+      if (!emergencyType) return;
+
+      try {
+        showLoading('กำลังส่งสัญญาณ SOS...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.warn('GPS error:', err);
+          pos = null;
+        }
+
+        const lat = pos ? pos.coords.latitude : null;
+        const lng = pos ? pos.coords.longitude : null;
+        const acc = pos ? (pos.coords.accuracy != null ? pos.coords.accuracy : undefined) : undefined;
+
+        const payload = {
+          action: 'EMERGENCY_SOS',
+          reference: currentReference || 'ไม่มีงาน',
+          userId: currentUserId,
+          emergencyType: emergencyType.type,
+          detail: emergencyType.detail,
+          lat: lat,
+          lng: lng,
+          accuracy: acc,
+          timestamp: new Date().toISOString()
+        };
+
+        let result;
+        try {
+          result = await window.API.sendSOS(payload);
+        } catch (networkErr) {
+          enqueueAction(payload);
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (SOS)');
+          // แม้ offline ก็แสดงข้อความให้กำลังใจ
+          await Swal.fire({
+            icon: 'warning',
+            title: 'ส่ง SOS ออฟไลน์',
+            text: 'จะส่งแจ้งเตือนเมื่อกลับออนไลน์ กรุณาโทรฉุกเฉิน 191 หรือ 1669 ทันที',
+            confirmButtonColor: '#e74c3c',
+          });
+          return;
+        }
+
+        closeLoading();
+
+        if (!result.success) {
+          showError(result.message || 'ส่ง SOS ไม่สำเร็จ');
+          return;
+        }
+
+        await Swal.fire({
+          icon: 'success',
+          title: '✅ ส่งสัญญาณ SOS แล้ว',
+          html: `
+            <div style="text-align:left;">
+              <p style="margin-bottom:8px;">ทีมงานได้รับแจ้งแล้ว จะติดต่อกลับโดยเร็วที่สุด</p>
+              <p style="margin-bottom:8px;font-weight:600;">ตำแหน่งของคุณ:</p>
+              <p style="font-size:0.85rem;color:#666;">${lat && lng ? 'Lat: ' + lat.toFixed(6) + ', Lng: ' + lng.toFixed(6) : 'ไม่พบตำแหน่ง'}</p>
+            </div>
+          `,
+          confirmButtonColor: '#1abc9c',
+        });
+
+        showToastSuccess('ส่ง SOS สำเร็จ');
+        window.Logger.info('✅ SOS sent', { type: emergencyType.type });
+      } catch (err) {
+        window.Logger.error('❌ SOS error', err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการส่ง SOS');
+      }
+    }
+
     // Resolve awareness image URL (supports Google Drive share links)
     function resolveAwarenessImageUrl(url) {
       try {
@@ -904,6 +1064,105 @@
       q.push(Object.assign({ ts: Date.now() }, action));
       saveQueue(q);
       try { showToastInfo('บันทึกคิวออฟไลน์แล้ว (' + (action && action.type ? action.type : 'action') + ')'); } catch (_) { }
+    }
+
+    /**
+     * Quick Templates - ส่งข้อความสำเร็จรูปให้ลูกค้า
+     */
+    async function sendQuickTemplate(stopRowIndex) {
+      if (!liff || !liff.isLoggedIn()) {
+        showInfo('ยังไม่ได้ Login', 'กรุณา Login ผ่าน LINE ก่อน');
+        return;
+      }
+
+      const stop = stopRowIndex ? (lastStops || []).find(function (s) { return s.rowIndex === stopRowIndex; }) : null;
+      const destName = stop ? (stop.destination2 || stop.destination1 || 'ปลายทาง') : 'จุดหมาย';
+
+      const { value: template } = await Swal.fire({
+        title: '💬 ส่งข้อความสำเร็จรูป',
+        html: `
+          <div style="text-align:left;margin-bottom:10px;">
+            <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:6px;">เลือก Template</label>
+            <select id="msgTemplate" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;">
+              <option value="going">🚚 กำลังไปส่ง</option>
+              <option value="arrived">✅ ถึงแล้ว</option>
+              <option value="delay">⏰ ล่าช้า</option>
+              <option value="complete">🎉 ส่งเสร็จแล้ว</option>
+              <option value="custom">✏️ กำหนดเอง</option>
+            </select>
+          </div>
+          <div id="customMsgBox" style="display:none;text-align:left;margin-bottom:10px;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">ข้อความของคุณ</label>
+            <textarea id="customMsg" rows="3" placeholder="พิมพ์ข้อความที่ต้องการส่ง..." 
+              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;resize:vertical;"></textarea>
+          </div>
+          <div style="text-align:left;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">ตัวอย่างข้อความ</label>
+            <div id="msgPreview" style="padding:10px;background:#f7faf9;border:1px solid #dce2e0;border-radius:8px;font-size:0.85rem;color:#333;min-height:50px;"></div>
+          </div>
+        `,
+        didOpen: function () {
+          const selectEl = document.getElementById('msgTemplate');
+          const customBox = document.getElementById('customMsgBox');
+          const previewEl = document.getElementById('msgPreview');
+          const customMsg = document.getElementById('customMsg');
+
+          function updatePreview() {
+            const val = selectEl.value;
+            let msg = '';
+            if (val === 'going') msg = '🚚 สวัสดีครับ กำลังเดินทางไปส่งที่ ' + destName + ' ครับ';
+            else if (val === 'arrived') msg = '✅ ถึง ' + destName + ' แล้วครับ กำลังดำเนินการ';
+            else if (val === 'delay') msg = '⏰ ขออภัยครับ การเดินทางไปยัง ' + destName + ' อาจล่าช้าเล็กน้อย เนื่องจากการจราจร';
+            else if (val === 'complete') msg = '🎉 ส่งสินค้าที่ ' + destName + ' เรียบร้อยแล้วครับ ขอบคุณครับ';
+            else if (val === 'custom') {
+              customBox.style.display = 'block';
+              msg = customMsg.value || '(กรุณาพิมพ์ข้อความ)';
+            } else {
+              msg = '-';
+            }
+
+            if (val !== 'custom') customBox.style.display = 'none';
+            previewEl.textContent = msg;
+          }
+
+          selectEl.addEventListener('change', updatePreview);
+          customMsg.addEventListener('input', updatePreview);
+          updatePreview();
+        },
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'ส่งข้อความ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: function () {
+          const tpl = document.getElementById('msgTemplate').value;
+          const custom = document.getElementById('customMsg').value.trim();
+          return { template: tpl, customMsg: custom };
+        },
+      });
+
+      if (!template) return;
+
+      try {
+        let finalMsg = '';
+        if (template.template === 'going') finalMsg = '🚚 สวัสดีครับ กำลังเดินทางไปส่งที่ ' + destName + ' ครับ';
+        else if (template.template === 'arrived') finalMsg = '✅ ถึง ' + destName + ' แล้วครับ กำลังดำเนินการ';
+        else if (template.template === 'delay') finalMsg = '⏰ ขออภัยครับ การเดินทางไปยัง ' + destName + ' อาจล่าช้าเล็กน้อย เนื่องจากการจราจร';
+        else if (template.template === 'complete') finalMsg = '🎉 ส่งสินค้าที่ ' + destName + ' เรียบร้อยแล้วครับ ขอบคุณครับ';
+        else if (template.template === 'custom') finalMsg = template.customMsg;
+
+        if (!finalMsg) {
+          showInfo('ไม่มีข้อความ', 'กรุณาพิมพ์ข้อความก่อนส่ง');
+          return;
+        }
+
+        await liff.sendMessages([{ type: 'text', text: finalMsg }]);
+        showToastSuccess('ส่งข้อความสำเร็จ');
+        window.Logger.info('✅ Quick template sent', { template: template.template });
+      } catch (err) {
+        window.Logger.error('❌ Quick template error', err);
+        showError('ไม่สามารถส่งข้อความได้ กรุณาลองใหม่');
+      }
     }
 
     async function processActionQueue() {
@@ -1486,6 +1745,10 @@
         renderAlcoholSection();
         renderTimeline(stops);
 
+        // แสดงปุ่ม Daily Summary
+        const btnDailySummary = document.getElementById('btnDailySummary');
+        if (btnDailySummary) btnDailySummary.classList.remove('hidden');
+
         // cache successful result for offline usage
         try { cacheSearchResult(currentUserId, currentReference, d); } catch (_) { }
 
@@ -1510,6 +1773,57 @@
 
     // stray block removed: duplicated logic after search()
 
+    /**
+     * Smart Alerts System
+     */
+    let alertState = {
+      lastWorkStartTime: null,
+      lastAlertTime: 0,
+      nearbyAlertShown: {}
+    };
+
+    function checkSmartAlerts() {
+      if (!lastStops || lastStops.length === 0) return;
+
+      const now = Date.now();
+      const stops = lastStops || [];
+
+      // 1. เตือน "ใกล้ถึงจุดส่ง" (ถ้ามี GPS)
+      stops.forEach(function (stop) {
+        if (stop.checkInTime || !stop.destLat || !stop.destLng) return;
+        if (alertState.nearbyAlertShown[stop.rowIndex]) return;
+
+        // ตรวจสอบระยะห่าง (จำลอง - ต้องมี GPS จริง)
+        // ในที่นี้ถือว่าถ้า distance < 5 km ถือว่าใกล้
+        if (stop.distance && stop.distance < 5) {
+          alertState.nearbyAlertShown[stop.rowIndex] = true;
+          showToastInfo('🚚 ใกล้ถึง ' + (stop.destination2 || stop.destination1 || 'จุดส่ง') + ' แล้ว!');
+        }
+      });
+
+      // 2. เตือน "เวลาพักผ่อน" (ขับรถเกิน 4 ชม.)
+      if (alertState.lastWorkStartTime) {
+        const workDurationMs = now - alertState.lastWorkStartTime;
+        const workHours = workDurationMs / 3600000;
+        if (workHours >= 4 && (now - alertState.lastAlertTime) > 3600000) {
+          alertState.lastAlertTime = now;
+          showToastInfo('⏰ คุณทำงานมา 4 ชม.แล้ว แนะนำให้พักผ่อน 15-30 นาที');
+        }
+      }
+
+      // 3. เตือน "ส่งของล่าช้า" (ถ้ามี ETA)
+      // (ต้องมีข้อมูล ETA จาก backend จริง - ข้ามในตัวอย่างนี้)
+
+      // 4. เตือนสภาพอากาศ/การจราจร (ต้องใช้ API ภายนอก - ข้ามในตัวอย่างนี้)
+    }
+
+    // เริ่มนับเวลาทำงานเมื่อ check-in ครั้งแรก
+    function startWorkTimer() {
+      if (!alertState.lastWorkStartTime) {
+        alertState.lastWorkStartTime = Date.now();
+      }
+    }
+
     function clearResult() {
       document.getElementById('summary').classList.add('hidden');
       document.getElementById('timelineContainer').classList.add('hidden');
@@ -1518,12 +1832,15 @@
       document.getElementById('closeJobContainer').classList.add('hidden');
       document.getElementById('alcoholContainer').classList.add('hidden');
       document.getElementById('alcoholContainer').innerHTML = '';
+      const btnDailySummary = document.getElementById('btnDailySummary');
+      if (btnDailySummary) btnDailySummary.classList.add('hidden');
       lastStops = [];
       currentDrivers = [];
       currentCheckedDrivers = [];
       alcoholAllDone = false;
       jobClosed = false;
-      tripEnded = false; // ✅ reset state จบทริป
+      tripEnded = false;
+      alertState.nearbyAlertShown = {};
     }
 
     function renderSummary(d) {
@@ -1889,6 +2206,148 @@
         clearBtn.addEventListener('click', function () {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         });
+      }
+    }
+
+    /**
+     * Upload POD (Proof of Delivery) photos
+     * @param {number} rowIndex - Stop row index
+     * @param {number} seq - Stop sequence number
+     */
+    async function uploadPOD(rowIndex, seq) {
+      if (!currentReference) {
+        showInfo('ไม่พบงาน', 'กรุณาค้นหางานก่อน');
+        return;
+      }
+
+      const stop = (lastStops || []).find(function (s) { return s.rowIndex === rowIndex; });
+      const destName = (stop && (stop.destination2 || stop.destination1)) || 'จุดส่ง';
+
+      const { value: formValues } = await Swal.fire({
+        title: '📸 ถ่ายรูป POD',
+        html: `
+          <div style="text-align:left;margin-bottom:12px;">
+            <label style="display:block;font-size:0.9rem;font-weight:600;margin-bottom:6px;">จุดส่ง: ${safe(destName)}</label>
+          </div>
+          <div style="text-align:left;margin-bottom:10px;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">รูปก่อนส่ง (สินค้าบนรถ)</label>
+            <input type="file" id="podBefore" accept="image/*" capture="environment" 
+              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;" />
+          </div>
+          <div style="text-align:left;margin-bottom:10px;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">รูปหลังส่ง (หน้าร้าน/จุดส่ง)</label>
+            <input type="file" id="podAfter" accept="image/*" capture="environment" 
+              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;" />
+          </div>
+          <div style="text-align:left;margin-bottom:10px;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">สภาพสินค้า</label>
+            <select id="podCondition" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;">
+              <option value="สมบูรณ์">✅ สมบูรณ์</option>
+              <option value="ชำรุดเล็กน้อย">⚠️ ชำรุดเล็กน้อย</option>
+              <option value="ชำรุดมาก">❌ ชำรุดมาก</option>
+            </select>
+          </div>
+          <div style="text-align:left;">
+            <label style="display:block;font-size:0.85rem;margin-bottom:4px;">หมายเหตุ (ถ้ามี)</label>
+            <textarea id="podNote" rows="2" placeholder="เช่น: ลูกค้าขอเปลี่ยนสถานที่..." 
+              style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:0.85rem;resize:vertical;"></textarea>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก POD',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#3498db',
+        preConfirm: function () {
+          const beforeInput = document.getElementById('podBefore');
+          const afterInput = document.getElementById('podAfter');
+          const condition = document.getElementById('podCondition').value;
+          const note = document.getElementById('podNote').value.trim();
+
+          if (!beforeInput.files || !beforeInput.files[0]) {
+            Swal.showValidationMessage('กรุณาถ่ายรูปก่อนส่ง');
+            return false;
+          }
+          if (!afterInput.files || !afterInput.files[0]) {
+            Swal.showValidationMessage('กรุณาถ่ายรูปหลังส่ง');
+            return false;
+          }
+
+          return {
+            beforeFile: beforeInput.files[0],
+            afterFile: afterInput.files[0],
+            condition: condition,
+            note: note
+          };
+        },
+      });
+
+      if (!formValues) return;
+
+      try {
+        showLoading('กำลังบันทึกรูป POD...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.warn('GPS error:', err);
+          pos = null;
+        }
+
+        const lat = pos ? pos.coords.latitude : null;
+        const lng = pos ? pos.coords.longitude : null;
+        const acc = pos ? (pos.coords.accuracy != null ? pos.coords.accuracy : undefined) : undefined;
+
+        const beforeBase64 = await fileToBase64(formValues.beforeFile);
+        const afterBase64 = await fileToBase64(formValues.afterFile);
+
+        const payload = {
+          action: 'UPLOAD_POD',
+          reference: currentReference,
+          userId: currentUserId,
+          rowIndex: rowIndex,
+          seq: seq,
+          beforeImage: beforeBase64,
+          afterImage: afterBase64,
+          condition: formValues.condition,
+          note: formValues.note,
+          lat: lat,
+          lng: lng,
+          accuracy: acc,
+          timestamp: new Date().toISOString()
+        };
+
+        let result;
+        try {
+          result = await window.API.uploadPOD(payload);
+        } catch (networkErr) {
+          enqueueAction(payload);
+          closeLoading();
+          showToastInfo('บันทึกคิวออฟไลน์ (POD)');
+          return;
+        }
+
+        closeLoading();
+
+        if (!result.success) {
+          showError(result.message || 'บันทึก POD ไม่สำเร็จ');
+          return;
+        }
+
+        await showSuccess('สำเร็จ', 'บันทึกรูป POD เรียบร้อยแล้ว');
+        showToastSuccess('บันทึก POD สำเร็จ');
+        window.Logger.info('✅ POD uploaded', { rowIndex, seq });
+
+        if (currentReference) {
+          const kwEl = document.getElementById('keyword');
+          kwEl.value = currentReference;
+          search();
+        }
+      } catch (err) {
+        window.Logger.error('❌ POD upload error', err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึก POD');
       }
     }
 
@@ -2484,6 +2943,7 @@
 
       const odo = formValues.odo;
       await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+      startWorkTimer();
     }
 
     /**
@@ -3210,6 +3670,91 @@
       }
     }
 
+    /**
+     * Generate and send Daily Summary Report
+     */
+    async function generateDailySummary() {
+      if (!currentReference || !lastStops || lastStops.length === 0) {
+        showInfo('ไม่มีข้อมูล', 'กรุณาค้นหางานก่อนสร้างรายงาน');
+        return;
+      }
+
+      try {
+        showLoading('กำลังสร้างสรุปงานประจำวัน...');
+
+        const stops = lastStops || [];
+        const totalStops = stops.length;
+        const completedStops = stops.filter(function (s) { return !!s.checkOutTime; }).length;
+        const pendingStops = totalStops - completedStops;
+
+        // คำนวณระยะทาง (ถ้ามี)
+        let totalDistance = 0;
+        stops.forEach(function (s) {
+          if (s.distance && typeof s.distance === 'number') totalDistance += s.distance;
+        });
+
+        // คำนวณเวลา (ถ้ามี check-in แรกและ check-out สุดท้าย)
+        const firstCheckin = stops.find(function (s) { return !!s.checkInTime; });
+        const lastCheckout = stops.filter(function (s) { return !!s.checkOutTime; }).pop();
+        let workDuration = '-';
+        if (firstCheckin && lastCheckout && firstCheckin.checkInTime && lastCheckout.checkOutTime) {
+          try {
+            const start = new Date('2000-01-01 ' + firstCheckin.checkInTime);
+            const end = new Date('2000-01-01 ' + lastCheckout.checkOutTime);
+            const diffMs = end - start;
+            const diffHrs = Math.floor(diffMs / 3600000);
+            const diffMins = Math.floor((diffMs % 3600000) / 60000);
+            workDuration = diffHrs + ' ชม. ' + diffMins + ' นาที';
+          } catch (_) { }
+        }
+
+        closeLoading();
+
+        const summaryHtml = `
+          <div style="text-align:left;">
+            <div style="margin-bottom:12px;padding:12px;background:#f7faf9;border-radius:8px;border:1px solid #dce2e0;">
+              <div style="font-weight:600;margin-bottom:8px;font-size:1rem;color:#16a085;">📊 สรุปงานประจำวัน</div>
+              <div style="font-size:0.9rem;margin-bottom:4px;">📦 Reference: <strong>${safe(currentReference)}</strong></div>
+              <div style="font-size:0.9rem;margin-bottom:4px;">📍 จุดส่งทั้งหมด: <strong>${totalStops}</strong> จุด</div>
+              <div style="font-size:0.9rem;margin-bottom:4px;">✅ ส่งสำเร็จ: <strong>${completedStops}</strong> จุด</div>
+              <div style="font-size:0.9rem;margin-bottom:4px;">⏳ คงค้าง: <strong>${pendingStops}</strong> จุด</div>
+              <div style="font-size:0.9rem;margin-bottom:4px;">🛣️ ระยะทางรวม: <strong>${totalDistance > 0 ? totalDistance.toFixed(1) + ' km' : 'ไม่ระบุ'}</strong></div>
+              <div style="font-size:0.9rem;">⏱️ เวลาทำงาน: <strong>${workDuration}</strong></div>
+            </div>
+            <div style="font-size:0.85rem;color:#666;margin-top:8px;">ต้องการส่งรายงานนี้ผ่าน LINE หรือไม่?</div>
+          </div>
+        `;
+
+        const { value: confirm } = await Swal.fire({
+          title: '📊 สรุปงานประจำวัน',
+          html: summaryHtml,
+          showCancelButton: true,
+          confirmButtonText: 'ส่งผ่าน LINE',
+          cancelButtonText: 'ปิด',
+          confirmButtonColor: '#1abc9c',
+        });
+
+        if (confirm && liff && liff.isLoggedIn()) {
+          const msg =
+            '📊 สรุปงานประจำวัน\n' +
+            '📦 Reference: ' + currentReference + '\n' +
+            '📍 จุดส่งทั้งหมด: ' + totalStops + ' จุด\n' +
+            '✅ ส่งสำเร็จ: ' + completedStops + ' จุด\n' +
+            '⏳ คงค้าง: ' + pendingStops + ' จุด\n' +
+            '🛣️ ระยะทางรวม: ' + (totalDistance > 0 ? totalDistance.toFixed(1) + ' km' : 'ไม่ระบุ') + '\n' +
+            '⏱️ เวลาทำงาน: ' + workDuration;
+
+          await liff.sendMessages([{ type: 'text', text: msg }]);
+          showToastSuccess('ส่งรายงานผ่าน LINE สำเร็จ');
+          window.Logger.info('✅ Daily summary sent via LINE');
+        }
+      } catch (err) {
+        window.Logger.error('❌ Daily summary error', err);
+        closeLoading();
+        showError('ไม่สามารถสร้างรายงานได้');
+      }
+    }
+
     function navigateToStop(rowIndex) {
       const stop = (lastStops || []).find(function (s) { return s.rowIndex === rowIndex; });
       if (!stop) return;
@@ -3325,6 +3870,10 @@
       // Wire Sync control
       const stSyncBtn = document.getElementById('stSyncBtn');
       if (stSyncBtn) stSyncBtn.addEventListener('click', processActionQueue);
+
+      // Wire SOS button
+      const btnSOS = document.getElementById('btnSOS');
+      if (btnSOS) btnSOS.addEventListener('click', triggerSOS);
 
       // Auto-sync when network returns
       window.addEventListener('online', async function () {
@@ -3454,6 +4003,11 @@
     window.saveMissingStepsData = saveMissingStepsData;
     window.showAwarenessPopup = showAwarenessPopup;
     window.saveAwarenessAcknowledgment = saveAwarenessAcknowledgment;
+    window.uploadPOD = uploadPOD;
+    window.triggerSOS = triggerSOS;
+    window.sendQuickTemplate = sendQuickTemplate;
+    window.generateDailySummary = generateDailySummary;
+    window.checkSmartAlerts = checkSmartAlerts;
   </script>
 </body>
 

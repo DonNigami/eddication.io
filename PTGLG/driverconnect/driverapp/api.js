@@ -410,5 +410,77 @@
         return { success: false, message: MESSAGES.ERROR_NETWORK };
       }
     },
+
+    /**
+     * Upload POD (Proof of Delivery) photos
+     * @param {object} payload - {reference, userId, rowIndex, seq, beforeImage, afterImage, condition, note, lat, lng, accuracy, timestamp}
+     * @returns {Promise<*>}
+     */
+    async uploadPOD(payload) {
+      window.Logger.info('📤 uploadPOD', { reference: payload.reference, rowIndex: payload.rowIndex });
+      try {
+        const form = makeFormBody({
+          action: 'UPLOAD_POD',
+          reference: payload.reference,
+          userId: payload.userId,
+          rowIndex: String(payload.rowIndex || ''),
+          seq: String(payload.seq || ''),
+          beforeImage: payload.beforeImage || '',
+          afterImage: payload.afterImage || '',
+          condition: payload.condition || '',
+          note: payload.note || '',
+          lat: String(payload.lat || ''),
+          lng: String(payload.lng || ''),
+          accuracy: payload.accuracy !== undefined ? String(payload.accuracy) : '',
+          timestamp: payload.timestamp || ''
+        });
+
+        const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถบันทึก POD ได้' };
+        }
+
+        window.Logger.debug('✅ POD uploaded');
+        return { success: true, data: json.data || {} };
+      } catch (err) {
+        window.Logger.error('❌ Upload POD failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
+
+    /**
+     * Send Emergency SOS alert
+     * @param {object} payload - {reference, userId, emergencyType, detail, lat, lng, accuracy, timestamp}
+     * @returns {Promise<*>}
+     */
+    async sendSOS(payload) {
+      window.Logger.info('📤 sendSOS', { type: payload.emergencyType, reference: payload.reference });
+      try {
+        const form = makeFormBody({
+          action: 'EMERGENCY_SOS',
+          reference: payload.reference || 'ไม่มีงาน',
+          userId: payload.userId,
+          emergencyType: payload.emergencyType || '',
+          detail: payload.detail || '',
+          lat: String(payload.lat || ''),
+          lng: String(payload.lng || ''),
+          accuracy: payload.accuracy !== undefined ? String(payload.accuracy) : '',
+          timestamp: payload.timestamp || ''
+        });
+
+        const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
+
+        if (!json.success) {
+          return { success: false, message: json.message || 'ไม่สามารถส่ง SOS ได้' };
+        }
+
+        window.Logger.debug('✅ SOS sent');
+        return { success: true, data: json.data || {} };
+      } catch (err) {
+        window.Logger.error('❌ Send SOS failed', err);
+        return { success: false, message: MESSAGES.ERROR_NETWORK };
+      }
+    },
   };
 })();
