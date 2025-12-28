@@ -395,10 +395,7 @@
         formData.append('reference', reference || '');
         formData.append('driverName', driverName || '');
         formData.append('userId', userId || '');
-        formData.append('alcoholValue', String(alcoholValue || ''));
-        formData.append('lat', String(lat || ''));
-        formData.append('lng', String(lng || ''));
-        formData.append('accuracy', (accuracy !== undefined && accuracy !== null) ? String(accuracy) : '');
+        formData.append('result', String(alcoholValue || '')); // Backend expects 'result' not 'alcoholValue'
         formData.append('timestamp', new Date().toISOString());
         if (imageBlob) {
           formData.append('image', imageBlob, 'alcohol.jpg');
@@ -407,7 +404,8 @@
         window.Logger.debug('📤 Sending alcohol data to Railway', { 
           reference, 
           driverName,
-          hasImage: !!imageBlob
+          hasImage: !!imageBlob,
+          result: alcoholValue
         });
 
         const json = await fetchWithRetry(WEB_APP_URL + '/api/uploadAlcohol', { 
