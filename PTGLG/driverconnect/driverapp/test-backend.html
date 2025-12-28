@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Backend Connection</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0 0 16px 0;
+      color: #333;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    .status {
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+    .success {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .error {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .info {
+      background: #e0f2fe;
+      color: #075985;
+    }
+    pre {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    .loading {
+      display: none;
+      margin-top: 12px;
+    }
+    .loading.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔍 Backend Connection Test</h1>
+    <p>ทดสอบการเชื่อมต่อระหว่าง Frontend และ Backend</p>
+    
+    <div style="margin-top: 16px;">
+      <button onclick="testHealth()">Test /health</button>
+      <button onclick="testSearch()">Test Search API</button>
+      <button onclick="testCORS()">Test CORS</button>
+      <button onclick="testConfig()">Show Config</button>
+    </div>
+
+    <div id="loading" class="loading">⏳ กำลังทดสอบ...</div>
+    <div id="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Console Logs</h2>
+    <div id="logs"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const BACKEND_URL = window.CONFIG ? window.CONFIG.WEB_APP_URL : 'https://eddicationio-production.up.railway.app';
+    
+    function log(msg, type = 'info') {
+      const logsDiv = document.getElementById('logs');
+      const timestamp = new Date().toLocaleTimeString('th-TH');
+      const logEntry = document.createElement('div');
+      logEntry.className = 'status ' + type;
+      logEntry.textContent = `[${timestamp}] ${msg}`;
+      logsDiv.appendChild(logEntry);
+      console.log(msg);
+    }
+
+    function showResult(html, type = 'info') {
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = `<div class="status ${type}">${html}</div>`;
+    }
+
+    function showLoading(show) {
+      document.getElementById('loading').classList.toggle('active', show);
+    }
+
+    async function testHealth() {
+      log('Testing /health endpoint...', 'info');
+      showLoading(true);
+      
+      try {
+        const url = BACKEND_URL + '/health';
+        log('URL: ' + url, 'info');
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        
+        log('Response status: ' + response.status, 'info');
+        
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        
+        const data = await response.json();
+        log('✅ Backend online!', 'success');
+        showResult(
+          `<strong>✅ Backend เชื่อมต่อสำเร็จ!</strong><br>` +
+          `Status: ${data.status}<br>` +
+          `Environment: ${data.environment}<br>` +
+          `Backend: ${data.backend}<br>` +
+          `Timestamp: ${data.timestamp}<br>` +
+          `<pre>${JSON.stringify(data, null, 2)}</pre>`,
+          'success'
+        );
+      } catch (err) {
+        log('❌ Health check failed: ' + err.message, 'error');
+        showResult(
+          `<strong>❌ เชื่อมต่อไม่สำเร็จ</strong><br>` +
+          `Error: ${err.message}<br>` +
+          `URL: ${BACKEND_URL}/health<br><br>` +
+          `<strong>วิธีแก้:</strong><br>` +
+          `1. ตรวจสอบว่า Railway backend กำลัง running<br>` +
+          `2. ตรวจสอบ CORS settings<br>` +
+          `3. ลองเปิด DevTools (F12) ดู Network tab`,
+          'error'
+        );
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testSearch() {
+      log('Testing search API...', 'info');
+      showLoading(true);
+      
+      try {
+        const url = BACKEND_URL + '?action=search&keyword=TEST123&userId=test-user';
+        log('URL: ' + url, 'info');
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        
+        log('Response status: ' + response.status, 'info');
+        const data = await response.json();
+        
+        log('Search API responded', 'info');
+        showResult(
+          `<strong>Search API Response:</strong><br>` +
+          `Success: ${data.success}<br>` +
+          `Message: ${data.message || 'N/A'}<br>` +
+          `<pre>${JSON.stringify(data, null, 2)}</pre>`,
+          data.success ? 'success' : 'info'
+        );
+      } catch (err) {
+        log('❌ Search test failed: ' + err.message, 'error');
+        showResult(
+          `<strong>❌ Search API เรียกไม่สำเร็จ</strong><br>` +
+          `Error: ${err.message}`,
+          'error'
+        );
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    async function testCORS() {
+      log('Testing CORS...', 'info');
+      showLoading(true);
+      
+      try {
+        // Test with credentials
+        const url = BACKEND_URL + '/health';
+        log('Testing CORS with credentials: ' + url, 'info');
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        
+        const corsHeaders = {
+          'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+          'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials'),
+          'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods')
+        };
+        
+        log('✅ CORS test passed', 'success');
+        showResult(
+          `<strong>✅ CORS Configuration:</strong><br>` +
+          `<pre>${JSON.stringify(corsHeaders, null, 2)}</pre>`,
+          'success'
+        );
+      } catch (err) {
+        log('❌ CORS test failed: ' + err.message, 'error');
+        showResult(
+          `<strong>❌ CORS Error</strong><br>` +
+          `Error: ${err.message}<br><br>` +
+          `<strong>วิธีแก้:</strong><br>` +
+          `Backend ต้อง allow origin จากหน้านี้`,
+          'error'
+        );
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function testConfig() {
+      log('Checking configuration...', 'info');
+      
+      const configInfo = {
+        'Backend URL': BACKEND_URL,
+        'CONFIG object': window.CONFIG ? 'Loaded ✅' : 'Not loaded ❌',
+        'LIFF_ID': window.CONFIG ? window.CONFIG.LIFF_ID : 'N/A',
+        'Current Origin': window.location.origin,
+        'User Agent': navigator.userAgent.substring(0, 100)
+      };
+      
+      log('Config checked', 'info');
+      showResult(
+        `<strong>📋 Configuration:</strong><br>` +
+        `<pre>${JSON.stringify(configInfo, null, 2)}</pre>`,
+        'info'
+      );
+    }
+
+    // Auto-run basic tests on load
+    window.addEventListener('DOMContentLoaded', () => {
+      log('🚀 Page loaded', 'info');
+      testConfig();
+      
+      setTimeout(() => {
+        log('Running auto-test...', 'info');
+        testHealth();
+      }, 500);
+    });
+  </script>
+</body>
+</html>
