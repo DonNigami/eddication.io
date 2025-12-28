@@ -1347,6 +1347,9 @@ class SheetActions {
     try {
       const { reference, driverName, userId, alcoholValue, imageBase64, lat, lng } = payload;
 
+      // Ensure target sheet exists (legacy path)
+      await this.db.ensureSheet(SHEETS.ALCOHOL);
+
       if (!reference || !driverName) {
         return { success: false, message: 'ข้อมูลไม่ครบ (reference/driverName)' };
       }
