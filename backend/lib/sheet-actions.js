@@ -529,16 +529,16 @@ class SheetActions {
         imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
       }
 
-      const ts = timestamp || new Date().toISOString();
+      // Match GAS sheet structure: reference, driverName, alcoholValue, checkedAt, userId, lat, lng, imageUrl
+      const checkedAt = timestamp || new Date().toISOString();
       const row = [
-        ts,
-        userId || '',
         reference || '',
         driverName || '',
-        result || '',
+        result || '',           // alcoholValue
+        checkedAt,              // checkedAt
+        userId || '',
         '', // lat (unused)
         '', // lng (unused)
-        '', // accuracy (unused)
         imageUrl || ''
       ];
 
@@ -855,8 +855,9 @@ class SheetActions {
       }
 
       const headers = alcoholData[0];
-      const refIdx = headers.indexOf('reference') !== -1 ? headers.indexOf('reference') : 2;
-      const driverIdx = headers.indexOf('driverName') !== -1 ? headers.indexOf('driverName') : 3;
+      // GAS structure: A=reference, B=driverName
+      const refIdx = headers.indexOf('reference') !== -1 ? headers.indexOf('reference') : 0;
+      const driverIdx = headers.indexOf('driverName') !== -1 ? headers.indexOf('driverName') : 1;
 
       const checkedDrivers = [];
       for (let i = 1; i < alcoholData.length; i++) {

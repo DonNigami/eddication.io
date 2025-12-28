@@ -61,14 +61,13 @@ const SHEET_TEMPLATES = {
 
   alcoholcheck: {
     headers: [
-      'timestamp',
-      'userId',
       'reference',
       'driverName',
-      'result',
+      'alcoholValue',
+      'checkedAt',
+      'userId',
       'lat',
       'lng',
-      'accuracy',
       'imageUrl'
     ],
     description: 'Alcohol check submissions'
