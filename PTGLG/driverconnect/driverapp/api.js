@@ -192,7 +192,6 @@
           },
           body: JSON.stringify(payload)
         });
-        });
 
         if (!json.success) {
           return { success: false, message: json.message || MESSAGES.ERROR_UPDATE_FAILED };
