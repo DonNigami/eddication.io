@@ -300,6 +300,120 @@ app.use((req, res) => {
 });
 
 // ============================================================================
+// Customer Notification Endpoints
+// ============================================================================
+
+/**
+ * GET_CUSTOMER_CONTACT: Get customer contact information
+ * GET /api/customer-contact?shipToCode=12345
+ */
+app.get('/api/customer-contact', async (req, res) => {
+  try {
+    const { shipToCode } = req.query;
+    if (!shipToCode) {
+      return res.status(400).json({ success: false, message: 'Missing shipToCode' });
+    }
+
+    const contact = await customerContacts.getContactInfo(shipToCode);
+    if (!contact) {
+      return res.json({ success: false, message: 'Customer contact not found' });
+    }
+
+    return res.json({ success: true, data: contact });
+  } catch (err) {
+    console.error('❌ GET /api/customer-contact error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * UPSERT_CUSTOMER_CONTACT: Add or update customer contact
+ * POST /api/customer-contact
+ */
+app.post('/api/customer-contact', async (req, res) => {
+  try {
+    const contactData = req.body;
+    if (!contactData.shipToCode) {
+      return res.status(400).json({ success: false, message: 'Missing shipToCode' });
+    }
+
+    const result = await customerContacts.upsertContact(contactData);
+    return res.json(result);
+  } catch (err) {
+    console.error('❌ POST /api/customer-contact error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+/**
+ * SEND_NOTIFICATION: Send notification to customer
+ * POST /api/send-notification
+ */
+app.post('/api/send-notification', async (req, res) => {
+  try {
+    const { type, shipToCode, reference, shipmentNo, driverName, ...extraData } = req.body;
+
+    if (!type || !shipToCode) {
+      return res.status(400).json({ success: false, message: 'Missing type or shipToCode' });
+    }
+
+    // Get customer contact info
+    const contact = await customerContacts.getContactInfo(shipToCode);
+    if (!contact) {
+      return res.json({ success: false, message: 'Customer contact not found' });
+    }
+
+    // Check if notification is enabled for this type
+    if (type === 'checkin' && !contact.notifyOnCheckIn) {
+      return res.json({ success: true, skipped: true, message: 'Notification disabled for check-in' });
+    }
+    if (type === 'nearby' && !contact.notifyOnNearby) {
+      return res.json({ success: true, skipped: true, message: 'Notification disabled for nearby' });
+    }
+    if (type === 'completed' && !contact.notifyOnComplete) {
+      return res.json({ success: true, skipped: true, message: 'Notification disabled for completed' });
+    }
+    if (type === 'issue' && !contact.notifyOnIssue) {
+      return res.json({ success: true, skipped: true, message: 'Notification disabled for issue' });
+    }
+
+    // Send notification
+    let result;
+    const notifyData = {
+      customerName: contact.customerName || contact.shipToName,
+      customerEmail: contact.email,
+      chatWebhook: contact.chatWebhook,
+      driverName: driverName || 'คนขับ',
+      shipmentNo: shipmentNo || '',
+      destination: contact.shipToName || '',
+      ...extraData
+    };
+
+    switch (type) {
+      case 'checkin':
+        result = await notificationService.notifyCheckIn(notifyData);
+        break;
+      case 'nearby':
+        result = await notificationService.notifyNearby(notifyData);
+        break;
+      case 'completed':
+        result = await notificationService.notifyCompleted(notifyData);
+        break;
+      case 'issue':
+        result = await notificationService.notifyIssue(notifyData);
+        break;
+      default:
+        return res.status(400).json({ success: false, message: 'Invalid notification type' });
+    }
+
+    return res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('❌ POST /api/send-notification error:', err);
+    return ErrorHandler.sendError(res, err);
+  }
+});
+
+// ============================================================================
 // Server Startup
 // ============================================================================
 async function startServer() {
