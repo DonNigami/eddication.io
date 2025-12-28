@@ -1135,6 +1135,20 @@ class SheetActions {
 
       const now = new Date();
 
+      // Save image if provided
+      let imageUrl = '';
+      try {
+        if (imageBase64 && String(imageBase64).length > 0) {
+          const cleaned = String(imageBase64).replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+          const buf = Buffer.from(cleaned, 'base64');
+          const safeName = `alcohol_${String(reference).replace(/[^a-zA-Z0-9_-]/g, '-')}_${String(driverName).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+          imageUrl = await this.imageStorage.saveImage(buf, safeName);
+        }
+      } catch (imgErr) {
+        console.warn('⚠️ Alcohol image save failed:', imgErr.message);
+        imageUrl = '';
+      }
+
       // Append to alcohol sheet
       const alcoholRow = [
         reference,
@@ -1144,7 +1158,7 @@ class SheetActions {
         userId,
         lat || '',
         lng || '',
-        '' // imageUrl (would be from image upload)
+        imageUrl || ''
       ];
 
       await this.db.appendRow(SHEETS.ALCOHOL, [alcoholRow]);
@@ -1233,6 +1247,20 @@ class SheetActions {
 
       const now = new Date();
 
+      // Save signature image if provided
+      let signatureUrl = '';
+      try {
+        if (signatureBase64 && String(signatureBase64).length > 0) {
+          const cleaned = String(signatureBase64).replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+          const buf = Buffer.from(cleaned, 'base64');
+          const safeName = `signature_${String(reference).replace(/[^a-zA-Z0-9_-]/g, '-')}_${String(rowIndex).replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+          signatureUrl = await this.imageStorage.saveImage(buf, safeName);
+        }
+      } catch (imgErr) {
+        console.warn('⚠️ Review signature save failed:', imgErr.message);
+        signatureUrl = '';
+      }
+
       // Append to review sheet
       const shipmentNo = String(row[headers.indexOf('shipmentNo')] || '').trim();
       const destCode = String(row[headers.indexOf('shipToCode')] || '').trim();
@@ -1249,7 +1277,7 @@ class SheetActions {
         userId,
         latNum,
         lngNum,
-        '' // signatureUrl
+        signatureUrl || ''
       ];
 
       await this.db.appendRow(SHEETS.REVIEW, [reviewRow]);
