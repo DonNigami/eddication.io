@@ -216,29 +216,46 @@
      * @returns {Promise<{success: boolean, checkedDrivers?: string[], message?: string}>}
      */
     async uploadAlcohol({ reference, driverName, userId, alcoholValue, lat, lng, imageBase64, accuracy }) {
-      window.Logger.info('🍺 Uploading alcohol check', { driverName });
+      window.Logger.info('🍺 Uploading alcohol check', { driverName, imageSize: imageBase64 ? Math.round(imageBase64.length / 1024) + 'KB' : '0KB' });
 
       try {
+        // Validate image size (Google Apps Script has payload limit ~50MB, but keep it safe at 10MB)
+        if (imageBase64 && imageBase64.length > 13000000) { // ~10MB base64
+          window.Logger.warn('⚠️ Image too large, truncating');
+          return { success: false, message: 'รูปภาพใหญ่เกินไป กรุณาถ่ายใหม่ในความละเอียดต่ำกว่า' };
+        }
+
         const form = makeFormBody({
           action: ACTIONS.UPLOAD_ALCOHOL,
           reference: reference,
           driverName: driverName,
           userId: userId,
-          alcoholValue: alcoholValue,
+          alcoholValue: String(alcoholValue),
           lat: String(lat),
           lng: String(lng),
-          imageBase64: imageBase64,
-          accuracy: (accuracy !== undefined && accuracy !== null) ? String(accuracy) : undefined
+          imageBase64: imageBase64 || '',
+          accuracy: (accuracy !== undefined && accuracy !== null) ? String(accuracy) : '',
+          timestamp: new Date().toISOString()
+        });
+
+        window.Logger.debug('📤 Sending alcohol data', { 
+          reference, 
+          driverName, 
+          payloadSize: form.toString().length 
         });
 
         const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
 
         if (!json.success) {
+          window.Logger.error('❌ Backend rejected alcohol upload', json);
           return { success: false, message: json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ' };
         }
 
         window.Logger.debug('✅ Alcohol uploaded', json.checkedDrivers);
-        return { success: true, checkedDrivers: json.checkedDrivers };
+        return { 
+          success: true, 
+          data: { checkedDrivers: json.checkedDrivers || [] }
+        };
       } catch (err) {
         window.Logger.error('❌ Alcohol upload failed', err);
         return { success: false, message: MESSAGES.ERROR_NETWORK };

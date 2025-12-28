@@ -2081,6 +2081,12 @@
 
         const base64 = await fileToBase64(file);
 
+        // Log image size for debugging
+        window.Logger.debug('📸 Image compressed', {
+          sizeKB: Math.round(base64.length / 1024),
+          driver: driverName
+        });
+
         showLoading(CONSTANTS.MESSAGES.LOADING_UPLOAD_ALCOHOL);
 
         const payload = {
@@ -2098,6 +2104,7 @@
         try {
           result = await window.API.uploadAlcohol(payload);
         } catch (networkErr) {
+          window.Logger.error('Network error during alcohol upload', networkErr);
           // queue offline
           enqueueAction({ type: 'UPLOAD_ALCOHOL', payload });
           closeLoading();
@@ -2108,7 +2115,8 @@
         closeLoading();
 
         if (!result.success) {
-          showError(result.message);
+          window.Logger.error('❌ Alcohol upload rejected', result);
+          showError(result.message || CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE);
           return;
         }
 
@@ -2127,22 +2135,7 @@
       } catch (err) {
         window.Logger.error('❌ Alcohol check error', err);
         closeLoading();
-        // queue if likely offline
-        try {
-          const fallback = {
-            reference: currentReference,
-            driverName: driverName,
-            userId: currentUserId,
-            alcoholValue: parseFloat(alcoholValue),
-            lat: undefined,
-            lng: undefined,
-            imageBase64: undefined,
-            accuracy: undefined
-          };
-          enqueueAction({ type: 'UPLOAD_ALCOHOL', payload: fallback });
-          showToastInfo('บันทึกคิวออฟไลน์ (แอลกอฮอล์)');
-        } catch (_) { }
-        showError(CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE);
+        showError('เกิดข้อผิดพลาด: ' + (err.message || CONSTANTS.MESSAGES.ERROR_ALCOHOL_SAVE));
       }
     }
 
