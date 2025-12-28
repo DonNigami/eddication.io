@@ -61,6 +61,9 @@ class CustomerContacts {
    */
   async upsertContact(contactData) {
     try {
+      // Ensure sheet exists with headers
+      await this.db.ensureSheet(this.SHEET_NAME);
+      
       const contacts = await this.db.readRange(this.SHEET_NAME, 'A:Z');
       
       // If sheet doesn't exist or is empty, create headers
