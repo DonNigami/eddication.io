@@ -15,6 +15,8 @@ const { GoogleSheetsDB } = require('./lib/google-sheets');
 const { SheetActions } = require('./lib/sheet-actions');
 const { ImageStorage } = require('./lib/image-storage');
 const { ErrorHandler } = require('./lib/error-handler');
+const { NotificationService } = require('./lib/notification-service');
+const { CustomerContacts } = require('./lib/customer-contacts');
 
 // ============================================================================
 // Initialize Express App
@@ -53,6 +55,8 @@ const upload = multer({
 let db = null;
 let sheetActions = null;
 let imageStorage = null;
+let notificationService = null;
+let customerContacts = null;
 
 async function initializeServices() {
   try {
@@ -66,6 +70,8 @@ async function initializeServices() {
 
     sheetActions = new SheetActions(db);
     imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
+    notificationService = new NotificationService();
+    customerContacts = new CustomerContacts(db);
     
     console.log('✅ Services initialized');
   } catch (err) {
