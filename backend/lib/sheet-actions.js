@@ -19,31 +19,48 @@ class SheetActions {
    */
   async search(keyword, userId) {
     try {
-      // Step 1: Try to find reference in Zoile30Connect sheet first
+      // Step 1: Try to find reference in Zoile30Connect sheets
       let zoileReference = null;
       if (this.zoileDb) {
         try {
-          const zoileData = await this.zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
-          if (zoileData && zoileData.length > 1) {
-            // M = column 13 (Reference column in zoile data)
-            const refColIdx = 12; // 0-based index for column M
-            for (let i = 1; i < zoileData.length; i++) {
-              if (zoileData[i][refColIdx] && 
-                  String(zoileData[i][refColIdx]).toUpperCase() === String(keyword).toUpperCase()) {
-                zoileReference = String(zoileData[i][refColIdx]);
+          // Search in InputZoile30 first (column 31 = Reference, 0-based index = 30)
+          const inputZoile = await this.zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
+          if (inputZoile && inputZoile.length > 1) {
+            const refColIdx = 30; // 0-based index for column 31 (Reference)
+            for (let i = 1; i < inputZoile.length; i++) {
+              if (inputZoile[i][refColIdx] && 
+                  String(inputZoile[i][refColIdx]).toUpperCase() === String(keyword).toUpperCase()) {
+                zoileReference = String(inputZoile[i][refColIdx]);
+                console.log('✅ Found in InputZoile30:', zoileReference);
                 break;
               }
             }
           }
+
+          // If not found in InputZoile30, search in data sheet (column 13 = Reference, 0-based index = 12)
+          if (!zoileReference) {
+            const zoileData = await this.zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
+            if (zoileData && zoileData.length > 1) {
+              const refColIdx = 12; // 0-based index for column M (Reference)
+              for (let i = 1; i < zoileData.length; i++) {
+                if (zoileData[i][refColIdx] && 
+                    String(zoileData[i][refColIdx]).toUpperCase() === String(keyword).toUpperCase()) {
+                  zoileReference = String(zoileData[i][refColIdx]);
+                  console.log('✅ Found in data sheet:', zoileReference);
+                  break;
+                }
+              }
+            }
+          }
         } catch (zoileErr) {
-          console.warn('⚠️ Could not search zoile sheet:', zoileErr.message);
+          console.warn('⚠️ Could not search zoile sheets:', zoileErr.message);
         }
       }
 
-      // If not found in zoile, search in jobdata
+      // Step 2: If not found in zoile, search in jobdata
       const searchRef = zoileReference || keyword;
 
-      // Step 2: Read jobdata sheet (contains all stops)
+      // Step 3: Read jobdata sheet (contains all stops)
       const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
       if (!jobdata || jobdata.length === 0) {
         return { success: false, message: 'No jobs found' };
