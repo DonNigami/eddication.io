@@ -169,23 +169,26 @@ class SheetActions {
         const row = obj.row;
         
         // Different column indices for different source types
-        let shipToCode, shipToName;
+        let shipToCode, shipToName, material, materialDesc, qtyStr, distance;
+        
         if (sourceType === 'InputZoile30') {
-          shipToCode = this._getZoileColumnByIndex(row, 33) || ''; // Column AH
-          shipToName = this._getZoileColumnByIndex(row, 34) || '';  // Column AI
+          shipToCode = this._getZoileColumnByIndex(row, 33) || ''; // Column AH (0-based 33)
+          shipToName = this._getZoileColumnByIndex(row, 34) || '';  // Column AI (0-based 34)
+          material = this._getZoileColumnByIndex(row, 40) || '';     // Column AO (0-based 40) = Material
+          materialDesc = this._getZoileColumnByIndex(row, 41) || ''; // Column AP (0-based 41) = Material Desc
+          qtyStr = this._getZoileColumnByIndex(row, 42) || '';       // Column AQ (0-based 42) = Delivery Qty
+          distance = this._getZoileColumnByIndex(row, 14) || '';     // Column O (0-based 14) = Distance
         } else {
           // ZoileData
-          shipToCode = this._getZoileColumnByIndex(row, 13) || ''; // Column N
-          shipToName = this._getZoileColumnByIndex(row, 14) || '';  // Column O
+          shipToCode = this._getZoileColumnByIndex(row, 13) || ''; // Column N (0-based 13)
+          shipToName = this._getZoileColumnByIndex(row, 14) || '';  // Column O (0-based 14)
+          material = this._getZoileColumnByIndex(row, 15) || '';     // Column P (0-based 15) = Material
+          materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Column Q (0-based 16) = Material Desc
+          qtyStr = this._getZoileColumnByIndex(row, 17) || '';       // Column R (0-based 17) = Delivery Qty
+          distance = this._getZoileColumnByIndex(row, 5) || '';      // Column F (0-based 5) = Distance
         }
 
-        const material = this._getZoileColumnByIndex(row, 15) || '';   // Column P (same in both)
-        const materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Column Q (same in both)
-        const qtyStr = sourceType === 'InputZoile30'
-          ? this._getZoileColumnByIndex(row, 17) || ''      // For InputZoile30
-          : this._getZoileColumnByIndex(row, 17) || '';     // For ZoileData
         const qty = parseFloat(qtyStr) || 0;
-        const distance = this._getZoileColumnByIndex(row, 14) || '';  // Column O
 
         const stationKey = shipToCode || ('NAME:' + shipToName);
 
