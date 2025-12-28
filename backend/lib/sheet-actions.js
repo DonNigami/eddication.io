@@ -493,36 +493,45 @@ class SheetActions {
   }
 
   /**
-   * UPLOAD_ALCOHOL: Save alcohol check result with image
+   * UPLOAD_ALCOHOL: Save alcohol check result with image (multipart from Railway)
    */
   async uploadAlcohol(payload) {
     try {
-      const { reference, driverName, userId, alcoholValue, lat, lng, imageBase64, accuracy } = payload;
+      const { reference, driverName, userId, result, timestamp, imageBuffer } = payload;
 
-      // Save image
+      // Save image (if provided)
       let imageUrl = '';
-      if (imageBase64) {
-        const filename = `alcohol_${reference}_${driverName}_${Date.now()}.jpg`;
-        imageUrl = await this.imageStorage.saveBase64Image(imageBase64, filename);
+      if (imageBuffer) {
+        const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
+        imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
       }
 
-      // Append to alcoholcheck sheet
-      const timestamp = new Date().toISOString();
+      const ts = timestamp || new Date().toISOString();
       const row = [
-        timestamp,
+        ts,
         userId || '',
         reference || '',
         driverName || '',
-        alcoholValue || '',
-        lat || '',
-        lng || '',
-        accuracy || '',
+        result || '',
+        '', // lat (unused)
+        '', // lng (unused)
+        '', // accuracy (unused)
         imageUrl || ''
       ];
 
-      await this.db.appendRow(SHEETS.ALCOHOL, [row]);
+      // Primary write
+      try {
+        await this.db.appendRow(SHEETS.ALCOHOL, [row]);
+      } catch (err) {
+        // Fallback to Zoile DB if main sheet is protected
+        if (this.zoileDb) {
+          console.warn('⚠️ Main ALCOHOL sheet protected, falling back to zoileDb:', err.message);
+          await this.zoileDb.appendRow(SHEETS.ALCOHOL, [row]);
+        } else {
+          throw err;
+        }
+      }
 
-      // Get updated list of checked drivers
       const checkedDrivers = await this._getCheckedDriversForReference(reference);
 
       return {
@@ -531,9 +540,9 @@ class SheetActions {
       };
     } catch (err) {
       console.error('❌ Upload alcohol error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Upload failed' 
+      return {
+        success: false,
+        message: err.message || 'Upload failed'
       };
     }
   }
