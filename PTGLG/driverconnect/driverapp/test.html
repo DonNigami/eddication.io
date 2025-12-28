@@ -4050,7 +4050,25 @@
       if (li) li.textContent = 'LIFF: ' + (liffReady ? 'Ready' : 'Not ready');
       if (lo) lo.textContent = 'Login: ' + (loggedIn ? 'Yes' : 'No');
       if (ui) ui.textContent = 'UserId: ' + (userId || '-');
-      if (bu) bu.textContent = 'Backend URL: hidden';
+      
+      // Detect backend source
+      if (bu) {
+        let backendSource = 'default (railway)';
+        try {
+          const customUrl = localStorage.getItem('backend_url');
+          const mode = localStorage.getItem('backend_mode');
+          
+          if (customUrl) {
+            backendSource = 'custom URL';
+          } else if (mode) {
+            backendSource = mode;
+          } else {
+            backendSource = 'railway';
+          }
+        } catch (_) { }
+        
+        bu.textContent = 'Backend: ' + backendSource;
+      }
 
       // Update compact tray (backend/gps unknown here)
       try { updateStatusTray({ liffReady: !!liffReady, loggedIn: !!loggedIn, backendOk: null, gpsOk: null }); } catch (_) { }
