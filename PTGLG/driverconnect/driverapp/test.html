@@ -3781,7 +3781,7 @@
           return null;
         }
 
-        // คำนวณระยะทาง: ใช้เลขไมล์เริ่ม–จบ ถ้ามี, มิฉะนั้น sum ระยะทางรายจุด
+        // คำนวณระยะทาง: เลือกค่ามากที่สุดระหว่าง "เลขไมล์ (end-start)" และ "สองเท่าของ distance ระบบ"
         var tripKey = (currentUserId && currentReference) ? ('trip_odo_' + currentUserId + '_' + currentReference) : null;
         var tripOdo = null;
         try { tripOdo = tripKey ? JSON.parse(localStorage.getItem(tripKey) || '{}') : null; } catch (_) { tripOdo = null; }
@@ -3792,15 +3792,21 @@
         })();
         var startOdo = (tripOdo && Number.isFinite(Number(tripOdo.startOdo))) ? Number(tripOdo.startOdo) : startOdoCandidate;
         var endOdo = (tripOdo && Number.isFinite(Number(tripOdo.endOdo))) ? Number(tripOdo.endOdo) : null;
+        // รวมระยะทางระบบ
+        var systemDistance = 0;
+        stops.forEach(function (s) {
+          var dist = (typeof s.distance === 'number') ? s.distance : Number(s.distance);
+          if (Number.isFinite(dist)) systemDistance += dist;
+        });
 
-        let totalDistance = 0;
-        if (Number.isFinite(startOdo) && Number.isFinite(endOdo) && endOdo >= startOdo) {
-          totalDistance = endOdo - startOdo;
+        // เลขไมล์ (ถ้ามีครบ)
+        var odoDistance = (Number.isFinite(startOdo) && Number.isFinite(endOdo) && endOdo >= startOdo) ? (endOdo - startOdo) : NaN;
+        var doubledSystem = Number.isFinite(systemDistance) ? (systemDistance * 2) : NaN;
+        var totalDistance = 0;
+        if (Number.isFinite(odoDistance) || Number.isFinite(doubledSystem)) {
+          totalDistance = Math.max(Number.isFinite(odoDistance) ? odoDistance : 0, Number.isFinite(doubledSystem) ? doubledSystem : 0);
         } else {
-          stops.forEach(function (s) {
-            var dist = (typeof s.distance === 'number') ? s.distance : Number(s.distance);
-            if (Number.isFinite(dist)) totalDistance += dist;
-          });
+          totalDistance = 0;
         }
 
         // คำนวณเวลา (ถ้ามี check-in แรกและ check-out สุดท้าย)
