@@ -31,6 +31,10 @@ app.use(cors({
   credentials: true
 }));
 
+// Serve saved images (e.g., alcohol/POD/SOS) from DATA_DIR at /images
+const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
+app.use('/images', express.static(DATA_DIR));
+
 // Request logging
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
@@ -91,26 +95,34 @@ app.get('/ping', (req, res) => {
 // ============================================================================
 
 /**
- * SEARCH: Find job by reference
- * GET /?action=search&keyword=REF001&userId=user123
+ * Unified GET handler for query actions
+ * Supported:
+ *  - /?action=search&keyword=REF001&userId=USER
+ *  - /?action=closeJob&reference=REF001&userId=USER
  */
 app.get('/', async (req, res) => {
   try {
-    const { action, keyword, userId } = req.query;
+    const { action } = req.query;
 
     if (action === 'search') {
+      const { keyword, userId } = req.query;
       if (!keyword || !userId) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Missing keyword or userId' 
-        });
+        return res.status(400).json({ success: false, message: 'Missing keyword or userId' });
       }
-
       const result = await sheetActions.search(keyword, userId);
       return res.json(result);
     }
 
-    // Default: return health
+    if (action === 'closeJob') {
+      const { reference, userId } = req.query;
+      if (!reference || !userId) {
+        return res.status(400).json({ success: false, message: 'Missing reference or userId' });
+      }
+      const result = await sheetActions.closeJob(reference, userId);
+      return res.json(result);
+    }
+
+    // Default: return online message
     return res.json({ success: true, message: 'Backend online' });
   } catch (err) {
     console.error('❌ GET / error:', err);
@@ -245,32 +257,7 @@ app.post('/api/endTrip', async (req, res) => {
   }
 });
 
-/**
- * CLOSE_JOB: Mark job as completed
- * GET /?action=closeJob&reference=REF001&userId=user123
- */
-app.get('/', async (req, res) => {
-  try {
-    const { action, reference, userId } = req.query;
-
-    if (action === 'closeJob') {
-      if (!reference || !userId) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Missing reference or userId' 
-        });
-      }
-
-      const result = await sheetActions.closeJob(reference, userId);
-      return res.json(result);
-    }
-
-    return res.json({ success: true, message: 'Backend online' });
-  } catch (err) {
-    console.error('❌ GET / (closeJob) error:', err);
-    return ErrorHandler.sendError(res, err);
-  }
-});
+// (Removed duplicate GET '/' handler; unified above)
 
 /**
  * FILL_MISSING: Fill missing steps data
