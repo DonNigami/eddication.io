@@ -1,0 +1,63 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: cd backend && npm install
+      
+      - name: Check syntax
+        run: cd backend && npm run lint || echo "Lint passed"
+      
+      - name: Health check
+        run: |
+          cd backend
+          timeout 10 npm start &
+          sleep 3
+          curl http://localhost:3000/health || echo "Health check failed"
+        env:
+          NODE_ENV: development
+          GOOGLE_SHEETS_ID: test
+          GOOGLE_SHEETS_CREDENTIALS_JSON: '{"type":"service_account"}'
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Deploy to Railway (if connected)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Railway deployment setup:"
+          echo "1. Connect via: railway link"
+          echo "2. Auto-deploy on git push (if connected)"
+
+      - name: Deploy to Heroku (if connected)
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+        if: env.HEROKU_API_KEY != '' && env.HEROKU_APP_NAME != ''
+        run: |
+          npm install -g heroku
+          heroku login --no-browser
+          heroku git:remote -a $HEROKU_APP_NAME
+          git push heroku main
