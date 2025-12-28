@@ -168,39 +168,31 @@
      * @param {object} params
      * @returns {Promise<{success: boolean, stop?: *, message?: string}>}
      */
-    async updateStop({ rowIndex, status, type, userId, lat, lng, odo }) {
+    async updateStop({ rowIndex, status, type, userId, lat, lng, odo, accuracy }) {
       window.Logger.info('🔄 Updating stop status', { rowIndex, status, type });
 
       try {
-        const url = WEB_APP_URL + '?action=' + ACTIONS.UPDATE_STOP;
-        const form = makeFormBody({
-          rowIndex: String(rowIndex),
-          status: String(status),
-          type: String(type),
-          userId: String(userId),
-          lat: String(lat),
-          lng: String(lng),
-          odo: type === 'checkin' ? String(odo || '') : undefined
-        });
+        // Use REST API endpoint
+        const url = WEB_APP_URL + '/api/updateStop';
+        const payload = {
+          rowIndex: rowIndex,
+          status: status,
+          type: type,
+          userId: userId,
+          lat: lat,
+          lng: lng,
+          odo: type === 'checkin' ? (odo || '') : undefined,
+          accuracy: accuracy
+        };
 
-        let json;
-        try {
-          // Try POST first
-          json = await fetchWithRetry(url, { method: 'POST', body: form });
-        } catch (e) {
-          // Fallback to GET for backward compatibility
-          window.Logger.warn('📌 POST failed, trying GET', e.message);
-          const urlGet =
-            WEB_APP_URL + '?action=' + ACTIONS.UPDATE_STOP +
-            '&rowIndex=' + encodeURIComponent(rowIndex) +
-            '&status=' + encodeURIComponent(status) +
-            '&type=' + encodeURIComponent(type) +
-            '&userId=' + encodeURIComponent(userId) +
-            '&lat=' + encodeURIComponent(lat) +
-            '&lng=' + encodeURIComponent(lng) +
-            (type === 'checkin' ? '&odo=' + encodeURIComponent(odo || '') : '');
-          json = await fetchWithRetry(urlGet);
-        }
+        const json = await fetchWithRetry(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+        });
 
         if (!json.success) {
           return { success: false, message: json.message || MESSAGES.ERROR_UPDATE_FAILED };
