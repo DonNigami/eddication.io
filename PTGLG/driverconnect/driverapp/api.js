@@ -20,8 +20,107 @@
           target[k] = src[k];
         }
       }
-    },
+    }
+    return target;
+  };
 
+  // Build form body with URLSearchParams fallback for older WebViews
+  function makeFormBody(obj) {
+    if (typeof URLSearchParams !== 'undefined') {
+      var form = new URLSearchParams();
+      for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          var val = obj[key];
+          if (val !== undefined) {
+            form.append(key, String(val));
+          }
+        }
+      }
+      return form;
+    }
+    var parts = [];
+    for (var k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k)) {
+        var v = obj[k];
+        if (v !== undefined) {
+          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)));
+        }
+      }
+    }
+    return parts.join('&');
+  }
+
+  /**
+   * Sleep utility for retry delays
+   * @param {number} ms
+   * @returns {Promise<void>}
+   */
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  /**
+   * Make a fetch request with timeout, retry logic, and error recovery
+   * @param {string} url
+   * @param {object} options
+   * @param {number} retryCount - Current retry attempt
+   * @returns {Promise<*>}
+   */
+  async function fetchWithRetry(url, options = {}, retryCount = 0) {
+    var controller = null;
+    var id = null;
+    if (typeof AbortController !== 'undefined') {
+      try {
+        controller = new AbortController();
+        id = setTimeout(function(){ try { controller.abort(); } catch(e){} }, TIMEOUT_MS);
+      } catch(e) {
+        controller = null;
+        id = null;
+      }
+    }
+
+    try {
+      var fetchOptions = assign({}, options, { cache: 'no-store' });
+      if (controller && controller.signal) {
+        fetchOptions.signal = controller.signal;
+      }
+      const res = await fetch(url, fetchOptions);
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        const err = new Error('HTTP ' + res.status + ': ' + (text || res.statusText));
+        err.status = res.status;
+        throw err;
+      }
+
+      // Parse JSON with error handling for non-JSON responses
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (parseErr) {
+        window.Logger.error('❌ Invalid JSON response', { text: text.substring(0, 200) });
+        throw new Error('Backend returned invalid JSON: ' + text.substring(0, 100));
+      }
+    } catch (err) {
+      if (id) clearTimeout(id);
+
+      // Retry logic for network/timeout errors (not 4xx client errors)
+      const isRetryable =
+        err.name === 'AbortError' || // Timeout
+        !err.status || // Network error
+        (err.status >= 500 && err.status < 600); // Server error
+
+      if (isRetryable && retryCount < MAX_RETRIES) {
+        window.Logger.warn('⚠️ Retry ' + (retryCount + 1) + '/' + MAX_RETRIES + ': ' + err.message);
+        await sleep(RETRY_DELAY_MS * (retryCount + 1)); // Exponential backoff
+        return fetchWithRetry(url, options, retryCount + 1);
+      }
+
+      throw err;
+    }
+  }
+
+  window.API = {
     /**
      * Admin: check permission
      */
@@ -153,109 +252,8 @@
         window.Logger.error('❌ Link rich menu failed', err);
         return { success: false, message: MESSAGES.ERROR_NETWORK };
       }
-    }
-  };
-})();
-    return target;
-  };
+    },
 
-  // Build form body with URLSearchParams fallback for older WebViews
-  function makeFormBody(obj) {
-    if (typeof URLSearchParams !== 'undefined') {
-      var form = new URLSearchParams();
-      for (var key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          var val = obj[key];
-          if (val !== undefined) {
-            form.append(key, String(val));
-          }
-        }
-      }
-      return form;
-    }
-    var parts = [];
-    for (var k in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, k)) {
-        var v = obj[k];
-        if (v !== undefined) {
-          parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)));
-        }
-      }
-    }
-    return parts.join('&');
-  }
-
-  /**
-   * Sleep utility for retry delays
-   * @param {number} ms
-   * @returns {Promise<void>}
-   */
-  function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-
-  /**
-   * Make a fetch request with timeout, retry logic, and error recovery
-   * @param {string} url
-   * @param {object} options
-   * @param {number} retryCount - Current retry attempt
-   * @returns {Promise<*>}
-   */
-  async function fetchWithRetry(url, options = {}, retryCount = 0) {
-    var controller = null;
-    var id = null;
-    if (typeof AbortController !== 'undefined') {
-      try {
-        controller = new AbortController();
-        id = setTimeout(function(){ try { controller.abort(); } catch(e){} }, TIMEOUT_MS);
-      } catch(e) {
-        controller = null;
-        id = null;
-      }
-    }
-
-    try {
-      var fetchOptions = assign({}, options, { cache: 'no-store' });
-      if (controller && controller.signal) {
-        fetchOptions.signal = controller.signal;
-      }
-      const res = await fetch(url, fetchOptions);
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        const err = new Error('HTTP ' + res.status + ': ' + (text || res.statusText));
-        err.status = res.status;
-        throw err;
-      }
-
-      // Parse JSON with error handling for non-JSON responses
-      const text = await res.text();
-      try {
-        return JSON.parse(text);
-      } catch (parseErr) {
-        window.Logger.error('❌ Invalid JSON response', { text: text.substring(0, 200) });
-        throw new Error('Backend returned invalid JSON: ' + text.substring(0, 100));
-      }
-    } catch (err) {
-      if (id) clearTimeout(id);
-
-      // Retry logic for network/timeout errors (not 4xx client errors)
-      const isRetryable =
-        err.name === 'AbortError' || // Timeout
-        !err.status || // Network error
-        (err.status >= 500 && err.status < 600); // Server error
-
-      if (isRetryable && retryCount < MAX_RETRIES) {
-        window.Logger.warn('⚠️ Retry ' + (retryCount + 1) + '/' + MAX_RETRIES + ': ' + err.message);
-        await sleep(RETRY_DELAY_MS * (retryCount + 1)); // Exponential backoff
-        return fetchWithRetry(url, options, retryCount + 1);
-      }
-
-      throw err;
-    }
-  }
-
-  window.API = {
     /**
      * Search for a job by reference number
      * @param {string} keyword
@@ -803,3 +801,5 @@
         return { success: false, message: MESSAGES.ERROR_NETWORK };
       }
     }
+  };
+})();
