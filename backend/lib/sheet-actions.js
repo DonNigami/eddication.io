@@ -5,13 +5,15 @@
 
 const { v4: uuidv4 } = require('uuid');
 const { ImageStorage } = require('./image-storage');
+const { DriveStorage } = require('./drive-storage');
 const SHEETS = require('./sheet-names');
 
 class SheetActions {
-  constructor(db, zoileDb) {
+  constructor(db, zoileDb, driveStorage) {
     this.db = db;
     this.zoileDb = zoileDb;
     this.imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
+    this.driveStorage = driveStorage;
   }
 
   /**
@@ -502,9 +504,27 @@ class SheetActions {
       // Ensure target sheet exists with correct headers
       await this.db.ensureSheet(SHEETS.ALCOHOL);
 
-      // Save image (if provided)
+      // Save image to Drive (if provided and driveStorage available)
       let imageUrl = '';
-      if (imageBuffer) {
+      if (imageBuffer && this.driveStorage && process.env.ALC_PARENT_FOLDER_ID) {
+        try {
+          const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
+          const driveResult = await this.driveStorage.uploadImageWithUserFolder(
+            imageBuffer,
+            filename,
+            process.env.ALC_PARENT_FOLDER_ID,
+            userId
+          );
+          imageUrl = driveResult.fileUrl;
+          console.log(`✅ Alcohol image uploaded to Drive: ${filename}`);
+        } catch (driveErr) {
+          console.warn('⚠️ Drive upload failed, falling back to local storage:', driveErr.message);
+          // Fallback to local storage
+          const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
+          imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
+        }
+      } else if (imageBuffer) {
+        // No Drive storage configured, use local
         const filename = `alcohol_${reference || 'ref'}_${driverName || 'driver'}`;
         imageUrl = await this.imageStorage.saveImage(imageBuffer, filename);
       }
@@ -1476,10 +1496,23 @@ class SheetActions {
 
       const now = new Date();
 
-      // Save signature image if provided
+      // Save signature image to Drive (if provided and driveStorage available)
       let signatureUrl = '';
       try {
-        if (signatureBase64 && String(signatureBase64).length > 0) {
+        if (signatureBase64 && String(signatureBase64).length > 0 && this.driveStorage && process.env.ALC_PARENT_FOLDER_ID) {
+          // Try Drive storage first
+          const cleaned = String(signatureBase64).replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+          const filename = `review_${String(reference).replace(/[^a-zA-Z0-9_-]/g, '-')}_${Date.now()}.png`;
+          const driveResult = await this.driveStorage.uploadBase64Image(
+            cleaned,
+            filename,
+            process.env.ALC_PARENT_FOLDER_ID,
+            userId
+          );
+          signatureUrl = driveResult.fileUrl;
+          console.log(`✅ Review signature uploaded to Drive: ${filename}`);
+        } else if (signatureBase64 && String(signatureBase64).length > 0) {
+          // Fallback to local storage
           const cleaned = String(signatureBase64).replace(/^data:image\/[a-zA-Z]+;base64,/, '');
           const buf = Buffer.from(cleaned, 'base64');
           const safeName = `signature_${String(reference).replace(/[^a-zA-Z0-9_-]/g, '-')}_${String(rowIndex).replace(/[^a-zA-Z0-9_-]/g, '-')}`;

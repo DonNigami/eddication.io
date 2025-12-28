@@ -15,6 +15,7 @@ require('dotenv').config();
 const { GoogleSheetsDB } = require('./lib/google-sheets');
 const { SheetActions } = require('./lib/sheet-actions');
 const { ImageStorage } = require('./lib/image-storage');
+const { DriveStorage } = require('./lib/drive-storage');
 const { ErrorHandler } = require('./lib/error-handler');
 const { NotificationService } = require('./lib/notification-service');
 const { CustomerContacts } = require('./lib/customer-contacts');
@@ -67,6 +68,7 @@ const upload = multer({
 // ============================================================================
 let db = null;
 let zoileDb = null;
+let driveStorage = null;
 let sheetActions = null;
 let imageStorage = null;
 let notificationService = null;
@@ -93,11 +95,23 @@ async function initializeServices() {
       console.log('✅ Zoile30Connect sheet connected');
     }
 
+    // Initialize Google Drive storage (for images/signatures)
+    if (process.env.ALC_PARENT_FOLDER_ID) {
+      console.log('🔧 Initializing Google Drive storage...');
+      driveStorage = new DriveStorage(
+        process.env.GOOGLE_SHEETS_CREDENTIALS_JSON || process.env.GOOGLE_SHEETS_KEY_FILE
+      );
+      await driveStorage.initialize();
+      console.log('✅ Google Drive storage connected');
+    } else {
+      console.warn('⚠️ ALC_PARENT_FOLDER_ID not set, images will be stored locally');
+    }
+
     // Auto-create missing sheets
     console.log('🔧 Checking and creating required sheets...');
     await db.initializeRequiredSheets();
 
-    sheetActions = new SheetActions(db, zoileDb);
+    sheetActions = new SheetActions(db, zoileDb, driveStorage);
     imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
     notificationService = new NotificationService();
     customerContacts = new CustomerContacts(db);
