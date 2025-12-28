@@ -6,6 +6,7 @@
 const { v4: uuidv4 } = require('uuid');
 const { ImageStorage } = require('./image-storage');
 const { DriveStorage } = require('./drive-storage');
+const { haversineDistanceMeters, formatDateForClient, parseCoordinates } = require('./location-utils');
 const SHEETS = require('./sheet-names');
 
 class SheetActions {
@@ -421,7 +422,7 @@ class SheetActions {
           const destLng = parseFloat(currentRow[destLngIdx]);
 
           if (!isNaN(destLat) && !isNaN(destLng)) {
-            const distance = this._haversineDistance(destLat, destLng, lat, lng);
+            const distance = haversineDistanceMeters(destLat, destLng, lat, lng);
             if (distance > finalRadius) {
               return {
                 success: false,
@@ -1133,19 +1134,7 @@ class SheetActions {
     }
   }
 
-  /**
-   * Haversine distance calculation
-   */
-  _haversineDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371000; // Earth radius in meters
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
+
   /**
    * ADMIN_ADD_STOP: Add extra stop for a reference
    */
@@ -1519,7 +1508,7 @@ class SheetActions {
         const destLng = parseFloat(row[destLngIdx]);
 
         if (!isNaN(destLat) && !isNaN(destLng)) {
-          const distance = this._haversineDistance(destLat, destLng, latNum, lngNum);
+          const distance = haversineDistanceMeters(destLat, destLng, latNum, lngNum);
           if (distance > finalRadius) {
             return {
               success: false,
