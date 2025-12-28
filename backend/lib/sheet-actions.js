@@ -172,20 +172,20 @@ class SheetActions {
         let shipToCode, shipToName, material, materialDesc, qtyStr, distance;
         
         if (sourceType === 'InputZoile30') {
-          shipToCode = this._getZoileColumnByIndex(row, 33) || ''; // Column AH (0-based 33)
-          shipToName = this._getZoileColumnByIndex(row, 34) || '';  // Column AI (0-based 34)
-          material = this._getZoileColumnByIndex(row, 40) || '';     // Column AO (0-based 40) = Material
-          materialDesc = this._getZoileColumnByIndex(row, 41) || ''; // Column AP (0-based 41) = Material Desc
-          qtyStr = this._getZoileColumnByIndex(row, 42) || '';       // Column AQ (0-based 42) = Delivery Qty
-          distance = this._getZoileColumnByIndex(row, 14) || '';     // Column O (0-based 14) = Distance
+          shipToCode = this._getZoileColumnByIndex(row, 33) || ''; // Column AH (index 33)
+          shipToName = this._getZoileColumnByIndex(row, 34) || '';  // Column AI (index 34)
+          material = this._getZoileColumnByIndex(row, 40) || '';     // Material (รหัสสินค้า) - Column AO (index 40)
+          materialDesc = this._getZoileColumnByIndex(row, 41) || ''; // Material Desc (ชื่อสินค้า) - Column AP (index 41)
+          qtyStr = this._getZoileColumnByIndex(row, 42) || '';       // Delivery Qty (จำนวน) - Column AQ (index 42) - Display Value
+          distance = this._getZoileColumnByIndex(row, 14) || '';     // Distance - Column O (index 14)
         } else {
           // ZoileData
-          shipToCode = this._getZoileColumnByIndex(row, 13) || ''; // Column N (0-based 13)
-          shipToName = this._getZoileColumnByIndex(row, 14) || '';  // Column O (0-based 14)
-          material = this._getZoileColumnByIndex(row, 15) || '';     // Column P (0-based 15) = Material
-          materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Column Q (0-based 16) = Material Desc
-          qtyStr = this._getZoileColumnByIndex(row, 17) || '';       // Column R (0-based 17) = Delivery Qty
-          distance = this._getZoileColumnByIndex(row, 5) || '';      // Column F (0-based 5) = Distance
+          shipToCode = this._getZoileColumnByIndex(row, 13) || ''; // Column N (index 13)
+          shipToName = this._getZoileColumnByIndex(row, 14) || '';  // Column O (index 14)
+          material = this._getZoileColumnByIndex(row, 15) || '';     // Material (รหัสสินค้า) - Column P (index 15)
+          materialDesc = this._getZoileColumnByIndex(row, 16) || ''; // Material Desc (ชื่อสินค้า) - Column Q (index 16)
+          qtyStr = this._getZoileColumnByIndex(row, 17) || '';       // Delivery Qty (จำนวน) - Column R (index 17) - Display Value
+          distance = this._getZoileColumnByIndex(row, 5) || '';      // Distance - Column F (index 5)
         }
 
         const qty = parseFloat(qtyStr) || 0;
@@ -210,12 +210,19 @@ class SheetActions {
         const matKey = materialDesc || material || 'UNKNOWN';
         if (!stationAgg[stationKey].materials[matKey]) {
           stationAgg[stationKey].materials[matKey] = {
-            MATERIAL_DESC: materialDesc,  // ชื่อสินค้า
-            MATERIAL_CODE: material,  // รหัสสินค้า
-            DELIVERY_QTY: 0  // จำนวน
+            MATERIAL: material,           // Material (รหัสสินค้า)
+            MATERIAL_DESC: materialDesc,  // Material Desc (ชื่อสินค้า)
+            DELIVERY_QTY: qtyStr          // Delivery Qty (จำนวน) - Keep as display value string
           };
+        } else {
+          // Sum quantities (parse and format)
+          const currentQty = parseFloat(String(stationAgg[stationKey].materials[matKey].DELIVERY_QTY).replace(/,/g, '')) || 0;
+          const newTotal = currentQty + qty;
+          stationAgg[stationKey].materials[matKey].DELIVERY_QTY = newTotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          });
         }
-        stationAgg[stationKey].materials[matKey].DELIVERY_QTY += qty;
       });
 
       // ============================================================
@@ -259,13 +266,7 @@ class SheetActions {
       let seq = 2;
       Object.keys(stationAgg).forEach(key => {
         const agg = stationAgg[key];
-        const materialsArray = Object.keys(agg.materials).map(k => {
-          const mat = agg.materials[k];
-          return {
-            ...mat,
-            DELIVERY_QTY: formatQty(mat.DELIVERY_QTY)  // Format material quantity
-          };
-        });
+        const materialsArray = Object.keys(agg.materials).map(k => agg.materials[k]);
 
         stops.push({
           seq: seq++,
