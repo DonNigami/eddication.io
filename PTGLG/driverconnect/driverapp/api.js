@@ -51,6 +51,32 @@
   }
 
   /**
+   * Convert base64/data URI to Blob for file uploads
+   * @param {string} dataURI
+   * @returns {Blob}
+   */
+  function dataURItoBlob(dataURI) {
+    try {
+      // Handle data URI format: data:image/jpeg;base64,/9j/4AAQ...
+      var parts = dataURI.split(',');
+      var byteString = parts.length > 1 ? atob(parts[1]) : atob(dataURI);
+      var mimeString = parts.length > 1 && parts[0].indexOf(':') > -1 
+        ? parts[0].split(':')[1].split(';')[0] 
+        : 'image/jpeg';
+      
+      var ab = new ArrayBuffer(byteString.length);
+      var ia = new Uint8Array(ab);
+      for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      return new Blob([ab], { type: mimeString });
+    } catch (err) {
+      window.Logger.error('Failed to convert data URI to blob', err);
+      return null;
+    }
+  }
+
+  /**
    * Sleep utility for retry delays
    * @param {number} ms
    * @returns {Promise<void>}
@@ -81,6 +107,12 @@
 
     try {
       var fetchOptions = assign({}, options, { cache: 'no-store' });
+      
+      // Don't set Content-Type header for FormData (browser will set it with boundary)
+      if (options.body instanceof FormData && fetchOptions.headers) {
+        delete fetchOptions.headers['Content-Type'];
+      }
+      
       if (controller && controller.signal) {
         fetchOptions.signal = controller.signal;
       }
@@ -356,26 +388,33 @@
           return { success: false, message: 'รูปภาพใหญ่เกินไป กรุณาถ่ายใหม่ในความละเอียดต่ำกว่า' };
         }
 
-        const form = makeFormBody({
-          action: ACTIONS.UPLOAD_ALCOHOL,
-          reference: reference,
-          driverName: driverName,
-          userId: userId,
-          alcoholValue: String(alcoholValue),
-          lat: String(lat),
-          lng: String(lng),
-          imageBase64: imageBase64 || '',
-          accuracy: (accuracy !== undefined && accuracy !== null) ? String(accuracy) : '',
-          timestamp: new Date().toISOString()
-        });
+        // Convert base64 to blob for multipart upload
+        const imageBlob = imageBase64 ? dataURItoBlob(imageBase64) : null;
+        
+        const formData = new FormData();
+        formData.append('reference', reference || '');
+        formData.append('driverName', driverName || '');
+        formData.append('userId', userId || '');
+        formData.append('alcoholValue', String(alcoholValue || ''));
+        formData.append('lat', String(lat || ''));
+        formData.append('lng', String(lng || ''));
+        formData.append('accuracy', (accuracy !== undefined && accuracy !== null) ? String(accuracy) : '');
+        formData.append('timestamp', new Date().toISOString());
+        if (imageBlob) {
+          formData.append('image', imageBlob, 'alcohol.jpg');
+        }
 
-        window.Logger.debug('📤 Sending alcohol data', { 
+        window.Logger.debug('📤 Sending alcohol data to Railway', { 
           reference, 
-          driverName, 
-          payloadSize: form.toString().length 
+          driverName,
+          hasImage: !!imageBlob
         });
 
-        const json = await fetchWithRetry(WEB_APP_URL, { method: 'POST', body: form });
+        const json = await fetchWithRetry(WEB_APP_URL + '/api/uploadAlcohol', { 
+          method: 'POST', 
+          body: formData
+          // Don't set headers - let browser set Content-Type with boundary for multipart
+        });
 
         if (!json.success) {
           window.Logger.error('❌ Backend rejected alcohol upload', json);
