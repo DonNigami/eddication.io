@@ -20,6 +20,11 @@ class GoogleSheetsDB {
       // Load credentials
       let credentials;
       
+      // Check if credentialsSource is provided
+      if (!this.credentialsSource) {
+        throw new Error('GOOGLE_SHEETS_CREDENTIALS_JSON or GOOGLE_SHEETS_KEY_FILE environment variable is required');
+      }
+      
       if (this.credentialsSource.startsWith('{')) {
         // JSON string passed directly
         credentials = JSON.parse(this.credentialsSource);
