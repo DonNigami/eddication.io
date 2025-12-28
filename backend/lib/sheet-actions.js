@@ -97,15 +97,15 @@ class SheetActions {
       // Determine column to update based on type
       let colName = '';
       if (type === 'checkin') {
-        colName = 'checkInTime';
+        colName = 'checkIn';
       } else if (type === 'checkout') {
-        colName = 'checkOutTime';
+        colName = 'checkOut';
       } else if (type === 'fuel') {
-        colName = 'fuelingTime';
+        colName = 'fuelingAt';
       } else if (type === 'unload') {
-        colName = 'unloadDoneTime';
+        colName = 'unloadDoneAt';
       } else if (type === 'review') {
-        colName = 'reviewedTime';
+        colName = 'reviewedAt';
       }
 
       const colIdx = headers.indexOf(colName);
@@ -122,7 +122,7 @@ class SheetActions {
 
       // Store odometer if check-in
       if (type === 'checkin' && odo) {
-        const odoColIdx = headers.indexOf('checkInOdo');
+        const odoColIdx = headers.indexOf('Check-in Odometer');
         if (odoColIdx !== -1) {
           const odoLetter = this._getColumnLetter(odoColIdx);
           const odoRange = `${odoLetter}${targetRow}`;
@@ -556,9 +556,10 @@ class SheetActions {
       }
     });
     
-    // Add mapped fields for frontend compatibility
-    // destination1 = shipToCode or Station code
-    // destination2 = shipToName or Station name
+    // Map Google Sheet column names to frontend expected field names
+    // Frontend expects these field names (legacy compatibility)
+    
+    // Station/Destination mapping
     if (!obj.destination1 && obj.shipToCode) {
       obj.destination1 = obj.shipToCode;
     }
@@ -566,12 +567,39 @@ class SheetActions {
       obj.destination2 = obj.shipToName;
     }
     
-    // Also map common variations
-    if (!obj.destination1 && obj.stationCode) {
-      obj.destination1 = obj.stationCode;
+    // Time field mapping (Sheet uses checkIn/checkOut, frontend expects checkInTime/checkOutTime)
+    if (obj.checkIn && !obj.checkInTime) {
+      obj.checkInTime = obj.checkIn;
     }
-    if (!obj.destination2 && obj.stationName) {
-      obj.destination2 = obj.stationName;
+    if (obj.checkOut && !obj.checkOutTime) {
+      obj.checkOutTime = obj.checkOut;
+    }
+    if (obj.fuelingAt && !obj.fuelingTime) {
+      obj.fuelingTime = obj.fuelingAt;
+    }
+    if (obj.unloadDoneAt && !obj.unloadDoneTime) {
+      obj.unloadDoneTime = obj.unloadDoneAt;
+    }
+    if (obj.reviewedAt && !obj.reviewedTime) {
+      obj.reviewedTime = obj.reviewedAt;
+    }
+    
+    // Odometer mapping (Sheet uses "Check-in Odometer", frontend expects checkInOdo)
+    if (obj['Check-in Odometer'] && !obj.checkInOdo) {
+      obj.checkInOdo = obj['Check-in Odometer'];
+    }
+    
+    // Distance mapping (Sheet uses "Distance (km)", frontend expects distance)
+    if (obj['Distance (km)'] && !obj.distance) {
+      obj.distance = obj['Distance (km)'];
+    }
+    
+    // Coordinate mappings
+    if (obj.destLat && !obj.destinationLat) {
+      obj.destinationLat = obj.destLat;
+    }
+    if (obj.destLng && !obj.destinationLng) {
+      obj.destinationLng = obj.destLng;
     }
     
     return obj;
