@@ -2717,8 +2717,8 @@
         let materialsBlock = '';
         if (stop.materials && stop.materials.length > 0) {
           const parts = stop.materials.map(function (m) {
-            const name = m.materialDesc || m.material || 'สินค้า';
-            const qty = m.totalQty || 0;
+            const name = m.MATERIAL_DESC || m.MATERIAL_CODE || 'สินค้า';
+            const qty = m.DELIVERY_QTY || 0;
             return '- ' + safe(name) + ' ' + safe(qty);
           });
           materialsBlock =
