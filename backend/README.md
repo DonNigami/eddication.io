@@ -179,6 +179,8 @@ PORT=3000
 CORS_ORIGIN=https://yourdomain.com,http://localhost:8000
 DATA_DIR=./data
 BACKEND_URL=https://your-backend-url.com
+ALC_PARENT_FOLDER_ID=shared_drive_folder_id_for_uploads
+GOOGLE_IMPERSONATE_EMAIL=user@yourdomain.com # optional: use domain-wide delegation to a user with Drive quota
 ```
 
 ## API Endpoints

@@ -7,8 +7,9 @@ const { google } = require('googleapis');
 const { Readable } = require('stream');
 
 class DriveStorage {
-  constructor(credentialsSource) {
+  constructor(credentialsSource, options = {}) {
     this.credentialsSource = credentialsSource;
+    this.impersonateEmail = options.impersonateEmail || process.env.GOOGLE_IMPERSONATE_EMAIL || null;
     this.drive = null;
     this.auth = null;
   }
@@ -43,7 +44,8 @@ class DriveStorage {
         scopes: [
           'https://www.googleapis.com/auth/drive',
           'https://www.googleapis.com/auth/drive.file'
-        ]
+        ],
+        subject: this.impersonateEmail || undefined // domain-wide delegation to a user with Drive quota
       });
 
       this.drive = google.drive({ version: 'v3', auth: this.auth });
@@ -69,7 +71,9 @@ class DriveStorage {
         q: `'${parentFolderId}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         spaces: 'drive',
         fields: 'files(id, name)',
-        pageSize: 1
+        pageSize: 1,
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true
       });
 
       if (response.data.files && response.data.files.length > 0) {
@@ -86,7 +90,8 @@ class DriveStorage {
           mimeType: 'application/vnd.google-apps.folder',
           parents: [parentFolderId]
         },
-        fields: 'id'
+        fields: 'id',
+        supportsAllDrives: true
       });
 
       const newFolderId = createResponse.data.id;
@@ -122,7 +127,8 @@ class DriveStorage {
           mimeType: 'image/jpeg',
           body: stream
         },
-        fields: 'id, webViewLink'
+        fields: 'id, webViewLink',
+        supportsAllDrives: true
       });
 
       const fileId = response.data.id;
@@ -135,7 +141,8 @@ class DriveStorage {
           requestBody: {
             role: 'reader',
             type: 'anyone'
-          }
+          },
+          supportsAllDrives: true
         });
       } catch (permErr) {
         console.warn('⚠️ Could not set public read permission:', permErr.message);
@@ -219,7 +226,8 @@ class DriveStorage {
     try {
       const response = await this.drive.files.get({
         fileId: fileId,
-        fields: 'id, name, mimeType, size, createdTime, modifiedTime, webViewLink'
+        fields: 'id, name, mimeType, size, createdTime, modifiedTime, webViewLink',
+        supportsAllDrives: true
       });
       return response.data;
     } catch (err) {
@@ -235,7 +243,7 @@ class DriveStorage {
    */
   async deleteFile(fileId) {
     try {
-      await this.drive.files.delete({ fileId });
+      await this.drive.files.delete({ fileId, supportsAllDrives: true });
       console.log(`✅ Deleted file: ${fileId}`);
     } catch (err) {
       console.error(`❌ Failed to delete file:`, err.message);
