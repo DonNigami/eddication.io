@@ -8,8 +8,9 @@ const { ImageStorage } = require('./image-storage');
 const SHEETS = require('./sheet-names');
 
 class SheetActions {
-  constructor(db) {
+  constructor(db, zoileDb) {
     this.db = db;
+    this.zoileDb = zoileDb;
     this.imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
   }
 
@@ -18,7 +19,31 @@ class SheetActions {
    */
   async search(keyword, userId) {
     try {
-      // Read jobdata sheet (contains all stops)
+      // Step 1: Try to find reference in Zoile30Connect sheet first
+      let zoileReference = null;
+      if (this.zoileDb) {
+        try {
+          const zoileData = await this.zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
+          if (zoileData && zoileData.length > 1) {
+            // M = column 13 (Reference column in zoile data)
+            const refColIdx = 12; // 0-based index for column M
+            for (let i = 1; i < zoileData.length; i++) {
+              if (zoileData[i][refColIdx] && 
+                  String(zoileData[i][refColIdx]).toUpperCase() === String(keyword).toUpperCase()) {
+                zoileReference = String(zoileData[i][refColIdx]);
+                break;
+              }
+            }
+          }
+        } catch (zoileErr) {
+          console.warn('⚠️ Could not search zoile sheet:', zoileErr.message);
+        }
+      }
+
+      // If not found in zoile, search in jobdata
+      const searchRef = zoileReference || keyword;
+
+      // Step 2: Read jobdata sheet (contains all stops)
       const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
       if (!jobdata || jobdata.length === 0) {
         return { success: false, message: 'No jobs found' };
@@ -36,7 +61,7 @@ class SheetActions {
       const matchingStops = [];
       for (let i = 1; i < jobdata.length; i++) {
         if (jobdata[i][referenceIdx] && 
-            String(jobdata[i][referenceIdx]).toUpperCase() === String(keyword).toUpperCase()) {
+            String(jobdata[i][referenceIdx]).toUpperCase() === String(searchRef).toUpperCase()) {
           matchingStops.push(this._rowToObject(headers, jobdata[i]));
         }
       }
@@ -61,7 +86,8 @@ class SheetActions {
           stops: matchingStops,
           alcohol: alcoholData || { drivers: [], checkedDrivers: [] },
           jobClosed: !!firstStop.jobClosedAt,
-          tripEnded: !!firstStop.tripEndedAt
+          tripEnded: !!firstStop.tripEndedAt,
+          foundInZoile: !!zoileReference
         }
       };
     } catch (err) {

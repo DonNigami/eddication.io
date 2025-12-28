@@ -53,6 +53,7 @@ const upload = multer({
 // Database Initialization
 // ============================================================================
 let db = null;
+let zoileDb = null;
 let sheetActions = null;
 let imageStorage = null;
 let notificationService = null;
@@ -68,11 +69,22 @@ async function initializeServices() {
     await db.initialize();
     console.log('✅ Google Sheets connected');
 
+    // Initialize Zoile sheet (separate instance)
+    if (process.env.ZOILE_SHEET_ID) {
+      console.log('🔧 Initializing Zoile30Connect sheet...');
+      zoileDb = new GoogleSheetsDB(
+        process.env.ZOILE_SHEET_ID,
+        process.env.GOOGLE_SHEETS_CREDENTIALS_JSON || process.env.GOOGLE_SHEETS_KEY_FILE
+      );
+      await zoileDb.initialize();
+      console.log('✅ Zoile30Connect sheet connected');
+    }
+
     // Auto-create missing sheets
     console.log('🔧 Checking and creating required sheets...');
     await db.initializeRequiredSheets();
 
-    sheetActions = new SheetActions(db);
+    sheetActions = new SheetActions(db, zoileDb);
     imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
     notificationService = new NotificationService();
     customerContacts = new CustomerContacts(db);

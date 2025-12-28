@@ -14,6 +14,10 @@ module.exports = {
   REVIEW: 'reviewdata',
   ADMIN_LOG: 'adminlog',
   
+  // Zoile30Connect sheets
+  ZOILE_DATA: 'data',
+  ZOILE_INPUT: 'InputZoile30',
+  
   // Additional sheets (if needed)
   POD: 'POD',
   EMERGENCY: 'Emergency',
