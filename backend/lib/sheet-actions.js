@@ -127,7 +127,7 @@ class SheetActions {
           alcohol: alcoholData || { drivers: [], checkedDrivers: [] },
           jobClosed: !!firstStop.jobClosedAt,
           tripEnded: !!firstStop.tripEndedAt,
-          foundInZoile: !!zoileReference
+          foundInZoile: firstStop.source === 'zoile'
         }
       };
     } catch (err) {
