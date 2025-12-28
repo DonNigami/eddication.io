@@ -139,6 +139,41 @@ app.get('/ping', (req, res) => {
   res.send('pong');
 });
 
+/**
+ * DEBUG: Force create/ensure all sheets
+ * GET /api/debug/ensure-sheets
+ */
+app.get('/api/debug/ensure-sheets', async (req, res) => {
+  try {
+    console.log('🔧 Forcing sheet creation...');
+    await db.initializeRequiredSheets();
+    console.log('✅ All sheets ensured');
+    
+    // Also ensure alcoholcheck specifically
+    const created = await db.ensureSheet('alcoholcheck', [
+      'timestamp',
+      'userId',
+      'reference',
+      'driverName',
+      'result',
+      'lat',
+      'lng',
+      'accuracy',
+      'imageUrl'
+    ]);
+    
+    return res.json({ 
+      success: true, 
+      message: 'All sheets ensured',
+      alcoholcheckCreated: created,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('❌ Ensure sheets error:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ============================================================================
 // DEBUG Endpoints (development troubleshooting)
 // ============================================================================
