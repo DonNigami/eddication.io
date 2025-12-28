@@ -210,12 +210,12 @@ class SheetActions {
         const matKey = materialDesc || material || 'UNKNOWN';
         if (!stationAgg[stationKey].materials[matKey]) {
           stationAgg[stationKey].materials[matKey] = {
-            material: materialDesc,  // Display the description as primary
-            materialDesc: material,  // Store code as secondary
-            totalQty: 0
+            MATERIAL_DESC: materialDesc,  // ชื่อสินค้า
+            MATERIAL_CODE: material,  // รหัสสินค้า
+            DELIVERY_QTY: 0  // จำนวน
           };
         }
-        stationAgg[stationKey].materials[matKey].totalQty += qty;
+        stationAgg[stationKey].materials[matKey].DELIVERY_QTY += qty;
       });
 
       // ============================================================
@@ -263,7 +263,7 @@ class SheetActions {
           const mat = agg.materials[k];
           return {
             ...mat,
-            totalQty: formatQty(mat.totalQty)  // Format material quantity
+            DELIVERY_QTY: formatQty(mat.DELIVERY_QTY)  // Format material quantity
           };
         });
 
