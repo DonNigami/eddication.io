@@ -19,82 +19,90 @@ class SheetActions {
    */
   async search(keyword, userId) {
     try {
-      // Step 1: Try to find reference in Zoile30Connect sheets
-      let zoileReference = null;
-      if (this.zoileDb) {
+      const target = String(keyword || '').trim().toUpperCase();
+      let matchingStops = [];
+
+      // Step 1: Search in jobdata (contains S-type references)
+      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
+      if (jobdata && jobdata.length > 1) {
+        const headers = jobdata[0];
+        const referenceIdx = headers.indexOf('referenceNo');
+        
+        if (referenceIdx !== -1) {
+          // Exact match first
+          for (let i = 1; i < jobdata.length; i++) {
+            const cell = jobdata[i][referenceIdx];
+            if (!cell) continue;
+            const value = String(cell).trim().toUpperCase();
+            if (value === target) {
+              matchingStops.push(this._rowToObject(headers, jobdata[i]));
+            }
+          }
+
+          // Fallback: relaxed matching (contains) if exact match not found
+          if (matchingStops.length === 0) {
+            for (let i = 1; i < jobdata.length; i++) {
+              const cell = jobdata[i][referenceIdx];
+              if (!cell) continue;
+              const value = String(cell).trim().toUpperCase();
+              if (value.includes(target) || target.includes(value)) {
+                matchingStops.push(this._rowToObject(headers, jobdata[i]));
+              }
+            }
+          }
+        }
+      }
+
+      // Step 2: If no match in jobdata, search Zoile sheets (for M-type references and other data)
+      if (matchingStops.length === 0 && this.zoileDb) {
         try {
-          // Search in InputZoile30 first (column 31 = Reference, 0-based index = 30)
+          let zoileRow = null;
+          
+          // Search in InputZoile30 (column 31 = Reference, 0-based index = 30)
           const inputZoile = await this.zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
           if (inputZoile && inputZoile.length > 1) {
-            const refColIdx = 30; // 0-based index for column 31 (Reference)
+            const refColIdx = 30;
             for (let i = 1; i < inputZoile.length; i++) {
               if (inputZoile[i][refColIdx] && 
-                  String(inputZoile[i][refColIdx]).toUpperCase() === String(keyword).toUpperCase()) {
-                zoileReference = String(inputZoile[i][refColIdx]);
-                console.log('✅ Found in InputZoile30:', zoileReference);
+                  String(inputZoile[i][refColIdx]).toUpperCase() === target) {
+                zoileRow = { source: 'InputZoile30', headers: inputZoile[0], data: inputZoile[i] };
                 break;
               }
             }
           }
 
           // If not found in InputZoile30, search in data sheet (column 13 = Reference, 0-based index = 12)
-          if (!zoileReference) {
+          if (!zoileRow) {
             const zoileData = await this.zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
             if (zoileData && zoileData.length > 1) {
-              const refColIdx = 12; // 0-based index for column M (Reference)
+              const refColIdx = 12;
               for (let i = 1; i < zoileData.length; i++) {
                 if (zoileData[i][refColIdx] && 
-                    String(zoileData[i][refColIdx]).toUpperCase() === String(keyword).toUpperCase()) {
-                  zoileReference = String(zoileData[i][refColIdx]);
-                  console.log('✅ Found in data sheet:', zoileReference);
+                    String(zoileData[i][refColIdx]).toUpperCase() === target) {
+                  zoileRow = { source: 'ZoileData', headers: zoileData[0], data: zoileData[i] };
                   break;
                 }
               }
             }
           }
+
+          // If found in Zoile, create a stop object from it
+          if (zoileRow) {
+            console.log(`✅ Found in ${zoileRow.source}:`, target);
+            // Map Zoile columns to stop object
+            const stopObj = {
+              referenceNo: target,
+              shipmentNo: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Shipment No.') || '',
+              shipToName: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Ship to Name') || '',
+              shipToCode: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Ship to') || '',
+              distance: this._getZoileColumn(zoileRow.headers, zoileRow.data, 'Distance') || '',
+              sourceRow: 'zoile',
+              source: zoileRow.source
+            };
+            matchingStops.push(stopObj);
+          }
         } catch (zoileErr) {
           console.warn('⚠️ Could not search zoile sheets:', zoileErr.message);
-        }
-      }
-
-      // Step 2: If not found in zoile, search in jobdata
-      const searchRef = zoileReference || keyword;
-
-      // Step 3: Read jobdata sheet (contains all stops)
-      const jobdata = await this.db.readRange(SHEETS.JOBDATA, 'A:AZ');
-      if (!jobdata || jobdata.length === 0) {
-        return { success: false, message: 'No jobs found' };
-      }
-
-      // Parse headers
-      const headers = jobdata[0];
-      const referenceIdx = headers.indexOf('referenceNo');
-      
-      if (referenceIdx === -1) {
-        return { success: false, message: 'Invalid sheet structure - missing referenceNo column' };
-      }
-
-      // Find all matching stops for this reference (exact match first)
-      const matchingStops = [];
-      const target = String(searchRef || '').trim().toUpperCase();
-      for (let i = 1; i < jobdata.length; i++) {
-        const cell = jobdata[i][referenceIdx];
-        if (!cell) continue;
-        const value = String(cell).trim().toUpperCase();
-        if (value === target) {
-          matchingStops.push(this._rowToObject(headers, jobdata[i]));
-        }
-      }
-
-      // Fallback: relaxed matching (contains) if exact match not found
-      if (matchingStops.length === 0) {
-        for (let i = 1; i < jobdata.length; i++) {
-          const cell = jobdata[i][referenceIdx];
-          if (!cell) continue;
-          const value = String(cell).trim().toUpperCase();
-          if (value.includes(target) || target.includes(value)) {
-            matchingStops.push(this._rowToObject(headers, jobdata[i]));
-          }
         }
       }
 
@@ -663,6 +671,15 @@ class SheetActions {
   async _getCheckedDriversForReference(reference) {
     const data = await this._getAlcoholForReference(reference);
     return data.checkedDrivers || [];
+  }
+
+  /**
+   * Helper: Get a value from Zoile row by column name
+   */
+  _getZoileColumn(headers, row, columnName) {
+    const idx = headers.indexOf(columnName);
+    if (idx === -1) return '';
+    return row[idx] || '';
   }
 
   /**
