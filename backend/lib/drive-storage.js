@@ -10,6 +10,7 @@ class DriveStorage {
   constructor(credentialsSource, options = {}) {
     this.credentialsSource = credentialsSource;
     this.impersonateEmail = options.impersonateEmail || process.env.GOOGLE_IMPERSONATE_EMAIL || null;
+    this.makePublic = options.makePublic;
     this.drive = null;
     this.auth = null;
   }
@@ -18,11 +19,11 @@ class DriveStorage {
     try {
       console.log('🔧 DriveStorage.initialize() starting...');
       let credentials;
-      
+
       if (!this.credentialsSource) {
         throw new Error('GOOGLE_SHEETS_CREDENTIALS_JSON or GOOGLE_SHEETS_KEY_FILE environment variable is required');
       }
-      
+
       console.log('   Parsing credentials...');
       if (this.credentialsSource.startsWith('{')) {
         credentials = JSON.parse(this.credentialsSource);
@@ -64,11 +65,17 @@ class DriveStorage {
    */
   async getOrCreateFolder(parentFolderId, folderName) {
     try {
+      if (!parentFolderId) {
+        throw new Error('Missing parentFolderId for folder creation (check ALC_PARENT_FOLDER_ID)');
+      }
+
       console.log(`   📁 getOrCreateFolder: name=${folderName}, parent=${parentFolderId}`);
-      
+
+      const safeName = String(folderName || '').replace(/'/g, "\\'");
+
       // Search for existing folder
       const response = await this.drive.files.list({
-        q: `'${parentFolderId}' in parents and name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+        q: `'${parentFolderId}' in parents and name='${safeName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
         spaces: 'drive',
         fields: 'files(id, name)',
         pageSize: 1,
@@ -112,11 +119,15 @@ class DriveStorage {
    */
   async uploadImage(imageBuffer, filename, parentFolderId) {
     try {
+      if (!parentFolderId) {
+        throw new Error('Missing parentFolderId for upload (check ALC_PARENT_FOLDER_ID)');
+      }
+
       console.log(`   📤 uploadImage: filename=${filename}, size=${imageBuffer.length} bytes`);
-      
+
       // Convert buffer to stream for compatibility with newer googleapis
       const stream = Readable.from(imageBuffer);
-      
+
       const response = await this.drive.files.create({
         requestBody: {
           name: filename,
@@ -128,24 +139,28 @@ class DriveStorage {
           body: stream
         },
         fields: 'id, webViewLink',
-        supportsAllDrives: true
+        supportsAllDrives: true,
+        uploadType: 'resumable'
       });
 
       const fileId = response.data.id;
       const fileUrl = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
 
-      // Make file publicly readable (optional - adjust as needed)
-      try {
-        await this.drive.permissions.create({
-          fileId: fileId,
-          requestBody: {
-            role: 'reader',
-            type: 'anyone'
-          },
-          supportsAllDrives: true
-        });
-      } catch (permErr) {
-        console.warn('⚠️ Could not set public read permission:', permErr.message);
+      // Make file publicly readable when enabled
+      const enablePublic = this.makePublic !== undefined ? this.makePublic : process.env.DRIVE_PUBLIC_READ === 'true';
+      if (enablePublic) {
+        try {
+          await this.drive.permissions.create({
+            fileId: fileId,
+            requestBody: {
+              role: 'reader',
+              type: 'anyone'
+            },
+            supportsAllDrives: true
+          });
+        } catch (permErr) {
+          console.warn('⚠️ Could not set public read permission:', permErr.message);
+        }
       }
 
       console.log(`   ✅ Uploaded to Drive: ${filename} → ${fileId}`);
@@ -167,7 +182,7 @@ class DriveStorage {
   async uploadImageWithUserFolder(imageBuffer, filename, parentFolderId, userId) {
     try {
       console.log(`📤 uploadImageWithUserFolder: filename=${filename}, parentId=${parentFolderId}, userId=${userId}`);
-      
+
       // Create/get user subfolder
       console.log(`   Step 1: Get/create user folder...`);
       const userFolderId = await this.getOrCreateFolder(parentFolderId, userId);
