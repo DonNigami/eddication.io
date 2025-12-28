@@ -7,6 +7,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <!-- App Scripts -->
+  <script src="config.js?v=20251228-11"></script>
+  <script src="logger.js?v=20251228-11"></script>
+  <script src="constants.js?v=20251228-11"></script>
+  <script src="validators.js?v=20251228-11"></script>
+  <script src="api.js?v=20251228-11"></script>
   <style>
     :root {
       --primary: #2563eb;
@@ -520,14 +526,14 @@
     // ✅ LIFF ID จริงของโปรเจ็กต์
     const LIFF_ID = '2007705394-Lq3mMYKA';
 
-    // ✅ URL Web App ของ Google Apps Script (ลงท้าย /exec)
-    const GAS_BASE_URL = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
+    // ✅ Backend Base URL (CONFIG picks Railway/AppScript/Localhost)
+    const BACKEND_BASE_URL = (window.CONFIG && window.CONFIG.WEB_APP_URL) || 'http://localhost:3000';
 
     let ADMIN_USER_ID = null;
     let ADMIN_NAME = '';
 
     function getBaseUrl() {
-      return GAS_BASE_URL;
+      return BACKEND_BASE_URL;
     }
 
     function setLoading(show, text) {
@@ -644,8 +650,12 @@
       setLoading(true, 'กำลังตรวจสอบสิทธิ์ Admin ...');
       try {
         const base = getBaseUrl();
-        const url = `${base}?action=checkadmin&userId=${encodeURIComponent(userId)}`;
-        const res = await fetch(url);
+        const form = new URLSearchParams();
+        form.append('userId', userId);
+        const res = await fetch(base + '/api/admin/check', {
+          method: 'POST',
+          body: form
+        });
         const json = await res.json();
 
         if (!json.success || !json.isAdmin) {
@@ -678,14 +688,12 @@
         const ref = document.getElementById('jobRef').value.trim();
         const status = document.getElementById('jobStatus').value.trim();
         const base = getBaseUrl();
-        const qs = new URLSearchParams({
-          action: 'adminjobdata',
-          adminUserId: ADMIN_USER_ID,
-          reference: ref,
-          status: status,
-          limit: '200'
-        });
-        const res = await fetch(`${base}?${qs.toString()}`);
+        const form = new URLSearchParams();
+        form.append('adminUserId', ADMIN_USER_ID);
+        form.append('reference', ref);
+        form.append('status', status);
+        form.append('limit', '200');
+        const res = await fetch(base + '/api/admin/jobdata', { method: 'POST', body: form });
         const json = await res.json();
 
         if (!json.success) {
@@ -774,16 +782,11 @@
       try {
         const base = getBaseUrl();
         const form = new URLSearchParams();
-        form.append('action', 'adminUpdateJob');
         form.append('adminUserId', ADMIN_USER_ID);
         form.append('rowIndex', rowIndex);
         form.append('status', newStatus);
 
-        const res = await fetch(base, {
-          method: 'POST',
-          body: form
-        });
-
+        const res = await fetch(base + '/api/admin/update-job', { method: 'POST', body: form });
         const json = await res.json();
         if (!json.success) {
           setPanelMessage('jobMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
@@ -813,14 +816,12 @@
         const ref = document.getElementById('alcRef').value.trim();
         const driver = document.getElementById('alcDriver').value.trim();
         const base = getBaseUrl();
-        const qs = new URLSearchParams({
-          action: 'adminalcohol',
-          adminUserId: ADMIN_USER_ID,
-          reference: ref,
-          driver: driver,
-          limit: '200'
-        });
-        const res = await fetch(`${base}?${qs.toString()}`);
+        const form = new URLSearchParams();
+        form.append('adminUserId', ADMIN_USER_ID);
+        form.append('reference', ref);
+        form.append('driver', driver);
+        form.append('limit', '200');
+        const res = await fetch(base + '/api/admin/alcohol', { method: 'POST', body: form });
         const json = await res.json();
 
         if (!json.success) {
@@ -897,16 +898,11 @@
       try {
         const base = getBaseUrl();
         const form = new URLSearchParams();
-        form.append('action', 'adminUpdateAlcohol');
         form.append('adminUserId', ADMIN_USER_ID);
         form.append('rowIndex', rowIndex);
         form.append('alcoholValue', value);
 
-        const res = await fetch(base, {
-          method: 'POST',
-          body: form
-        });
-
+        const res = await fetch(base + '/api/admin/update-alcohol', { method: 'POST', body: form });
         const json = await res.json();
         if (!json.success) {
           setPanelMessage('alcMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
@@ -936,13 +932,11 @@
         const status = document.getElementById('userStatus').value.trim();
         const keyword = document.getElementById('userKeyword').value.trim();
         const base = getBaseUrl();
-        const qs = new URLSearchParams({
-          action: 'adminuserprofile',
-          adminUserId: ADMIN_USER_ID,
-          status: status,
-          keyword: keyword
-        });
-        const res = await fetch(`${base}?${qs.toString()}`);
+        const form = new URLSearchParams();
+        form.append('adminUserId', ADMIN_USER_ID);
+        form.append('status', status);
+        form.append('keyword', keyword);
+        const res = await fetch(base + '/api/admin/userprofile', { method: 'POST', body: form });
         const json = await res.json();
 
         if (!json.success) {
@@ -1028,15 +1022,11 @@
       try {
         const base = getBaseUrl();
         const form = new URLSearchParams();
-        form.append('action', 'updateUserStatus');
         form.append('adminUserId', ADMIN_USER_ID);
         form.append('userId', userId);
         form.append('status', newStatus);
 
-        const res = await fetch(base, {
-          method: 'POST',
-          body: form
-        });
+        const res = await fetch(base + '/api/admin/update-user-status', { method: 'POST', body: form });
         const json = await res.json();
         if (!json.success) {
           setPanelMessage('userMessage', json.message || 'บันทึกไม่สำเร็จ', 'error');
