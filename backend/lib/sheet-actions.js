@@ -165,6 +165,23 @@ class SheetActions {
         return { success: false, message: `Column ${colName} not found` };
       }
 
+      // Get current row to check if origin stop
+      const currentRow = jobdata[rowIndex + 1];
+      const sourceRowIdx = headers.indexOf('sourceRow');
+      const isOriginStop = !currentRow[sourceRowIdx];
+
+      // ✅ NEW: If checkin on origin stop, must have at least one alcohol checked
+      if (type === 'checkin' && isOriginStop) {
+        const reference = String(currentRow[headers.indexOf('referenceNo')] || '').trim();
+        const hasAlcohol = await this.hasAtLeastOneAlcoholChecked(reference);
+        if (!hasAlcohol) {
+          return { 
+            success: false, 
+            message: 'กรุณาเป่าแอลกอฮอล์อย่างน้อย 1 คนก่อนเช็คอินต้นทาง' 
+          };
+        }
+      }
+
       // Update the cell with timestamp
       const timeStr = new Date().toLocaleTimeString('th-TH');
       const colLetter = this._getColumnLetter(colIdx);
@@ -178,6 +195,34 @@ class SheetActions {
         const uuidLetter = this._getColumnLetter(uuidColIdx);
         const uuidRange = `${uuidLetter}${targetRow}`;
         await this.db.writeRange(SHEETS.JOBDATA, uuidRange, [[updateId]]);
+      }
+
+      // ✅ Check distance to destination before updating
+      if (lat && lng) {
+        const destLatIdx = headers.indexOf('destLat');
+        const destLngIdx = headers.indexOf('destLng');
+        const radiusIdx = headers.indexOf('radiusMeters');
+
+        let finalRadius = 50;
+        if (radiusIdx !== -1) {
+          const r = parseFloat(currentRow[radiusIdx]);
+          finalRadius = !isNaN(r) && r > 0 ? r : 50;
+        }
+
+        if (destLatIdx !== -1 && destLngIdx !== -1) {
+          const destLat = parseFloat(currentRow[destLatIdx]);
+          const destLng = parseFloat(currentRow[destLngIdx]);
+
+          if (!isNaN(destLat) && !isNaN(destLng)) {
+            const distance = this._haversineDistance(destLat, destLng, lat, lng);
+            if (distance > finalRadius) {
+              return {
+                success: false,
+                message: `คุณอยู่นอกพื้นที่ที่กำหนด (ห่างจากจุดหมาย ${Math.round(distance)} เมตร / รัศมีอนุญาต ${Math.round(finalRadius)} เมตร)`
+              };
+            }
+          }
+        }
       }
 
       // Store odometer if check-in
@@ -655,7 +700,143 @@ class SheetActions {
 
   /**
    * Convert column index to letter (0 = A, 1 = B, etc.)
+   */  /**
+   * Get Origin config by route (match first 3 characters)
    */
+  async getOriginConfigByRoute(routeRaw) {
+    if (!routeRaw || !this.db) return null;
+
+    const route = String(routeRaw).trim();
+    if (route.length < 3) return null;
+
+    const prefix3 = route.substring(0, 3);
+
+    try {
+      const originData = await this.db.readRange(SHEETS.ORIGIN, 'A:F');
+      if (!originData || originData.length < 2) return null;
+
+      for (let i = 1; i < originData.length; i++) {
+        const row = originData[i];
+        const originKey = String(row[0] || '').trim();
+        const originName = String(row[1] || '').trim();
+        const lat = parseFloat(row[2]);
+        const lng = parseFloat(row[3]);
+        const radiusMeters = parseFloat(row[4]);
+        const routeCode = String(row[5] || '').trim();
+
+        if (!routeCode) continue;
+
+        const routePrefix = routeCode.substring(0, 3);
+        if (routePrefix === prefix3) {
+          return {
+            code: originKey,
+            name: originName,
+            lat: isNaN(lat) ? '' : lat,
+            lng: isNaN(lng) ? '' : lng,
+            radiusM: isNaN(radiusMeters) ? 200 : radiusMeters
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ getOriginConfigByRoute error:', err.message);
+    }
+
+    return null;
+  }
+
+  /**
+   * Get default origin config (first row of Origin sheet)
+   */
+  async getDefaultOriginConfig() {
+    try {
+      const originData = await this.db.readRange(SHEETS.ORIGIN, 'A:E');
+      if (originData && originData.length >= 2) {
+        const row = originData[1];
+        const originKey = String(row[0] || '').trim();
+        const originName = String(row[1] || '').trim();
+        const lat = parseFloat(row[2]);
+        const lng = parseFloat(row[3]);
+        const radiusMeters = parseFloat(row[4]);
+
+        return {
+          code: originKey || 'TOP_SR',
+          name: originName || 'ไทยออยล์ ศรีราชา',
+          lat: isNaN(lat) ? '' : lat,
+          lng: isNaN(lng) ? '' : lng,
+          radiusM: isNaN(radiusMeters) ? 200 : radiusMeters
+        };
+      }
+    } catch (err) {
+      console.warn('⚠️ getDefaultOriginConfig error:', err.message);
+    }
+
+    // Fallback
+    return {
+      code: 'TOP_SR',
+      name: 'ไทยออยล์ ศรีราชา',
+      lat: 13.1100258,
+      lng: 100.9144418,
+      radiusM: 200
+    };
+  }
+
+  /**
+   * Check if at least one driver has alcohol checked for a reference
+   */
+  async hasAtLeastOneAlcoholChecked(reference) {
+    const ref = String(reference || '').trim();
+    if (!ref) return false;
+
+    try {
+      const alcoholData = await this._getAlcoholForReference(ref);
+      return alcoholData && alcoholData.checkedDrivers && alcoholData.checkedDrivers.length > 0;
+    } catch (err) {
+      console.warn('⚠️ hasAtLeastOneAlcoholChecked error:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * Check if user is admin (exists in userprofile sheet with usertype=ADMIN)
+   */
+  async isAdminUser(userId) {
+    const uid = String(userId || '').trim();
+    if (!uid) return false;
+
+    try {
+      const userdata = await this.db.readRange(SHEETS.USER_PROFILE, 'A:J');
+      if (!userdata || userdata.length < 2) return false;
+
+      // Column A = userId, Column J (10) = usertype
+      for (let i = 1; i < userdata.length; i++) {
+        const row = userdata[i];
+        const id = String(row[0] || '').trim();
+        const usertype = String(row[9] || '').trim();
+
+        if (id === uid && usertype.toUpperCase() === 'ADMIN') {
+          return true;
+        }
+      }
+      return false;
+    } catch (err) {
+      console.warn('⚠️ isAdminUser error:', err.message);
+      return false;
+    }
+  }
+
+  /**
+   * Haversine distance calculation
+   */
+  _haversineDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371000; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
   _getColumnLetter(index) {
     let letter = '';
     let temp = index;
