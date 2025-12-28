@@ -58,6 +58,21 @@ const SHEET_TEMPLATES = {
     ],
     description: 'Emergency SOS reports'
   },
+
+  alcoholcheck: {
+    headers: [
+      'timestamp',
+      'userId',
+      'reference',
+      'driverName',
+      'result',
+      'lat',
+      'lng',
+      'accuracy',
+      'imageUrl'
+    ],
+    description: 'Alcohol check submissions'
+  },
   
   EndTrip: {
     headers: [

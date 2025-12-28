@@ -499,6 +499,9 @@ class SheetActions {
     try {
       const { reference, driverName, userId, result, timestamp, imageBuffer } = payload;
 
+      // Ensure target sheet exists with correct headers
+      await this.db.ensureSheet(SHEETS.ALCOHOL);
+
       // Save image (if provided)
       let imageUrl = '';
       if (imageBuffer) {
