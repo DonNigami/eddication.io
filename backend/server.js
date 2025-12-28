@@ -156,14 +156,19 @@ app.get('/api/debug/zoile', async (req, res) => {
             const row = inputZoile[i];
             results.InputZoile30.push({
               rowIndex: i + 1,
-              col_15_P_Material: row[15],
-              col_16_Q_MaterialDesc: row[16],
-              col_17_R_DeliveryQty: row[17],
-              col_33_AH_ShipToCode: row[33],
-              col_34_AI_ShipToName: row[34],
-              col_40_AO_Material: row[40],
-              col_41_AP_MaterialDesc: row[41],
-              col_42_AQ_DeliveryQty: row[42]
+              col_15_P: row[15] + ' (Distance UOM)',
+              col_16_Q: row[16] + ' (Date)',
+              col_17_R: row[17] + ' (Date)',
+              col_33_AH: row[33] + ' (ShipToCode)',
+              col_34_AI: row[34] + ' (ShipToName)',
+              col_35_AJ: row[35] || 'undefined',
+              col_36_AK: row[36] || 'undefined',
+              col_37_AL: row[37] || 'undefined',
+              col_38_AM: row[38] || 'undefined',
+              col_39_AN: row[39] || 'undefined',
+              col_40_AO: row[40] + ' (Material?)',
+              col_41_AP: row[41] + ' (MaterialDesc?)',
+              col_42_AQ: row[42] + ' (DeliveryQty?)'
             });
           }
         }
@@ -178,11 +183,11 @@ app.get('/api/debug/zoile', async (req, res) => {
             const row = zoileData[i];
             results.ZoileData.push({
               rowIndex: i + 1,
-              col_13_N_ShipToCode: row[13],
-              col_14_O_ShipToName: row[14],
-              col_15_P_Material: row[15],
-              col_16_Q_MaterialDesc: row[16],
-              col_17_R_DeliveryQty: row[17]
+              col_13_N: row[13] + ' (ShipToCode)',
+              col_14_O: row[14] + ' (ShipToName)',
+              col_15_P: row[15] + ' (Material)',
+              col_16_Q: row[16] + ' (MaterialDesc)',
+              col_17_R: row[17] + ' (DeliveryQty)'
             });
           }
         }
