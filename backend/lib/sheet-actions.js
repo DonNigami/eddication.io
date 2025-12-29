@@ -532,7 +532,18 @@ class SheetActions {
             })
           });
 
-          const appScriptData = await appScriptResponse.json();
+          // ✅ FIX: Check response text first, log for debugging
+          const responseText = await appScriptResponse.text();
+          console.log(`[DEBUG] Apps Script response status: ${appScriptResponse.status}`);
+          console.log(`[DEBUG] Apps Script response (first 200 chars): ${responseText.substring(0, 200)}`);
+
+          let appScriptData;
+          try {
+            appScriptData = JSON.parse(responseText);
+          } catch (parseErr) {
+            console.error('❌ Failed to parse JSON from Apps Script:', parseErr.message);
+            throw new Error(`Invalid JSON response from Apps Script: ${responseText.substring(0, 100)}`);
+          }
 
           if (appScriptData.success) {
             console.log(`✅ Alcohol image uploaded via Apps Script. Checked drivers: ${JSON.stringify(appScriptData.checkedDrivers)}`);
