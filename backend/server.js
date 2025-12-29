@@ -687,7 +687,9 @@ app.post('/api/admin/update-user-status', async (req, res) => {
  */
 app.post('/api/uploadAlcohol', upload.single('image'), async (req, res) => {
   try {
+    // Debug: multer should have parsed form fields automatically
     console.log(`🍷 FULL req.body:`, JSON.stringify(req.body));
+    console.log(`🍷 FULL req.file:`, req.file ? { name: req.file.originalname, size: req.file.size } : null);
 
     const { driverName, result, timestamp, userId, reference, lat, lng, accuracy } = req.body;
     const imageBuffer = req.file ? req.file.buffer : null;
