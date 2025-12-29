@@ -58,7 +58,7 @@ app.use((req, res, next) => {
 });
 
 // File upload
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 });
@@ -99,7 +99,11 @@ async function initializeServices() {
     if (process.env.ALC_PARENT_FOLDER_ID) {
       console.log('🔧 Initializing Google Drive storage...');
       driveStorage = new DriveStorage(
-        process.env.GOOGLE_SHEETS_CREDENTIALS_JSON || process.env.GOOGLE_SHEETS_KEY_FILE
+        process.env.GOOGLE_SHEETS_CREDENTIALS_JSON || process.env.GOOGLE_SHEETS_KEY_FILE,
+        {
+          impersonateEmail: process.env.GOOGLE_IMPERSONATE_EMAIL,
+          makePublic: process.env.DRIVE_PUBLIC_READ === 'true'
+        }
       );
       await driveStorage.initialize();
       console.log('✅ Google Drive storage connected');
@@ -115,7 +119,7 @@ async function initializeServices() {
     imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
     notificationService = new NotificationService();
     customerContacts = new CustomerContacts(db);
-    
+
     console.log('✅ Services initialized');
   } catch (err) {
     console.error('❌ Failed to initialize services:', err.message);
@@ -127,8 +131,8 @@ async function initializeServices() {
 // Health Check
 // ============================================================================
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     timestamp: new Date().toISOString(),
     environment: NODE_ENV,
     backend: 'driverconnect-nodejs'
@@ -148,7 +152,7 @@ app.get('/api/debug/ensure-sheets', async (req, res) => {
     console.log('🔧 Forcing sheet creation...');
     await db.initializeRequiredSheets();
     console.log('✅ All sheets ensured');
-    
+
     // Also ensure alcoholcheck specifically
     const created = await db.ensureSheet('alcoholcheck', [
       'timestamp',
@@ -161,9 +165,9 @@ app.get('/api/debug/ensure-sheets', async (req, res) => {
       'accuracy',
       'imageUrl'
     ]);
-    
-    return res.json({ 
-      success: true, 
+
+    return res.json({
+      success: true,
       message: 'All sheets ensured',
       alcoholcheckCreated: created,
       timestamp: new Date().toISOString()
@@ -276,18 +280,18 @@ app.get('/api/debug/search', async (req, res) => {
         log('📖 Reading Zoile InputZoile30 sheet...');
         const inputZoile = await zoileDb.readRange(SHEETS.ZOILE_INPUT, 'A:AZ');
         log(`   Found ${inputZoile.length} rows in InputZoile30`);
-        
+
         if (inputZoile.length > 1) {
           log(`   Headers: ${inputZoile[0].slice(0, 35).join(' | ')}`);
           const refColIdx = 30; // Column 31 (0-based)
           log(`   Looking for reference in column index ${refColIdx} (column ${String.fromCharCode(65 + refColIdx)})`);
-          
+
           for (let i = 1; i < Math.min(inputZoile.length, 10); i++) {
             const cellValue = inputZoile[i][refColIdx];
-            log(`   Row ${i+1}: col[${refColIdx}] = "${cellValue}"`);
+            log(`   Row ${i + 1}: col[${refColIdx}] = "${cellValue}"`);
             if (cellValue && String(cellValue).toUpperCase() === String(keyword).toUpperCase()) {
               zoileRef = String(cellValue);
-              log(`   ✅ MATCH in InputZoile30 row ${i+1}!`);
+              log(`   ✅ MATCH in InputZoile30 row ${i + 1}!`);
               break;
             }
           }
@@ -297,18 +301,18 @@ app.get('/api/debug/search', async (req, res) => {
           log('📖 Reading Zoile data sheet...');
           const zoileData = await zoileDb.readRange(SHEETS.ZOILE_DATA, 'A:AZ');
           log(`   Found ${zoileData.length} rows in data`);
-          
+
           if (zoileData.length > 1) {
             log(`   Headers: ${zoileData[0].slice(0, 20).join(' | ')}`);
             const refColIdx = 12; // Column M (0-based)
             log(`   Looking for reference in column index ${refColIdx} (column ${String.fromCharCode(65 + refColIdx)})`);
-            
+
             for (let i = 1; i < Math.min(zoileData.length, 10); i++) {
               const cellValue = zoileData[i][refColIdx];
-              log(`   Row ${i+1}: col[${refColIdx}] = "${cellValue}"`);
+              log(`   Row ${i + 1}: col[${refColIdx}] = "${cellValue}"`);
               if (cellValue && String(cellValue).toUpperCase() === String(keyword).toUpperCase()) {
                 zoileRef = String(cellValue);
-                log(`   ✅ MATCH in data sheet row ${i+1}!`);
+                log(`   ✅ MATCH in data sheet row ${i + 1}!`);
                 break;
               }
             }
@@ -332,7 +336,7 @@ app.get('/api/debug/search', async (req, res) => {
     if (jobdata.length > 1) {
       const headers = jobdata[0];
       log(`   Headers (first 15): ${headers.slice(0, 15).join(' | ')}`);
-      
+
       const referenceIdx = headers.indexOf('referenceNo');
       log(`   referenceNo column index: ${referenceIdx} (column ${referenceIdx >= 0 ? String.fromCharCode(65 + referenceIdx) : 'NOT FOUND'})`);
 
@@ -346,7 +350,7 @@ app.get('/api/debug/search', async (req, res) => {
       log('   Sample jobdata rows:');
       for (let i = 1; i < Math.min(jobdata.length, 11); i++) {
         const refVal = jobdata[i][referenceIdx];
-        log(`   Row ${i+1}: referenceNo="${refVal}"`);
+        log(`   Row ${i + 1}: referenceNo="${refVal}"`);
       }
 
       // Search
@@ -360,7 +364,7 @@ app.get('/api/debug/search', async (req, res) => {
         const value = String(cell).trim().toUpperCase();
         if (value === target) {
           matchingStops.push(i + 1); // Store row number (1-based)
-          log(`   ✅ MATCH at row ${i+1}`);
+          log(`   ✅ MATCH at row ${i + 1}`);
         }
       }
 
@@ -374,7 +378,7 @@ app.get('/api/debug/search', async (req, res) => {
           const value = String(cell).trim().toUpperCase();
           if (value.includes(target) || target.includes(value)) {
             matchingStops.push(i + 1);
-            log(`   ⚠️ PARTIAL MATCH at row ${i+1}: "${cell}"`);
+            log(`   ⚠️ PARTIAL MATCH at row ${i + 1}: "${cell}"`);
           }
         }
         if (matchingStops.length > 0) {
@@ -970,7 +974,7 @@ async function handleFollowEvent(event, sheetActions) {
     // Read userprofile sheet
     const userdata = await sheetActions.db.readRange(SHEETS.USER_PROFILE, 'A:J');
     const headers = userdata[0];
-    
+
     // Check if user already exists
     let userExists = false;
     for (let i = 1; i < userdata.length; i++) {
@@ -1167,7 +1171,7 @@ app.post('/api/line-webhook', async (req, res) => {
 async function startServer() {
   try {
     await initializeServices();
-    
+
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🚀 DriverConnect Backend running on http://0.0.0.0:${PORT}`);
       console.log(`📊 Google Sheets ID: ${process.env.GOOGLE_SHEETS_ID}`);

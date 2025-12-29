@@ -1,0 +1,116 @@
+# Quick Reference: Drive Quota Fix
+
+## The Problem
+```
+❌ Service Accounts do not have storage quota
+```
+
+## The Solution (2 Options)
+
+### Option A: OAuth Delegation (Recommended)
+**Impersonate a user who HAS quota**
+
+```env
+GOOGLE_IMPERSONATE_EMAIL=driver@yourdomain.com  # Real user, NOT service account!
+```
+
+Setup:
+1. Google Cloud Console → Enable Domain-wide Delegation
+2. Workspace Admin → Authorize Drive scopes
+3. Set `GOOGLE_IMPERSONATE_EMAIL` in .env
+4. Done! ✅
+
+### Option B: Shared Drive
+**Use unlimited shared storage instead**
+
+```env
+ALC_PARENT_FOLDER_ID=shared_drive_folder_id
+# Don't set GOOGLE_IMPERSONATE_EMAIL
+```
+
+Setup:
+1. Create Shared Drive in Google Drive
+2. Share with service account
+3. Set folder ID in .env
+4. Done! ✅
+
+---
+
+## Environment Variables
+
+```env
+# Service Account (unchanged)
+GOOGLE_SHEETS_CREDENTIALS_JSON={...existing...}
+
+# OAuth Option A: Impersonate a user with quota
+GOOGLE_IMPERSONATE_EMAIL=driver@yourdomain.com
+
+# Upload folder (can be Shared Drive or personal Drive)
+ALC_PARENT_FOLDER_ID=folder_id_here
+
+# Optional: Make files public
+DRIVE_PUBLIC_READ=true
+```
+
+---
+
+## Verify Configuration
+
+```bash
+node backend/validate-drive-quota.js
+```
+
+Expected:
+```
+✅ Service Account Configured
+✅ Impersonate User Set
+✅ Impersonate is Real User
+✅ Different Email Addresses
+```
+
+---
+
+## Test Upload
+
+```bash
+npm run dev
+# Try uploading a file
+# Should see: "✅ Uploaded to Drive: filename → FILE_ID"
+```
+
+---
+
+## Common Mistakes
+
+| ❌ Wrong | ✅ Correct |
+|---------|-----------|
+| GOOGLE_IMPERSONATE_EMAIL=my-app@project.iam.gserviceaccount.com | GOOGLE_IMPERSONATE_EMAIL=driver@yourdomain.com |
+| Not enabling Domain-wide Delegation | Enabled in Cloud Console |
+| Not authorizing Drive scopes | Authorized in Workspace Admin |
+| Same email for service account AND impersonate | Different emails |
+
+---
+
+## Error Solutions
+
+| Error | Solution |
+|-------|----------|
+| "Service Account has no storage quota" | Set `GOOGLE_IMPERSONATE_EMAIL` |
+| "Permission denied" | Check scopes authorized in Workspace Admin |
+| "Invalid impersonation" | Verify `GOOGLE_IMPERSONATE_EMAIL` is a real user |
+| "Folder not found" | Check `ALC_PARENT_FOLDER_ID` exists |
+
+---
+
+## Documentation
+
+- **Setup Guide**: [DRIVE_QUOTA_FIX.md](./backend/DRIVE_QUOTA_FIX.md)
+- **Checklist**: [DRIVE_QUOTA_CHECKLIST.md](./backend/DRIVE_QUOTA_CHECKLIST.md)
+- **Validator**: `node backend/validate-drive-quota.js`
+
+---
+
+## References
+
+- [Domain-Wide Delegation](https://developers.google.com/identity/protocols/oauth2/service-account#delegating_domain-wide_authority_to_the_service_account)
+- [Shared Drives Guide](https://developers.google.com/workspace/drive/api/guides/about-shareddrives)

@@ -173,6 +173,12 @@ GOOGLE_SHEETS_CREDENTIALS_JSON={"type":"service_account",...}
 # OR
 GOOGLE_SHEETS_KEY_FILE=./google-credentials.json
 
+# For Google Drive Uploads (REQUIRED if uploading images/files)
+# ⚠️ Service Accounts don't have Drive quota - use OAuth delegation
+# Must be a REAL Workspace user email (NOT the service account email)
+# See DRIVE_QUOTA_FIX.md for complete setup instructions
+GOOGLE_IMPERSONATE_EMAIL=driver@yourdomain.com
+
 # Optional
 NODE_ENV=production
 PORT=3000
@@ -180,9 +186,18 @@ CORS_ORIGIN=https://yourdomain.com,http://localhost:8000
 DATA_DIR=./data
 BACKEND_URL=https://your-backend-url.com
 ALC_PARENT_FOLDER_ID=shared_drive_folder_id_for_uploads
-GOOGLE_IMPERSONATE_EMAIL=user@yourdomain.com # optional: use domain-wide delegation to a user with Drive quota
 DRIVE_PUBLIC_READ=false # set true to allow anyone-with-link read on uploaded files
 ```
+
+### Google Drive Upload Configuration
+
+⚠️ **Important**: If you're uploading images to Google Drive, you **must** configure OAuth delegation to a Workspace user account that has storage quota.
+
+See [DRIVE_QUOTA_FIX.md](./DRIVE_QUOTA_FIX.md) for detailed setup:
+1. Enable domain-wide delegation on service account
+2. Grant Drive API scopes in Workspace Admin
+3. Set `GOOGLE_IMPERSONATE_EMAIL` to a real user
+4. Test upload functionality
 
 ## API Endpoints
 
