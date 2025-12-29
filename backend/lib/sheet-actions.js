@@ -496,7 +496,7 @@ class SheetActions {
   }
 
   /**
-   * UPLOAD_ALCOHOL: Save alcohol check result with image (using DriveStorage Shared Drive mode)
+   * UPLOAD_ALCOHOL: Save alcohol check result with image via Google Apps Script
    */
   async uploadAlcohol(payload) {
     try {
@@ -504,35 +504,59 @@ class SheetActions {
 
       console.log(`📝 uploadAlcohol called: ref=${reference}, driver=${driverName}, user=${userId}, result=${result}, lat=${lat}, lng=${lng}`);
 
-      // ✅ BACK TO DRIVESTORAGE: Use shared drive directly (no impersonation needed)
+      // ✅ UPLOAD VIA APPS SCRIPT: Send image to Apps Script for Drive upload
       let imageUrl = '';
       if (imageBuffer) {
-        console.log(`📸 Image provided. Drive available: ${!!this.driveStorage}, ALC_PARENT_FOLDER_ID: ${!!process.env.ALC_PARENT_FOLDER_ID}`);
+        const appScriptUrl = 'https://script.google.com/macros/s/AKfycbwWn9SBE9XaIQ4k_hNt_TZa8MzI9Ywk8lXTi7RsONX-PBNLa65yXZmqCAd-ZYhHpV-g/exec';
 
-        if (!this.driveStorage || !process.env.ALC_PARENT_FOLDER_ID) {
-          throw new Error('Drive storage not configured. Please set ALC_PARENT_FOLDER_ID and credentials.');
-        }
+        // Convert buffer to base64
+        const imageBase64 = imageBuffer.toString('base64');
 
         try {
-          const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
-          console.log(`   📤 Uploading to Shared Drive (no impersonation): parentFolderId=${process.env.ALC_PARENT_FOLDER_ID}, userId=${userId}`);
-          const driveResult = await this.driveStorage.uploadImageWithUserFolder(
-            imageBuffer,
-            filename,
-            process.env.ALC_PARENT_FOLDER_ID,
-            userId
-          );
-          imageUrl = driveResult.fileUrl;
-          console.log(`✅ Alcohol image uploaded to Shared Drive: ${filename} → ${imageUrl}`);
-        } catch (driveErr) {
-          console.error('❌ Drive upload failed:', driveErr.message);
-          throw new Error(`Drive upload failed: ${driveErr.message}`);
+          console.log(`   📤 Uploading via Apps Script: ${appScriptUrl}`);
+
+          const appScriptResponse = await fetch(appScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'alcoholUpload',
+              reference: reference || '',
+              driverName: driverName || '',
+              userId: userId || '',
+              alcoholRaw: result || '',
+              imageBase64: imageBase64,
+              lat: lat !== undefined && lat !== null ? lat : '',
+              lng: lng !== undefined && lng !== null ? lng : ''
+            })
+          });
+
+          const responseText = await appScriptResponse.text();
+          console.log(`[DEBUG] Apps Script response status: ${appScriptResponse.status}`);
+          console.log(`[DEBUG] Apps Script response (first 300 chars): ${responseText.substring(0, 300)}`);
+
+          let appScriptData;
+          try {
+            appScriptData = JSON.parse(responseText);
+          } catch (parseErr) {
+            console.error('❌ Failed to parse JSON from Apps Script:', parseErr.message);
+            throw new Error(`Invalid JSON response from Apps Script: ${responseText.substring(0, 150)}`);
+          }
+
+          if (appScriptData.success) {
+            imageUrl = appScriptData.imageUrl || '';
+            console.log(`✅ Image uploaded via Apps Script: ${imageUrl}`);
+          } else {
+            throw new Error(appScriptData.message || 'Apps Script upload failed');
+          }
+        } catch (appScriptErr) {
+          console.error('❌ Apps Script upload failed:', appScriptErr.message);
+          throw new Error(`Apps Script upload failed: ${appScriptErr.message}`);
         }
       } else {
         console.log('📸 No image provided');
       }
 
-      // Write to Alcohol sheet
+      // ✅ Write metadata to Alcohol sheet (backend handles this)
       const d = timestamp ? new Date(timestamp) : new Date();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
