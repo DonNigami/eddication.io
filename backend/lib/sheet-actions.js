@@ -33,7 +33,7 @@ class SheetActions {
       if (jobdata && jobdata.length > 1) {
         const headers = jobdata[0];
         const referenceIdx = headers.indexOf('referenceNo');
-        
+
         if (referenceIdx !== -1) {
           // Exact match
           for (let i = 1; i < jobdata.length; i++) {
@@ -67,7 +67,7 @@ class SheetActions {
         jobRowsForRef.forEach((obj, idx) => {
           const row = obj.row;
           const headers = obj.headers;
-          
+
           stops.push({
             seq: idx + 1,
             ...this._rowToObject(headers, row)
@@ -110,8 +110,8 @@ class SheetActions {
       if (inputZoile && inputZoile.length > 1) {
         const refColIdx = 30;
         for (let i = 1; i < inputZoile.length; i++) {
-          if (inputZoile[i][refColIdx] && 
-              String(inputZoile[i][refColIdx]).toUpperCase() === target) {
+          if (inputZoile[i][refColIdx] &&
+            String(inputZoile[i][refColIdx]).toUpperCase() === target) {
             zoileMatches.push({ index: i, row: inputZoile[i] });
           }
         }
@@ -126,8 +126,8 @@ class SheetActions {
         if (zoileData && zoileData.length > 1) {
           const refColIdx = 12;
           for (let i = 1; i < zoileData.length; i++) {
-            if (zoileData[i][refColIdx] && 
-                String(zoileData[i][refColIdx]).toUpperCase() === target) {
+            if (zoileData[i][refColIdx] &&
+              String(zoileData[i][refColIdx]).toUpperCase() === target) {
               zoileMatches.push({ index: i, row: zoileData[i] });
             }
           }
@@ -150,7 +150,7 @@ class SheetActions {
 
       // Extract core info from first matching row
       const shipmentNo = this._getZoileColumnByIndex(firstRow, 1) || ''; // Column B = Shipment No.
-      const driverName = sourceType === 'InputZoile30' 
+      const driverName = sourceType === 'InputZoile30'
         ? this._getZoileColumnByIndex(firstRow, 11) || '' // Column L for input
         : this._getZoileColumnByIndex(firstRow, 4) || '';  // Column E for data
       const vehicleDesc = sourceType === 'InputZoile30'
@@ -170,10 +170,10 @@ class SheetActions {
 
       zoileMatches.forEach(obj => {
         const row = obj.row;
-        
+
         // Different column indices for different source types
         let shipToCode, shipToName, material, materialDesc, qtyStr, distance;
-        
+
         if (sourceType === 'InputZoile30') {
           shipToCode = this._getZoileColumnByIndex(row, 33) || ''; // Column AH (index 33)
           shipToName = this._getZoileColumnByIndex(row, 34) || '';  // Column AI (index 34)
@@ -309,9 +309,9 @@ class SheetActions {
       };
     } catch (err) {
       console.error('❌ Search error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Search failed' 
+      return {
+        success: false,
+        message: err.message || 'Search failed'
       };
     }
   }
@@ -347,7 +347,7 @@ class SheetActions {
 
       // Generate unique UUID for this update
       const updateId = uuidv4();
-      
+
       // Determine column to update based on type
       let colName = '';
       let uuidColName = '';
@@ -383,9 +383,9 @@ class SheetActions {
         const reference = String(currentRow[headers.indexOf('referenceNo')] || '').trim();
         const hasAlcohol = await this.hasAtLeastOneAlcoholChecked(reference);
         if (!hasAlcohol) {
-          return { 
-            success: false, 
-            message: 'กรุณาเป่าแอลกอฮอล์อย่างน้อย 1 คนก่อนเช็คอินต้นทาง' 
+          return {
+            success: false,
+            message: 'กรุณาเป่าแอลกอฮอล์อย่างน้อย 1 คนก่อนเช็คอินต้นทาง'
           };
         }
       }
@@ -394,9 +394,9 @@ class SheetActions {
       const timeStr = new Date().toLocaleTimeString('th-TH');
       const colLetter = this._getColumnLetter(colIdx);
       const updateRange = `${colLetter}${targetRow}`;
-      
+
       await this.db.writeRange(SHEETS.JOBDATA, updateRange, [[timeStr]]);
-      
+
       // Store UUID if column exists
       const uuidColIdx = headers.indexOf(uuidColName);
       if (uuidColIdx !== -1) {
@@ -447,7 +447,7 @@ class SheetActions {
       if (lat && lng) {
         let latCol = '';
         let lngCol = '';
-        
+
         if (type === 'checkin') {
           latCol = 'checkInLat';
           lngCol = 'checkInLng';
@@ -459,7 +459,7 @@ class SheetActions {
         if (latCol && lngCol) {
           const latIdx = headers.indexOf(latCol);
           const lngIdx = headers.indexOf(lngCol);
-          
+
           if (latIdx !== -1) {
             const latLetter = this._getColumnLetter(latIdx);
             await this.db.writeRange(SHEETS.JOBDATA, `${latLetter}${targetRow}`, [[String(lat)]]);
@@ -488,15 +488,15 @@ class SheetActions {
       };
     } catch (err) {
       console.error('❌ Update stop error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Update failed' 
+      return {
+        success: false,
+        message: err.message || 'Update failed'
       };
     }
   }
 
   /**
-   * UPLOAD_ALCOHOL: Save alcohol check result with image (multipart from Railway)
+   * UPLOAD_ALCOHOL: Save alcohol check result with image via Google Apps Script
    */
   async uploadAlcohol(payload) {
     try {
@@ -504,77 +504,56 @@ class SheetActions {
 
       console.log(`📝 uploadAlcohol called: ref=${reference}, driver=${driverName}, user=${userId}, result=${result}, lat=${lat}, lng=${lng}`);
 
-      // Ensure target sheet exists with correct headers
-      await this.db.ensureSheet(SHEETS.ALCOHOL);
-
-      // Save image to Drive only (no local fallback)
+      // ✅ SWITCH TO APPS SCRIPT: Upload via Google Apps Script endpoint
+      // (which handles Drive uploads with proper user authority)
       let imageUrl = '';
-      if (imageBuffer) {
-        console.log(`📸 Image provided. Drive available: ${!!this.driveStorage}, ALC_PARENT_FOLDER_ID: ${!!process.env.ALC_PARENT_FOLDER_ID}`);
+      let checkedDrivers = [];
 
-        if (!this.driveStorage || !process.env.ALC_PARENT_FOLDER_ID) {
-          throw new Error('Drive storage not configured. Please set ALC_PARENT_FOLDER_ID and credentials.');
-        }
+      if (imageBuffer) {
+        const appScriptUrl = process.env.APPSCRIPT_UPLOAD_ENDPOINT || 'https://script.google.com/macros/s/AKfycbwWn9SBE9XaIQ4k_hNt_TZa8MzI9Ywk8lXTi7RsONX-PBNLa65yXZmqCAd-ZYhHpV-g/exec';
+
+        // Convert buffer to base64
+        const imageBase64 = imageBuffer.toString('base64');
 
         try {
-          const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
-          console.log(`   📤 Uploading to Drive with parentFolderId=${process.env.ALC_PARENT_FOLDER_ID}, userId=${userId}`);
-          const driveResult = await this.driveStorage.uploadImageWithUserFolder(
-            imageBuffer,
-            filename,
-            process.env.ALC_PARENT_FOLDER_ID,
-            userId
-          );
-          imageUrl = driveResult.fileUrl;
-          console.log(`✅ Alcohol image uploaded to Drive: ${filename} → ${imageUrl}`);
-        } catch (driveErr) {
-          console.error('❌ Drive upload failed:', driveErr.message);
-          throw new Error(`Drive upload failed: ${driveErr.message}`);
+          console.log(`   📤 Uploading via Google Apps Script: ${appScriptUrl}`);
+
+          const appScriptResponse = await fetch(appScriptUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              reference: reference || '',
+              driverName: driverName || '',
+              userId: userId || '',
+              alcoholValue: result || '',
+              imageBase64: imageBase64,
+              lat: lat !== undefined && lat !== null ? lat : '',
+              lng: lng !== undefined && lng !== null ? lng : ''
+            })
+          });
+
+          const appScriptData = await appScriptResponse.json();
+
+          if (appScriptData.success) {
+            console.log(`✅ Alcohol image uploaded via Apps Script. Checked drivers: ${JSON.stringify(appScriptData.checkedDrivers)}`);
+            // Apps Script handles the imageUrl and stores it - we just need the response
+            checkedDrivers = appScriptData.checkedDrivers || [];
+            // Note: imageUrl is stored in Alcohol sheet by Apps Script directly
+            imageUrl = '(stored in Drive via Apps Script)';
+          } else {
+            throw new Error(appScriptData.message || 'Apps Script upload failed');
+          }
+        } catch (appScriptErr) {
+          console.error('❌ Apps Script upload failed:', appScriptErr.message);
+          throw new Error(`Apps Script upload failed: ${appScriptErr.message}`);
         }
       } else {
         console.log('📸 No image provided');
       }
 
-      // Match GAS sheet structure: reference, driverName, alcoholValue, checkedAt, userId, lat, lng, imageUrl
-      const d = timestamp ? new Date(timestamp) : new Date();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      const yyyy = d.getFullYear();
-      const hh = String(d.getHours()).padStart(2, '0');
-      const min = String(d.getMinutes()).padStart(2, '0');
-      const ss = String(d.getSeconds()).padStart(2, '0');
-      const checkedAt = `${mm}/${dd}/${yyyy} ${hh}:${min}:${ss}`;
-      const row = [
-        reference || '',
-        driverName || '',
-        result || '',           // alcoholValue
-        checkedAt,              // checkedAt
-        userId || '',
-        lat !== undefined && lat !== null ? String(lat) : '',
-        lng !== undefined && lng !== null ? String(lng) : '',
-        imageUrl || ''
-      ];
-
-      console.log(`📝 Writing row to ALCOHOL sheet:`, row);
-
-      // Primary write
-      try {
-        await this.db.appendRow(SHEETS.ALCOHOL, [row]);
-        console.log(`✅ Row written successfully`);
-      } catch (err) {
-        console.error(`❌ appendRow failed: ${err.message}`);
-        // Fallback to Zoile DB if main sheet is protected
-        if (this.zoileDb) {
-          console.warn('⚠️ Main ALCOHOL sheet protected, falling back to zoileDb');
-          await this.zoileDb.appendRow(SHEETS.ALCOHOL, [row]);
-          console.log(`✅ Row written to zoileDb fallback`);
-        } else {
-          throw err;
-        }
-      }
-
-      const checkedDrivers = await this._getCheckedDriversForReference(reference);
-
+      // ✅ Apps Script handles everything: row writing, timestamp formatting, image storage
+      // Our backend just returns the response from Apps Script
+      
       return {
         success: true,
         data: { checkedDrivers, imageUrl }
@@ -607,9 +586,9 @@ class SheetActions {
       return { success: true };
     } catch (err) {
       console.error('❌ Save awareness error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Save failed' 
+      return {
+        success: false,
+        message: err.message || 'Save failed'
       };
     }
   }
@@ -642,9 +621,9 @@ class SheetActions {
       return { success: true };
     } catch (err) {
       console.error('❌ Upload POD error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Upload failed' 
+      return {
+        success: false,
+        message: err.message || 'Upload failed'
       };
     }
   }
@@ -680,9 +659,9 @@ class SheetActions {
       return { success: true };
     } catch (err) {
       console.error('❌ Emergency SOS error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'SOS failed' 
+      return {
+        success: false,
+        message: err.message || 'SOS failed'
       };
     }
   }
@@ -712,11 +691,11 @@ class SheetActions {
 
       // Update all matching rows
       for (let i = 1; i < jobdata.length; i++) {
-        if (jobdata[i][referenceIdx] && 
-            String(jobdata[i][referenceIdx]).toUpperCase() === String(reference).toUpperCase()) {
-          
+        if (jobdata[i][referenceIdx] &&
+          String(jobdata[i][referenceIdx]).toUpperCase() === String(reference).toUpperCase()) {
+
           const rowNum = i + 1;
-          
+
           // Update multiple columns
           const updates = [];
           if (tripEndOdoIdx !== -1) {
@@ -774,9 +753,9 @@ class SheetActions {
       return { success: true };
     } catch (err) {
       console.error('❌ End trip error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'End trip failed' 
+      return {
+        success: false,
+        message: err.message || 'End trip failed'
       };
     }
   }
@@ -803,9 +782,9 @@ class SheetActions {
       return { success: true };
     } catch (err) {
       console.error('❌ Fill missing steps error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Fill missing steps failed' 
+      return {
+        success: false,
+        message: err.message || 'Fill missing steps failed'
       };
     }
   }
@@ -835,9 +814,9 @@ class SheetActions {
       // Update all matching rows
       let updatedCount = 0;
       for (let i = 1; i < jobdata.length; i++) {
-        if (jobdata[i][referenceIdx] && 
-            String(jobdata[i][referenceIdx]).toUpperCase() === String(reference).toUpperCase()) {
-          
+        if (jobdata[i][referenceIdx] &&
+          String(jobdata[i][referenceIdx]).toUpperCase() === String(reference).toUpperCase()) {
+
           const rowNum = i + 1;
           await this.db.writeRange(SHEETS.JOBDATA, `${closedLetter}${rowNum}`, [[timestamp]]);
           updatedCount++;
@@ -851,9 +830,9 @@ class SheetActions {
       return { success: true, message: `Job closed (${updatedCount} stops updated)` };
     } catch (err) {
       console.error('❌ Close job error:', err);
-      return { 
-        success: false, 
-        message: err.message || 'Close job failed' 
+      return {
+        success: false,
+        message: err.message || 'Close job failed'
       };
     }
   }
@@ -879,8 +858,8 @@ class SheetActions {
 
       const checkedDrivers = [];
       for (let i = 1; i < alcoholData.length; i++) {
-        if (alcoholData[i][refIdx] && 
-            String(alcoholData[i][refIdx]).toUpperCase() === String(reference).toUpperCase()) {
+        if (alcoholData[i][refIdx] &&
+          String(alcoholData[i][refIdx]).toUpperCase() === String(reference).toUpperCase()) {
           const driverName = alcoholData[i][driverIdx];
           if (driverName && !checkedDrivers.includes(driverName)) {
             checkedDrivers.push(driverName);
@@ -925,10 +904,10 @@ class SheetActions {
         obj[header] = row[idx] || '';
       }
     });
-    
+
     // Map Google Sheet column names to frontend expected field names
     // Frontend expects these field names (legacy compatibility)
-    
+
     // Station/Destination mapping
     if (!obj.destination1 && obj.shipToCode) {
       obj.destination1 = obj.shipToCode;
@@ -936,7 +915,7 @@ class SheetActions {
     if (!obj.destination2 && obj.shipToName) {
       obj.destination2 = obj.shipToName;
     }
-    
+
     // Time field mapping (Sheet uses checkIn/checkOut, frontend expects checkInTime/checkOutTime)
     if (obj.checkIn && !obj.checkInTime) {
       obj.checkInTime = obj.checkIn;
@@ -946,12 +925,12 @@ class SheetActions {
     }
     // Note: fuelingTime, unloadDoneTime, reviewedTime are already correct in sheet
     // No mapping needed for these fields
-    
+
     // Distance mapping (Sheet uses "Distance" column, frontend expects distance)
     if (obj.Distance && !obj.distance) {
       obj.distance = obj.Distance;
     }
-    
+
     // Coordinate mappings
     if (obj.destLat && !obj.destinationLat) {
       obj.destinationLat = obj.destLat;
@@ -959,15 +938,15 @@ class SheetActions {
     if (obj.destLng && !obj.destinationLng) {
       obj.destinationLng = obj.destLng;
     }
-    
+
     return obj;
   }
 
   /**
    * Convert column index to letter (0 = A, 1 = B, etc.)
    */  /**
-   * Get Origin config by route (match first 3 characters)
-   */
+  * Get Origin config by route (match first 3 characters)
+  */
   async getOriginConfigByRoute(routeRaw) {
     if (!routeRaw || !this.db) return null;
 
