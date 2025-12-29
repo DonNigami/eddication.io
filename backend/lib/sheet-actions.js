@@ -553,7 +553,7 @@ class SheetActions {
 
       // ✅ Apps Script handles everything: row writing, timestamp formatting, image storage
       // Our backend just returns the response from Apps Script
-      
+
       return {
         success: true,
         data: { checkedDrivers, imageUrl }
@@ -945,8 +945,8 @@ class SheetActions {
   /**
    * Convert column index to letter (0 = A, 1 = B, etc.)
    */  /**
-  * Get Origin config by route (match first 3 characters)
-  */
+ * Get Origin config by route (match first 3 characters)
+ */
   async getOriginConfigByRoute(routeRaw) {
     if (!routeRaw || !this.db) return null;
 
