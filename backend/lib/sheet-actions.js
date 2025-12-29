@@ -496,7 +496,7 @@ class SheetActions {
   }
 
   /**
-   * UPLOAD_ALCOHOL: Save alcohol check result with image via Google Apps Script
+   * UPLOAD_ALCOHOL: Save alcohol check result with image (using DriveStorage Shared Drive mode)
    */
   async uploadAlcohol(payload) {
     try {
@@ -504,66 +504,71 @@ class SheetActions {
 
       console.log(`📝 uploadAlcohol called: ref=${reference}, driver=${driverName}, user=${userId}, result=${result}, lat=${lat}, lng=${lng}`);
 
-      // ✅ SWITCH TO APPS SCRIPT: Upload via Google Apps Script endpoint
-      // (which handles Drive uploads with proper user authority)
+      // ✅ BACK TO DRIVESTORAGE: Use shared drive directly (no impersonation needed)
       let imageUrl = '';
-      let checkedDrivers = [];
-
       if (imageBuffer) {
-        const appScriptUrl = process.env.APPSCRIPT_UPLOAD_ENDPOINT || 'https://script.google.com/macros/s/AKfycbwWn9SBE9XaIQ4k_hNt_TZa8MzI9Ywk8lXTi7RsONX-PBNLa65yXZmqCAd-ZYhHpV-g/exec';
+        console.log(`📸 Image provided. Drive available: ${!!this.driveStorage}, ALC_PARENT_FOLDER_ID: ${!!process.env.ALC_PARENT_FOLDER_ID}`);
 
-        // Convert buffer to base64
-        const imageBase64 = imageBuffer.toString('base64');
+        if (!this.driveStorage || !process.env.ALC_PARENT_FOLDER_ID) {
+          throw new Error('Drive storage not configured. Please set ALC_PARENT_FOLDER_ID and credentials.');
+        }
 
         try {
-          console.log(`   📤 Uploading via Google Apps Script: ${appScriptUrl}`);
-
-          const appScriptResponse = await fetch(appScriptUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              reference: reference || '',
-              driverName: driverName || '',
-              userId: userId || '',
-              alcoholValue: result || '',
-              imageBase64: imageBase64,
-              lat: lat !== undefined && lat !== null ? lat : '',
-              lng: lng !== undefined && lng !== null ? lng : ''
-            })
-          });
-
-          // ✅ FIX: Check response text first, log for debugging
-          const responseText = await appScriptResponse.text();
-          console.log(`[DEBUG] Apps Script response status: ${appScriptResponse.status}`);
-          console.log(`[DEBUG] Apps Script response (first 200 chars): ${responseText.substring(0, 200)}`);
-
-          let appScriptData;
-          try {
-            appScriptData = JSON.parse(responseText);
-          } catch (parseErr) {
-            console.error('❌ Failed to parse JSON from Apps Script:', parseErr.message);
-            throw new Error(`Invalid JSON response from Apps Script: ${responseText.substring(0, 100)}`);
-          }
-
-          if (appScriptData.success) {
-            console.log(`✅ Alcohol image uploaded via Apps Script. Checked drivers: ${JSON.stringify(appScriptData.checkedDrivers)}`);
-            // Apps Script handles the imageUrl and stores it - we just need the response
-            checkedDrivers = appScriptData.checkedDrivers || [];
-            // Note: imageUrl is stored in Alcohol sheet by Apps Script directly
-            imageUrl = '(stored in Drive via Apps Script)';
-          } else {
-            throw new Error(appScriptData.message || 'Apps Script upload failed');
-          }
-        } catch (appScriptErr) {
-          console.error('❌ Apps Script upload failed:', appScriptErr.message);
-          throw new Error(`Apps Script upload failed: ${appScriptErr.message}`);
+          const filename = `alc_${reference || 'ref'}_${driverName || 'driver'}_${Date.now()}.jpg`;
+          console.log(`   📤 Uploading to Shared Drive (no impersonation): parentFolderId=${process.env.ALC_PARENT_FOLDER_ID}, userId=${userId}`);
+          const driveResult = await this.driveStorage.uploadImageWithUserFolder(
+            imageBuffer,
+            filename,
+            process.env.ALC_PARENT_FOLDER_ID,
+            userId
+          );
+          imageUrl = driveResult.fileUrl;
+          console.log(`✅ Alcohol image uploaded to Shared Drive: ${filename} → ${imageUrl}`);
+        } catch (driveErr) {
+          console.error('❌ Drive upload failed:', driveErr.message);
+          throw new Error(`Drive upload failed: ${driveErr.message}`);
         }
       } else {
         console.log('📸 No image provided');
       }
 
-      // ✅ Apps Script handles everything: row writing, timestamp formatting, image storage
-      // Our backend just returns the response from Apps Script
+      // Write to Alcohol sheet
+      const d = timestamp ? new Date(timestamp) : new Date();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      const checkedAt = `${mm}/${dd}/${yyyy} ${hh}:${min}:${ss}`;
+      const row = [
+        reference || '',
+        driverName || '',
+        result || '',
+        checkedAt,
+        userId || '',
+        lat !== undefined && lat !== null ? String(lat) : '',
+        lng !== undefined && lng !== null ? String(lng) : '',
+        imageUrl || ''
+      ];
+
+      console.log(`📝 Writing row to ALCOHOL sheet:`, row);
+
+      try {
+        await this.db.appendRow(SHEETS.ALCOHOL, [row]);
+        console.log(`✅ Row written successfully`);
+      } catch (err) {
+        console.error(`❌ appendRow failed: ${err.message}`);
+        if (this.zoileDb) {
+          console.warn('⚠️ Main ALCOHOL sheet protected, falling back to zoileDb');
+          await this.zoileDb.appendRow(SHEETS.ALCOHOL, [row]);
+          console.log(`✅ Row written to zoileDb fallback`);
+        } else {
+          throw err;
+        }
+      }
+
+      const checkedDrivers = await this._getCheckedDriversForReference(reference);
 
       return {
         success: true,
