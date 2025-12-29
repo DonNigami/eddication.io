@@ -9,7 +9,8 @@ const { Readable } = require('stream');
 class DriveStorage {
   constructor(credentialsSource, options = {}) {
     this.credentialsSource = credentialsSource;
-    this.impersonateEmail = options.impersonateEmail || process.env.GOOGLE_IMPERSONATE_EMAIL || null;
+    // Treat empty strings as unset to allow falling back to service account only (for Shared Drive).
+    this.impersonateEmail = (options.impersonateEmail || process.env.GOOGLE_IMPERSONATE_EMAIL || '').trim() || null;
     this.makePublic = options.makePublic;
     this.drive = null;
     this.auth = null;
@@ -40,6 +41,11 @@ class DriveStorage {
       }
 
       console.log('   Authenticating with Google...');
+      if (this.impersonateEmail) {
+        console.log(`   Using domain-wide delegation as: ${this.impersonateEmail}`);
+      } else {
+        console.log('   Using service account directly (no impersonation)');
+      }
       this.auth = new google.auth.GoogleAuth({
         credentials,
         scopes: [

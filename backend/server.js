@@ -98,10 +98,12 @@ async function initializeServices() {
     // Initialize Google Drive storage (for images/signatures)
     if (process.env.ALC_PARENT_FOLDER_ID) {
       console.log('🔧 Initializing Google Drive storage...');
+      const impersonate = (process.env.GOOGLE_IMPERSONATE_EMAIL || '').trim();
       driveStorage = new DriveStorage(
         process.env.GOOGLE_SHEETS_CREDENTIALS_JSON || process.env.GOOGLE_SHEETS_KEY_FILE,
         {
-          impersonateEmail: process.env.GOOGLE_IMPERSONATE_EMAIL,
+          // If you want Shared Drive with pure service account, leave GOOGLE_IMPERSONATE_EMAIL empty.
+          impersonateEmail: impersonate || null,
           makePublic: process.env.DRIVE_PUBLIC_READ === 'true'
         }
       );
