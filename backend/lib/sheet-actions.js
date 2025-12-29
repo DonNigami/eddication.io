@@ -507,7 +507,7 @@ class SheetActions {
       // ✅ UPLOAD VIA APPS SCRIPT: Send image to Apps Script for Drive upload
       let imageUrl = '';
       if (imageBuffer) {
-        const appScriptUrl = 'https://script.google.com/macros/s/AKfycbwWn9SBE9XaIQ4k_hNt_TZa8MzI9Ywk8lXTi7RsONX-PBNLa65yXZmqCAd-ZYhHpV-g/exec';
+        const appScriptUrl = 'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
 
         // Convert buffer to base64
         const imageBase64 = imageBuffer.toString('base64');
@@ -519,7 +519,7 @@ class SheetActions {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: 'alcoholUpload',
+              action: 'uploadalcohol',
               reference: reference || '',
               driverName: driverName || '',
               userId: userId || '',
