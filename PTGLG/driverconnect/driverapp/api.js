@@ -134,8 +134,6 @@
         throw new Error('Backend returned invalid JSON: ' + text.substring(0, 100));
       }
     } catch (err) {
-      if (id) clearTimeout(id);
-
       // Retry logic for network/timeout errors (not 4xx client errors)
       const isRetryable =
         err.name === 'AbortError' || // Timeout
@@ -149,6 +147,8 @@
       }
 
       throw err;
+    } finally {
+      if (id) clearTimeout(id);
     }
   }
 
@@ -536,37 +536,6 @@
     },
 
     /**
-     * Close a job (mark vehicle as ready)
-     * @param {object} params
-     * @returns {Promise<{success: boolean, stop?: *, message?: string}>}
-     */
-    async closeJob({ reference, userId }) {
-      window.Logger.info('🔐 Closing job', { reference });
-
-      try {
-        const url =
-          WEB_APP_URL + '?action=' + ACTIONS.CLOSE_JOB +
-          '&reference=' + encodeURIComponent(reference) +
-          '&userId=' + encodeURIComponent(userId);
-
-        const json = await fetchWithRetry(url);
-
-        if (!json.success) {
-          return { success: false, message: json.message || 'ไม่สามารถปิดงานได้' };
-        }
-
-        window.Logger.debug('✅ Job closed', json.stop);
-        return { success: true, stop: json.stop };
-      } catch (err) {
-        window.Logger.error('❌ Close job failed', err);
-        return {
-          success: false,
-          message: err.name === 'AbortError' ? MESSAGES.ERROR_TIMEOUT : MESSAGES.ERROR_NETWORK,
-        };
-      }
-    },
-
-    /**
      * Save awareness acknowledgment with image to Google Sheet
      * @param {object} params
      * @returns {Promise<{success: boolean, message?: string}>}
@@ -676,12 +645,21 @@
     /**
      * Close job (all stops completed)
      */
-    async closeJob(reference, userId) {
-      window.Logger.info('🔄 Closing job', { reference, userId });
+    async closeJob(referenceOrParams, userId) {
+      // Support both closeJob({ reference, userId }) and closeJob(reference, userId)
+      var isObj = referenceOrParams && typeof referenceOrParams === 'object';
+      var reference = isObj ? referenceOrParams.reference : referenceOrParams;
+      var userIdSafe = isObj ? referenceOrParams.userId : userId;
+
+      window.Logger.info('🔄 Closing job', { reference, userId: userIdSafe });
+
+      if (!reference || !userIdSafe) {
+        return { success: false, message: 'Reference หรือ UserId ไม่ครบ' };
+      }
 
       try {
         const url = WEB_APP_URL + '/api/closeJob';
-        const payload = { reference, userId };
+        const payload = { reference: reference, userId: userIdSafe };
 
         const json = await fetchWithRetry(url, {
           method: 'POST',
