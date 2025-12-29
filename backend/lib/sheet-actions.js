@@ -500,6 +500,8 @@ class SheetActions {
    */
   async uploadAlcohol(payload) {
     try {
+      console.log(`📝 Full payload received:`, JSON.stringify(payload));
+
       const { reference, driverName, userId, result, timestamp, imageBuffer, lat, lng } = payload;
 
       console.log(`📝 uploadAlcohol called: ref=${reference}, driver=${driverName}, user=${userId}, result=${result}, lat=${lat}, lng=${lng}`);
@@ -523,7 +525,7 @@ class SheetActions {
               reference: reference || '',
               driverName: driverName || '',
               userId: userId || '',
-              alcoholRaw: result || '',
+              alcoholValue: result || '',
               imageBase64: imageBase64,
               lat: lat !== undefined && lat !== null ? lat : '',
               lng: lng !== undefined && lng !== null ? lng : ''
