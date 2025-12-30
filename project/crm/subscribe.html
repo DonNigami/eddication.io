@@ -544,38 +544,39 @@
                             .from('payment-slips')
                             .getPublicUrl(fileName)
 
-                        // Create subscription record with notification
-                        const submissionData = {
-                            action: 'create-customer-subscription',
-                            package_id: this.selectedPackage.id,
-                            package_name: this.selectedPackage.name,
-                            customer_info: this.contactInfo,
-                            slip_url: publicUrl,
-                            charge_id: this.chargeId,
-                            line_user_id: this.lineUserId,
-                            duration_months: this.selectedDuration,
-                            total_price: this.calculatePrice(),
-                            original_price: this.getOriginalPrice(),
-                            discount_percent: this.getDiscountPercent(),
-                            submission_time: new Date().toISOString()
-                        }
-
-                        // Try to send backend notification + Telegram (optional - will fail gracefully if backend is down)
-                        const backendUrl = localStorage.getItem('backendUrl') || 'http://localhost:3000';
+                        // Send Telegram notification directly
                         try {
-                            const response = await fetch(`${backendUrl}/api/subscription/notify`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(submissionData)
-                            })
+                            const { data: telegramConfig } = await this.supabase.rpc('get_telegram_config')
 
-                            if (response.ok) {
-                                console.log('✅ Backend notification sent successfully');
-                            } else {
-                                console.warn(`⚠️ Backend returned ${response.status}`)
+                            if (telegramConfig && telegramConfig.telegram_bot_token && telegramConfig.telegram_chat_id) {
+                                const message = `
+🎉 *คำขอสมัครสมาชิกใหม่*
+
+👤 *ชื่อ:* ${this.contactInfo.name}
+📱 *เบอร์:* ${this.contactInfo.phone}
+
+💎 *แพคเกจ:* ${this.selectedPackage.name}
+⏱ *ระยะเวลา:* ${this.selectedDuration} เดือน
+💰 *ยอดชำระ:* ฿${this.calculatePrice().toLocaleString()}
+
+📎 [ดูสลิปการโอน](${publicUrl})
+
+🕐 เวลา: ${new Date().toLocaleString('th-TH')}
+`.trim()
+
+                                await fetch(`https://api.telegram.org/bot${telegramConfig.telegram_bot_token}/sendMessage`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        chat_id: telegramConfig.telegram_chat_id,
+                                        text: message,
+                                        parse_mode: 'Markdown'
+                                    })
+                                })
+                                console.log('✅ Telegram notification sent')
                             }
-                        } catch (fetchErr) {
-                            console.warn('⚠️ Backend server not available (Telegram notification skipped):', fetchErr.message)
+                        } catch (err) {
+                            console.warn('⚠️ Telegram notification failed:', err.message)
                         }
 
                         // Show success notification
