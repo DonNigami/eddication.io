@@ -359,34 +359,12 @@
                 async generateQRCode() {
                     try {
                         const amount = this.selectedPackage.price_yearly
+                        const phoneNumber = '0656987889'
 
-                        // Create PromptPay charge via Omise
-                        const response = await fetch('https://api.omise.co/charges', {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': 'Basic ' + btoa('skey_test_5wox4qrhdxqjxpyhnuy:'),
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                amount: amount * 100, // convert to satang
-                                currency: 'THB',
-                                source: {
-                                    type: 'promptpay'
-                                },
-                                description: `${this.selectedPackage.name} - Subscription`,
-                                metadata: {
-                                    package_id: this.selectedPackage.id,
-                                    line_user_id: this.lineUserId
-                                }
-                            })
-                        })
+                        // Generate PromptPay QR Code using promptpay.io
+                        this.qrCodeUrl = `https://promptpay.io/${phoneNumber}/${amount}.png`
 
-                        const charge = await response.json()
-
-                        if (charge.source && charge.source.scannable_code) {
-                            this.qrCodeUrl = charge.source.scannable_code.image.download_uri
-                            this.chargeId = charge.id
-                        }
+                        console.log('QR Code generated:', this.qrCodeUrl)
                     } catch (error) {
                         console.error('QR generation failed:', error)
                         Swal.fire('Error', 'ไม่สามารถสร้าง QR Code ได้', 'error')
