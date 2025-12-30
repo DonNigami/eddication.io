@@ -152,15 +152,18 @@ CREATE POLICY "payments anon" ON payments
 CREATE POLICY "profiles anon" ON profiles
     FOR ALL USING (true);
 
--- Step 6: Insert sample package data (optional)
+-- Step 6: Delete old data and insert fresh package data
 -- =====================================================
 
+-- Delete existing packages to avoid conflicts
+DELETE FROM subscription_packages;
+
+-- Insert packages with both Thai and English names
 INSERT INTO subscription_packages (name, name_en, description, price_yearly, color_theme, benefits, discount_percent, points_multiplier, is_active, sort_order)
 VALUES 
-    ('ทั่วไป', 'Standard', 'Package ทั่วไป', 999, '#3B82F6', '["ส่วนลด 5%", "สะสมแต้ม 1x"]', 5.00, 1.0, true, 1),
-    ('พรีเมี่ยม', 'Premium', 'Package พรีเมี่ยม', 1999, '#8B5CF6', '["ส่วนลด 10%", "สะสมแต้ม 1.5x", "ส่งฟรีทั่วประเทศ"]', 10.00, 1.5, true, 2),
-    ('ทอง', 'Gold', 'Package ทอง', 3999, '#FBBF24', '["ส่วนลด 15%", "สะสมแต้ม 2x", "ส่งฟรี + บริการ Premium"]', 15.00, 2.0, true, 3)
-ON CONFLICT DO NOTHING;
+    ('Silver', 'Silver', 'สมาชิกเงิน - ส่วนลด 5%', 999, '#C0C0C0', '["ส่วนลด 5%", "สะสมแต้ม 1x", "บริการพื้นฐาน"]', 5.00, 1.0, true, 1),
+    ('Gold', 'Gold', 'สมาชิกทอง - ส่วนลด 10%', 1999, '#FFD700', '["ส่วนลด 10%", "สะสมแต้ม 1.5x", "ส่งฟรีทั่วประเทศ", "สิทธิพิเศษ"]', 10.00, 1.5, true, 2),
+    ('Platinum', 'Platinum', 'สมาชิกแพลทินัม - ส่วนลด 15%', 3999, '#E5E4E2', '["ส่วนลด 15%", "สะสมแต้ม 2x", "ส่งฟรี + Priority", "บริการ VIP"]', 15.00, 2.0, true, 3);
 
 -- SUCCESS!
-SELECT 'Setup complete! All tables created and policies configured.' AS result;
+SELECT 'Setup complete! All tables created with sample packages: Silver, Gold, Platinum' AS result;
