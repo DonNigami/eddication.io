@@ -80,6 +80,14 @@ CREATE TABLE IF NOT EXISTS payments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Remove package_name column if it exists (from old schema)
+DO $$ 
+BEGIN
+    ALTER TABLE payments DROP COLUMN IF EXISTS package_name;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     line_user_id TEXT UNIQUE,
