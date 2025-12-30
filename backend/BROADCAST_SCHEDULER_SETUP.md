@@ -46,6 +46,83 @@ supabase/migrations/20251230_create_missing_tables.sql
 - 24/7 uptime
 ```
 
+**📖 Railway ขั้นตอนละเอียด:**
+
+**ขั้นตอน 1: เข้า Railway**
+1. ไปที่ https://railway.app
+2. คลิก "Start Project"
+3. เลือก "Deploy from GitHub" หรือ "Deploy with GitHub"
+
+**ขั้นตอน 2: Connect GitHub Repo**
+1. Authorize Railway to access GitHub
+2. เลือก repository: `eddication.io`
+3. เลือก branch: `main` (หรือ `master`)
+
+**ขั้นตอน 3: Configure Service**
+1. Railway จะ auto-detect `package.json`
+2. ตั้ง Root Directory: `backend` (เพราะ backend อยู่ใน subdirectory)
+3. ระบบจะ auto-detect start command: `npm start`
+
+**ขั้นตอน 4: ตั้ง Environment Variables**
+
+ใน Railway Dashboard:
+1. Project → Backend Service → Variables
+2. เพิ่ม variables:
+
+```
+NODE_ENV=production
+PORT=3000
+SUPABASE_URL=https://rwqgxdjcwrglbwlruyty.supabase.co
+SUPABASE_SERVICE_KEY=your_service_key_here
+LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token_here
+LINE_CHANNEL_SECRET=your_line_channel_secret_here
+```
+
+**ขั้นตอน 5: Deploy**
+1. Railway จะ auto-deploy เมื่อ push ไป GitHub
+2. ดู logs ใน Railway Dashboard
+3. ข้อความ `✅ Broadcast Scheduler started` = สำเร็จ
+
+**ขั้นตอน 6: Get Service URL**
+1. ใน Railway Dashboard → Backend → Deployments
+2. เจอ URL เช่น `https://crm-backend-prod.up.railway.app`
+3. Update frontend `.env` ให้ชี้ไปที่ URL นี้
+
+---
+
+**วิธี Copy Supabase Service Key:**
+1. ไปที่ https://app.supabase.com
+2. Project → Settings → API
+3. Copy "service_role secret" (ไม่ใช่ "anon public")
+4. Paste ลง Railway Environment Variables
+
+**วิธี Copy LINE Channel Access Token:**
+1. ไปที่ https://manager.line.biz
+2. Official Account Settings → API Settings
+3. Copy "Channel Access Token"
+4. Paste ลง Railway Environment Variables
+
+---
+
+**ตรวจสอบ Deployment:**
+```bash
+# ใน Railway Logs ควรเห็น:
+✅ Google Sheets connected
+✅ Services initialized
+✅ Broadcast Scheduler started
+✅ Server running on port 3000
+```
+
+**ปัญหา Deploy:**
+| ปัญหา | วิธีแก้ |
+|------|-------|
+| Build failed | ตรวจสอบ `package.json` มี dependencies ครบหรือไม่ |
+| "npm start" ไม่ทำงาน | ตรวจสอบ `Procfile` หรือ `server.js` อยู่ที่ root ของ backend |
+| Scheduler ไม่ทำงาน | ตรวจสอบ env vars ถูกต้อง (ดู logs) |
+| Service Key ผิด | ต้องใช้ "service_role secret" ไม่ใช่ "anon public" |
+
+---
+
 **Render** (Free tier มี uptime 15 นาที)
 ```bash
 - Connect GitHub
