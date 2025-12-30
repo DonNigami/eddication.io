@@ -545,6 +545,7 @@
                             .getPublicUrl(fileName)
 
                         // Save to database
+                        console.log('💾 Saving to database...')
                         const { data: savedSubmission, error: dbError } = await this.supabase
                             .from('subscription_requests')
                             .insert([{
@@ -565,17 +566,27 @@
                             .single()
 
                         if (dbError) {
-                            console.warn('⚠️ Could not save to database:', dbError.message)
-                        } else {
-                            console.log('✅ Saved to database:', savedSubmission)
+                            console.error('❌ Database error:', dbError)
+                            throw new Error(`ไม่สามารถบันทึกข้อมูลได้: ${dbError.message}\n\nกรุณาตรวจสอบว่าสร้างตาราง subscription_requests แล้วหรือยัง`)
                         }
+                        
+                        console.log('✅ Saved to database:', savedSubmission)
 
                         // Send Telegram notification directly
-                        try {
-                            const { data: telegramConfig } = await this.supabase.rpc('get_telegram_config')
+                        console.log('📱 Sending Telegram notification...')
+                        const { data: telegramConfig, error: rpcError } = await this.supabase.rpc('get_telegram_config')
 
-                            if (telegramConfig && telegramConfig.telegram_bot_token && telegramConfig.telegram_chat_id) {
-                                const message = `
+                        if (rpcError) {
+                            console.error('❌ RPC error:', rpcError)
+                            throw new Error(`ไม่สามารถดึงข้อมูล Telegram ได้: ${rpcError.message}\n\nกรุณาสร้าง function get_telegram_config`)
+                        }
+
+                        if (!telegramConfig || !telegramConfig.telegram_bot_token || !telegramConfig.telegram_chat_id) {
+                            console.warn('⚠️ Telegram config not found:', telegramConfig)
+                            throw new Error('ไม่พบการตั้งค่า Telegram\n\nกรุณาตรวจสอบ Vault Secrets: TELEGRAM_BOT_TOKEN และ TELEGRAM_CHAT_ID')
+                        }
+
+                        const message = `
 🎉 *คำขอสมัครสมาชิกใหม่*
 
 👤 *ชื่อ:* ${this.contactInfo.name}
@@ -590,20 +601,23 @@
 🕐 เวลา: ${new Date().toLocaleString('th-TH')}
 `.trim()
 
-                                await fetch(`https://api.telegram.org/bot${telegramConfig.telegram_bot_token}/sendMessage`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        chat_id: telegramConfig.telegram_chat_id,
-                                        text: message,
-                                        parse_mode: 'Markdown'
-                                    })
-                                })
-                                console.log('✅ Telegram notification sent')
-                            }
-                        } catch (err) {
-                            console.warn('⚠️ Telegram notification failed:', err.message)
+                        const telegramResponse = await fetch(`https://api.telegram.org/bot${telegramConfig.telegram_bot_token}/sendMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: telegramConfig.telegram_chat_id,
+                                text: message,
+                                parse_mode: 'Markdown'
+                            })
+                        })
+
+                        const telegramResult = await telegramResponse.json()
+                        if (!telegramResponse.ok) {
+                            console.error('❌ Telegram API error:', telegramResult)
+                            throw new Error(`ส่ง Telegram ไม่สำเร็จ: ${telegramResult.description || 'Unknown error'}`)
                         }
+                        
+                        console.log('✅ Telegram notification sent:', telegramResult)
 
                         // Show success notification
                         await Swal.fire({
