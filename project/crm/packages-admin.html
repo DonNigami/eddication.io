@@ -594,12 +594,12 @@
                 },
                 async loadSubscriptions() {
                     try {
-                        // Load customer_subscriptions with related data
                         const { data, error } = await this.supabase
                             .from('customer_subscriptions')
                             .select(`
                                 id,
-                                customer_id,
+                                customer_name,
+                                customer_phone,
                                 package_id,
                                 status,
                                 payment_status,
@@ -607,8 +607,7 @@
                                 start_date,
                                 end_date,
                                 created_at,
-                                profiles:customer_id(display_name, phone),
-                                subscriptions_packages:package_id(name, price_yearly, color_theme)
+                                subscription_packages(name, price_yearly, color_theme)
                             `)
                             .order('created_at', { ascending: false })
 
@@ -617,20 +616,19 @@
                             throw error
                         }
 
-                        // Transform data to match expected format
                         this.subscriptions = (data || []).map(sub => ({
                             id: sub.id,
-                            customer_name: sub.profiles?.display_name || 'Unknown',
-                            customer_phone: sub.profiles?.phone || '',
-                            package_name: sub.subscriptions_packages?.name || 'Unknown',
-                            package_color: sub.subscriptions_packages?.color_theme || '#3B82F6',
+                            customer_name: sub.customer_name || 'Unknown',
+                            customer_phone: sub.customer_phone || '',
+                            package_name: sub.subscription_packages?.name || 'Unknown',
+                            package_color: sub.subscription_packages?.color_theme || '#3B82F6',
                             status: sub.status,
                             payment_status: sub.payment_status,
                             paid_amount: sub.paid_amount,
                             start_date: sub.start_date,
                             end_date: sub.end_date,
                             created_at: sub.created_at,
-                            price: sub.subscriptions_packages?.price_yearly || 0
+                            price: sub.subscription_packages?.price_yearly || 0
                         }))
                         console.log('✅ Loaded subscriptions:', this.subscriptions.length)
                     } catch (err) {
@@ -782,60 +780,25 @@
                                 .eq('id', submission.id)
 
                             if (updateError) {
-                                console.error('❌ Error updating submission status:', updateError)
+                                console.error('❌ Error updating submission:', updateError)
                                 throw updateError
                             }
-                            console.log('✅ Updated subscription_requests status to approved')
+                            console.log('✅ Updated submission status')
 
-                            // Step 2: Find or create customer profile
-                            let customerId = null
-                            const { data: existingCustomer, error: findError } = await this.supabase
-                                .from('profiles')
-                                .select('id')
-                                .eq('phone', submission.customer_phone)
-                                .maybeSingle()
-
-                            if (findError && findError.code !== 'PGRST116') {
-                                console.error('❌ Error finding customer:', findError)
-                                throw findError
-                            }
-
-                            if (existingCustomer) {
-                                customerId = existingCustomer.id
-                                console.log('✅ Found existing customer:', customerId)
-                            } else {
-                                // Create new customer
-                                const { data: newCustomer, error: createError } = await this.supabase
-                                    .from('profiles')
-                                    .insert({
-                                        display_name: submission.customer_name,
-                                        phone: submission.customer_phone
-                                    })
-                                    .select()
-                                    .single()
-
-                                if (createError) {
-                                    console.error('❌ Error creating customer:', createError)
-                                    throw createError
-                                }
-                                customerId = newCustomer.id
-                                console.log('✅ Created new customer:', customerId)
-                            }
-
-                            // Step 3: Find package ID
+                            // Step 2: Find package ID by name
                             const { data: pkg, error: pkgError } = await this.supabase
-                                .from('subscriptions_packages')
+                                .from('subscription_packages')
                                 .select('id')
                                 .eq('name', submission.package_name)
                                 .single()
 
                             if (pkgError) {
-                                console.error('❌ Error finding package:', pkgError)
+                                console.error('❌ Package not found:', pkgError)
                                 throw new Error(`Package "${submission.package_name}" not found`)
                             }
                             console.log('✅ Found package:', pkg.id)
 
-                            // Step 4: Create customer subscription record
+                            // Step 3: Create customer subscription with direct customer info
                             const startDate = new Date()
                             const endDate = new Date()
                             endDate.setMonth(endDate.getMonth() + submission.duration_months)
@@ -843,7 +806,8 @@
                             const { error: insertError } = await this.supabase
                                 .from('customer_subscriptions')
                                 .insert({
-                                    customer_id: customerId,
+                                    customer_name: submission.customer_name,
+                                    customer_phone: submission.customer_phone,
                                     package_id: pkg.id,
                                     status: 'active',
                                     payment_status: 'paid',
@@ -856,7 +820,7 @@
                                 console.error('❌ Error creating subscription:', insertError)
                                 throw insertError
                             }
-                            console.log('✅ Created customer_subscriptions record')
+                            console.log('✅ Created subscription')
 
                             // Step 5: Create payment record
                             const { error: paymentError } = await this.supabase
