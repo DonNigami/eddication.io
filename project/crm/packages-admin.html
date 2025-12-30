@@ -594,13 +594,44 @@
                 },
                 async loadSubscriptions() {
                     try {
+                        // Load customer_subscriptions with related data
                         const { data, error } = await this.supabase
-                            .from('subscriptions')
-                            .select('*')
+                            .from('customer_subscriptions')
+                            .select(`
+                                id,
+                                customer_id,
+                                package_id,
+                                status,
+                                payment_status,
+                                paid_amount,
+                                start_date,
+                                end_date,
+                                created_at,
+                                profiles:customer_id(display_name, phone),
+                                subscriptions_packages:package_id(name, price_yearly, color_theme)
+                            `)
                             .order('created_at', { ascending: false })
 
-                        if (error) throw error
-                        this.subscriptions = data || []
+                        if (error) {
+                            console.error('❌ Error loading subscriptions:', error)
+                            throw error
+                        }
+
+                        // Transform data to match expected format
+                        this.subscriptions = (data || []).map(sub => ({
+                            id: sub.id,
+                            customer_name: sub.profiles?.display_name || 'Unknown',
+                            customer_phone: sub.profiles?.phone || '',
+                            package_name: sub.subscriptions_packages?.name || 'Unknown',
+                            package_color: sub.subscriptions_packages?.color_theme || '#3B82F6',
+                            status: sub.status,
+                            payment_status: sub.payment_status,
+                            paid_amount: sub.paid_amount,
+                            start_date: sub.start_date,
+                            end_date: sub.end_date,
+                            created_at: sub.created_at,
+                            price: sub.subscriptions_packages?.price_yearly || 0
+                        }))
                         console.log('✅ Loaded subscriptions:', this.subscriptions.length)
                     } catch (err) {
                         console.error('❌ Error loading subscriptions:', err)
@@ -742,33 +773,108 @@
 
                     if (result.isConfirmed) {
                         try {
-                            // Update submission status to approved
+                            console.log('🔄 Approving submission:', submission)
+
+                            // Step 1: Update submission status to approved
                             const { error: updateError } = await this.supabase
                                 .from('subscription_requests')
                                 .update({ status: 'approved' })
                                 .eq('id', submission.id)
 
-                            if (updateError) throw updateError
+                            if (updateError) {
+                                console.error('❌ Error updating submission status:', updateError)
+                                throw updateError
+                            }
+                            console.log('✅ Updated subscription_requests status to approved')
 
-                            // Create subscription record
+                            // Step 2: Find or create customer profile
+                            let customerId = null
+                            const { data: existingCustomer, error: findError } = await this.supabase
+                                .from('profiles')
+                                .select('id')
+                                .eq('phone', submission.customer_phone)
+                                .maybeSingle()
+
+                            if (findError && findError.code !== 'PGRST116') {
+                                console.error('❌ Error finding customer:', findError)
+                                throw findError
+                            }
+
+                            if (existingCustomer) {
+                                customerId = existingCustomer.id
+                                console.log('✅ Found existing customer:', customerId)
+                            } else {
+                                // Create new customer
+                                const { data: newCustomer, error: createError } = await this.supabase
+                                    .from('profiles')
+                                    .insert({
+                                        display_name: submission.customer_name,
+                                        phone: submission.customer_phone
+                                    })
+                                    .select()
+                                    .single()
+
+                                if (createError) {
+                                    console.error('❌ Error creating customer:', createError)
+                                    throw createError
+                                }
+                                customerId = newCustomer.id
+                                console.log('✅ Created new customer:', customerId)
+                            }
+
+                            // Step 3: Find package ID
+                            const { data: pkg, error: pkgError } = await this.supabase
+                                .from('subscriptions_packages')
+                                .select('id')
+                                .eq('name', submission.package_name)
+                                .single()
+
+                            if (pkgError) {
+                                console.error('❌ Error finding package:', pkgError)
+                                throw new Error(`Package "${submission.package_name}" not found`)
+                            }
+                            console.log('✅ Found package:', pkg.id)
+
+                            // Step 4: Create customer subscription record
                             const startDate = new Date()
                             const endDate = new Date()
                             endDate.setMonth(endDate.getMonth() + submission.duration_months)
 
                             const { error: insertError } = await this.supabase
-                                .from('subscriptions')
-                                .insert([{
-                                    customer_name: submission.customer_name,
-                                    customer_phone: submission.customer_phone,
-                                    package_name: submission.package_name,
+                                .from('customer_subscriptions')
+                                .insert({
+                                    customer_id: customerId,
+                                    package_id: pkg.id,
                                     status: 'active',
                                     payment_status: 'paid',
-                                    start_date: startDate.toISOString().split('T')[0],
-                                    end_date: endDate.toISOString().split('T')[0],
-                                    paid_amount: submission.total_price
-                                }])
+                                    paid_amount: submission.total_price,
+                                    start_date: startDate.toISOString(),
+                                    end_date: endDate.toISOString()
+                                })
 
-                            if (insertError) throw insertError
+                            if (insertError) {
+                                console.error('❌ Error creating subscription:', insertError)
+                                throw insertError
+                            }
+                            console.log('✅ Created customer_subscriptions record')
+
+                            // Step 5: Create payment record
+                            const { error: paymentError } = await this.supabase
+                                .from('payments')
+                                .insert({
+                                    customer_name: submission.customer_name,
+                                    amount: submission.total_price,
+                                    status: 'paid',
+                                    payment_method: 'slip',
+                                    slip_url: submission.slip_url
+                                })
+
+                            if (paymentError) {
+                                console.warn('⚠️ Error creating payment record (non-critical):', paymentError)
+                                // Don't throw - this is optional
+                            } else {
+                                console.log('✅ Created payment record')
+                            }
 
                             // TODO: Send LINE notification to customer
 
@@ -778,7 +884,7 @@
                             await this.loadPendingSubmissions()
                             await this.loadSubscriptions()
                         } catch (err) {
-                            console.error('Error approving submission:', err)
+                            console.error('❌ Error approving submission:', err)
                             Swal.fire('Error', 'ไม่สามารถอนุมัติได้: ' + err.message, 'error')
                         }
                     }
