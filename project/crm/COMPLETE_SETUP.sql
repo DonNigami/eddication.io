@@ -119,9 +119,10 @@ ALTER TABLE subscription_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
--- Step 4: Drop old restrictive policies
+-- Step 4: Drop ALL existing policies (old and new)
 -- =====================================================
 
+-- Drop old tenant isolation policies
 DROP POLICY IF EXISTS "Packages tenant isolation" ON subscription_packages;
 DROP POLICY IF EXISTS "Customer subscriptions tenant isolation" ON customer_subscriptions;
 DROP POLICY IF EXISTS "Payments tenant isolation" ON subscription_payments;
@@ -130,6 +131,14 @@ DROP POLICY IF EXISTS "Service role bypass subscriptions" ON customer_subscripti
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can insert their own profile" ON profiles;
+
+-- Drop anon policies if they exist
+DROP POLICY IF EXISTS "subscription_packages anon" ON subscription_packages;
+DROP POLICY IF EXISTS "customer_subscriptions anon" ON customer_subscriptions;
+DROP POLICY IF EXISTS "subscription_payments anon" ON subscription_payments;
+DROP POLICY IF EXISTS "subscription_requests anon" ON subscription_requests;
+DROP POLICY IF EXISTS "payments anon" ON payments;
+DROP POLICY IF EXISTS "profiles anon" ON profiles;
 
 -- Step 5: Create new anon-friendly policies
 -- =====================================================
