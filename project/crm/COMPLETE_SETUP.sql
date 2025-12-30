@@ -177,7 +177,11 @@ CREATE POLICY "profiles anon" ON profiles
 -- Step 6: Delete old data and insert fresh package data
 -- =====================================================
 
--- Delete existing packages to avoid conflicts
+-- Delete in order: child tables first, then parent tables
+DELETE FROM subscription_payments;
+DELETE FROM customer_subscriptions;
+DELETE FROM subscription_requests;
+DELETE FROM payments;
 DELETE FROM subscription_packages;
 
 -- Insert packages with both Thai and English names
