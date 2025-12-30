@@ -328,16 +328,22 @@
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNraHdvdXh0cnZ1dGhlZmt4bnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzU4NDAsImV4cCI6MjA1MDExMTg0MH0.Vn-V7nDXON7vRCEp2KzPQwvTv2X_nFZxlq6nZBK8jpw'
                 )
 
-                // Initialize LIFF
+                // Initialize LIFF (optional - app works without it)
                 try {
-                    await liff.init({ liffId: '2006652117-vZO91aAk' })
-                    if (liff.isLoggedIn()) {
-                        const profile = await liff.getProfile()
-                        this.lineUserId = profile.userId
-                        this.contactInfo.name = profile.displayName
+                    // TODO: Replace with your actual LIFF ID from Line Developers Console
+                    const liffId = '2006652117-vZO91aAk';
+                    if (liffId && typeof liff !== 'undefined') {
+                        await liff.init({ liffId })
+                        if (liff.isLoggedIn()) {
+                            const profile = await liff.getProfile()
+                            this.lineUserId = profile.userId
+                            this.contactInfo.name = profile.displayName
+                            console.log('✅ LIFF initialized successfully')
+                        }
                     }
                 } catch (err) {
-                    console.error('LIFF init failed:', err)
+                    console.warn('⚠️ LIFF init failed (will continue without LINE integration):', err.message)
+                    // Continue without LIFF - user can still submit manually
                 }
 
                 // TODO: Get tenantId from URL or context
@@ -521,11 +527,27 @@
                     try {
                         // Upload slip to Supabase Storage
                         const fileName = `slips/${Date.now()}_${this.slipFile.name}`
+
+                        // Create bucket if not exists
+                        try {
+                            await this.supabase.storage.createBucket('payment-slips', {
+                                public: true
+                            })
+                        } catch (e) {
+                            // Bucket already exists
+                        }
+
                         const { data: uploadData, error: uploadError } = await this.supabase.storage
                             .from('payment-slips')
-                            .upload(fileName, this.slipFile)
+                            .upload(fileName, this.slipFile, {
+                                cacheControl: '3600',
+                                upsert: false
+                            })
 
-                        if (uploadError) throw uploadError
+                        if (uploadError) {
+                            console.error('Upload error:', uploadError)
+                            throw new Error(`Storage error: ${uploadError.message}`)
+                        }
 
                         const { data: { publicUrl } } = this.supabase.storage
                             .from('payment-slips')
