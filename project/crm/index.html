@@ -727,11 +727,11 @@
 
             
             addTier() { this.tiers.unshift({ id: 'new_' + Date.now(), name: 'New Tier', min_points: 0, color_theme: 'card-member' }); },
-            async removeTier(index, id) { if(!confirm("ลบ?")) return; this.tiers.splice(index, 1); if (!id.toString().startsWith('new_')) await this.supabase.from('tiers').delete().eq('id', id); },
+            async removeTier(index, id) { if(!confirm("ลบ?")) return; this.tiers.splice(index, 1); if (id && !String(id).startsWith('new_')) await this.supabase.from('tiers').delete().eq('id', id); },
             async saveTiers() {
                 this.loading = true;
-                const newTiers = this.tiers.filter(t => t.id.toString().startsWith('new_')).map(t => ({ name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
-                const existingTiers = this.tiers.filter(t => !t.id.toString().startsWith('new_')).map(t => ({ id: t.id, name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
+                const newTiers = this.tiers.filter(t => !t.id || String(t.id).startsWith('new_')).map(t => ({ name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
+                const existingTiers = this.tiers.filter(t => t.id && !String(t.id).startsWith('new_')).map(t => ({ id: t.id, name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
                 try { if (newTiers.length > 0) await this.supabase.from('tiers').insert(newTiers); if (existingTiers.length > 0) await this.supabase.from('tiers').upsert(existingTiers); await this.fetchTiers(); showAlert("สำเร็จ", "บันทึกเรียบร้อย"); } catch (e) { showAlert("Error", e.message, "error"); } finally { this.loading = false; }
             },
             editCustomer(c) { this.editingCustomer = { ...c, points: c.points || 0 }; this.editingTagsInput = (c.tags || []).join(', '); },
