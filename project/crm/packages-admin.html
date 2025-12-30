@@ -707,7 +707,7 @@
                 async approveSubmission(submission) {
                     const result = await Swal.fire({
                         title: 'อนุมัติการสมัครสมาชิก?',
-                        text: `ยืนยันการสมัครของ ${submission.customer_info.name}`,
+                        text: `ยืนยันการสมัครของ ${submission.customer_name}`,
                         icon: 'question',
                         showCancelButton: true,
                         confirmButtonText: 'อนุมัติ',
