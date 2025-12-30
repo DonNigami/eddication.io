@@ -12,7 +12,7 @@ class NotificationService {
     this.chat = null;
     this.auth = null;
     // Admin notification webhook - receives copy of all notifications
-    this.ADMIN_WEBHOOK = process.env.ADMIN_NOTIFICATION_WEBHOOK || 
+    this.ADMIN_WEBHOOK = process.env.ADMIN_NOTIFICATION_WEBHOOK ||
       'https://chat.googleapis.com/v1/spaces/AAQAAH60ZLc/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=RJhjQpH0wC8IPM20dvfa9Z3aBSQL98UGc-udv4UEvFw';
   }
 
@@ -167,7 +167,7 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
     if (chatEmail) {
       results.chat = await this._sendGoogleChat(chatEmail, message);
     }
-    
+
     // Priority 2: Send to webhook (if chatEmail not provided)
     if (!chatEmail && webhook) {
       results.chat = await this._sendGoogleChat(webhook, message);
@@ -185,7 +185,7 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
         `📝 หัวข้อ: ${subject || 'Notification'}\n` +
         `⏰ เวลา: ${new Date().toLocaleString('th-TH')}\n\n` +
         `${message}`;
-      
+
       results.admin = await this._sendGoogleChatWebhook(this.ADMIN_WEBHOOK, adminMessage);
     }
 
@@ -201,7 +201,7 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
     if (webhookUrlOrUserEmail && webhookUrlOrUserEmail.startsWith('https://')) {
       return this._sendGoogleChatWebhook(webhookUrlOrUserEmail, message);
     }
-    
+
     // Otherwise treat as user email for direct message
     if (webhookUrlOrUserEmail && webhookUrlOrUserEmail.includes('@')) {
       return this._sendGoogleChatDM(webhookUrlOrUserEmail, message);
@@ -241,7 +241,7 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
       // Create a direct message space with the user
       // The space name format for DMs is: users/{user}/spaces/{space}
       // We need to find or create the space first
-      
+
       const response = await this.chat.users.spaces.createDirect({
         requestBody: {
           displayName: `Chat with ${userEmail}`
@@ -249,7 +249,7 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
       });
 
       const spaceName = response.data.name;
-      
+
       // Send message to the direct message space
       await this.chat.spaces.messages.create({
         parent: spaceName,
@@ -305,6 +305,99 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
     } catch (err) {
       console.error('❌ Failed to send email:', err.message);
       return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Send subscription notification to Telegram
+   * Sends customer information, package details, and payment slip
+   */
+  async notifySubscriptionTelegram(subscriptionData) {
+    try {
+      const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+      const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+
+      if (!telegramBotToken || !telegramChatId) {
+        console.warn('⚠️ Telegram credentials not configured');
+        return { success: false, error: 'Telegram not configured' };
+      }
+
+      const {
+        package_name,
+        customer_info,
+        duration_months,
+        total_price,
+        original_price,
+        discount_percent,
+        slip_url,
+        submission_time,
+        line_user_id
+      } = subscriptionData;
+
+      // Format message with customer and payment details
+      const message = `
+🎉 *แจ้งเตือนใหม่: การสมัครสมาชิก*
+
+👤 *ข้อมูลลูกค้า:*
+• ชื่อ: ${customer_info.name}
+• เบอร์โทร: ${customer_info.phone}
+• LINE User ID: ${line_user_id || 'ไม่ระบุ'}
+
+📦 *รายละเอียดแพคเกจ:*
+• ชื่อแพคเกจ: ${package_name}
+• ระยะเวลา: ${duration_months} เดือน
+• ราคาตั้งต้น: ฿${original_price.toLocaleString()}
+• ส่วนลด: ${discount_percent}%
+• ราคาสุดท้าย: ฿${total_price.toLocaleString()}
+
+📝 *เลขที่อ้างอิง:* ${Date.now()}
+🕐 *เวลา:* ${new Date(submission_time).toLocaleString('th-TH', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      })}
+
+🖼️ *สลิปการโอนเงิน:*
+${slip_url}
+      `.trim();
+
+      // Send to Telegram
+      const response = await axios.post(
+        `https://api.telegram.org/bot${telegramBotToken}/sendMessage`,
+        {
+          chat_id: telegramChatId,
+          text: message,
+          parse_mode: 'Markdown'
+        }
+      );
+
+      if (response.data.ok) {
+        console.log('✅ Telegram notification sent successfully');
+
+        // Send slip image as photo
+        if (slip_url) {
+          await axios.post(
+            `https://api.telegram.org/bot${telegramBotToken}/sendPhoto`,
+            {
+              chat_id: telegramChatId,
+              photo: slip_url,
+              caption: `สลิปการโอนเงิน - ${customer_info.name}`,
+              parse_mode: 'Markdown'
+            }
+          );
+          console.log('✅ Slip image sent to Telegram');
+        }
+
+        return { success: true };
+      } else {
+        throw new Error(response.data.description);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send Telegram notification:', error.message);
+      return { success: false, error: error.message };
     }
   }
 }

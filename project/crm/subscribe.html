@@ -28,13 +28,13 @@
             <div v-for="pkg in packages" :key="pkg.id"
                 class="bg-white rounded-lg shadow-xl overflow-hidden transform transition-all hover:scale-105 cursor-pointer border-4"
                 :class="[pkg.is_recommended ? 'border-yellow-400' : 'border-transparent', pkg.is_custom ? 'border-purple-400 border-dashed' : '']"
-                :style="`border-top: 6px solid ${pkg.color_theme}`" 
+                :style="`border-top: 6px solid ${pkg.color_theme}`"
                 @click="pkg.is_custom ? contactAdmin(pkg.contact_line) : selectPackage(pkg)">
 
                 <div v-if="pkg.is_recommended" class="bg-yellow-400 text-yellow-900 text-center py-2 text-sm font-bold">
                     ⭐ แนะนำ
                 </div>
-                
+
                 <div v-if="pkg.is_custom" class="bg-purple-600 text-white text-center py-2 text-sm font-bold">
                     💼 Enterprise
                 </div>
@@ -57,7 +57,7 @@
                                 ราคาขึ้นอยู่กับฟีเจอร์ที่เลือก
                             </div>
                         </div>
-                        
+
                         <!-- Standard Package Price Display -->
                         <div v-else>
                             <div class="text-3xl font-bold text-gray-800 mb-2">
@@ -455,7 +455,7 @@
                 contactAdmin(lineId) {
                     const message = encodeURIComponent('สวัสดีครับ สนใจแพคเกจ Enterprise สำหรับองค์กร')
                     const lineUrl = `https://line.me/R/ti/p/${lineId}?text=${message}`
-                    
+
                     if (typeof liff !== 'undefined' && liff.isInClient()) {
                         liff.openWindow({
                             url: lineUrl,
@@ -531,20 +531,48 @@
                             .from('payment-slips')
                             .getPublicUrl(fileName)
 
-                        // Create subscription record
-                        // TODO: Call Edge Function to create subscription
+                        // Create subscription record with notification
+                        const submissionData = {
+                            action: 'create-customer-subscription',
+                            package_id: this.selectedPackage.id,
+                            package_name: this.selectedPackage.name,
+                            customer_info: this.contactInfo,
+                            slip_url: publicUrl,
+                            charge_id: this.chargeId,
+                            line_user_id: this.lineUserId,
+                            duration_months: this.selectedDuration,
+                            total_price: this.calculatePrice(),
+                            original_price: this.getOriginalPrice(),
+                            discount_percent: this.getDiscountPercent(),
+                            submission_time: new Date().toISOString()
+                        }
+
+                        // Call Supabase Edge Function
                         const { data, error } = await this.supabase.functions.invoke('subscription-manager', {
-                            body: {
-                                action: 'create-customer-subscription',
-                                package_id: this.selectedPackage.id,
-                                customer_info: this.contactInfo,
-                                slip_url: publicUrl,
-                                charge_id: this.chargeId,
-                                line_user_id: this.lineUserId
-                            }
+                            body: submissionData
                         })
 
                         if (error) throw error
+
+                        // Send notification to backend (Telegram + Admin)
+                        const backendUrl = localStorage.getItem('backendUrl') || 'http://localhost:3000';
+                        try {
+                            await fetch(`${backendUrl}/api/subscription/notify`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(submissionData)
+                            }).catch(e => console.warn('Backend notification failed:', e));
+                        } catch (e) {
+                            console.warn('Could not send backend notification:', e);
+                        }
+
+                        // Show success notification
+                        await Swal.fire({
+                            icon: 'success',
+                            title: 'ส่งคำขอสำเร็จ!',
+                            text: 'เราได้รับคำขอสมัครของคุณแล้ว ทีมงานจะตรวจสอบและแจ้งผลภายใน 1-2 ชั่วโมง',
+                            confirmButtonText: 'ตกลง'
+                        })
 
                         this.paymentCompleted = true
 

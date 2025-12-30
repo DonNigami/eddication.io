@@ -1172,6 +1172,47 @@ app.post('/api/line-webhook', async (req, res) => {
 });
 
 // ============================================================================
+// CRM Subscription Endpoint
+// ============================================================================
+app.post('/api/subscription/notify', async (req, res) => {
+  try {
+    const subscriptionData = req.body;
+
+    if (!subscriptionData.customer_info || !subscriptionData.package_name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required subscription data'
+      });
+    }
+
+    const notificationService = new NotificationService();
+
+    // Send Telegram notification with customer details
+    const telegramResult = await notificationService.notifySubscriptionTelegram(subscriptionData);
+
+    if (!telegramResult.success) {
+      console.warn('⚠️ Telegram notification failed:', telegramResult.error);
+      // Continue anyway - don't fail the request
+    }
+
+    // TODO: Also send to LINE notification (if customer has LINE User ID)
+    // TODO: Save subscription to database/sheets
+
+    return res.json({
+      success: true,
+      message: 'Subscription notification sent',
+      telegramNotified: telegramResult.success
+    });
+  } catch (err) {
+    console.error('❌ POST /api/subscription/notify error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+// ============================================================================
 // Server Startup
 // ============================================================================
 async function startServer() {
