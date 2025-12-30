@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 CREATE INDEX IF NOT EXISTS idx_packages_active ON subscription_packages(is_active) WHERE is_active = true;
 CREATE INDEX IF NOT EXISTS idx_packages_sort ON subscription_packages(sort_order);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_packages_name_unique ON subscription_packages(name);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_line_user ON customer_subscriptions(line_user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON customer_subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_package ON customer_subscriptions(package_id);
@@ -174,22 +175,28 @@ CREATE POLICY "payments anon" ON payments
 CREATE POLICY "profiles anon" ON profiles
     FOR ALL USING (true);
 
--- Step 6: Delete old data and insert fresh package data
+-- Step 6: Insert or update package data (preserves existing data)
 -- =====================================================
 
--- Delete in order: child tables first, then parent tables
-DELETE FROM subscription_payments;
-DELETE FROM customer_subscriptions;
-DELETE FROM subscription_requests;
-DELETE FROM payments;
-DELETE FROM subscription_packages;
-
--- Insert packages with both Thai and English names
-INSERT INTO subscription_packages (name, name_en, description, price_yearly, color_theme, benefits, discount_percent, points_multiplier, is_active, sort_order)
+-- Insert packages with UPSERT: update if exists, insert if new
+INSERT INTO subscription_packages (name, name_en, description, price_yearly, currency, color_theme, benefits, discount_percent, points_multiplier, is_active, sort_order, promptpay_phone)
 VALUES 
-    ('Silver', 'Silver', 'สมาชิกเงิน - ส่วนลด 5%', 999, '#C0C0C0', '["ส่วนลด 5%", "สะสมแต้ม 1x", "บริการพื้นฐาน"]', 5.00, 1.0, true, 1),
-    ('Gold', 'Gold', 'สมาชิกทอง - ส่วนลด 10%', 1999, '#FFD700', '["ส่วนลด 10%", "สะสมแต้ม 1.5x", "ส่งฟรีทั่วประเทศ", "สิทธิพิเศษ"]', 10.00, 1.5, true, 2),
-    ('Platinum', 'Platinum', 'สมาชิกแพลทินัม - ส่วนลด 15%', 3999, '#E5E4E2', '["ส่วนลด 15%", "สะสมแต้ม 2x", "ส่งฟรี + Priority", "บริการ VIP"]', 15.00, 2.0, true, 3);
+    ('Silver', 'Silver', 'สมาชิกเงิน - ส่วนลด 5%', 999.00, 'THB', '#C0C0C0', '["ส่วนลด 5%", "สะสมแต้ม 1x", "บริการพื้นฐาน"]', 5.00, 1.00, true, 1, '0656987889'),
+    ('Gold', 'Gold', 'สมาชิกทอง - ส่วนลด 10%', 1999.00, 'THB', '#FFD700', '["ส่วนลด 10%", "สะสมแต้ม 1.5x", "ส่งฟรีทั่วประเทศ", "สิทธิพิเศษ"]', 10.00, 1.50, true, 2, '0656987889'),
+    ('Platinum', 'Platinum', 'สมาชิกแพลทินัม - ส่วนลด 15%', 3999.00, 'THB', '#E5E4E2', '["ส่วนลด 15%", "สะสมแต้ม 2x", "ส่งฟรี + Priority", "บริการ VIP"]', 15.00, 2.00, true, 3, '0656987889')
+ON CONFLICT (name) DO UPDATE SET
+    name_en = EXCLUDED.name_en,
+    description = EXCLUDED.description,
+    price_yearly = EXCLUDED.price_yearly,
+    currency = EXCLUDED.currency,
+    color_theme = EXCLUDED.color_theme,
+    benefits = EXCLUDED.benefits,
+    discount_percent = EXCLUDED.discount_percent,
+    points_multiplier = EXCLUDED.points_multiplier,
+    is_active = EXCLUDED.is_active,
+    sort_order = EXCLUDED.sort_order,
+    promptpay_phone = EXCLUDED.promptpay_phone,
+    updated_at = NOW();
 
 -- SUCCESS!
 SELECT 'Setup complete! All tables created with sample packages: Silver, Gold, Platinum' AS result;
