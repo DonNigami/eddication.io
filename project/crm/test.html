@@ -29,41 +29,6 @@
                     fontFamily: { prompt: ['Prompt', 'sans-serif'] }
                 }
             }
-                async undoLastPointChange(customer) {
-                const history = this.lastPointChange[customer.id];
-                if (!history) return showAlert("แจ้งเตือน", "ยังไม่มีข้อมูลสำหรับย้อนกลับ", "info");
-                this.loading = true;
-                const { error } = await this.supabase.from('profiles').update({ points: history.before }).eq('id', customer.id);
-                this.loading = false;
-                if (!error) {
-                    this.logPointsHistory(customer.id, history.after, history.before, 'undo');
-                    this.logAudit('points_undo', { id: customer.id, display_name: customer.display_name, before: history.after, after: history.before });
-                    showAlert("สำเร็จ", "ยกเลิกการเปลี่ยนแต้มแล้ว");
-                    this.fetchCustomers();
-                }
-            },
-
-            async logPointsHistory(customerId, before, after, reason) {
-                try {
-                    await this.supabase.from('points_history').insert({ profile_id: customerId, before_points: before, after_points: after, reason: reason, actor: this.userProfile?.displayName, created_at: new Date().toISOString() });
-                } catch (e) { console.warn('logPointsHistory error', e.message); }
-            },
-
-            async logAudit(action, meta) {
-                try {
-                    await this.supabase.from('audit_logs').insert({ action, meta, actor: this.userProfile?.displayName, created_at: new Date().toISOString() });
-                    this.fetchAuditLogs();
-                } catch (e) { console.warn('logAudit error', e.message); }
-            },
-
-            async fetchAuditLogs() {
-                try {
-                    const { data } = await this.supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(20);
-                    this.auditLogs = data || [];
-                } catch (e) { console.warn('fetchAuditLogs error', e.message); }
-            },
-
-            openMemberEdit() { if (!this.memberData) return; this.memberEditForm = { phone: this.memberData.phone || '', email: this.memberData.email || '' }; this.memberEditing = true; },
     </script>
     <style>
         [v-cloak] {
@@ -1190,6 +1155,45 @@
                     const { data } = await this.supabase.from('broadcast_queue').select('*').gte('scheduled_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()).order('scheduled_at', { ascending: true }).limit(20);
                     this.scheduledQueue = data || [];
                 } catch (e) { console.warn('fetchScheduledBroadcasts error', e.message); }
+            },
+
+
+                async fetchAuditLogs() {
+                try {
+                    const { data } = await this.supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
+                    this.auditLogs = data || [];
+                } catch (e) { console.warn('fetchAuditLogs error', e.message); }
+            },
+
+                async logAudit(action, detail = {}) {
+                try {
+                    await this.supabase.from('audit_logs').insert({ action, detail, actor: this.userProfile?.userId || null, actor_name: this.userProfile?.displayName || null, created_at: new Date().toISOString() });
+                    this.fetchAuditLogs();
+                } catch (e) { console.warn('logAudit error', e.message); }
+            },
+
+                async logPointsHistory(profileId, beforePoints, afterPoints, reason = 'admin_adjust') {
+                try {
+                    await this.supabase.from('points_history').insert({ profile_id: profileId, before_points: beforePoints, after_points: afterPoints, reason, actor: this.userProfile?.userId || null, created_at: new Date().toISOString() });
+                } catch (e) { console.warn('logPointsHistory error', e.message); }
+            },
+
+                async undoLastPointChange(customer) {
+                const last = this.lastPointChange[customer.id];
+                if (!last) return showAlert("แจ้งเตือน", "ไม่มีข้อมูลย้อนแต้ม", "warning");
+                try {
+                    this.loading = true;
+                    await this.supabase.from('profiles').update({ points: last.before }).eq('id', customer.id);
+                    await this.logPointsHistory(customer.id, last.after, last.before, 'undo_admin_adjust');
+                    await this.logAudit('points_undo', { id: customer.id, before: last.after, after: last.before });
+                    this.lastPointChange[customer.id] = { before: last.before, after: last.before };
+                    await this.fetchCustomers();
+                    showAlert("สำเร็จ", "ย้อนแต้มเรียบร้อย");
+                } catch (e) {
+                    showAlert("Error", e.message, "error");
+                } finally {
+                    this.loading = false;
+                }
             },
 
 
