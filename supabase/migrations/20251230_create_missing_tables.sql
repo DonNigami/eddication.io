@@ -1,7 +1,7 @@
 -- Create news_metrics table
 CREATE TABLE IF NOT EXISTS news_metrics (
     id BIGSERIAL PRIMARY KEY,
-    news_id BIGINT NOT NULL REFERENCES news_promotions(id) ON DELETE CASCADE,
+    news_id UUID NOT NULL REFERENCES news_promotions(id) ON DELETE CASCADE,
     event TEXT NOT NULL CHECK (event IN ('view', 'click')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
