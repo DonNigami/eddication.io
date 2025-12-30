@@ -560,16 +560,42 @@
                             submission_time: new Date().toISOString()
                         }
 
-                        // Send notification to backend directly (skip Edge Function)
-                        const backendUrl = localStorage.getItem('backendUrl') || 'http://localhost:3000';
-                        const response = await fetch(`${backendUrl}/api/subscription/notify`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(submissionData)
-                        })
+                        // Save subscription record to Supabase
+                        const { error: dbError } = await this.supabase
+                            .from('subscription_requests')
+                            .insert([{
+                                package_id: submissionData.package_id,
+                                package_name: submissionData.package_name,
+                                customer_name: submissionData.customer_info.name,
+                                customer_phone: submissionData.customer_info.phone,
+                                slip_url: submissionData.slip_url,
+                                line_user_id: submissionData.line_user_id,
+                                duration_months: submissionData.duration_months,
+                                total_price: submissionData.total_price,
+                                original_price: submissionData.original_price,
+                                discount_percent: submissionData.discount_percent,
+                                status: 'pending_verification',
+                                created_at: submissionData.submission_time
+                            }])
 
-                        if (!response.ok) {
-                            console.warn(`Backend notification returned ${response.status}`)
+                        if (dbError) {
+                            console.warn('⚠️ Could not save to database:', dbError.message)
+                        }
+
+                        // Try to send backend notification (optional - will fail gracefully if backend is down)
+                        const backendUrl = localStorage.getItem('backendUrl') || 'http://localhost:3000';
+                        try {
+                            const response = await fetch(`${backendUrl}/api/subscription/notify`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(submissionData)
+                            })
+
+                            if (!response.ok) {
+                                console.warn(`Backend notification returned ${response.status}`)
+                            }
+                        } catch (fetchErr) {
+                            console.warn('⚠️ Backend server not available (Telegram notification skipped):', fetchErr.message)
                         }
 
                         // Show success notification
