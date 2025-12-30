@@ -34,10 +34,198 @@ supabase/migrations/20251230_create_missing_tables.sql
 
 ### 3. **Deploy Backend**
 
-ต้อง deploy backend ให้รัน BroadcastScheduler:
-- Railway: `.env` ต้องมี Supabase variables
-- Docker: ส่ง env vars เข้า container
-- Local: `npm install` แล้ว `npm start`
+ต้อง deploy backend ให้รัน BroadcastScheduler 24/7 มีหลายวิธี:
+
+#### 🚀 Cloud Platforms (แนะนำ)
+
+**Railway** (ง่ายที่สุด)
+```bash
+- Connect GitHub repo
+- Set environment variables
+- Auto-deploy on push
+- 24/7 uptime
+```
+
+**Render** (Free tier มี uptime 15 นาที)
+```bash
+- Connect GitHub
+- Set env vars
+- Deploy
+- Free: ngrok timeout หรือต้องจ่ายใช้ paid plan
+```
+
+**Heroku** (เสียค่าใช้แล้ว)
+```bash
+- git push heroku main
+- heroku config:set SUPABASE_URL=...
+- Uptime 99.99%
+```
+
+**Google Cloud Run**
+```bash
+gcloud run deploy crm-backend \
+  --source . \
+  --set-env-vars SUPABASE_URL=... \
+  --memory 512Mi \
+  --timeout 3600
+```
+
+**AWS Lambda + API Gateway** (ต้องแก้ code สำหรับ serverless)
+
+#### 🐳 Docker (Local / VPS)
+
+```bash
+# Build image
+docker build -t crm-backend .
+
+# Run container
+docker run -d \
+  -p 3000:3000 \
+  -e SUPABASE_URL=https://... \
+  -e SUPABASE_SERVICE_KEY=... \
+  -e LINE_CHANNEL_ACCESS_TOKEN=... \
+  crm-backend
+```
+
+#### 💻 Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Create .env file
+cp .env.example .env
+# Edit .env with actual values
+
+# Start server
+npm start
+# Or with auto-reload
+npm install -g nodemon
+nodemon server.js
+```
+
+#### 🖥️ Self-hosted VPS (DigitalOcean, Vultr, Linode, AWS EC2)
+
+**ตั้ง PM2 Process Manager:**
+```bash
+# Install PM2
+npm install -g pm2
+
+# Start with PM2
+pm2 start server.js --name "crm-backend"
+
+# Auto-restart on reboot
+pm2 startup
+pm2 save
+
+# Monitor logs
+pm2 logs crm-backend
+```
+
+**Nginx Reverse Proxy:**
+```nginx
+server {
+    listen 80;
+    server_name api.yourdomain.com;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+#### ☁️ Systemd Service (Ubuntu/Debian VPS)
+
+**สร้าง `/etc/systemd/system/crm-backend.service`:**
+```ini
+[Unit]
+Description=CRM Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/home/app/crm-backend
+ExecStart=/usr/bin/node /home/app/crm-backend/server.js
+Restart=always
+RestartSec=10
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+Environment="SUPABASE_URL=https://..."
+Environment="SUPABASE_SERVICE_KEY=..."
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**เปิดใช้งาน:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable crm-backend
+sudo systemctl start crm-backend
+sudo systemctl status crm-backend
+```
+
+#### Docker Compose (Local + Production)
+
+**สร้าง `docker-compose.yml`:**
+```yaml
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
+      LINE_CHANNEL_ACCESS_TOKEN: ${LINE_CHANNEL_ACCESS_TOKEN}
+    restart: always
+    volumes:
+      - ./backend/data:/app/data
+```
+
+**รัน:**
+```bash
+docker-compose up -d
+```
+
+#### Kubernetes (Enterprise)
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: crm-backend
+  template:
+    metadata:
+      labels:
+        app: crm-backend
+    spec:
+      containers:
+      - name: backend
+        image: your-registry/crm-backend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: SUPABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: crm-secrets
+              key: supabase-url
+```
 
 ### 4. **ทดสอบการส่ง**
 
@@ -107,10 +295,38 @@ Supabase: UPDATE status = 'sent'
 | ปัญหา | วิธีแก้ |
 |------|-------|
 | 404 on broadcast_queue | รัน migration ใน Supabase |
-| Scheduler ไม่ทำงาน | ตรวจสอบ `SUPABASE_SERVICE_KEY` |
-| ส่ง broadcast ไม่ได้ | ตรวจสอบ `LINE_CHANNEL_ACCESS_TOKEN` |
-| ไม่เห็น queue ใน DB | ตรวจสอบ `SUPABASE_URL` |
-| Backend ไม่ start | ดู logs: `npm start` หรือ Railway dashboard |
+| Scheduler ไม่ทำงาน | ตรวจสอบ logs: `pm2 logs` หรือ `docker logs` |
+| ส่ง broadcast ไม่ได้ | ตรวจสอบ `LINE_CHANNEL_ACCESS_TOKEN` ถูกต้อง |
+| ไม่เห็น queue ใน DB | ตรวจสอบ `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` |
+| Backend ไม่ start | `npm start` แล้วดู error message |
+| "Service Key" ไม่มี | ไป Supabase Dashboard → Settings → API → Service Role Key |
+| Port 3000 ว่าง? | `lsof -i :3000` (Mac/Linux) หรือ `netstat -ano \| findstr :3000` (Windows) |
+
+## 📊 วิธีตรวจสอบ Scheduler ทำงาน
+
+**ใน Railway/Render/Cloud:**
+```
+Dashboard → Logs → ค้นหา "[BroadcastScheduler]"
+ควรเห็น: "Started - checking every 30 seconds"
+```
+
+**ใน Local/VPS:**
+```bash
+# PM2 logs
+pm2 logs crm-backend
+
+# Docker logs
+docker logs -f container_id
+
+# Systemd logs
+journalctl -u crm-backend -f
+```
+
+**Check Supabase:**
+```sql
+SELECT COUNT(*) FROM broadcast_queue WHERE status = 'sent';
+-- ควรเห็นค่า > 0 ถ้าเคยส่ง
+```
 
 ## 🔐 Security Notes
 
