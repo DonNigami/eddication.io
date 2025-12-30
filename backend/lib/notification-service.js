@@ -1,6 +1,6 @@
 /**
  * Notification Service
- * Handles customer notifications via Google Chat and Email
+ * Handles customer notifications via Google Chat, Email, and Telegram
  */
 
 const { google } = require('googleapis');
@@ -11,9 +11,22 @@ class NotificationService {
     this.gmail = null;
     this.chat = null;
     this.auth = null;
+    this.telegramBotToken = null;
+    this.telegramChatId = null;
     // Admin notification webhook - receives copy of all notifications
     this.ADMIN_WEBHOOK = process.env.ADMIN_NOTIFICATION_WEBHOOK ||
       'https://chat.googleapis.com/v1/spaces/AAQAAH60ZLc/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=RJhjQpH0wC8IPM20dvfa9Z3aBSQL98UGc-udv4UEvFw';
+  }
+
+  /**
+   * Set Telegram credentials (from Supabase Secrets or environment)
+   */
+  setTelegramCredentials(botToken, chatId) {
+    this.telegramBotToken = botToken;
+    this.telegramChatId = chatId;
+    if (botToken && chatId) {
+      console.log('✅ Telegram credentials configured');
+    }
   }
 
   /**
@@ -314,8 +327,9 @@ ${icon} *แจ้งเตือน: มีปัญหาในการจั
    */
   async notifySubscriptionTelegram(subscriptionData) {
     try {
-      const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-      const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+      // Use configured credentials (from Supabase Secrets or fallback to env)
+      const telegramBotToken = this.telegramBotToken || process.env.TELEGRAM_BOT_TOKEN;
+      const telegramChatId = this.telegramChatId || process.env.TELEGRAM_CHAT_ID;
 
       if (!telegramBotToken || !telegramChatId) {
         console.warn('⚠️ Telegram credentials not configured');
