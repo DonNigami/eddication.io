@@ -573,28 +573,54 @@
                     }
                 },
                 async loadPackages() {
-                    // TODO: Load from Supabase
-                    this.packages = [
-                        {
-                            id: '1',
-                            name: 'สมาชิกทอง',
-                            name_en: 'Gold Member',
-                            description: 'แพคเกจสมาชิกระดับทอง',
-                            price_yearly: 999,
-                            discount_percent: 5.00,
-                            points_multiplier: 1.5,
-                            color_theme: '#FFD700',
-                            benefits: ['ส่วนลด 5% ทุกครั้ง', 'สะสมแต้ม 1.5 เท่า', 'จัดส่งฟรี'],
-                            is_active: true,
-                            sort_order: 1
-                        }
-                    ]
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('subscriptions_packages')
+                            .select('*')
+                            .order('sort_order')
+
+                        if (error) throw error
+
+                        // Parse benefits from JSON if stored as JSON
+                        this.packages = (data || []).map(pkg => ({
+                            ...pkg,
+                            benefits: typeof pkg.benefits === 'string' ? JSON.parse(pkg.benefits) : (pkg.benefits || [])
+                        }))
+                        console.log('✅ Loaded packages:', this.packages.length)
+                    } catch (err) {
+                        console.error('❌ Error loading packages:', err)
+                        this.packages = []
+                    }
                 },
                 async loadSubscriptions() {
-                    this.subscriptions = []
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('subscriptions')
+                            .select('*')
+                            .order('created_at', { ascending: false })
+
+                        if (error) throw error
+                        this.subscriptions = data || []
+                        console.log('✅ Loaded subscriptions:', this.subscriptions.length)
+                    } catch (err) {
+                        console.error('❌ Error loading subscriptions:', err)
+                        this.subscriptions = []
+                    }
                 },
                 async loadPayments() {
-                    this.payments = []
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('payments')
+                            .select('*')
+                            .order('created_at', { ascending: false })
+
+                        if (error) throw error
+                        this.payments = data || []
+                        console.log('✅ Loaded payments:', this.payments.length)
+                    } catch (err) {
+                        console.error('❌ Error loading payments:', err)
+                        this.payments = []
+                    }
                 },
                 getEmptyPackageForm() {
                     return {
