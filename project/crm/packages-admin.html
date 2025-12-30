@@ -522,7 +522,7 @@
                 // Initialize Supabase
                 this.supabase = window.supabase.createClient(
                     'https://ckhwouxtrvuthefkxnxb.supabase.co',
-                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNraHdvdXh0cnZ1dGhlZmt4bnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzU4NDAsImV4cCI6MjA1MDExMTg0MH0.Vn-V7nDXON7vRCEp2KzPQwvTv2X_nFZxlq6nZBK8jpw'
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNraHdvdXh0cnZ1dGhlZmt4bnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMTcxMjcsImV4cCI6MjA4MjU5MzEyN30.nrJ7es0Zo5Tp77v4Vt8nndgPpOULKf6hc9Nf3L-zxF4'
                 )
 
                 // TODO: Get tenantId from session
@@ -541,18 +541,35 @@
                 },
                 async loadPendingSubmissions() {
                     try {
+                        console.log('🔍 Loading pending submissions...')
                         const { data, error } = await this.supabase
                             .from('subscription_requests')
                             .select('*')
                             .eq('status', 'pending')
                             .order('created_at', { ascending: false })
 
-                        if (error) throw error
+                        if (error) {
+                            console.error('❌ Supabase error:', error)
+                            throw error
+                        }
+
                         this.pendingSubmissions = data || []
-                        console.log('✅ Loaded pending submissions:', this.pendingSubmissions.length)
+                        console.log('✅ Loaded pending submissions:', this.pendingSubmissions.length, data)
+
+                        if (this.pendingSubmissions.length === 0) {
+                            console.warn('⚠️ No pending submissions found. Check if data exists in table.')
+                        }
                     } catch (err) {
-                        console.error('Error loading submissions:', err)
+                        console.error('❌ Error loading submissions:', err.message, err)
                         this.pendingSubmissions = []
+
+                        // Show error to user
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ไม่สามารถโหลดข้อมูลได้',
+                            text: err.message,
+                            footer: 'กรุณาตรวจสอบ Console (F12) เพื่อดูรายละเอียด'
+                        })
                     }
                 },
                 async loadPackages() {
