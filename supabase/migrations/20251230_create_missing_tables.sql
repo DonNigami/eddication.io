@@ -59,6 +59,27 @@ ALTER TABLE broadcast_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE points_history ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Allow read for authenticated" ON news_metrics;
+DROP POLICY IF EXISTS "Allow insert for authenticated" ON news_metrics;
+DROP POLICY IF EXISTS "Allow update for authenticated" ON news_metrics;
+DROP POLICY IF EXISTS "Allow delete for authenticated" ON news_metrics;
+
+DROP POLICY IF EXISTS "Allow read for authenticated" ON broadcast_queue;
+DROP POLICY IF EXISTS "Allow insert for authenticated" ON broadcast_queue;
+DROP POLICY IF EXISTS "Allow update for authenticated" ON broadcast_queue;
+DROP POLICY IF EXISTS "Allow delete for authenticated" ON broadcast_queue;
+
+DROP POLICY IF EXISTS "Allow read for authenticated" ON audit_logs;
+DROP POLICY IF EXISTS "Allow insert for authenticated" ON audit_logs;
+DROP POLICY IF EXISTS "Allow update for authenticated" ON audit_logs;
+DROP POLICY IF EXISTS "Allow delete for authenticated" ON audit_logs;
+
+DROP POLICY IF EXISTS "Allow read for authenticated" ON points_history;
+DROP POLICY IF EXISTS "Allow insert for authenticated" ON points_history;
+DROP POLICY IF EXISTS "Allow update for authenticated" ON points_history;
+DROP POLICY IF EXISTS "Allow delete for authenticated" ON points_history;
+
 -- RLS Policies - Allow all operations for authenticated users
 CREATE POLICY "Allow read for authenticated" ON news_metrics FOR SELECT USING (true);
 CREATE POLICY "Allow insert for authenticated" ON news_metrics FOR INSERT WITH CHECK (true);
