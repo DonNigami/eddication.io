@@ -1,14 +1,70 @@
-# 🚀 QUICK START CARD
+# 🚀 SUBSCRIPTION SYSTEM - QUICK START
 
-## The Problem
-```
-Service Account (no quota) → Google Drive ❌
-```
+## 3-Step Fix (5 minutes)
 
-## The Solution
-```
-Service Account → Impersonate User (has quota) → Google Drive ✅
-```
+### Step 1: Run SQL Setup (Supabase)
+
+1. Go to https://app.supabase.com → Project `ckhwouxtrvuthefkxnxb`
+2. Click **SQL Editor** → **New Query**
+3. Copy ALL from: `project/crm/COMPLETE_SETUP.sql`
+4. Paste into SQL Editor
+5. Click **RUN** (Ctrl+Enter)
+6. Wait for ✅ "Setup complete!"
+
+### Step 2: Hard Refresh Admin Page
+
+1. Open `packages-admin.html`
+2. Press **Ctrl+Shift+R**
+3. Wait for page to reload
+
+### Step 3: Test Approve/Reject
+
+1. Go to **"ใบสมัครใหม่"** tab
+2. Click **"อนุมัติ"** button
+3. Check **"สมาชิก"** tab for new subscription ✅
+
+---
+
+## ✨ What's Fixed
+
+| Before ❌ | After ✅ |
+|----------|--------|
+| Used `subscriptions` table | Uses `customer_subscriptions` |
+| Fetched customer from `profiles` | Stores `customer_name`, `customer_phone` directly |
+| RLS blocked anon access | RLS allows anon read/write |
+
+---
+
+## 📊 Tables Created
+
+- `subscription_packages` - Package options
+- `customer_subscriptions` - Active subscriptions
+- `subscription_payments` - Payment history
+- `subscription_requests` - Pending approvals
+- `payments` - Payment records
+- `profiles` - Customer info
+
+---
+
+## 🧪 Verify System
+
+Open: `project/crm/system-diagnostics.html`
+
+---
+
+## 🐛 Troubleshooting
+
+If error in F12 Console:
+- "Could not find table" → Re-run SQL (Step 1)
+- "RLS policy violation" → Re-run SQL
+- "column not found" → Re-run SQL
+
+**→ Go back to Step 1 and run SQL again**
+
+---
+
+**Status:** ✅ READY
+
 
 ## 5-Step Fix
 
