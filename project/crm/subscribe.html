@@ -569,7 +569,7 @@
                             console.error('❌ Database error:', dbError)
                             throw new Error(`ไม่สามารถบันทึกข้อมูลได้: ${dbError.message}\n\nกรุณาตรวจสอบว่าสร้างตาราง subscription_requests แล้วหรือยัง`)
                         }
-                        
+
                         console.log('✅ Saved to database:', savedSubmission)
 
                         // Send Telegram notification directly
@@ -616,7 +616,7 @@
                             console.error('❌ Telegram API error:', telegramResult)
                             throw new Error(`ส่ง Telegram ไม่สำเร็จ: ${telegramResult.description || 'Unknown error'}`)
                         }
-                        
+
                         console.log('✅ Telegram notification sent:', telegramResult)
 
                         // Show success notification
