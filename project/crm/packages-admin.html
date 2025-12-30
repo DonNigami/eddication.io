@@ -535,8 +535,25 @@
                     await Promise.all([
                         this.loadPackages(),
                         this.loadSubscriptions(),
-                        this.loadPayments()
+                        this.loadPayments(),
+                        this.loadPendingSubmissions()
                     ])
+                },
+                async loadPendingSubmissions() {
+                    try {
+                        const { data, error } = await this.supabase
+                            .from('subscription_requests')
+                            .select('*')
+                            .eq('status', 'pending')
+                            .order('created_at', { ascending: false })
+
+                        if (error) throw error
+                        this.pendingSubmissions = data || []
+                        console.log('✅ Loaded pending submissions:', this.pendingSubmissions.length)
+                    } catch (err) {
+                        console.error('Error loading submissions:', err)
+                        this.pendingSubmissions = []
+                    }
                 },
                 async loadPackages() {
                     // TODO: Load from Supabase

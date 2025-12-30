@@ -544,6 +544,32 @@
                             .from('payment-slips')
                             .getPublicUrl(fileName)
 
+                        // Save to database
+                        const { data: savedSubmission, error: dbError } = await this.supabase
+                            .from('subscription_requests')
+                            .insert([{
+                                package_id: this.selectedPackage.id,
+                                package_name: this.selectedPackage.name,
+                                customer_name: this.contactInfo.name,
+                                customer_phone: this.contactInfo.phone,
+                                slip_url: publicUrl,
+                                line_user_id: this.lineUserId,
+                                duration_months: this.selectedDuration,
+                                total_price: this.calculatePrice(),
+                                original_price: this.getOriginalPrice(),
+                                discount_percent: this.getDiscountPercent(),
+                                status: 'pending',
+                                created_at: new Date().toISOString()
+                            }])
+                            .select()
+                            .single()
+
+                        if (dbError) {
+                            console.warn('⚠️ Could not save to database:', dbError.message)
+                        } else {
+                            console.log('✅ Saved to database:', savedSubmission)
+                        }
+
                         // Send Telegram notification directly
                         try {
                             const { data: telegramConfig } = await this.supabase.rpc('get_telegram_config')
