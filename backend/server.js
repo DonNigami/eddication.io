@@ -19,6 +19,7 @@ const { DriveStorage } = require('./lib/drive-storage');
 const { ErrorHandler } = require('./lib/error-handler');
 const { NotificationService } = require('./lib/notification-service');
 const { CustomerContacts } = require('./lib/customer-contacts');
+const { BroadcastScheduler } = require('./lib/broadcast-scheduler');
 const SHEETS = require('./lib/sheet-names');
 
 // ============================================================================
@@ -73,6 +74,7 @@ let sheetActions = null;
 let imageStorage = null;
 let notificationService = null;
 let customerContacts = null;
+let broadcastScheduler = null;
 
 async function initializeServices() {
   try {
@@ -121,6 +123,11 @@ async function initializeServices() {
     imageStorage = new ImageStorage(process.env.DATA_DIR || './data');
     notificationService = new NotificationService();
     customerContacts = new CustomerContacts(db);
+
+    // Initialize Broadcast Scheduler
+    broadcastScheduler = new BroadcastScheduler();
+    broadcastScheduler.start();
+    console.log('✅ Broadcast Scheduler started');
 
     // Load Telegram credentials from Supabase Secrets if available
     await loadTelegramCredentials();
@@ -1276,11 +1283,13 @@ async function startServer() {
 // Handle graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully...');
+  if (broadcastScheduler) broadcastScheduler.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully...');
+  if (broadcastScheduler) broadcastScheduler.stop();
   process.exit(0);
 });
 

@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS broadcast_queue (
     flex_json TEXT,
     scheduled_at TIMESTAMP WITH TIME ZONE NOT NULL,
     status TEXT DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'sent', 'failed')),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_broadcast_queue_scheduled_at ON broadcast_queue(scheduled_at);
