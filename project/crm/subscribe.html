@@ -19,8 +19,8 @@
 
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">🎉 สมัครสมาชิกรายปี</h1>
-            <p class="text-gray-600">เลือกแพคเกจที่เหมาะกับคุณ รับสิทธิพิเศษมากมาย!</p>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🎉 สมัครสมาชิก</h1>
+            <p class="text-gray-600">เลือกแพคเกจและระยะเวลาที่เหมาะกับคุณ รับสิทธิพิเศษมากมาย!</p>
         </div>
 
         <!-- Packages Selection -->
@@ -43,14 +43,23 @@
                     </div>
 
                     <div class="text-center mb-6">
-                        <div class="text-5xl font-bold text-gray-800 mb-2">
-                            ฿{{ pkg.price_yearly.toLocaleString() }}
+                        <div class="text-3xl font-bold text-gray-800 mb-2">
+                            ฿{{ pkg.price_monthly.toLocaleString() }}
                         </div>
-                        <div class="text-sm text-gray-600">
-                            /ปี
+                        <div class="text-sm text-gray-600 mb-3">
+                            /เดือน
                         </div>
-                        <div class="text-xs text-gray-500 mt-1">
-                            (เฉลี่ย ฿{{ (pkg.price_yearly / 12).toFixed(0) }}/เดือน)
+                        <div class="flex gap-2 justify-center">
+                            <div class="bg-gray-100 px-3 py-1 rounded text-xs">
+                                <span class="text-gray-600">6 เดือน: </span>
+                                <span class="font-bold text-gray-800">฿{{ (pkg.price_monthly * 6).toLocaleString()
+                                    }}</span>
+                            </div>
+                            <div class="bg-blue-100 px-3 py-1 rounded text-xs">
+                                <span class="text-gray-600">12 เดือน: </span>
+                                <span class="font-bold text-blue-800">฿{{ (pkg.price_monthly * 12).toLocaleString()
+                                    }}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -93,8 +102,35 @@
                 </button>
 
                 <div class="text-center mb-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-2">ชำระเงินผ่าน PromptPay</h2>
-                    <p class="text-gray-600">สแกน QR Code เพื่อชำระเงิน</p>
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">เลือกระยะเวลาและชำระเงิน</h2>
+                    <p class="text-gray-600">เลือกระยะเวลาสมาชิก แล้วสแกน QR Code เพื่อชำระเงิน</p>
+                </div>
+
+                <!-- Duration Selection -->
+                <div class="mb-8">
+                    <label class="block text-sm font-bold text-gray-700 mb-3">เลือกระยะเวลา</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button @click="selectDuration(6)"
+                            :class="selectedDuration === 6 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'"
+                            class="border-2 rounded-lg p-4 font-bold transition-all hover:border-blue-500">
+                            <div class="text-2xl">6 เดือน</div>
+                            <div class="text-sm mt-1">฿{{ (selectedPackage.price_monthly * 6).toLocaleString() }}</div>
+                            <div class="text-xs mt-1 opacity-75">฿{{ selectedPackage.price_monthly.toLocaleString()
+                                }}/เดือน</div>
+                        </button>
+                        <button @click="selectDuration(12)"
+                            :class="selectedDuration === 12 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'"
+                            class="border-2 rounded-lg p-4 font-bold transition-all hover:border-blue-500 relative">
+                            <div
+                                class="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full">
+                                ประหยัด!
+                            </div>
+                            <div class="text-2xl">12 เดือน</div>
+                            <div class="text-sm mt-1">฿{{ (selectedPackage.price_monthly * 12).toLocaleString() }}</div>
+                            <div class="text-xs mt-1 opacity-75">฿{{ selectedPackage.price_monthly.toLocaleString()
+                                }}/เดือน</div>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Selected Package Summary -->
@@ -108,9 +144,9 @@
                         </div>
                         <div class="text-right">
                             <div class="text-3xl font-bold text-gray-800">
-                                ฿{{ selectedPackage.price_yearly.toLocaleString() }}
+                                ฿{{ calculatePrice().toLocaleString() }}
                             </div>
-                            <div class="text-sm text-gray-600">/ปี</div>
+                            <div class="text-sm text-gray-600">{{ selectedDuration }} เดือน</div>
                         </div>
                     </div>
 
@@ -206,14 +242,17 @@
                     <div class="text-xl font-bold" :style="`color: ${selectedPackage.color_theme}`">
                         {{ selectedPackage.name }}
                     </div>
+                    <div class="text-sm text-gray-600 mt-2">
+                        ระยะเวลา: {{ selectedDuration }} เดือน
+                    </div>
                     <div class="text-2xl font-bold text-gray-800 mt-2">
-                        ฿{{ selectedPackage.price_yearly.toLocaleString() }}
+                        ฿{{ calculatePrice().toLocaleString() }}
                     </div>
                 </div>
 
                 <div class="space-y-3 text-sm text-gray-600 mb-8">
                     <p>✓ คุณจะได้รับการแจ้งเตือนผ่าน LINE เมื่อการชำระเงินได้รับการยืนยัน</p>
-                    <p>✓ สมาชิกมีอายุ 1 ปี นับจากวันที่ได้รับการยืนยัน</p>
+                    <p>✓ สมาชิกมีอายุ {{ selectedDuration }} เดือน นับจากวันที่ได้รับการยืนยัน</p>
                     <p>✓ เริ่มใช้สิทธิพิเศษได้ทันทีหลังยืนยัน</p>
                 </div>
 
@@ -237,6 +276,7 @@
                 return {
                     packages: [],
                     selectedPackage: null,
+                    selectedDuration: 12, // Default 12 months
                     qrCodeUrl: null,
                     chargeId: null,
                     slipFile: null,
@@ -296,35 +336,38 @@
                     this.packages = [
                         {
                             id: '1',
-                            name: 'สมาชิกเงิน',
+                            name: 'Silver',
                             name_en: 'Silver Member',
-                            description: 'แพคเกจเริ่มต้น',
-                            price_yearly: 499,
+                            description: 'แพคเกจเริ่มต้น สำหรับผู้ใช้ทั่วไป',
+                            price_monthly: 99,
                             discount_percent: 3,
                             points_multiplier: 1.2,
-                            color_theme: '#C0C0C0',
+                            color_theme: '#94A3B8',
                             benefits: [
-                                'ส่วนลด 3% ทุกครั้ง',
+                                'ส่วนลด 3% ทุกครั้งที่ซื้อ',
                                 'สะสมแต้ม 1.2 เท่า',
-                                'จัดส่งฟรีเมื่อซื้อครบ 500฿'
+                                'จัดส่งฟรีเมื่อซื้อครบ 500฿',
+                                'รับข้อมูลโปรโมชั่นก่อนใคร'
                             ],
                             promptpay_phone: '0656987889',
                             is_active: true
                         },
                         {
                             id: '2',
-                            name: 'สมาชิกทอง',
+                            name: 'Gold',
                             name_en: 'Gold Member',
-                            description: 'แพคเกจยอดนิยม',
-                            price_yearly: 999,
+                            description: 'แพคเกจยอดนิยม สำหรับลูกค้าประจำ',
+                            price_monthly: 199,
                             discount_percent: 5,
                             points_multiplier: 1.5,
-                            color_theme: '#FFD700',
+                            color_theme: '#FCD34D',
                             benefits: [
-                                'ส่วนลด 5% ทุกครั้ง',
+                                'ส่วนลด 5% ทุกครั้งที่ซื้อ',
                                 'สะสมแต้ม 1.5 เท่า',
                                 'จัดส่งฟรีทุกออเดอร์',
-                                'วันเกิดรับของขวัญ'
+                                'รับของขวัญวันเกิด',
+                                'เข้าถึงสินค้าพิเศษเท่านั้น',
+                                'แลกของรางวัลพรีเมียม'
                             ],
                             promptpay_phone: '0656987889',
                             is_active: true,
@@ -332,20 +375,22 @@
                         },
                         {
                             id: '3',
-                            name: 'สมาชิกเพชร',
+                            name: 'Diamond',
                             name_en: 'Diamond Member',
-                            description: 'แพคเกจพรีเมียม',
-                            price_yearly: 2999,
+                            description: 'แพคเกจพรีเมียม สำหรับ VIP',
+                            price_monthly: 499,
                             discount_percent: 10,
                             points_multiplier: 2.0,
-                            color_theme: '#B9F2FF',
+                            color_theme: '#60A5FA',
                             benefits: [
-                                'ส่วนลด 10% ทุกครั้ง',
+                                'ส่วนลด 10% ทุกครั้งที่ซื้อ',
                                 'สะสมแต้ม 2 เท่า',
-                                'จัดส่งฟรีแบบด่วน',
+                                'จัดส่งฟรีแบบด่วน (1 วัน)',
                                 'ของขวัญวันเกิด VIP',
                                 'เข้างานพิเศษก่อนใคร',
-                                'บริการส่วนตัว'
+                                'บริการปรึกษาส่วนตัว',
+                                'ช่องทางติดต่อเร่งด่วน',
+                                'คืนเงิน 100% ถ้าไม่พอใจ'
                             ],
                             promptpay_phone: '0656987889',
                             is_active: true
@@ -354,11 +399,19 @@
                 },
                 async selectPackage(pkg) {
                     this.selectedPackage = pkg
+                    this.selectedDuration = 12 // Default to 12 months
                     await this.generateQRCode()
+                },
+                selectDuration(months) {
+                    this.selectedDuration = months
+                    this.generateQRCode()
+                },
+                calculatePrice() {
+                    return this.selectedPackage.price_monthly * this.selectedDuration
                 },
                 async generateQRCode() {
                     try {
-                        const amount = this.selectedPackage.price_yearly
+                        const amount = this.calculatePrice()
                         const phoneNumber = '0656987889'
 
                         // Generate PromptPay QR Code using promptpay.io
