@@ -427,7 +427,8 @@
                                     <p class="text-sm text-gray-500 line-clamp-2">{{ news.description }}</p>
                                     <div v-if="news.link_url"
                                         class="mt-2 inline-flex items-center text-xs text-blue-500 bg-blue-50 px-2 py-1 rounded-md font-medium">
-                                        <i class="fa-solid fa-link mr-1"></i> {{ news.link_text || 'Link' }}</div>
+                                        <i class="fa-solid fa-link mr-1"></i> {{ news.link_text || 'Link' }}
+                                    </div>
                                 </div>
                                 <button @click="deleteNews(news.id)"
                                     class="text-gray-300 hover:text-red-500 self-start p-1 transition"><i
@@ -1018,8 +1019,17 @@
                 async sendBroadcast() {
                     if (!this.messageText && this.msgType === 'text') return showAlert("Alert", "ใส่ข้อความก่อน", "warning");
                     this.sending = true;
-                    const { data, error } = await this.supabase.functions.invoke('crm-core', {
-                        body: { action: 'broadcast', target: this.broadcastTarget, msgType: this.msgType, message: this.messageText, flexJson: this.broadcastFlexJson, imageUrl: this.broadcastImageUrl }
+                    const { data, error } = await this.supabase.functions.invoke('crm-pro', {
+                        body: {
+                            action: 'broadcast',
+                            target: this.broadcastTarget,
+                            msgType: this.msgType,
+                            message: this.messageText,
+                            flexJson: this.broadcastFlexJson,
+                            imageUrl: this.broadcastImageUrl,
+                            adminId: this.userProfile?.userId || 'unknown',
+                            testUserId: this.userProfile?.userId
+                        }
                     });
                     this.sending = false;
                     if (!error) { showAlert("สำเร็จ", "ส่งข้อความแล้ว: " + (data.message || 'OK')); if (this.msgType === 'text') this.messageText = ''; }
@@ -1064,6 +1074,24 @@
                 },
                 editCustomer(c) { this.editingCustomer = { ...c, points: c.points || 0 }; this.editingTagsInput = (c.tags || []).join(', '); },
                 adjustPoints(amount) { if (this.editingCustomer) { this.editingCustomer.points = (this.editingCustomer.points || 0) + amount; if (this.editingCustomer.points < 0) this.editingCustomer.points = 0; } },
+                async updatePointsViaFunction(userId, pointsChange, reason) {
+                    try {
+                        const { data, error } = await this.supabase.functions.invoke('crm-pro', {
+                            body: {
+                                action: 'update-points',
+                                userId: userId,
+                                points: pointsChange,
+                                reason: reason || 'Admin adjustment',
+                                adminId: this.userProfile?.userId || 'system'
+                            }
+                        });
+                        if (error) throw error;
+                        return data;
+                    } catch (e) {
+                        console.error('Update points error:', e);
+                        throw e;
+                    }
+                },
                 async saveCustomer() {
                     if (!this.editingCustomer) return;
                     this.loading = true;
