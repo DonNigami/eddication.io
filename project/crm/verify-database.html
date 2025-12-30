@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Database Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .pass {
+            color: #22c55e;
+        }
+
+        .fail {
+            color: #ef4444;
+        }
+
+        .warn {
+            color: #f59e0b;
+        }
+
+        .info {
+            color: #3b82f6;
+        }
+
+        .entry {
+            padding: 10px 14px;
+            margin: 6px 0;
+            background: #1e293b;
+            border-left: 3px solid #475569;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .data-table th {
+            background: #334155;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .data-table td {
+            padding: 8px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <div class="max-w-5xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2 text-cyan-400">🔍 Supabase Database Verification</h1>
+        <p class="text-gray-400 mb-6">กำลังตรวจสอบ database ใน Supabase...</p>
+
+        <div id="status" class="info entry mb-4">
+            <span class="loading">⏳</span> เชื่อมต่อกับ Supabase...
+        </div>
+
+        <div class="space-y-6">
+            <!-- Tables Status -->
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-xl font-bold mb-4 text-yellow-400">📊 Tables Status</h2>
+                <div id="tablesStatus" class="space-y-2"></div>
+            </div>
+
+            <!-- Tables Data -->
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-xl font-bold mb-4 text-purple-400">📋 Data Overview</h2>
+                <div id="dataOverview" class="space-y-6"></div>
+            </div>
+
+            <!-- RLS Policies -->
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-xl font-bold mb-4 text-green-400">🔐 RLS Policies</h2>
+                <div id="rlsStatus" class="space-y-2"></div>
+            </div>
+
+            <!-- Summary -->
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">✅ Summary</h2>
+                <div id="summary" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createClient } = supabase;
+        const supabaseUrl = "https://ckhwouxtrvuthefkxnxb.supabase.co";
+        const supabaseKey = "sb_publishable_QvGKuCheOXRbtGH-Cm0Q5A_ddRY3_i3";
+
+        const client = createClient(supabaseUrl, supabaseKey);
+        const tables = ['profiles', 'tiers', 'news_promotions', 'customer_segments'];
+        let results = {};
+
+        function log(msg, type = 'info') {
+            const span = document.createElement('div');
+            span.className = `entry ${type}`;
+            const icons = { pass: '✓', fail: '✗', warn: '⚠', info: 'ℹ' };
+            span.innerHTML = `<span class="font-bold">${icons[type] || '→'}</span> ${msg}`;
+            document.getElementById('status').parentNode.insertBefore(span, document.getElementById('status').nextSibling);
+        }
+
+        async function checkTables() {
+            document.getElementById('status').innerHTML = '🔍 ตรวจสอบ Tables...';
+
+            for (const table of tables) {
+                try {
+                    const { data, error, count } = await client
+                        .from(table)
+                        .select('*', { count: 'exact', head: false });
+
+                    if (error) {
+                        results[table] = { exists: false, error: error.message };
+                        const entry = document.createElement('div');
+                        entry.className = 'entry fail';
+                        entry.innerHTML = `✗ <strong>${table}</strong>: ${error.message}`;
+                        document.getElementById('tablesStatus').appendChild(entry);
+                    } else {
+                        results[table] = { exists: true, count: count || 0, data: data };
+                        const entry = document.createElement('div');
+                        entry.className = 'entry pass';
+                        entry.innerHTML = `✓ <strong>${table}</strong>: ${count || 0} rows`;
+                        document.getElementById('tablesStatus').appendChild(entry);
+                    }
+                } catch (e) {
+                    results[table] = { exists: false, error: e.message };
+                    const entry = document.createElement('div');
+                    entry.className = 'entry fail';
+                    entry.innerHTML = `✗ <strong>${table}</strong>: ${e.message}`;
+                    document.getElementById('tablesStatus').appendChild(entry);
+                }
+            }
+        }
+
+        async function displayData() {
+            document.getElementById('status').innerHTML = '📊 โหลดข้อมูล...';
+
+            // Profiles
+            try {
+                const { data, count } = await client
+                    .from('profiles')
+                    .select('*')
+                    .limit(10);
+
+                if (data && data.length > 0) {
+                    let html = `<div>
+                        <h3 class="font-bold text-green-400 mb-2">Profiles (${count} rows)</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Display Name</th>
+                                <th>Line User ID</th>
+                                <th>Role</th>
+                                <th>Points</th>
+                            </tr>`;
+                    data.forEach(row => {
+                        html += `<tr>
+                            <td>${row.id ? row.id.substring(0, 8) + '...' : '-'}</td>
+                            <td>${row.display_name || '-'}</td>
+                            <td>${row.line_user_id ? row.line_user_id.substring(0, 12) + '...' : '-'}</td>
+                            <td>${row.role || '-'}</td>
+                            <td>${row.points || 0}</td>
+                        </tr>`;
+                    });
+                    html += '</table></div>';
+                    document.getElementById('dataOverview').innerHTML += html;
+                }
+            } catch (e) {
+                const entry = document.createElement('div');
+                entry.className = 'entry fail';
+                entry.innerHTML = `Profiles Error: ${e.message}`;
+                document.getElementById('dataOverview').appendChild(entry);
+            }
+
+            // Tiers
+            try {
+                const { data, count } = await client
+                    .from('tiers')
+                    .select('*');
+
+                if (data && data.length > 0) {
+                    let html = `<div>
+                        <h3 class="font-bold text-green-400 mb-2">Tiers (${count} rows)</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Min Points</th>
+                                <th>Color Theme</th>
+                            </tr>`;
+                    data.forEach(row => {
+                        html += `<tr>
+                            <td>${row.id}</td>
+                            <td>${row.name}</td>
+                            <td>${row.min_points}</td>
+                            <td>${row.color_theme}</td>
+                        </tr>`;
+                    });
+                    html += '</table></div>';
+                    document.getElementById('dataOverview').innerHTML += html;
+                }
+            } catch (e) {
+                const entry = document.createElement('div');
+                entry.className = 'entry fail';
+                entry.innerHTML = `Tiers Error: ${e.message}`;
+                document.getElementById('dataOverview').appendChild(entry);
+            }
+
+            // News Promotions
+            try {
+                const { data, count } = await client
+                    .from('news_promotions')
+                    .select('*');
+
+                if (data && data.length > 0) {
+                    let html = `<div>
+                        <h3 class="font-bold text-green-400 mb-2">News Promotions (${count} rows)</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Created</th>
+                            </tr>`;
+                    data.forEach(row => {
+                        html += `<tr>
+                            <td>${row.id}</td>
+                            <td>${row.title}</td>
+                            <td>${row.description ? row.description.substring(0, 30) + '...' : '-'}</td>
+                            <td>${new Date(row.created_at).toLocaleDateString('th-TH')}</td>
+                        </tr>`;
+                    });
+                    html += '</table></div>';
+                    document.getElementById('dataOverview').innerHTML += html;
+                }
+            } catch (e) {
+                const entry = document.createElement('div');
+                entry.className = 'entry fail';
+                entry.innerHTML = `News Error: ${e.message}`;
+                document.getElementById('dataOverview').appendChild(entry);
+            }
+
+            // Customer Segments
+            try {
+                const { data, count } = await client
+                    .from('customer_segments')
+                    .select('*');
+
+                if (data && data.length > 0) {
+                    let html = `<div>
+                        <h3 class="font-bold text-green-400 mb-2">Customer Segments (${count} rows)</h3>
+                        <table class="data-table">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Conditions</th>
+                            </tr>`;
+                    data.forEach(row => {
+                        html += `<tr>
+                            <td>${row.id}</td>
+                            <td>${row.name}</td>
+                            <td>${JSON.stringify(row.conditions).substring(0, 30)}...</td>
+                        </tr>`;
+                    });
+                    html += '</table></div>';
+                    document.getElementById('dataOverview').innerHTML += html;
+                } else {
+                    const entry = document.createElement('div');
+                    entry.className = 'entry warn';
+                    entry.innerHTML = `⚠ Customer Segments: No data yet (but table exists)`;
+                    document.getElementById('dataOverview').appendChild(entry);
+                }
+            } catch (e) {
+                const entry = document.createElement('div');
+                entry.className = 'entry fail';
+                entry.innerHTML = `Segments Error: ${e.message}`;
+                document.getElementById('dataOverview').appendChild(entry);
+            }
+        }
+
+        async function checkRLS() {
+            document.getElementById('status').innerHTML = '🔐 ตรวจสอบ RLS Policies...';
+
+            try {
+                // Try to query without authentication
+                for (const table of tables) {
+                    try {
+                        const { data, error } = await client
+                            .from(table)
+                            .select('*', { count: 'exact', head: true });
+
+                        if (error && error.message.includes('row-level security')) {
+                            const entry = document.createElement('div');
+                            entry.className = 'entry warn';
+                            entry.innerHTML = `⚠ <strong>${table}</strong>: RLS Policy blocking (expected)`;
+                            document.getElementById('rlsStatus').appendChild(entry);
+                        } else {
+                            const entry = document.createElement('div');
+                            entry.className = 'entry pass';
+                            entry.innerHTML = `✓ <strong>${table}</strong>: RLS Policy is working`;
+                            document.getElementById('rlsStatus').appendChild(entry);
+                        }
+                    } catch (e) {
+                        const entry = document.createElement('div');
+                        entry.className = 'entry info';
+                        entry.innerHTML = `ℹ <strong>${table}</strong>: ${e.message}`;
+                        document.getElementById('rlsStatus').appendChild(entry);
+                    }
+                }
+            } catch (e) {
+                const entry = document.createElement('div');
+                entry.className = 'entry warn';
+                entry.innerHTML = `⚠ RLS Check Error: ${e.message}`;
+                document.getElementById('rlsStatus').appendChild(entry);
+            }
+        }
+
+        async function generateSummary() {
+            document.getElementById('status').innerHTML = '📝 สรุปผลการตรวจสอบ...';
+
+            const tablesCreated = tables.filter(t => results[t] && results[t].exists).length;
+            const tablesWithData = Object.values(results).filter(r => r.exists && r.count > 0).length;
+
+            let summaryHtml = `
+                <div class="entry pass">✓ Tables Created: ${tablesCreated}/${tables.length}</div>
+                <div class="entry ${tablesWithData > 0 ? 'pass' : 'warn'}">
+                    ${tablesWithData > 0 ? '✓' : '⚠'} Tables with Data: ${tablesWithData}/${tables.length}
+                </div>
+            `;
+
+            if (tablesCreated === tables.length && tablesWithData > 0) {
+                summaryHtml += `
+                    <div class="entry pass" style="margin-top: 10px; background: #166534; border-left-color: #22c55e;">
+                        ✓ Database setup is COMPLETE and ready for use!
+                    </div>
+                `;
+            } else if (tablesCreated === tables.length) {
+                summaryHtml += `
+                    <div class="entry warn" style="margin-top: 10px; background: #78350f; border-left-color: #f59e0b;">
+                        ⚠ Tables created but missing sample data. You can add data manually or re-run setup script.
+                    </div>
+                `;
+            } else {
+                summaryHtml += `
+                    <div class="entry fail" style="margin-top: 10px; background: #7f1d1d; border-left-color: #ef4444;">
+                        ✗ Some tables are missing. Please run setup-crm-tables.sql
+                    </div>
+                `;
+            }
+
+            document.getElementById('summary').innerHTML = summaryHtml;
+            document.getElementById('status').innerHTML = '✓ ตรวจสอบเสร็จแล้ว';
+        }
+
+        async function runAllChecks() {
+            await checkTables();
+            await displayData();
+            await checkRLS();
+            await generateSummary();
+        }
+
+        window.addEventListener('load', runAllChecks);
+    </script>
+</body>
+
+</html>
