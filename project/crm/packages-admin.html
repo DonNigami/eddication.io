@@ -164,12 +164,12 @@
                             <div class="mb-6">
                                 <div class="grid md:grid-cols-2 gap-4">
                                     <div>
-                                        <h3 class="font-bold text-lg text-gray-800">{{ submission.customer_info.name }}
+                                        <h3 class="font-bold text-lg text-gray-800">{{ submission.customer_name }}
                                         </h3>
-                                        <p class="text-gray-600">📱 {{ submission.customer_info.phone }}</p>
+                                        <p class="text-gray-600">📱 {{ submission.customer_phone }}</p>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-sm text-gray-500">ส่งมา {{ formatDate(submission.submission_time)
+                                        <p class="text-sm text-gray-500">ส่งมา {{ formatDate(submission.created_at)
                                             }}</p>
                                     </div>
                                 </div>
@@ -748,13 +748,13 @@
                         title: 'รายละเอียดใบสมัคร',
                         html: `
                             <div style="text-align: left">
-                                <p><strong>ชื่อ:</strong> ${submission.customer_info.name}</p>
-                                <p><strong>เบอร์โทร:</strong> ${submission.customer_info.phone}</p>
+                                <p><strong>ชื่อ:</strong> ${submission.customer_name}</p>
+                                <p><strong>เบอร์โทร:</strong> ${submission.customer_phone}</p>
                                 <p><strong>LINE User ID:</strong> ${submission.line_user_id || '-'}</p>
                                 <p><strong>แพคเกจ:</strong> ${submission.package_name}</p>
                                 <p><strong>ระยะเวลา:</strong> ${submission.duration_months} เดือน</p>
                                 <p><strong>ราคา:</strong> ฿${submission.total_price.toLocaleString()}</p>
-                                <p><strong>เวลาส่ง:</strong> ${this.formatDateTime(submission.submission_time)}</p>
+                                <p><strong>เวลาส่ง:</strong> ${this.formatDateTime(submission.created_at)}</p>
                             </div>
                         `,
                         icon: 'info'
