@@ -58,8 +58,23 @@ ALTER TABLE broadcast_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE points_history ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies
-CREATE POLICY "Allow all for admins" ON news_metrics FOR ALL USING (true);
-CREATE POLICY "Allow all for admins" ON broadcast_queue FOR ALL USING (true);
-CREATE POLICY "Allow all for admins" ON audit_logs FOR ALL USING (true);
-CREATE POLICY "Allow all for admins" ON points_history FOR ALL USING (true);
+-- RLS Policies - Allow all operations for authenticated users
+CREATE POLICY "Allow read for authenticated" ON news_metrics FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated" ON news_metrics FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow update for authenticated" ON news_metrics FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow delete for authenticated" ON news_metrics FOR DELETE USING (true);
+
+CREATE POLICY "Allow read for authenticated" ON broadcast_queue FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated" ON broadcast_queue FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow update for authenticated" ON broadcast_queue FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow delete for authenticated" ON broadcast_queue FOR DELETE USING (true);
+
+CREATE POLICY "Allow read for authenticated" ON audit_logs FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated" ON audit_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow update for authenticated" ON audit_logs FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow delete for authenticated" ON audit_logs FOR DELETE USING (true);
+
+CREATE POLICY "Allow read for authenticated" ON points_history FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated" ON points_history FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow update for authenticated" ON points_history FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "Allow delete for authenticated" ON points_history FOR DELETE USING (true);
