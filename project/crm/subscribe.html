@@ -24,14 +24,19 @@
         </div>
 
         <!-- Packages Selection -->
-        <div v-if="!selectedPackage" class="grid md:grid-cols-3 gap-6 mb-8">
+        <div v-if="!selectedPackage" class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div v-for="pkg in packages" :key="pkg.id"
                 class="bg-white rounded-lg shadow-xl overflow-hidden transform transition-all hover:scale-105 cursor-pointer border-4"
-                :class="pkg.is_recommended ? 'border-yellow-400' : 'border-transparent'"
-                :style="`border-top: 6px solid ${pkg.color_theme}`" @click="selectPackage(pkg)">
+                :class="[pkg.is_recommended ? 'border-yellow-400' : 'border-transparent', pkg.is_custom ? 'border-purple-400 border-dashed' : '']"
+                :style="`border-top: 6px solid ${pkg.color_theme}`" 
+                @click="pkg.is_custom ? contactAdmin(pkg.contact_line) : selectPackage(pkg)">
 
                 <div v-if="pkg.is_recommended" class="bg-yellow-400 text-yellow-900 text-center py-2 text-sm font-bold">
                     ⭐ แนะนำ
+                </div>
+                
+                <div v-if="pkg.is_custom" class="bg-purple-600 text-white text-center py-2 text-sm font-bold">
+                    💼 Enterprise
                 </div>
 
                 <div class="p-6">
@@ -43,26 +48,39 @@
                     </div>
 
                     <div class="text-center mb-6">
-                        <div class="text-3xl font-bold text-gray-800 mb-2">
-                            ฿{{ pkg.price_monthly.toLocaleString() }}
-                        </div>
-                        <div class="text-sm text-gray-600 mb-3">
-                            /เดือน
-                        </div>
-                        <div class="flex gap-2 justify-center flex-wrap">
-                            <div class="bg-gray-100 px-3 py-1.5 rounded text-xs border border-gray-300">
-                                <div class="text-gray-500 text-[10px]">6 เดือน (ลด 5%)</div>
-                                <div class="line-through text-gray-400 text-[10px]">฿{{ (pkg.price_monthly *
-                                    6).toLocaleString() }}</div>
-                                <span class="font-bold text-green-600">฿{{ Math.round(pkg.price_monthly * 6 *
-                                    0.95).toLocaleString() }}</span>
+                        <!-- Custom Package Price Display -->
+                        <div v-if="pkg.is_custom">
+                            <div class="text-2xl font-bold text-purple-600 mb-2">
+                                ปรับแต่งตามความต้องการ
                             </div>
-                            <div class="bg-blue-100 px-3 py-1.5 rounded text-xs border border-blue-300">
-                                <div class="text-blue-600 text-[10px]">12 เดือน (ลด 10%)</div>
-                                <div class="line-through text-gray-400 text-[10px]">฿{{ (pkg.price_monthly *
-                                    12).toLocaleString() }}</div>
-                                <span class="font-bold text-blue-700">฿{{ Math.round(pkg.price_monthly * 12 *
-                                    0.90).toLocaleString() }}</span>
+                            <div class="text-sm text-gray-600">
+                                ราคาขึ้นอยู่กับฟีเจอร์ที่เลือก
+                            </div>
+                        </div>
+                        
+                        <!-- Standard Package Price Display -->
+                        <div v-else>
+                            <div class="text-3xl font-bold text-gray-800 mb-2">
+                                ฿{{ pkg.price_monthly.toLocaleString() }}
+                            </div>
+                            <div class="text-sm text-gray-600 mb-3">
+                                /เดือน
+                            </div>
+                            <div class="flex gap-2 justify-center flex-wrap">
+                                <div class="bg-gray-100 px-3 py-1.5 rounded text-xs border border-gray-300">
+                                    <div class="text-gray-500 text-[10px]">6 เดือน (ลด 5%)</div>
+                                    <div class="line-through text-gray-400 text-[10px]">฿{{ (pkg.price_monthly *
+                                        6).toLocaleString() }}</div>
+                                    <span class="font-bold text-green-600">฿{{ Math.round(pkg.price_monthly * 6 *
+                                        0.95).toLocaleString() }}</span>
+                                </div>
+                                <div class="bg-blue-100 px-3 py-1.5 rounded text-xs border border-blue-300">
+                                    <div class="text-blue-600 text-[10px]">12 เดือน (ลด 10%)</div>
+                                    <div class="line-through text-gray-400 text-[10px]">฿{{ (pkg.price_monthly *
+                                        12).toLocaleString() }}</div>
+                                    <span class="font-bold text-blue-700">฿{{ Math.round(pkg.price_monthly * 12 *
+                                        0.90).toLocaleString() }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -403,6 +421,29 @@
                             ],
                             promptpay_phone: '0656987889',
                             is_active: true
+                        },
+                        {
+                            id: '4',
+                            name: 'Enterprise',
+                            name_en: 'Enterprise Solution',
+                            description: 'แพคเกจสำหรับองค์กรขนาดใหญ่ที่ต้องการปรับแต่งเฉพาะ',
+                            price_monthly: null,
+                            is_custom: true,
+                            color_theme: '#8B5CF6',
+                            benefits: [
+                                'ระบบ CRM แบบ Custom ตามความต้องการ',
+                                'API & Integration ไม่จำกัด',
+                                'Multi-tenant & White Label',
+                                'เซิร์ฟเวอร์เฉพาะองค์กร (Dedicated Server)',
+                                'บริการ Technical Support 24/7',
+                                'ที่ปรึกษาเฉพาะทาง (Dedicated Consultant)',
+                                'Training & Workshop สำหรับทีม',
+                                'SLA Guarantee 99.9%',
+                                'Custom Report & Dashboard',
+                                'Advanced Security & Compliance'
+                            ],
+                            contact_line: '@eddication',
+                            is_active: true
                         }
                     ]
                 },
@@ -410,6 +451,19 @@
                     this.selectedPackage = pkg
                     this.selectedDuration = 12 // Default to 12 months
                     await this.generateQRCode()
+                },
+                contactAdmin(lineId) {
+                    const message = encodeURIComponent('สวัสดีครับ สนใจแพคเกจ Enterprise สำหรับองค์กร')
+                    const lineUrl = `https://line.me/R/ti/p/${lineId}?text=${message}`
+                    
+                    if (typeof liff !== 'undefined' && liff.isInClient()) {
+                        liff.openWindow({
+                            url: lineUrl,
+                            external: true
+                        })
+                    } else {
+                        window.open(lineUrl, '_blank')
+                    }
                 },
                 selectDuration(months) {
                     this.selectedDuration = months
