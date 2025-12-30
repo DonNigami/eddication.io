@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก - {{ shopName }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.omise.co/omise.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+
+    <div id="app" class="container mx-auto px-4 py-8 max-w-6xl">
+
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🎉 สมัครสมาชิกรายปี</h1>
+            <p class="text-gray-600">เลือกแพคเกจที่เหมาะกับคุณ รับสิทธิพิเศษมากมาย!</p>
+        </div>
+
+        <!-- Packages Selection -->
+        <div v-if="!selectedPackage" class="grid md:grid-cols-3 gap-6 mb-8">
+            <div v-for="pkg in packages" :key="pkg.id"
+                class="bg-white rounded-lg shadow-xl overflow-hidden transform transition-all hover:scale-105 cursor-pointer border-4"
+                :class="pkg.is_recommended ? 'border-yellow-400' : 'border-transparent'"
+                :style="`border-top: 6px solid ${pkg.color_theme}`" @click="selectPackage(pkg)">
+
+                <div v-if="pkg.is_recommended" class="bg-yellow-400 text-yellow-900 text-center py-2 text-sm font-bold">
+                    ⭐ แนะนำ
+                </div>
+
+                <div class="p-6">
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold mb-1" :style="`color: ${pkg.color_theme}`">
+                            {{ pkg.name }}
+                        </h3>
+                        <p class="text-gray-500 text-sm">{{ pkg.name_en }}</p>
+                    </div>
+
+                    <div class="text-center mb-6">
+                        <div class="text-5xl font-bold text-gray-800 mb-2">
+                            ฿{{ pkg.price_yearly.toLocaleString() }}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            /ปี
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            (เฉลี่ย ฿{{ (pkg.price_yearly / 12).toFixed(0) }}/เดือน)
+                        </div>
+                    </div>
+
+                    <!-- Highlights -->
+                    <div class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-600">ส่วนลดทุกครั้ง</span>
+                            <span class="text-xl font-bold text-green-600">{{ pkg.discount_percent }}%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">แต้มสะสม</span>
+                            <span class="text-xl font-bold text-blue-600">{{ pkg.points_multiplier }}x</span>
+                        </div>
+                    </div>
+
+                    <!-- Benefits -->
+                    <div class="space-y-3 mb-6">
+                        <div v-for="(benefit, idx) in pkg.benefits" :key="idx" class="flex items-start">
+                            <span class="text-green-500 mr-2 mt-0.5">✓</span>
+                            <span class="text-gray-700 text-sm">{{ benefit }}</span>
+                        </div>
+                    </div>
+
+                    <button class="w-full py-3 rounded-lg font-semibold transition-colors"
+                        :style="`background-color: ${pkg.color_theme}; color: white`">
+                        เลือกแพคเกจนี้
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Step -->
+        <div v-if="selectedPackage && !paymentCompleted" class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-lg shadow-xl p-8">
+
+                <!-- Back Button -->
+                <button @click="selectedPackage = null"
+                    class="mb-6 text-blue-600 hover:text-blue-800 flex items-center">
+                    ← เปลี่ยนแพคเกจ
+                </button>
+
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">ชำระเงินผ่าน PromptPay</h2>
+                    <p class="text-gray-600">สแกน QR Code เพื่อชำระเงิน</p>
+                </div>
+
+                <!-- Selected Package Summary -->
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <div class="font-bold text-xl" :style="`color: ${selectedPackage.color_theme}`">
+                                {{ selectedPackage.name }}
+                            </div>
+                            <div class="text-sm text-gray-600">{{ selectedPackage.name_en }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold text-gray-800">
+                                ฿{{ selectedPackage.price_yearly.toLocaleString() }}
+                            </div>
+                            <div class="text-sm text-gray-600">/ปี</div>
+                        </div>
+                    </div>
+
+                    <div class="border-t pt-4">
+                        <div class="text-sm text-gray-600 mb-2">สิทธิพิเศษที่จะได้รับ:</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex items-center text-sm">
+                                <span class="text-green-500 mr-1">✓</span>
+                                <span>ส่วนลด {{ selectedPackage.discount_percent }}%</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="text-green-500 mr-1">✓</span>
+                                <span>แต้ม {{ selectedPackage.points_multiplier }}x</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Display -->
+                <div v-if="qrCodeUrl" class="text-center mb-6">
+                    <div class="bg-white p-6 rounded-lg border-4 border-blue-500 inline-block mb-4">
+                        <img :src="qrCodeUrl" alt="PromptPay QR Code" class="w-64 h-64">
+                    </div>
+
+                    <div class="text-sm text-gray-600 mb-2">
+                        โอนเงินผ่าน PromptPay
+                    </div>
+                    <div class="font-mono font-bold text-xl text-gray-800 mb-4">
+                        {{ selectedPackage.promptpay_phone || '065-698-7889' }}
+                    </div>
+
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-yellow-800">
+                            ⚠️ หลังโอนเงินแล้ว กรุณาอัพโหลดสลิปเพื่อยืนยันการชำระเงิน
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Upload Slip -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        อัพโหลดสลิปการโอนเงิน *
+                    </label>
+                    <input type="file" @change="handleSlipUpload" accept="image/*"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+
+                    <div v-if="slipPreview" class="mt-4">
+                        <img :src="slipPreview" alt="Slip Preview" class="max-w-xs mx-auto rounded-lg shadow">
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อ-นามสกุล *</label>
+                        <input v-model="contactInfo.name" type="text"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="นายสมชาย ใจดี">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">เบอร์โทรศัพท์ *</label>
+                        <input v-model="contactInfo.phone" type="tel"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="0812345678">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button @click="submitSubscription" :disabled="!canSubmit || isSubmitting"
+                    class="w-full py-4 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    {{ isSubmitting ? 'กำลังส่ง...' : 'ยืนยันการสมัครสมาชิก' }}
+                </button>
+
+                <p class="text-xs text-center text-gray-500 mt-4">
+                    * รอตรวจสอบการชำระเงิน 1-2 ชั่วโมง หลังยืนยัน
+                </p>
+            </div>
+        </div>
+
+        <!-- Success Step -->
+        <div v-if="paymentCompleted" class="max-w-2xl mx-auto">
+            <div class="bg-white rounded-lg shadow-xl p-8 text-center">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span class="text-4xl">✅</span>
+                </div>
+
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">ส่งคำขอสำเร็จ!</h2>
+                <p class="text-gray-600 mb-8">
+                    ระบบได้รับคำขอสมัครสมาชิกของคุณแล้ว<br>
+                    เราจะตรวจสอบการชำระเงินและยืนยันภายใน 1-2 ชั่วโมง
+                </p>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <div class="text-sm text-gray-600 mb-2">แพคเกจที่เลือก</div>
+                    <div class="text-xl font-bold" :style="`color: ${selectedPackage.color_theme}`">
+                        {{ selectedPackage.name }}
+                    </div>
+                    <div class="text-2xl font-bold text-gray-800 mt-2">
+                        ฿{{ selectedPackage.price_yearly.toLocaleString() }}
+                    </div>
+                </div>
+
+                <div class="space-y-3 text-sm text-gray-600 mb-8">
+                    <p>✓ คุณจะได้รับการแจ้งเตือนผ่าน LINE เมื่อการชำระเงินได้รับการยืนยัน</p>
+                    <p>✓ สมาชิกมีอายุ 1 ปี นับจากวันที่ได้รับการยืนยัน</p>
+                    <p>✓ เริ่มใช้สิทธิพิเศษได้ทันทีหลังยืนยัน</p>
+                </div>
+
+                <button @click="goToHome"
+                    class="px-8 py-3 bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-600 transition-colors">
+                    กลับหน้าหลัก
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        // Initialize Omise
+        Omise.setPublicKey('pkey_test_5wox4qrw56h1jiwb0gl')
+
+        createApp({
+            data() {
+                return {
+                    packages: [],
+                    selectedPackage: null,
+                    qrCodeUrl: null,
+                    chargeId: null,
+                    slipFile: null,
+                    slipPreview: null,
+                    contactInfo: {
+                        name: '',
+                        phone: ''
+                    },
+                    paymentCompleted: false,
+                    isSubmitting: false,
+                    supabase: null,
+                    lineUserId: null,
+                    tenantId: null
+                }
+            },
+            computed: {
+                canSubmit() {
+                    return this.slipFile &&
+                        this.contactInfo.name &&
+                        this.contactInfo.phone
+                }
+            },
+            async mounted() {
+                // Initialize Supabase
+                this.supabase = window.supabase.createClient(
+                    'https://ckhwouxtrvuthefkxnxb.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNraHdvdXh0cnZ1dGhlZmt4bnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzU4NDAsImV4cCI6MjA1MDExMTg0MH0.Vn-V7nDXON7vRCEp2KzPQwvTv2X_nFZxlq6nZBK8jpw'
+                )
+
+                // Initialize LIFF
+                try {
+                    await liff.init({ liffId: '2006652117-vZO91aAk' })
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile()
+                        this.lineUserId = profile.userId
+                        this.contactInfo.name = profile.displayName
+                    }
+                } catch (err) {
+                    console.error('LIFF init failed:', err)
+                }
+
+                // TODO: Get tenantId from URL or context
+                this.tenantId = 'demo-tenant-id'
+
+                await this.loadPackages()
+            },
+            methods: {
+                async loadPackages() {
+                    // TODO: Load from Supabase
+                    // const { data } = await this.supabase
+                    //     .from('subscription_packages')
+                    //     .select('*')
+                    //     .eq('tenant_id', this.tenantId)
+                    //     .eq('is_active', true)
+                    //     .order('sort_order')
+
+                    this.packages = [
+                        {
+                            id: '1',
+                            name: 'สมาชิกเงิน',
+                            name_en: 'Silver Member',
+                            description: 'แพคเกจเริ่มต้น',
+                            price_yearly: 499,
+                            discount_percent: 3,
+                            points_multiplier: 1.2,
+                            color_theme: '#C0C0C0',
+                            benefits: [
+                                'ส่วนลด 3% ทุกครั้ง',
+                                'สะสมแต้ม 1.2 เท่า',
+                                'จัดส่งฟรีเมื่อซื้อครบ 500฿'
+                            ],
+                            promptpay_phone: '0656987889',
+                            is_active: true
+                        },
+                        {
+                            id: '2',
+                            name: 'สมาชิกทอง',
+                            name_en: 'Gold Member',
+                            description: 'แพคเกจยอดนิยม',
+                            price_yearly: 999,
+                            discount_percent: 5,
+                            points_multiplier: 1.5,
+                            color_theme: '#FFD700',
+                            benefits: [
+                                'ส่วนลด 5% ทุกครั้ง',
+                                'สะสมแต้ม 1.5 เท่า',
+                                'จัดส่งฟรีทุกออเดอร์',
+                                'วันเกิดรับของขวัญ'
+                            ],
+                            promptpay_phone: '0656987889',
+                            is_active: true,
+                            is_recommended: true
+                        },
+                        {
+                            id: '3',
+                            name: 'สมาชิกเพชร',
+                            name_en: 'Diamond Member',
+                            description: 'แพคเกจพรีเมียม',
+                            price_yearly: 2999,
+                            discount_percent: 10,
+                            points_multiplier: 2.0,
+                            color_theme: '#B9F2FF',
+                            benefits: [
+                                'ส่วนลด 10% ทุกครั้ง',
+                                'สะสมแต้ม 2 เท่า',
+                                'จัดส่งฟรีแบบด่วน',
+                                'ของขวัญวันเกิด VIP',
+                                'เข้างานพิเศษก่อนใคร',
+                                'บริการส่วนตัว'
+                            ],
+                            promptpay_phone: '0656987889',
+                            is_active: true
+                        }
+                    ]
+                },
+                async selectPackage(pkg) {
+                    this.selectedPackage = pkg
+                    await this.generateQRCode()
+                },
+                async generateQRCode() {
+                    try {
+                        const amount = this.selectedPackage.price_yearly
+
+                        // Create PromptPay charge via Omise
+                        const response = await fetch('https://api.omise.co/charges', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': 'Basic ' + btoa('skey_test_5wox4qrhdxqjxpyhnuy:'),
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                amount: amount * 100, // convert to satang
+                                currency: 'THB',
+                                source: {
+                                    type: 'promptpay'
+                                },
+                                description: `${this.selectedPackage.name} - Subscription`,
+                                metadata: {
+                                    package_id: this.selectedPackage.id,
+                                    line_user_id: this.lineUserId
+                                }
+                            })
+                        })
+
+                        const charge = await response.json()
+
+                        if (charge.source && charge.source.scannable_code) {
+                            this.qrCodeUrl = charge.source.scannable_code.image.download_uri
+                            this.chargeId = charge.id
+                        }
+                    } catch (error) {
+                        console.error('QR generation failed:', error)
+                        Swal.fire('Error', 'ไม่สามารถสร้าง QR Code ได้', 'error')
+                    }
+                },
+                handleSlipUpload(event) {
+                    const file = event.target.files[0]
+                    if (file) {
+                        this.slipFile = file
+                        const reader = new FileReader()
+                        reader.onload = (e) => {
+                            this.slipPreview = e.target.result
+                        }
+                        reader.readAsDataURL(file)
+                    }
+                },
+                async submitSubscription() {
+                    this.isSubmitting = true
+
+                    try {
+                        // Upload slip to Supabase Storage
+                        const fileName = `slips/${Date.now()}_${this.slipFile.name}`
+                        const { data: uploadData, error: uploadError } = await this.supabase.storage
+                            .from('payment-slips')
+                            .upload(fileName, this.slipFile)
+
+                        if (uploadError) throw uploadError
+
+                        const { data: { publicUrl } } = this.supabase.storage
+                            .from('payment-slips')
+                            .getPublicUrl(fileName)
+
+                        // Create subscription record
+                        // TODO: Call Edge Function to create subscription
+                        const { data, error } = await this.supabase.functions.invoke('subscription-manager', {
+                            body: {
+                                action: 'create-customer-subscription',
+                                package_id: this.selectedPackage.id,
+                                customer_info: this.contactInfo,
+                                slip_url: publicUrl,
+                                charge_id: this.chargeId,
+                                line_user_id: this.lineUserId
+                            }
+                        })
+
+                        if (error) throw error
+
+                        this.paymentCompleted = true
+
+                    } catch (error) {
+                        console.error('Submission failed:', error)
+                        Swal.fire('Error', 'ไม่สามารถส่งคำขอได้: ' + error.message, 'error')
+                    } finally {
+                        this.isSubmitting = false
+                    }
+                },
+                goToHome() {
+                    if (liff.isInClient()) {
+                        liff.closeWindow()
+                    } else {
+                        window.location.href = '/'
+                    }
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+
+</html>

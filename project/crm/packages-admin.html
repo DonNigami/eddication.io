@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จัดการแพคเกจสมาชิก - CRM Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="bg-gray-50">
+    <div id="app" class="container mx-auto px-4 py-8">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">จัดการแพคเกจสมาชิก</h1>
+            <p class="text-gray-600 mt-2">สร้างและจัดการแพคเกจสมาชิกรายปีสำหรับลูกค้าของคุณ</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-sm text-gray-600">แพคเกจทั้งหมด</div>
+                <div class="text-3xl font-bold text-blue-600 mt-2">{{ packages.length }}</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-sm text-gray-600">สมาชิกใช้งาน</div>
+                <div class="text-3xl font-bold text-green-600 mt-2">{{ activeSubscribers }}</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-sm text-gray-600">รายได้รวม/ปี</div>
+                <div class="text-3xl font-bold text-purple-600 mt-2">฿{{ totalRevenue.toLocaleString() }}</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="text-sm text-gray-600">หมดอายุเร็วๆนี้</div>
+                <div class="text-3xl font-bold text-orange-600 mt-2">{{ expiringCount }}</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="flex">
+                    <button @click="currentTab = 'packages'"
+                        :class="currentTab === 'packages' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="px-6 py-4 text-sm font-medium border-b-2 transition-colors">
+                        แพคเกจ
+                    </button>
+                    <button @click="currentTab = 'subscribers'"
+                        :class="currentTab === 'subscribers' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="px-6 py-4 text-sm font-medium border-b-2 transition-colors">
+                        สมาชิก
+                    </button>
+                    <button @click="currentTab = 'payments'"
+                        :class="currentTab === 'payments' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="px-6 py-4 text-sm font-medium border-b-2 transition-colors">
+                        การชำระเงิน
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Packages Tab -->
+        <div v-if="currentTab === 'packages'">
+            <div class="mb-6 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800">แพคเกจสมาชิก</h2>
+                <button @click="showPackageModal = true; editingPackage = null"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    + สร้างแพคเกจใหม่
+                </button>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div v-for="pkg in sortedPackages" :key="pkg.id"
+                    class="bg-white rounded-lg shadow-lg overflow-hidden border-t-4"
+                    :style="`border-color: ${pkg.color_theme}`">
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-2xl font-bold" :style="`color: ${pkg.color_theme}`">
+                                    {{ pkg.name }}
+                                </h3>
+                                <p class="text-gray-500 text-sm">{{ pkg.name_en }}</p>
+                            </div>
+                            <span v-if="pkg.is_active"
+                                class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                ใช้งาน
+                            </span>
+                            <span v-else class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                                ปิดใช้งาน
+                            </span>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="text-4xl font-bold text-gray-800">
+                                ฿{{ pkg.price_yearly.toLocaleString() }}
+                                <span class="text-lg text-gray-500 font-normal">/ปี</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mt-1">
+                                (฿{{ (pkg.price_yearly / 12).toFixed(0) }}/เดือน)
+                            </div>
+                        </div>
+
+                        <div class="space-y-2 mb-6">
+                            <div class="flex items-center text-sm">
+                                <span class="text-gray-600">ส่วนลด:</span>
+                                <span class="ml-2 font-semibold text-green-600">{{ pkg.discount_percent }}%</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <span class="text-gray-600">คูณแต้ม:</span>
+                                <span class="ml-2 font-semibold text-blue-600">{{ pkg.points_multiplier }}x</span>
+                            </div>
+                        </div>
+
+                        <div class="border-t pt-4 mb-4">
+                            <div class="text-sm font-semibold text-gray-700 mb-2">สิทธิพิเศษ:</div>
+                            <ul class="space-y-1">
+                                <li v-for="(benefit, idx) in pkg.benefits" :key="idx" class="flex items-start text-sm">
+                                    <span class="text-green-500 mr-2">✓</span>
+                                    <span class="text-gray-600">{{ benefit }}</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button @click="editPackage(pkg)"
+                                class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm">
+                                แก้ไข
+                            </button>
+                            <button @click="togglePackageStatus(pkg)"
+                                class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm">
+                                {{ pkg.is_active ? 'ปิดใช้งาน' : 'เปิดใช้งาน' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscribers Tab -->
+        <div v-if="currentTab === 'subscribers'">
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">รายชื่อสมาชิก</h2>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อ
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แพคเกจ
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เริ่ม
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">หมดอายุ
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        การชำระเงิน</th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">จัดการ
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr v-for="sub in subscriptions" :key="sub.id" class="hover:bg-gray-50">
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-900">{{ sub.customer_name || '-' }}</div>
+                                        <div class="text-sm text-gray-500">{{ sub.customer_phone }}</div>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full"
+                                            :style="`background-color: ${sub.package_color}20; color: ${sub.package_color}`">
+                                            {{ sub.package_name }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span v-if="sub.status === 'active'"
+                                            class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                            ใช้งาน
+                                        </span>
+                                        <span v-else-if="sub.status === 'pending'"
+                                            class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                            รอตรวจสอบ
+                                        </span>
+                                        <span v-else class="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">
+                                            {{ sub.status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ formatDate(sub.start_date) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm">
+                                        <span
+                                            :class="isExpiringSoon(sub.end_date) ? 'text-orange-600 font-semibold' : 'text-gray-600'">
+                                            {{ formatDate(sub.end_date) }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span v-if="sub.payment_status === 'paid'"
+                                            class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                            ชำระแล้ว
+                                        </span>
+                                        <span v-else class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                            รอชำระ
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <button @click="viewSubscription(sub)"
+                                            class="text-blue-600 hover:text-blue-800 text-sm">
+                                            ดูรายละเอียด
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div v-if="currentTab === 'payments'">
+            <div class="bg-white rounded-lg shadow">
+                <div class="p-6">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">รายการชำระเงิน</h2>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลูกค้า
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แพคเกจ
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                        จำนวนเงิน</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วิธีการ
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ
+                                    </th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">จัดการ
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                <tr v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ formatDateTime(payment.created_at) }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-900">
+                                        {{ payment.customer_name }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ payment.package_name }}
+                                    </td>
+                                    <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                                        ฿{{ payment.amount.toLocaleString() }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                            {{ payment.payment_method === 'promptpay' ? 'PromptPay' :
+                                            payment.payment_method }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span v-if="payment.status === 'verified'"
+                                            class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                            ยืนยันแล้ว
+                                        </span>
+                                        <span v-else-if="payment.status === 'pending'"
+                                            class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                            รอตรวจสอบ
+                                        </span>
+                                        <span v-else class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                            ปฏิเสธ
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right space-x-2">
+                                        <button v-if="payment.slip_url" @click="viewSlip(payment.slip_url)"
+                                            class="text-blue-600 hover:text-blue-800 text-sm">
+                                            ดูสลิป
+                                        </button>
+                                        <button v-if="payment.status === 'pending'" @click="verifyPayment(payment)"
+                                            class="text-green-600 hover:text-green-800 text-sm">
+                                            อนุมัติ
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Package Modal -->
+        <div v-if="showPackageModal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b">
+                    <h3 class="text-xl font-bold text-gray-800">
+                        {{ editingPackage ? 'แก้ไขแพคเกจ' : 'สร้างแพคเกจใหม่' }}
+                    </h3>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อแพคเกจ (ไทย) *</label>
+                            <input v-model="packageForm.name" type="text"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="สมาชิกทอง">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อแพคเกจ (EN)</label>
+                            <input v-model="packageForm.name_en" type="text"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Gold Member">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">คำอธิบาย</label>
+                        <textarea v-model="packageForm.description" rows="3"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ราคา/ปี (฿) *</label>
+                            <input v-model="packageForm.price_yearly" type="number"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="999">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ส่วนลด (%) *</label>
+                            <input v-model="packageForm.discount_percent" type="number" step="0.01"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="5.00">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">คูณแต้ม *</label>
+                            <input v-model="packageForm.points_multiplier" type="number" step="0.1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="1.5">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">สีธีม</label>
+                        <input v-model="packageForm.color_theme" type="color"
+                            class="h-10 w-20 border border-gray-300 rounded-lg">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">เบอร์ PromptPay</label>
+                        <input v-model="packageForm.promptpay_phone" type="text"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="0656987889">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">สิทธิพิเศษ (แต่ละบรรทัด 1
+                            ข้อ)</label>
+                        <textarea v-model="benefitsText" rows="5"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                            placeholder="ส่วนลด 5% ทุกครั้ง&#10;สะสมแต้ม 1.5 เท่า&#10;จัดส่งฟรี"></textarea>
+                    </div>
+
+                    <div class="flex items-center">
+                        <input v-model="packageForm.is_active" type="checkbox" class="mr-2">
+                        <label class="text-sm text-gray-700">เปิดใช้งานทันที</label>
+                    </div>
+                </div>
+
+                <div class="p-6 border-t flex justify-end space-x-4">
+                    <button @click="showPackageModal = false"
+                        class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                        ยกเลิก
+                    </button>
+                    <button @click="savePackage" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        {{ editingPackage ? 'บันทึก' : 'สร้าง' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    currentTab: 'packages',
+                    packages: [],
+                    subscriptions: [],
+                    payments: [],
+                    showPackageModal: false,
+                    editingPackage: null,
+                    packageForm: this.getEmptyPackageForm(),
+                    benefitsText: '',
+                    supabase: null,
+                    tenantId: null
+                }
+            },
+            computed: {
+                sortedPackages() {
+                    return [...this.packages].sort((a, b) => a.sort_order - b.sort_order)
+                },
+                activeSubscribers() {
+                    return this.subscriptions.filter(s => s.status === 'active').length
+                },
+                totalRevenue() {
+                    return this.subscriptions
+                        .filter(s => s.payment_status === 'paid')
+                        .reduce((sum, s) => sum + parseFloat(s.paid_amount || 0), 0)
+                },
+                expiringCount() {
+                    const thirtyDaysFromNow = new Date()
+                    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+                    return this.subscriptions.filter(s =>
+                        s.status === 'active' &&
+                        new Date(s.end_date) <= thirtyDaysFromNow
+                    ).length
+                }
+            },
+            async mounted() {
+                // Initialize Supabase
+                this.supabase = window.supabase.createClient(
+                    'https://ckhwouxtrvuthefkxnxb.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNraHdvdXh0cnZ1dGhlZmt4bnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzU4NDAsImV4cCI6MjA1MDExMTg0MH0.Vn-V7nDXON7vRCEp2KzPQwvTv2X_nFZxlq6nZBK8jpw'
+                )
+
+                // TODO: Get tenantId from session
+                this.tenantId = 'demo-tenant-id'
+
+                await this.loadData()
+            },
+            methods: {
+                async loadData() {
+                    await Promise.all([
+                        this.loadPackages(),
+                        this.loadSubscriptions(),
+                        this.loadPayments()
+                    ])
+                },
+                async loadPackages() {
+                    // TODO: Load from Supabase
+                    this.packages = [
+                        {
+                            id: '1',
+                            name: 'สมาชิกทอง',
+                            name_en: 'Gold Member',
+                            description: 'แพคเกจสมาชิกระดับทอง',
+                            price_yearly: 999,
+                            discount_percent: 5.00,
+                            points_multiplier: 1.5,
+                            color_theme: '#FFD700',
+                            benefits: ['ส่วนลด 5% ทุกครั้ง', 'สะสมแต้ม 1.5 เท่า', 'จัดส่งฟรี'],
+                            is_active: true,
+                            sort_order: 1
+                        }
+                    ]
+                },
+                async loadSubscriptions() {
+                    this.subscriptions = []
+                },
+                async loadPayments() {
+                    this.payments = []
+                },
+                getEmptyPackageForm() {
+                    return {
+                        name: '',
+                        name_en: '',
+                        description: '',
+                        price_yearly: 999,
+                        discount_percent: 5.00,
+                        points_multiplier: 1.5,
+                        color_theme: '#3B82F6',
+                        promptpay_phone: '0656987889',
+                        is_active: true,
+                        benefits: []
+                    }
+                },
+                editPackage(pkg) {
+                    this.editingPackage = pkg
+                    this.packageForm = { ...pkg }
+                    this.benefitsText = pkg.benefits.join('\n')
+                    this.showPackageModal = true
+                },
+                async savePackage() {
+                    // Parse benefits
+                    this.packageForm.benefits = this.benefitsText
+                        .split('\n')
+                        .filter(b => b.trim())
+
+                    // TODO: Save to Supabase
+                    Swal.fire('สำเร็จ', 'บันทึกแพคเกจเรียบร้อย', 'success')
+                    this.showPackageModal = false
+                    this.packageForm = this.getEmptyPackageForm()
+                    this.benefitsText = ''
+                    await this.loadPackages()
+                },
+                async togglePackageStatus(pkg) {
+                    // TODO: Update in Supabase
+                    pkg.is_active = !pkg.is_active
+                    Swal.fire('สำเร็จ', pkg.is_active ? 'เปิดใช้งานแล้ว' : 'ปิดใช้งานแล้ว', 'success')
+                },
+                viewSubscription(sub) {
+                    Swal.fire({
+                        title: 'รายละเอียดสมาชิก',
+                        html: `
+                            <div class="text-left">
+                                <p><strong>ชื่อ:</strong> ${sub.customer_name}</p>
+                                <p><strong>แพคเกจ:</strong> ${sub.package_name}</p>
+                                <p><strong>เริ่ม:</strong> ${this.formatDate(sub.start_date)}</p>
+                                <p><strong>หมดอายุ:</strong> ${this.formatDate(sub.end_date)}</p>
+                            </div>
+                        `
+                    })
+                },
+                viewSlip(url) {
+                    window.open(url, '_blank')
+                },
+                async verifyPayment(payment) {
+                    const result = await Swal.fire({
+                        title: 'ยืนยันการชำระเงิน?',
+                        text: `จำนวน ฿${payment.amount.toLocaleString()}`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'ยืนยัน',
+                        cancelButtonText: 'ยกเลิก'
+                    })
+
+                    if (result.isConfirmed) {
+                        try {
+                            // Call subscription-manager to verify payment
+                            const { data, error } = await this.supabase.functions.invoke('subscription-manager', {
+                                body: {
+                                    action: 'verify-payment',
+                                    payment_id: payment.id,
+                                    verified_by: 'admin' // TODO: Get actual admin ID
+                                }
+                            })
+
+                            if (error) throw error
+
+                            Swal.fire('สำเร็จ', 'ยืนยันการชำระเงินแล้ว และส่งการแจ้งเตือนไปยัง Telegram', 'success')
+                            await this.loadPayments()
+                            await this.loadSubscriptions()
+                        } catch (error) {
+                            Swal.fire('Error', 'ไม่สามารถยืนยันการชำระเงินได้: ' + error.message, 'error')
+                        }
+                    }
+                },
+                formatDate(date) {
+                    if (!date) return '-'
+                    return new Date(date).toLocaleDateString('th-TH', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    })
+                },
+                formatDateTime(date) {
+                    if (!date) return '-'
+                    return new Date(date).toLocaleString('th-TH', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                },
+                isExpiringSoon(date) {
+                    const thirtyDaysFromNow = new Date()
+                    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+                    return new Date(date) <= thirtyDaysFromNow
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+
+</html>

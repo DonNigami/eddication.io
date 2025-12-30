@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครใช้งาน CRM Pro - Multi-tenant SaaS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.omise.co/omise.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+
+    <!-- Onboarding Wizard -->
+    <div id="app" class="container mx-auto px-4 py-8 max-w-4xl">
+
+        <!-- Progress Steps -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center">
+                <div v-for="(step, idx) in steps" :key="idx" class="flex-1 flex items-center"
+                    :class="idx < steps.length - 1 ? 'mr-4' : ''">
+                    <div class="flex items-center flex-1">
+                        <div class="flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all"
+                            :class="currentStep > idx ? 'bg-green-500 border-green-500 text-white' : 
+                                     currentStep === idx ? 'bg-blue-500 border-blue-500 text-white' : 
+                                     'bg-white border-gray-300 text-gray-500'">
+                            <span v-if="currentStep > idx">✓</span>
+                            <span v-else>{{ idx + 1 }}</span>
+                        </div>
+                        <div v-if="idx < steps.length - 1" class="flex-1 h-1 mx-2 rounded"
+                            :class="currentStep > idx ? 'bg-green-500' : 'bg-gray-300'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-between mt-2">
+                <div v-for="(step, idx) in steps" :key="idx" class="text-xs font-medium"
+                    :class="currentStep >= idx ? 'text-blue-600' : 'text-gray-500'">
+                    {{ step }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: Organization Info -->
+        <div v-if="currentStep === 0" class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">ข้อมูลองค์กร</h2>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อองค์กร *</label>
+                    <input v-model="formData.organizationName" type="text"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="บริษัท ABC จำกัด">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Subdomain *</label>
+                    <div class="flex items-center">
+                        <input v-model="formData.subdomain" type="text"
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="your-company" @input="checkSubdomainAvailability">
+                        <span
+                            class="px-4 py-2 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-gray-600">
+                            .crmpro.app
+                        </span>
+                    </div>
+                    <p v-if="subdomainStatus === 'available'" class="text-xs text-green-600 mt-1">
+                        ✓ Subdomain พร้อมใช้งาน
+                    </p>
+                    <p v-if="subdomainStatus === 'taken'" class="text-xs text-red-600 mt-1">
+                        ✗ Subdomain นี้ถูกใช้แล้ว
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">อีเมล *</label>
+                    <input v-model="formData.email" type="email"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="admin@company.com">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">จำนวนพนักงาน</label>
+                    <select v-model="formData.companySize"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="1-10">1-10 คน</option>
+                        <option value="11-50">11-50 คน</option>
+                        <option value="51-200">51-200 คน</option>
+                        <option value="200+">มากกว่า 200 คน</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end mt-8">
+                <button @click="nextStep" :disabled="!canProceedStep1"
+                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    ถัดไป
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Choose Plan -->
+        <div v-if="currentStep === 1" class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">เลือกแผนที่เหมาะกับคุณ</h2>
+            <p class="text-gray-600 mb-6">ทดลองใช้ฟรี 14 วัน ไม่ต้องผูกบัตรเครดิต</p>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <!-- Free Plan -->
+                <div class="border-2 rounded-lg p-6 cursor-pointer transition-all"
+                    :class="formData.selectedPlan === 'free' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+                    @click="formData.selectedPlan = 'free'">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold text-gray-800">Free</h3>
+                        <div class="my-4">
+                            <span class="text-4xl font-bold">฿0</span>
+                            <span class="text-gray-600">/เดือน</span>
+                        </div>
+                        <ul class="text-left space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ลูกค้า 500 ราย</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ผู้ใช้งาน 2 คน</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ส่งข้อความ 1,000/เดือน</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>CRM พื้นฐาน</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Starter Plan -->
+                <div class="border-2 rounded-lg p-6 cursor-pointer transition-all relative"
+                    :class="formData.selectedPlan === 'starter' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+                    @click="formData.selectedPlan = 'starter'">
+                    <div
+                        class="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 text-xs rounded-bl-lg rounded-tr-lg">
+                        แนะนำ
+                    </div>
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold text-gray-800">Starter</h3>
+                        <div class="my-4">
+                            <span class="text-4xl font-bold">฿990</span>
+                            <span class="text-gray-600">/เดือน</span>
+                        </div>
+                        <ul class="text-left space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ลูกค้า 5,000 ราย</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ผู้ใช้งาน 5 คน</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ส่งข้อความ 10,000/เดือน</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>วิเคราะห์ขั้นสูง</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>API Access</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="border-2 rounded-lg p-6 cursor-pointer transition-all"
+                    :class="formData.selectedPlan === 'pro' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'"
+                    @click="formData.selectedPlan = 'pro'">
+                    <div class="text-center">
+                        <h3 class="text-xl font-bold text-gray-800">Pro</h3>
+                        <div class="my-4">
+                            <span class="text-4xl font-bold">฿2,990</span>
+                            <span class="text-gray-600">/เดือน</span>
+                        </div>
+                        <ul class="text-left space-y-2 text-sm">
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ลูกค้า 50,000 ราย</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ผู้ใช้งาน 20 คน</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>ส่งข้อความ 100,000/เดือน</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>Automation</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-green-500 mr-2">✓</span>
+                                <span>Priority Support</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button @click="prevStep"
+                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                    ย้อนกลับ
+                </button>
+                <button @click="nextStep"
+                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                    ถัดไป
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: Payment (if not free) -->
+        <div v-if="currentStep === 2 && formData.selectedPlan !== 'free'" class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">ข้อมูลการชำระเงิน</h2>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="text-blue-800 text-sm">
+                    🎉 ทดลองใช้ฟรี 14 วัน - เราจะเริ่มเก็บเงินหลังจากช่วงทดลองใช้สิ้นสุด
+                </p>
+            </div>
+
+            <div id="omise-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">หมายเลขบัตร</label>
+                    <input v-model="paymentData.cardNumber" type="text" maxlength="19"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="1234 5678 9012 3456">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">วันหมดอายุ</label>
+                        <input v-model="paymentData.expiry" type="text" maxlength="5"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="MM/YY">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">CVV</label>
+                        <input v-model="paymentData.cvv" type="text" maxlength="3"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="123">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อบนบัตร</label>
+                    <input v-model="paymentData.cardName" type="text"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="JOHN DOE">
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button @click="prevStep"
+                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                    ย้อนกลับ
+                </button>
+                <button @click="nextStep" :disabled="!canProceedPayment"
+                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    ถัดไป
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 4: Review & Confirm -->
+        <div v-if="currentStep === (formData.selectedPlan === 'free' ? 2 : 3)"
+            class="bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">ตรวจสอบข้อมูล</h2>
+
+            <div class="space-y-6">
+                <div class="border-b pb-4">
+                    <h3 class="font-semibold text-gray-700 mb-2">ข้อมูลองค์กร</h3>
+                    <p class="text-gray-600">{{ formData.organizationName }}</p>
+                    <p class="text-gray-600 text-sm">{{ formData.subdomain }}.crmpro.app</p>
+                    <p class="text-gray-600 text-sm">{{ formData.email }}</p>
+                </div>
+
+                <div class="border-b pb-4">
+                    <h3 class="font-semibold text-gray-700 mb-2">แผนที่เลือก</h3>
+                    <p class="text-gray-600 text-lg font-bold">
+                        {{ formData.selectedPlan === 'free' ? 'Free' : formData.selectedPlan === 'starter' ? 'Starter' :
+                        'Pro' }}
+                        {{ formData.selectedPlan !== 'free' ? `- ฿${formData.selectedPlan === 'starter' ? '990' :
+                        '2,990'}/เดือน` : '' }}
+                    </p>
+                    <p v-if="formData.selectedPlan !== 'free'" class="text-sm text-green-600 mt-1">
+                        ✓ ทดลองใช้ฟรี 14 วัน
+                    </p>
+                </div>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <label class="flex items-center">
+                        <input v-model="acceptTerms" type="checkbox" class="mr-2">
+                        <span class="text-sm text-gray-700">
+                            ฉันยอมรับ <a href="#" class="text-blue-500 hover:underline">เงื่อนไขการใช้งาน</a>
+                            และ <a href="#" class="text-blue-500 hover:underline">นโยบายความเป็นส่วนตัว</a>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-8">
+                <button @click="prevStep"
+                    class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                    ย้อนกลับ
+                </button>
+                <button @click="createTenant" :disabled="!acceptTerms || isCreating"
+                    class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                    {{ isCreating ? 'กำลังสร้าง...' : 'เริ่มใช้งาน' }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 5: Success -->
+        <div v-if="currentStep === (formData.selectedPlan === 'free' ? 3 : 4)"
+            class="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <span class="text-4xl">🎉</span>
+                </div>
+            </div>
+
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">ยินดีต้อนรับสู่ CRM Pro!</h2>
+            <p class="text-gray-600 mb-8">บัญชีของคุณพร้อมใช้งานแล้ว</p>
+
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <p class="text-sm text-gray-600 mb-2">URL ของคุณ</p>
+                <p class="text-xl font-mono text-blue-600">{{ formData.subdomain }}.crmpro.app</p>
+                <button @click="copyUrl" class="mt-2 text-sm text-blue-500 hover:underline">
+                    คัดลอก
+                </button>
+            </div>
+
+            <button @click="goToDashboard"
+                class="px-8 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                เริ่มใช้งาน CRM
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        // Initialize Omise
+        Omise.setPublicKey('pkey_test_your_key_here') // TODO: Replace with real key
+
+        createApp({
+            data() {
+                return {
+                    steps: ['ข้อมูลองค์กร', 'เลือกแผน', 'ชำระเงิน', 'ตรวจสอบ', 'เสร็จสิ้น'],
+                    currentStep: 0,
+                    formData: {
+                        organizationName: '',
+                        subdomain: '',
+                        email: '',
+                        companySize: '1-10',
+                        selectedPlan: 'starter'
+                    },
+                    paymentData: {
+                        cardNumber: '',
+                        expiry: '',
+                        cvv: '',
+                        cardName: ''
+                    },
+                    subdomainStatus: null,
+                    acceptTerms: false,
+                    isCreating: false,
+                    lineUserId: null,
+                    supabase: null
+                }
+            },
+            computed: {
+                canProceedStep1() {
+                    return this.formData.organizationName &&
+                        this.formData.subdomain &&
+                        this.formData.email &&
+                        this.subdomainStatus === 'available'
+                },
+                canProceedPayment() {
+                    return this.paymentData.cardNumber.length >= 15 &&
+                        this.paymentData.expiry.length === 5 &&
+                        this.paymentData.cvv.length === 3 &&
+                        this.paymentData.cardName
+                }
+            },
+            async mounted() {
+                // Initialize Supabase
+                this.supabase = window.supabase.createClient(
+                    'https://ckhwouxtrvuthefkxnxb.supabase.co',
+                    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNraHdvdXh0cnZ1dGhlZmt4bnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ1MzU4NDAsImV4cCI6MjA1MDExMTg0MH0.Vn-V7nDXON7vRCEp2KzPQwvTv2X_nFZxlq6nZBK8jpw'
+                )
+
+                // Initialize LIFF
+                try {
+                    await liff.init({ liffId: '2006652117-vZO91aAk' })
+                    if (liff.isLoggedIn()) {
+                        const profile = await liff.getProfile()
+                        this.lineUserId = profile.userId
+                    }
+                } catch (err) {
+                    console.error('LIFF init failed:', err)
+                }
+            },
+            methods: {
+                nextStep() {
+                    if (this.formData.selectedPlan === 'free' && this.currentStep === 1) {
+                        this.currentStep = 2 // Skip payment step
+                    } else {
+                        this.currentStep++
+                    }
+                },
+                prevStep() {
+                    if (this.formData.selectedPlan === 'free' && this.currentStep === 2) {
+                        this.currentStep = 1 // Skip payment step
+                    } else {
+                        this.currentStep--
+                    }
+                },
+                async checkSubdomainAvailability() {
+                    if (!this.formData.subdomain) {
+                        this.subdomainStatus = null
+                        return
+                    }
+
+                    const { data } = await this.supabase
+                        .from('tenants')
+                        .select('id')
+                        .eq('subdomain', this.formData.subdomain)
+                        .maybeSingle()
+
+                    this.subdomainStatus = data ? 'taken' : 'available'
+                },
+                async createTenant() {
+                    this.isCreating = true
+
+                    try {
+                        let tokenId = null
+
+                        // Create Omise token if not free plan
+                        if (this.formData.selectedPlan !== 'free') {
+                            const [month, year] = this.paymentData.expiry.split('/')
+
+                            tokenId = await new Promise((resolve, reject) => {
+                                Omise.createToken('card', {
+                                    name: this.paymentData.cardName,
+                                    number: this.paymentData.cardNumber.replace(/\s/g, ''),
+                                    expiration_month: month,
+                                    expiration_year: `20${year}`,
+                                    security_code: this.paymentData.cvv
+                                }, (statusCode, response) => {
+                                    if (response.object === 'token') {
+                                        resolve(response.id)
+                                    } else {
+                                        reject(new Error(response.message))
+                                    }
+                                })
+                            })
+                        }
+
+                        // Call tenant-manager function
+                        const { data: tenantData } = await this.supabase.functions.invoke('tenant-manager', {
+                            body: {
+                                action: 'create-tenant',
+                                name: this.formData.organizationName,
+                                subdomain: this.formData.subdomain,
+                                admin_email: this.formData.email,
+                                admin_line_id: this.lineUserId,
+                                plan: this.formData.selectedPlan
+                            }
+                        })
+
+                        if (!tenantData.success) {
+                            throw new Error('Failed to create tenant')
+                        }
+
+                        // Create subscription if not free
+                        if (this.formData.selectedPlan !== 'free') {
+                            await this.supabase.functions.invoke('subscription-manager', {
+                                body: {
+                                    action: 'create-subscription',
+                                    tenant_id: tenantData.tenant.id,
+                                    plan: this.formData.selectedPlan,
+                                    token_id: tokenId
+                                }
+                            })
+                        }
+
+                        this.nextStep()
+                    } catch (error) {
+                        Swal.fire('Error', error.message, 'error')
+                    } finally {
+                        this.isCreating = false
+                    }
+                },
+                copyUrl() {
+                    navigator.clipboard.writeText(`https://${this.formData.subdomain}.crmpro.app`)
+                    Swal.fire('Success', 'คัดลอก URL แล้ว', 'success')
+                },
+                goToDashboard() {
+                    window.location.href = `https://${this.formData.subdomain}.crmpro.app`
+                }
+            }
+        }).mount('#app')
+    </script>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</body>
+
+</html>
