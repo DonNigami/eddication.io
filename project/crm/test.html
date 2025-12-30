@@ -29,6 +29,7 @@
                     fontFamily: { prompt: ['Prompt', 'sans-serif'] }
                 }
             }
+        }
     </script>
     <style>
         [v-cloak] {
@@ -870,425 +871,425 @@
     </div>
 
     <script>
-            const { createApp } = Vue;
-            const { createClient } = supabase;
+        const { createApp } = Vue;
+        const { createClient } = supabase;
 
-            // --- CONFIG ---
-            const LIFF_ID = "2006397073-3wO44G35";
-            const SUPABASE_URL = "https://rwqgxdjcwrglbwlruyty.supabase.co/";
-            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3cWd4ZGpjd3JnbGJ3bHJ1eXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwOTExNTIsImV4cCI6MjA4MjY2NzE1Mn0.D3YiqSXDbyt_UXO343Kc5eTMalbfbc7DgI0vBIR1ozg";
+        // --- CONFIG ---
+        const LIFF_ID = "2006397073-3wO44G35";
+        const SUPABASE_URL = "https://rwqgxdjcwrglbwlruyty.supabase.co/";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3cWd4ZGpjd3JnbGJ3bHJ1eXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwOTExNTIsImV4cCI6MjA4MjY2NzE1Mn0.D3YiqSXDbyt_UXO343Kc5eTMalbfbc7DgI0vBIR1ozg";
 
-            const showAlert = (title, text, icon = 'success') => Swal.fire({ title, text, icon, confirmButtonColor: '#06C755' });
+        const showAlert = (title, text, icon = 'success') => Swal.fire({ title, text, icon, confirmButtonColor: '#06C755' });
 
-            createApp({
-                data() {
-            return {
-                loading: true,
-                loadingText: 'กำลังเข้าสู่ระบบ...',
-                isAdmin: false,
+        createApp({
+            data() {
+                return {
+                    loading: true,
+                    loadingText: 'กำลังเข้าสู่ระบบ...',
+                    isAdmin: false,
 
 
-                userProfile: null, memberData: null,
-                customers: [],
-                segments: [], tiers: [], newsList: [],
-                uniqueTags: [], auditLogs: [],
+                    userProfile: null, memberData: null,
+                    customers: [],
+                    segments: [], tiers: [], newsList: [],
+                    uniqueTags: [], auditLogs: [],
 
-                currentPage: 1, itemsPerPage: 10, totalItems: 0, searchQuery: '', tableLoading: false, jumpPageInput: null,
+                    currentPage: 1, itemsPerPage: 10, totalItems: 0, searchQuery: '', tableLoading: false, jumpPageInput: null,
 
-                stats: { totalCustomers: 0, totalPoints: 0, vipCount: 0, activeUsersCount: 0 },
+                    stats: { totalCustomers: 0, totalPoints: 0, vipCount: 0, activeUsersCount: 0 },
 
-                currentTab: 'dashboard',
-                broadcastTarget: 'all', msgType: 'text', messageText: '', broadcastImageUrl: '', broadcastFlexJson: '',
-                newsForm: { title: '', description: '', image_url: '', link_url: '', link_text: '' },
-                segmentForm: { name: '', min_days_joined: null, max_points: null, inactive_days: null },
-                segmentPreview: { loading: false, count: null },
-                scheduledAt: '', scheduledQueue: [],
-                sending: false, editingCustomer: null, editingTagsInput: '', lastPointChange: {},
+                    currentTab: 'dashboard',
+                    broadcastTarget: 'all', msgType: 'text', messageText: '', broadcastImageUrl: '', broadcastFlexJson: '',
+                    newsForm: { title: '', description: '', image_url: '', link_url: '', link_text: '' },
+                    segmentForm: { name: '', min_days_joined: null, max_points: null, inactive_days: null },
+                    segmentPreview: { loading: false, count: null },
+                    scheduledAt: '', scheduledQueue: [],
+                    sending: false, editingCustomer: null, editingTagsInput: '', lastPointChange: {},
 
-                selectedNews: null, memberEditing: false, memberEditForm: { phone: '', email: '' },
-                newsMetrics: {},
+                    selectedNews: null, memberEditing: false, memberEditForm: { phone: '', email: '' },
+                    newsMetrics: {},
 
-                supabase: null
-            }
-        },
-        computed: {
-            totalPages() { return Math.ceil(this.totalItems / this.itemsPerPage) || 1; },
-            nextTier() {
-                const currentPoints = this.memberData?.points || 0;
-                const sortedAsc = [...this.tiers].sort((a, b) => a.min_points - b.min_points);
-                return sortedAsc.find(t => t.min_points > currentPoints);
-            },
-            nextTierProgress() {
-                if (!this.nextTier) return 100;
-                const current = this.memberData?.points || 0;
-                return Math.min(100, Math.max(0, (current / this.nextTier.min_points) * 100));
-            },
-            currentTierObj() { return this.calculateTier(this.memberData?.points); },
-
-        },
-        created() {
-            this.debouncedSearch = _.debounce(() => { this.currentPage = 1; this.fetchCustomers(); }, 500);
-        },
-            async mounted() {
-            this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-            await this.fetchTiers();
-            await this.fetchNews();
-
-            try {
-                await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
-                await liff.ready;
-                if (!liff.isLoggedIn()) {
-                    liff.login({ scope: 'profile openid email' });
-                } else {
-                    await this.handleLogin();
+                    supabase: null
                 }
-            } catch (e) {
-                console.error("LIFF Init Error", e);
-                Swal.fire("Error", "LIFF Init Failed. Please reload.", "error");
-                this.loading = false;
-            }
-        },
-        methods: {
-            tabClass(tab) { return this.currentTab === tab ? 'bg-green-50 text-line font-bold' : ''; },
-            navClass(tab) { return this.currentTab === tab ? 'text-line' : 'text-gray-400'; },
-            formatDate(d) { return d ? new Date(d).toLocaleDateString('th-TH') : '-'; },
+            },
+            computed: {
+                totalPages() { return Math.ceil(this.totalItems / this.itemsPerPage) || 1; },
+                nextTier() {
+                    const currentPoints = this.memberData?.points || 0;
+                    const sortedAsc = [...this.tiers].sort((a, b) => a.min_points - b.min_points);
+                    return sortedAsc.find(t => t.min_points > currentPoints);
+                },
+                nextTierProgress() {
+                    if (!this.nextTier) return 100;
+                    const current = this.memberData?.points || 0;
+                    return Math.min(100, Math.max(0, (current / this.nextTier.min_points) * 100));
+                },
+                currentTierObj() { return this.calculateTier(this.memberData?.points); },
+
+            },
+            created() {
+                this.debouncedSearch = _.debounce(() => { this.currentPage = 1; this.fetchCustomers(); }, 500);
+            },
+            async mounted() {
+                this.supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+                await this.fetchTiers();
+                await this.fetchNews();
+
+                try {
+                    await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
+                    await liff.ready;
+                    if (!liff.isLoggedIn()) {
+                        liff.login({ scope: 'profile openid email' });
+                    } else {
+                        await this.handleLogin();
+                    }
+                } catch (e) {
+                    console.error("LIFF Init Error", e);
+                    Swal.fire("Error", "LIFF Init Failed. Please reload.", "error");
+                    this.loading = false;
+                }
+            },
+            methods: {
+                tabClass(tab) { return this.currentTab === tab ? 'bg-green-50 text-line font-bold' : ''; },
+                navClass(tab) { return this.currentTab === tab ? 'text-line' : 'text-gray-400'; },
+                formatDate(d) { return d ? new Date(d).toLocaleDateString('th-TH') : '-'; },
 
                 async handleLogin() {
-                const profile = await liff.getProfile();
-                this.userProfile = profile;
+                    const profile = await liff.getProfile();
+                    this.userProfile = profile;
 
-                let lineEmail = null;
-                try {
-                    const idToken = liff.getDecodedIDToken();
-                    if (idToken && idToken.email) lineEmail = idToken.email;
-                } catch (e) { console.warn("Email scope error", e); }
+                    let lineEmail = null;
+                    try {
+                        const idToken = liff.getDecodedIDToken();
+                        if (idToken && idToken.email) lineEmail = idToken.email;
+                    } catch (e) { console.warn("Email scope error", e); }
 
-                await this.syncAndCheckRole(profile, lineEmail);
-                this.loading = false;
-            },
+                    await this.syncAndCheckRole(profile, lineEmail);
+                    this.loading = false;
+                },
 
                 async syncAndCheckRole(profile, lineEmail) {
-                let { data: user } = await this.supabase.from('profiles').select('*').eq('line_user_id', profile.userId).maybeSingle();
-                const now = new Date();
+                    let { data: user } = await this.supabase.from('profiles').select('*').eq('line_user_id', profile.userId).maybeSingle();
+                    const now = new Date();
 
-                if (!user) {
-                    const newUser = {
-                        line_user_id: profile.userId,
-                        display_name: profile.displayName,
-                        picture_url: profile.pictureUrl,
-                        email: lineEmail,
-                        role: 'member',
-                        last_activity: now,
-                        points: 0,
-                        tags: ['new']
-                    };
-                    const { data: inserted, error } = await this.supabase.from('profiles').insert(newUser).select().maybeSingle();
-                    if (!error) {
-                        user = inserted;
-                        this.supabase.functions.invoke('crm-core', { body: { action: 'notify-telegram', message: `✨ New Member: ${profile.displayName}\nEmail: ${lineEmail || '-'}` } });
+                    if (!user) {
+                        const newUser = {
+                            line_user_id: profile.userId,
+                            display_name: profile.displayName,
+                            picture_url: profile.pictureUrl,
+                            email: lineEmail,
+                            role: 'member',
+                            last_activity: now,
+                            points: 0,
+                            tags: ['new']
+                        };
+                        const { data: inserted, error } = await this.supabase.from('profiles').insert(newUser).select().maybeSingle();
+                        if (!error) {
+                            user = inserted;
+                            this.supabase.functions.invoke('crm-core', { body: { action: 'notify-telegram', message: `✨ New Member: ${profile.displayName}\nEmail: ${lineEmail || '-'}` } });
+                        }
+                    } else {
+                        const updates = { display_name: profile.displayName, picture_url: profile.pictureUrl, last_activity: now };
+                        if ((!user.email || user.email === '') && lineEmail) { updates.email = lineEmail; user.email = lineEmail; }
+                        await this.supabase.from('profiles').update(updates).eq('line_user_id', profile.userId);
                     }
-                } else {
-                    const updates = { display_name: profile.displayName, picture_url: profile.pictureUrl, last_activity: now };
-                    if ((!user.email || user.email === '') && lineEmail) { updates.email = lineEmail; user.email = lineEmail; }
-                    await this.supabase.from('profiles').update(updates).eq('line_user_id', profile.userId);
-                }
 
-                this.memberData = user;
-                if (user && user.role === 'admin') {
-                    this.isAdmin = true;
-                    this.fetchDashboardStats();
-                    this.fetchCustomers();
-                    this.fetchSegments();
-                    this.fetchUniqueTags();
-                    this.fetchAuditLogs();
-                    this.fetchScheduledBroadcasts();
-                    this.fetchNewsMetrics();
-                }
-            },
+                    this.memberData = user;
+                    if (user && user.role === 'admin') {
+                        this.isAdmin = true;
+                        this.fetchDashboardStats();
+                        this.fetchCustomers();
+                        this.fetchSegments();
+                        this.fetchUniqueTags();
+                        this.fetchAuditLogs();
+                        this.fetchScheduledBroadcasts();
+                        this.fetchNewsMetrics();
+                    }
+                },
 
 
                 async fetchCustomers() {
-                this.tableLoading = true;
-                const start = (this.currentPage - 1) * this.itemsPerPage;
-                const end = start + this.itemsPerPage - 1;
-                let query = this.supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(start, end);
-                if (this.searchQuery) query = query.or(`display_name.ilike.%${this.searchQuery}%,phone.ilike.%${this.searchQuery}%`);
-                const { data, count, error } = await query;
-                if (!error) { this.customers = data; this.totalItems = count; }
-                this.tableLoading = false;
-            },
-            prevPage() { if (this.currentPage > 1) { this.currentPage--; this.fetchCustomers(); } },
-            nextPage() { if (this.currentPage < this.totalPages) { this.currentPage++; this.fetchCustomers(); } },
-            changePageSize() { this.currentPage = 1; this.fetchCustomers(); },
-            jumpToPage() { if (this.jumpPageInput >= 1 && this.jumpPageInput <= this.totalPages) { this.currentPage = this.jumpPageInput; this.fetchCustomers(); } },
+                    this.tableLoading = true;
+                    const start = (this.currentPage - 1) * this.itemsPerPage;
+                    const end = start + this.itemsPerPage - 1;
+                    let query = this.supabase.from('profiles').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(start, end);
+                    if (this.searchQuery) query = query.or(`display_name.ilike.%${this.searchQuery}%,phone.ilike.%${this.searchQuery}%`);
+                    const { data, count, error } = await query;
+                    if (!error) { this.customers = data; this.totalItems = count; }
+                    this.tableLoading = false;
+                },
+                prevPage() { if (this.currentPage > 1) { this.currentPage--; this.fetchCustomers(); } },
+                nextPage() { if (this.currentPage < this.totalPages) { this.currentPage++; this.fetchCustomers(); } },
+                changePageSize() { this.currentPage = 1; this.fetchCustomers(); },
+                jumpToPage() { if (this.jumpPageInput >= 1 && this.jumpPageInput <= this.totalPages) { this.currentPage = this.jumpPageInput; this.fetchCustomers(); } },
 
 
                 async fetchDashboardStats() {
-                const { count: total } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true });
-                this.stats.totalCustomers = total || 0;
-                const { count: vip } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true }).contains('tags', ['vip']);
-                this.stats.vipCount = vip || 0;
-                const d = new Date(); d.setDate(d.getDate() - 30);
-                const { count: active } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true }).gt('last_activity', d.toISOString());
-                this.stats.activeUsersCount = active || 0;
-                const { data: pointsData } = await this.supabase.from('profiles').select('points').limit(1000);
-                this.stats.totalPoints = pointsData?.reduce((acc, curr) => acc + (curr.points || 0), 0) || 0;
-            },
+                    const { count: total } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true });
+                    this.stats.totalCustomers = total || 0;
+                    const { count: vip } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true }).contains('tags', ['vip']);
+                    this.stats.vipCount = vip || 0;
+                    const d = new Date(); d.setDate(d.getDate() - 30);
+                    const { count: active } = await this.supabase.from('profiles').select('*', { count: 'exact', head: true }).gt('last_activity', d.toISOString());
+                    this.stats.activeUsersCount = active || 0;
+                    const { data: pointsData } = await this.supabase.from('profiles').select('points').limit(1000);
+                    this.stats.totalPoints = pointsData?.reduce((acc, curr) => acc + (curr.points || 0), 0) || 0;
+                },
 
 
                 async fetchUniqueTags() {
 
-                const { data } = await this.supabase.from('profiles').select('tags').limit(1000);
-                if (data) {
-                    const allTags = data.flatMap(c => c.tags || []);
-                    this.uniqueTags = [...new Set(allTags)];
-                }
-            },
+                    const { data } = await this.supabase.from('profiles').select('tags').limit(1000);
+                    if (data) {
+                        const allTags = data.flatMap(c => c.tags || []);
+                        this.uniqueTags = [...new Set(allTags)];
+                    }
+                },
 
 
 
                 async fetchSegments() { const { data } = await this.supabase.from('customer_segments').select('*'); if (data) this.segments = data; },
                 async createSegment() {
-                if (!this.segmentForm.name) return showAlert("Alert", "ใส่ชื่อกลุ่มด้วยครับ", "warning");
-                const conditions = {};
-                if (this.segmentForm.min_days_joined) conditions.min_days_joined = this.segmentForm.min_days_joined;
-                if (this.segmentForm.max_points !== null && this.segmentForm.max_points !== "") conditions.max_points = this.segmentForm.max_points;
-                if (this.segmentForm.inactive_days) conditions.inactive_days = this.segmentForm.inactive_days;
-                const { error } = await this.supabase.from('customer_segments').insert({ name: this.segmentForm.name, conditions: conditions });
-                if (!error) { showAlert("Success", "สร้างกลุ่มเป้าหมายแล้ว"); this.fetchSegments(); } else { showAlert("Error", error.message, "error"); }
-            },
+                    if (!this.segmentForm.name) return showAlert("Alert", "ใส่ชื่อกลุ่มด้วยครับ", "warning");
+                    const conditions = {};
+                    if (this.segmentForm.min_days_joined) conditions.min_days_joined = this.segmentForm.min_days_joined;
+                    if (this.segmentForm.max_points !== null && this.segmentForm.max_points !== "") conditions.max_points = this.segmentForm.max_points;
+                    if (this.segmentForm.inactive_days) conditions.inactive_days = this.segmentForm.inactive_days;
+                    const { error } = await this.supabase.from('customer_segments').insert({ name: this.segmentForm.name, conditions: conditions });
+                    if (!error) { showAlert("Success", "สร้างกลุ่มเป้าหมายแล้ว"); this.fetchSegments(); } else { showAlert("Error", error.message, "error"); }
+                },
                 async deleteSegment(id) {
-                if (!confirm("Delete?")) return;
-                await this.supabase.from('customer_segments').delete().eq('id', id);
-                this.fetchSegments();
-            },
+                    if (!confirm("Delete?")) return;
+                    await this.supabase.from('customer_segments').delete().eq('id', id);
+                    this.fetchSegments();
+                },
 
                 async previewSegmentCount() {
-                this.segmentPreview.loading = true;
-                this.segmentPreview.count = null;
-                try {
-                    let query = this.supabase.from('profiles').select('*', { count: 'exact', head: true });
-                    if (this.segmentForm.min_days_joined) {
-                        const joinedDate = new Date();
-                        joinedDate.setDate(joinedDate.getDate() - this.segmentForm.min_days_joined);
-                        query = query.lte('created_at', joinedDate.toISOString());
-                    }
-                    if (this.segmentForm.max_points !== null && this.segmentForm.max_points !== "") {
-                        query = query.lt('points', this.segmentForm.max_points);
-                    }
-                    if (this.segmentForm.inactive_days) {
-                        const inactiveDate = new Date();
-                        inactiveDate.setDate(inactiveDate.getDate() - this.segmentForm.inactive_days);
-                        query = query.lt('last_activity', inactiveDate.toISOString());
-                    }
-                    const { count } = await query;
-                    this.segmentPreview.count = count ?? 0;
-                } catch (e) {
-                    showAlert("Error", e.message, "error");
-                } finally {
-                    this.segmentPreview.loading = false;
-                }
-            },
-
-
-                async sendBroadcast() {
-                if (this.msgType === 'text' && !this.messageText) return showAlert("Alert", "ใส่ข้อความก่อน", "warning");
-                if (this.msgType === 'image' && !this.broadcastImageUrl) return showAlert("Alert", "กรุณาใส่รูปภาพ", "warning");
-                if (this.msgType === 'flex') {
-                    try { JSON.parse(this.broadcastFlexJson || '{}'); } catch (e) { return showAlert("Error", "Flex JSON ไม่ถูกต้อง", "error"); }
-                }
-
-                const scheduleDate = this.scheduledAt ? new Date(this.scheduledAt) : null;
-                const isFuture = scheduleDate && scheduleDate > new Date();
-                this.sending = true;
-
-                if (isFuture) {
+                    this.segmentPreview.loading = true;
+                    this.segmentPreview.count = null;
                     try {
-                        await this.supabase.from('broadcast_queue').insert({
-                            target: this.broadcastTarget,
-                            msg_type: this.msgType,
-                            message: this.messageText,
-                            image_url: this.broadcastImageUrl,
-                            flex_json: this.broadcastFlexJson,
-                            scheduled_at: scheduleDate.toISOString(),
-                            status: 'scheduled'
-                        });
-                        this.logAudit('broadcast_scheduled', { target: this.broadcastTarget, msgType: this.msgType, scheduled_at: scheduleDate.toISOString() });
-                        showAlert("สำเร็จ", "จัดคิวส่งแล้ว");
-                        this.fetchScheduledBroadcasts();
-                        this.messageText = '';
-                        this.broadcastImageUrl = '';
-                        this.broadcastFlexJson = '';
-                        this.scheduledAt = '';
+                        let query = this.supabase.from('profiles').select('*', { count: 'exact', head: true });
+                        if (this.segmentForm.min_days_joined) {
+                            const joinedDate = new Date();
+                            joinedDate.setDate(joinedDate.getDate() - this.segmentForm.min_days_joined);
+                            query = query.lte('created_at', joinedDate.toISOString());
+                        }
+                        if (this.segmentForm.max_points !== null && this.segmentForm.max_points !== "") {
+                            query = query.lt('points', this.segmentForm.max_points);
+                        }
+                        if (this.segmentForm.inactive_days) {
+                            const inactiveDate = new Date();
+                            inactiveDate.setDate(inactiveDate.getDate() - this.segmentForm.inactive_days);
+                            query = query.lt('last_activity', inactiveDate.toISOString());
+                        }
+                        const { count } = await query;
+                        this.segmentPreview.count = count ?? 0;
                     } catch (e) {
                         showAlert("Error", e.message, "error");
                     } finally {
-                        this.sending = false;
+                        this.segmentPreview.loading = false;
                     }
-                    return;
-                }
+                },
 
-                const { data, error } = await this.supabase.functions.invoke('crm-core', {
-                    body: { action: 'broadcast', target: this.broadcastTarget, msgType: this.msgType, message: this.messageText, flexJson: this.broadcastFlexJson, imageUrl: this.broadcastImageUrl }
-                });
-                this.sending = false;
-                if (!error) {
-                    this.logAudit('broadcast_sent', { target: this.broadcastTarget, msgType: this.msgType });
-                    showAlert("สำเร็จ", "ส่งข้อความแล้ว: " + (data.message || 'OK'));
-                    if (this.msgType === 'text') this.messageText = '';
-                }
-                else { showAlert("Error", error.message, "error"); }
-            },
+
+                async sendBroadcast() {
+                    if (this.msgType === 'text' && !this.messageText) return showAlert("Alert", "ใส่ข้อความก่อน", "warning");
+                    if (this.msgType === 'image' && !this.broadcastImageUrl) return showAlert("Alert", "กรุณาใส่รูปภาพ", "warning");
+                    if (this.msgType === 'flex') {
+                        try { JSON.parse(this.broadcastFlexJson || '{}'); } catch (e) { return showAlert("Error", "Flex JSON ไม่ถูกต้อง", "error"); }
+                    }
+
+                    const scheduleDate = this.scheduledAt ? new Date(this.scheduledAt) : null;
+                    const isFuture = scheduleDate && scheduleDate > new Date();
+                    this.sending = true;
+
+                    if (isFuture) {
+                        try {
+                            await this.supabase.from('broadcast_queue').insert({
+                                target: this.broadcastTarget,
+                                msg_type: this.msgType,
+                                message: this.messageText,
+                                image_url: this.broadcastImageUrl,
+                                flex_json: this.broadcastFlexJson,
+                                scheduled_at: scheduleDate.toISOString(),
+                                status: 'scheduled'
+                            });
+                            this.logAudit('broadcast_scheduled', { target: this.broadcastTarget, msgType: this.msgType, scheduled_at: scheduleDate.toISOString() });
+                            showAlert("สำเร็จ", "จัดคิวส่งแล้ว");
+                            this.fetchScheduledBroadcasts();
+                            this.messageText = '';
+                            this.broadcastImageUrl = '';
+                            this.broadcastFlexJson = '';
+                            this.scheduledAt = '';
+                        } catch (e) {
+                            showAlert("Error", e.message, "error");
+                        } finally {
+                            this.sending = false;
+                        }
+                        return;
+                    }
+
+                    const { data, error } = await this.supabase.functions.invoke('crm-core', {
+                        body: { action: 'broadcast', target: this.broadcastTarget, msgType: this.msgType, message: this.messageText, flexJson: this.broadcastFlexJson, imageUrl: this.broadcastImageUrl }
+                    });
+                    this.sending = false;
+                    if (!error) {
+                        this.logAudit('broadcast_sent', { target: this.broadcastTarget, msgType: this.msgType });
+                        showAlert("สำเร็จ", "ส่งข้อความแล้ว: " + (data.message || 'OK'));
+                        if (this.msgType === 'text') this.messageText = '';
+                    }
+                    else { showAlert("Error", error.message, "error"); }
+                },
 
 
                 async fetchTiers() { const { data } = await this.supabase.from('tiers').select('*').order('min_points', { ascending: false }); if (data && data.length > 0) this.tiers = data; else this.tiers = [{ name: 'Member', min_points: 0, color_theme: 'card-member' }]; },
-            calculateTier(points) {
-                if (!points) points = 0;
-                const sorted = [...this.tiers].sort((a, b) => b.min_points - a.min_points);
-                for (const t of sorted) { if (points >= t.min_points) return t; }
-                return { name: 'Member', color_theme: 'card-member' };
-            },
-            getTierHexColor(themeClass) { const map = { 'card-member': '#1e293b', 'card-silver': '#94a3b8', 'card-gold': '#D97706', 'card-platinum': '#334155', 'card-black': '#000000', 'card-red': '#b91c1c' }; return map[themeClass] || '#06C755'; },
+                calculateTier(points) {
+                    if (!points) points = 0;
+                    const sorted = [...this.tiers].sort((a, b) => b.min_points - a.min_points);
+                    for (const t of sorted) { if (points >= t.min_points) return t; }
+                    return { name: 'Member', color_theme: 'card-member' };
+                },
+                getTierHexColor(themeClass) { const map = { 'card-member': '#1e293b', 'card-silver': '#94a3b8', 'card-gold': '#D97706', 'card-platinum': '#334155', 'card-black': '#000000', 'card-red': '#b91c1c' }; return map[themeClass] || '#06C755'; },
 
-            async fetchScheduledBroadcasts() {
-                try {
-                    const { data } = await this.supabase.from('broadcast_queue').select('*').gte('scheduled_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()).order('scheduled_at', { ascending: true }).limit(20);
-                    this.scheduledQueue = data || [];
-                } catch (e) { console.warn('fetchScheduledBroadcasts error', e.message); }
-            },
+                async fetchScheduledBroadcasts() {
+                    try {
+                        const { data } = await this.supabase.from('broadcast_queue').select('*').gte('scheduled_at', new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()).order('scheduled_at', { ascending: true }).limit(20);
+                        this.scheduledQueue = data || [];
+                    } catch (e) { console.warn('fetchScheduledBroadcasts error', e.message); }
+                },
 
 
                 async fetchAuditLogs() {
-                try {
-                    const { data } = await this.supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
-                    this.auditLogs = data || [];
-                } catch (e) { console.warn('fetchAuditLogs error', e.message); }
-            },
+                    try {
+                        const { data } = await this.supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
+                        this.auditLogs = data || [];
+                    } catch (e) { console.warn('fetchAuditLogs error', e.message); }
+                },
 
                 async logAudit(action, detail = {}) {
-                try {
-                    await this.supabase.from('audit_logs').insert({ action, detail, actor: this.userProfile?.userId || null, actor_name: this.userProfile?.displayName || null, created_at: new Date().toISOString() });
-                    this.fetchAuditLogs();
-                } catch (e) { console.warn('logAudit error', e.message); }
-            },
+                    try {
+                        await this.supabase.from('audit_logs').insert({ action, detail, actor: this.userProfile?.userId || null, actor_name: this.userProfile?.displayName || null, created_at: new Date().toISOString() });
+                        this.fetchAuditLogs();
+                    } catch (e) { console.warn('logAudit error', e.message); }
+                },
 
                 async logPointsHistory(profileId, beforePoints, afterPoints, reason = 'admin_adjust') {
-                try {
-                    await this.supabase.from('points_history').insert({ profile_id: profileId, before_points: beforePoints, after_points: afterPoints, reason, actor: this.userProfile?.userId || null, created_at: new Date().toISOString() });
-                } catch (e) { console.warn('logPointsHistory error', e.message); }
-            },
+                    try {
+                        await this.supabase.from('points_history').insert({ profile_id: profileId, before_points: beforePoints, after_points: afterPoints, reason, actor: this.userProfile?.userId || null, created_at: new Date().toISOString() });
+                    } catch (e) { console.warn('logPointsHistory error', e.message); }
+                },
 
                 async undoLastPointChange(customer) {
-                const last = this.lastPointChange[customer.id];
-                if (!last) return showAlert("แจ้งเตือน", "ไม่มีข้อมูลย้อนแต้ม", "warning");
-                try {
-                    this.loading = true;
-                    await this.supabase.from('profiles').update({ points: last.before }).eq('id', customer.id);
-                    await this.logPointsHistory(customer.id, last.after, last.before, 'undo_admin_adjust');
-                    await this.logAudit('points_undo', { id: customer.id, before: last.after, after: last.before });
-                    this.lastPointChange[customer.id] = { before: last.before, after: last.before };
-                    await this.fetchCustomers();
-                    showAlert("สำเร็จ", "ย้อนแต้มเรียบร้อย");
-                } catch (e) {
-                    showAlert("Error", e.message, "error");
-                } finally {
-                    this.loading = false;
-                }
-            },
+                    const last = this.lastPointChange[customer.id];
+                    if (!last) return showAlert("แจ้งเตือน", "ไม่มีข้อมูลย้อนแต้ม", "warning");
+                    try {
+                        this.loading = true;
+                        await this.supabase.from('profiles').update({ points: last.before }).eq('id', customer.id);
+                        await this.logPointsHistory(customer.id, last.after, last.before, 'undo_admin_adjust');
+                        await this.logAudit('points_undo', { id: customer.id, before: last.after, after: last.before });
+                        this.lastPointChange[customer.id] = { before: last.before, after: last.before };
+                        await this.fetchCustomers();
+                        showAlert("สำเร็จ", "ย้อนแต้มเรียบร้อย");
+                    } catch (e) {
+                        showAlert("Error", e.message, "error");
+                    } finally {
+                        this.loading = false;
+                    }
+                },
 
 
                 async fetchNews() { const { data } = await this.supabase.from('news_promotions').select('*').order('created_at', { ascending: false }); if (data) { this.newsList = data; this.fetchNewsMetrics(); } },
                 async createNews() {
-                if (!this.newsForm.title) return showAlert("แจ้งเตือน", "กรุณาใส่หัวข้อข่าว", "warning");
-                this.loading = true;
-                const { error } = await this.supabase.from('news_promotions').insert(this.newsForm);
-                this.loading = false;
-                if (!error) { showAlert("สำเร็จ", "โพสต์ข่าวเรียบร้อย"); this.newsForm = { title: '', description: '', image_url: '', link_url: '', link_text: '' }; this.fetchNews(); }
-                else { showAlert("ข้อผิดพลาด", error.message, "error"); }
-            },
+                    if (!this.newsForm.title) return showAlert("แจ้งเตือน", "กรุณาใส่หัวข้อข่าว", "warning");
+                    this.loading = true;
+                    const { error } = await this.supabase.from('news_promotions').insert(this.newsForm);
+                    this.loading = false;
+                    if (!error) { showAlert("สำเร็จ", "โพสต์ข่าวเรียบร้อย"); this.newsForm = { title: '', description: '', image_url: '', link_url: '', link_text: '' }; this.fetchNews(); }
+                    else { showAlert("ข้อผิดพลาด", error.message, "error"); }
+                },
                 async deleteNews(id) {
-                const result = await Swal.fire({ title: "ยืนยันลบ?", icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก' });
-                if (!result.isConfirmed) return;
-                const { error } = await this.supabase.from('news_promotions').delete().eq('id', id);
-                if (!error) this.fetchNews();
-            },
+                    const result = await Swal.fire({ title: "ยืนยันลบ?", icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก' });
+                    if (!result.isConfirmed) return;
+                    const { error } = await this.supabase.from('news_promotions').delete().eq('id', id);
+                    if (!error) this.fetchNews();
+                },
 
                 async fetchNewsMetrics() {
-                try {
-                    const { data } = await this.supabase.from('news_metrics').select('news_id,event').limit(2000);
-                    const map = {};
-                    (data || []).forEach(row => {
-                        if (!map[row.news_id]) map[row.news_id] = { views: 0, clicks: 0 };
-                        if (row.event === 'view') map[row.news_id].views += 1;
-                        if (row.event === 'click') map[row.news_id].clicks += 1;
-                    });
-                    this.newsMetrics = map;
-                } catch (e) { console.warn('fetchNewsMetrics error', e.message); }
-            },
+                    try {
+                        const { data } = await this.supabase.from('news_metrics').select('news_id,event').limit(2000);
+                        const map = {};
+                        (data || []).forEach(row => {
+                            if (!map[row.news_id]) map[row.news_id] = { views: 0, clicks: 0 };
+                            if (row.event === 'view') map[row.news_id].views += 1;
+                            if (row.event === 'click') map[row.news_id].clicks += 1;
+                        });
+                        this.newsMetrics = map;
+                    } catch (e) { console.warn('fetchNewsMetrics error', e.message); }
+                },
 
                 async recordNewsMetric(news, event) {
-                try {
-                    if (!news || !news.id) return;
-                    await this.supabase.from('news_metrics').insert({ news_id: news.id, event, created_at: new Date().toISOString() });
-                    if (!this.newsMetrics[news.id]) this.newsMetrics[news.id] = { views: 0, clicks: 0 };
-                    if (event === 'view') this.newsMetrics[news.id].views += 1;
-                    if (event === 'click') this.newsMetrics[news.id].clicks += 1;
-                } catch (e) { console.warn('recordNewsMetric error', e.message); }
-            },
+                    try {
+                        if (!news || !news.id) return;
+                        await this.supabase.from('news_metrics').insert({ news_id: news.id, event, created_at: new Date().toISOString() });
+                        if (!this.newsMetrics[news.id]) this.newsMetrics[news.id] = { views: 0, clicks: 0 };
+                        if (event === 'view') this.newsMetrics[news.id].views += 1;
+                        if (event === 'click') this.newsMetrics[news.id].clicks += 1;
+                    } catch (e) { console.warn('recordNewsMetric error', e.message); }
+                },
 
 
-            addTier() { this.tiers.unshift({ id: 'new_' + Date.now(), name: 'New Tier', min_points: 0, color_theme: 'card-member' }); },
+                addTier() { this.tiers.unshift({ id: 'new_' + Date.now(), name: 'New Tier', min_points: 0, color_theme: 'card-member' }); },
                 async removeTier(index, id) { if (!confirm("ลบ?")) return; this.tiers.splice(index, 1); if (!id.toString().startsWith('new_')) await this.supabase.from('tiers').delete().eq('id', id); },
                 async saveTiers() {
-                this.loading = true;
-                const newTiers = this.tiers.filter(t => t.id.toString().startsWith('new_')).map(t => ({ name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
-                const existingTiers = this.tiers.filter(t => !t.id.toString().startsWith('new_')).map(t => ({ id: t.id, name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
-                try { if (newTiers.length > 0) await this.supabase.from('tiers').insert(newTiers); if (existingTiers.length > 0) await this.supabase.from('tiers').upsert(existingTiers); await this.fetchTiers(); showAlert("สำเร็จ", "บันทึกเรียบร้อย"); } catch (e) { showAlert("Error", e.message, "error"); } finally { this.loading = false; }
-            },
-            editCustomer(c) { this.editingCustomer = { ...c, points: c.points || 0, _originalPoints: c.points || 0 }; this.editingTagsInput = (c.tags || []).join(', '); },
-            adjustPoints(amount) { if (this.editingCustomer) { this.editingCustomer.points = (this.editingCustomer.points || 0) + amount; if (this.editingCustomer.points < 0) this.editingCustomer.points = 0; } },
+                    this.loading = true;
+                    const newTiers = this.tiers.filter(t => t.id.toString().startsWith('new_')).map(t => ({ name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
+                    const existingTiers = this.tiers.filter(t => !t.id.toString().startsWith('new_')).map(t => ({ id: t.id, name: t.name, min_points: t.min_points, color_theme: t.color_theme }));
+                    try { if (newTiers.length > 0) await this.supabase.from('tiers').insert(newTiers); if (existingTiers.length > 0) await this.supabase.from('tiers').upsert(existingTiers); await this.fetchTiers(); showAlert("สำเร็จ", "บันทึกเรียบร้อย"); } catch (e) { showAlert("Error", e.message, "error"); } finally { this.loading = false; }
+                },
+                editCustomer(c) { this.editingCustomer = { ...c, points: c.points || 0, _originalPoints: c.points || 0 }; this.editingTagsInput = (c.tags || []).join(', '); },
+                adjustPoints(amount) { if (this.editingCustomer) { this.editingCustomer.points = (this.editingCustomer.points || 0) + amount; if (this.editingCustomer.points < 0) this.editingCustomer.points = 0; } },
                 async saveCustomer() {
-                if (!this.editingCustomer) return;
-                this.loading = true;
-                const prevPoints = this.editingCustomer._originalPoints ?? this.editingCustomer.points;
-                const tags = this.editingTagsInput.split(',').map(t => t.trim()).filter(t => t);
-                const updates = { display_name: this.editingCustomer.display_name, phone: this.editingCustomer.phone, email: this.editingCustomer.email, points: this.editingCustomer.points, tags: tags };
-                const { error } = await this.supabase.from('profiles').update(updates).eq('id', this.editingCustomer.id);
-                this.loading = false;
-                if (!error) {
-                    this.lastPointChange[this.editingCustomer.id] = { before: prevPoints, after: this.editingCustomer.points };
-                    this.logPointsHistory(this.editingCustomer.id, prevPoints, this.editingCustomer.points, 'admin_adjust');
-                    this.logAudit('customer_update', { id: this.editingCustomer.id, display_name: this.editingCustomer.display_name, before: prevPoints, after: this.editingCustomer.points });
-                    showAlert("สำเร็จ", "บันทึกข้อมูลเรียบร้อย");
-                    this.fetchCustomers();
-                    this.editingCustomer = null;
-                } else { showAlert("เกิดข้อผิดพลาด", error.message, "error"); }
-            },
+                    if (!this.editingCustomer) return;
+                    this.loading = true;
+                    const prevPoints = this.editingCustomer._originalPoints ?? this.editingCustomer.points;
+                    const tags = this.editingTagsInput.split(',').map(t => t.trim()).filter(t => t);
+                    const updates = { display_name: this.editingCustomer.display_name, phone: this.editingCustomer.phone, email: this.editingCustomer.email, points: this.editingCustomer.points, tags: tags };
+                    const { error } = await this.supabase.from('profiles').update(updates).eq('id', this.editingCustomer.id);
+                    this.loading = false;
+                    if (!error) {
+                        this.lastPointChange[this.editingCustomer.id] = { before: prevPoints, after: this.editingCustomer.points };
+                        this.logPointsHistory(this.editingCustomer.id, prevPoints, this.editingCustomer.points, 'admin_adjust');
+                        this.logAudit('customer_update', { id: this.editingCustomer.id, display_name: this.editingCustomer.display_name, before: prevPoints, after: this.editingCustomer.points });
+                        showAlert("สำเร็จ", "บันทึกข้อมูลเรียบร้อย");
+                        this.fetchCustomers();
+                        this.editingCustomer = null;
+                    } else { showAlert("เกิดข้อผิดพลาด", error.message, "error"); }
+                },
 
 
-            openMemberEdit() { if (!this.memberData) return; this.memberEditForm = { phone: this.memberData.phone || '', email: this.memberData.email || '' }; this.memberEditing = true; },
-            onPhoneInput(e) { let value = e.target.value.replace(/\D/g, ''); if (value.length > 10) value = value.slice(0, 10); this.memberEditForm.phone = value; e.target.value = value; },
+                openMemberEdit() { if (!this.memberData) return; this.memberEditForm = { phone: this.memberData.phone || '', email: this.memberData.email || '' }; this.memberEditing = true; },
+                onPhoneInput(e) { let value = e.target.value.replace(/\D/g, ''); if (value.length > 10) value = value.slice(0, 10); this.memberEditForm.phone = value; e.target.value = value; },
                 async saveMemberProfile() {
-                if (this.memberEditForm.phone && this.memberEditForm.phone.length !== 10) return showAlert("ข้อมูลไม่ถูกต้อง", "กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก", "warning");
-                this.loading = true;
-                const { error } = await this.supabase.from('profiles').update({ phone: this.memberEditForm.phone, email: this.memberEditForm.email }).eq('line_user_id', this.userProfile.userId);
-                this.loading = false;
-                if (!error) { showAlert("สำเร็จ", "บันทึกข้อมูลเรียบร้อย"); this.memberData.phone = this.memberEditForm.phone; this.memberData.email = this.memberEditForm.email; this.memberEditing = false; } else { showAlert("ข้อผิดพลาด", error.message, "error"); }
-            },
-            openNewsDetail(news) { this.selectedNews = news; this.recordNewsMetric(news, 'view'); },
-            openChatWindow() { window.location.href = "https://line.me/R/oaMessage/@505vsxhr/?ติดต่อเรา"; },
+                    if (this.memberEditForm.phone && this.memberEditForm.phone.length !== 10) return showAlert("ข้อมูลไม่ถูกต้อง", "กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก", "warning");
+                    this.loading = true;
+                    const { error } = await this.supabase.from('profiles').update({ phone: this.memberEditForm.phone, email: this.memberEditForm.email }).eq('line_user_id', this.userProfile.userId);
+                    this.loading = false;
+                    if (!error) { showAlert("สำเร็จ", "บันทึกข้อมูลเรียบร้อย"); this.memberData.phone = this.memberEditForm.phone; this.memberData.email = this.memberEditForm.email; this.memberEditing = false; } else { showAlert("ข้อผิดพลาด", error.message, "error"); }
+                },
+                openNewsDetail(news) { this.selectedNews = news; this.recordNewsMetric(news, 'view'); },
+                openChatWindow() { window.location.href = "https://line.me/R/oaMessage/@505vsxhr/?ติดต่อเรา"; },
                 async shareMyTier() {
-                if (!liff.isApiAvailable('shareTargetPicker')) return showAlert("แจ้งเตือน", "อุปกรณ์ไม่รองรับการแชร์", "warning");
-                const tierName = this.currentTierObj.name; const points = (this.memberData?.points || 0).toLocaleString(); const tierColor = this.getTierHexColor(this.currentTierObj.color_theme);
-                const flexMessage = { type: "flex", altText: `บัตรสมาชิก: ${tierName}`, contents: { "type": "bubble", "size": "mega", "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "MEMBER CARD", "color": "#ffffff", "weight": "bold", "size": "xs", "align": "center" }], "backgroundColor": tierColor, "paddingAll": "10px" }, "body": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": tierName, "weight": "bold", "size": "3xl", "color": tierColor, "align": "center", "margin": "md" }, { "type": "text", "text": `${points} Points`, "size": "md", "color": "#888888", "align": "center" }], "paddingAll": "20px" }, "footer": { "type": "box", "layout": "vertical", "contents": [{ "type": "button", "action": { "type": "uri", "label": "ดูบัตรสมาชิก", "uri": "https://liff.line.me/" + LIFF_ID }, "style": "primary", "color": tierColor }] } } };
-                try { await liff.shareTargetPicker([flexMessage]); } catch (e) { showAlert("Error", "แชร์ไม่ได้", "error"); }
-            },
+                    if (!liff.isApiAvailable('shareTargetPicker')) return showAlert("แจ้งเตือน", "อุปกรณ์ไม่รองรับการแชร์", "warning");
+                    const tierName = this.currentTierObj.name; const points = (this.memberData?.points || 0).toLocaleString(); const tierColor = this.getTierHexColor(this.currentTierObj.color_theme);
+                    const flexMessage = { type: "flex", altText: `บัตรสมาชิก: ${tierName}`, contents: { "type": "bubble", "size": "mega", "header": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": "MEMBER CARD", "color": "#ffffff", "weight": "bold", "size": "xs", "align": "center" }], "backgroundColor": tierColor, "paddingAll": "10px" }, "body": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": tierName, "weight": "bold", "size": "3xl", "color": tierColor, "align": "center", "margin": "md" }, { "type": "text", "text": `${points} Points`, "size": "md", "color": "#888888", "align": "center" }], "paddingAll": "20px" }, "footer": { "type": "box", "layout": "vertical", "contents": [{ "type": "button", "action": { "type": "uri", "label": "ดูบัตรสมาชิก", "uri": "https://liff.line.me/" + LIFF_ID }, "style": "primary", "color": tierColor }] } } };
+                    try { await liff.shareTargetPicker([flexMessage]); } catch (e) { showAlert("Error", "แชร์ไม่ได้", "error"); }
+                },
                 async shareNews(news) {
-                if (!liff.isApiAvailable('shareTargetPicker')) return showAlert("แจ้งเตือน", "อุปกรณ์ไม่รองรับการแชร์", "warning");
-                const flexMessage = { type: "flex", altText: news.title, contents: { "type": "bubble", "hero": { "type": "image", "url": news.image_url || 'https://via.placeholder.com/600x400', "size": "full", "aspectRatio": "20:13", "aspectMode": "cover" }, "body": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": news.title, "weight": "bold", "size": "xl", "wrap": true }, { "type": "text", "text": news.description || '', "size": "sm", "color": "#666666", "wrap": true, "margin": "md", "maxLines": 3 }] }, "footer": { "type": "box", "layout": "vertical", "contents": [{ "type": "button", "action": { "type": "uri", "label": news.link_text || "ดูรายละเอียด", "uri": news.link_url || ("https://liff.line.me/" + LIFF_ID) }, "style": "primary", "color": "#06C755" }] } } };
-                try { await liff.shareTargetPicker([flexMessage]); this.recordNewsMetric(news, 'click'); } catch (e) { showAlert("Error", "แชร์ไม่ได้", "error"); }
+                    if (!liff.isApiAvailable('shareTargetPicker')) return showAlert("แจ้งเตือน", "อุปกรณ์ไม่รองรับการแชร์", "warning");
+                    const flexMessage = { type: "flex", altText: news.title, contents: { "type": "bubble", "hero": { "type": "image", "url": news.image_url || 'https://via.placeholder.com/600x400', "size": "full", "aspectRatio": "20:13", "aspectMode": "cover" }, "body": { "type": "box", "layout": "vertical", "contents": [{ "type": "text", "text": news.title, "weight": "bold", "size": "xl", "wrap": true }, { "type": "text", "text": news.description || '', "size": "sm", "color": "#666666", "wrap": true, "margin": "md", "maxLines": 3 }] }, "footer": { "type": "box", "layout": "vertical", "contents": [{ "type": "button", "action": { "type": "uri", "label": news.link_text || "ดูรายละเอียด", "uri": news.link_url || ("https://liff.line.me/" + LIFF_ID) }, "style": "primary", "color": "#06C755" }] } } };
+                    try { await liff.shareTargetPicker([flexMessage]); this.recordNewsMetric(news, 'click'); } catch (e) { showAlert("Error", "แชร์ไม่ได้", "error"); }
+                }
             }
-        }
         }).mount('#app');
     </script>
 </body>
