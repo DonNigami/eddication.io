@@ -741,11 +741,46 @@
                     })
 
                     if (result.isConfirmed) {
-                        // TODO: Update submission status in database
-                        // TODO: Send LINE notification to customer
-                        Swal.fire('สำเร็จ!', 'อนุมัติการสมัครสมาชิกแล้ว', 'success')
-                        // Remove from pending list
-                        this.pendingSubmissions = this.pendingSubmissions.filter(s => s.id !== submission.id)
+                        try {
+                            // Update submission status to approved
+                            const { error: updateError } = await this.supabase
+                                .from('subscription_requests')
+                                .update({ status: 'approved' })
+                                .eq('id', submission.id)
+
+                            if (updateError) throw updateError
+
+                            // Create subscription record
+                            const startDate = new Date()
+                            const endDate = new Date()
+                            endDate.setMonth(endDate.getMonth() + submission.duration_months)
+
+                            const { error: insertError } = await this.supabase
+                                .from('subscriptions')
+                                .insert([{
+                                    customer_name: submission.customer_name,
+                                    customer_phone: submission.customer_phone,
+                                    package_name: submission.package_name,
+                                    status: 'active',
+                                    payment_status: 'paid',
+                                    start_date: startDate.toISOString().split('T')[0],
+                                    end_date: endDate.toISOString().split('T')[0],
+                                    paid_amount: submission.total_price
+                                }])
+
+                            if (insertError) throw insertError
+
+                            // TODO: Send LINE notification to customer
+
+                            Swal.fire('สำเร็จ!', 'อนุมัติการสมัครสมาชิกแล้ว', 'success')
+
+                            // Reload data
+                            await this.loadPendingSubmissions()
+                            await this.loadSubscriptions()
+                        } catch (err) {
+                            console.error('Error approving submission:', err)
+                            Swal.fire('Error', 'ไม่สามารถอนุมัติได้: ' + err.message, 'error')
+                        }
                     }
                 },
                 async rejectSubmission(submission) {
@@ -763,10 +798,25 @@
                     })
 
                     if (reason) {
-                        // TODO: Update submission status and reason in database
-                        // TODO: Send LINE notification to customer with reason
-                        Swal.fire('ปฏิเสธสำเร็จ', 'ส่งข้อความปฏิเสธไปยังลูกค้าแล้ว', 'success')
-                        this.pendingSubmissions = this.pendingSubmissions.filter(s => s.id !== submission.id)
+                        try {
+                            // Update submission status to rejected
+                            const { error } = await this.supabase
+                                .from('subscription_requests')
+                                .update({ status: 'rejected' })
+                                .eq('id', submission.id)
+
+                            if (error) throw error
+
+                            // TODO: Send LINE notification to customer with reason
+
+                            Swal.fire('ปฏิเสธสำเร็จ', 'ส่งข้อความปฏิเสธไปยังลูกค้าแล้ว', 'success')
+
+                            // Reload data
+                            await this.loadPendingSubmissions()
+                        } catch (err) {
+                            console.error('Error rejecting submission:', err)
+                            Swal.fire('Error', 'ไม่สามารถปฏิเสธได้: ' + err.message, 'error')
+                        }
                     }
                 },
                 async viewDetails(submission) {
