@@ -118,8 +118,8 @@ function randomSleep(delayConfig) {
   function checkIfUploadPage() {
     const url = window.location.href;
     return url.includes('/creator') ||
-           url.includes('/upload') ||
-           url.includes('studio.tiktok.com');
+      url.includes('/upload') ||
+      url.includes('studio.tiktok.com');
   }
 
   // Find the upload input element on TikTok
@@ -269,8 +269,8 @@ function randomSleep(delayConfig) {
     try {
       // Find the contenteditable parent for DraftJS
       const contentEditable = editorElement.closest('[contenteditable="true"]') ||
-                              editorElement.querySelector('[contenteditable="true"]') ||
-                              editorElement;
+        editorElement.querySelector('[contenteditable="true"]') ||
+        editorElement;
 
       console.log('[TikTok Unlocked] Using contentEditable:', contentEditable);
 
@@ -382,43 +382,49 @@ function randomSleep(delayConfig) {
       // Try multiple ways to find "Showcase products" tab
       let showcaseTab = null;
 
-      // Method 1: Find second tab in TUXTabBar (Showcase products is 2nd tab)
-      const tabBar = document.querySelector('.TUXTabBar-list');
-      if (tabBar) {
-        const tabs = tabBar.querySelectorAll('.TUXTab');
-        if (tabs.length >= 2) {
-          showcaseTab = tabs[1]; // Second tab is "Showcase products"
-          console.log('[TikTok Unlocked] Found Showcase tab via TUXTabBar (2nd tab)');
+      // Method 1: Find by text content in TUXTab (most reliable)
+      const allTabs = document.querySelectorAll('.TUXTab');
+      for (const tab of allTabs) {
+        const tabText = tab.textContent.trim();
+        console.log(`[TikTok Unlocked] Checking tab: "${tabText}"`);
+        if (tabText.includes('Showcase') || tabText.includes('showcase')) {
+          showcaseTab = tab;
+          console.log('[TikTok Unlocked] ✅ Found Showcase tab via TUXTab text match');
+          break;
         }
       }
 
-      // Method 2: Find by class TUXTab and text content
+      // Method 2: Find second tab in TUXTabBar (backup method)
       if (!showcaseTab) {
-        const allTabs = document.querySelectorAll('.TUXTab');
-        for (const tab of allTabs) {
-          if (tab.textContent.includes('Showcase')) {
-            showcaseTab = tab;
-            console.log('[TikTok Unlocked] Found Showcase tab via TUXTab text');
-            break;
+        const tabBar = document.querySelector('.TUXTabBar-list');
+        if (tabBar) {
+          const tabs = tabBar.querySelectorAll('.TUXTab');
+          console.log(`[TikTok Unlocked] TUXTabBar has ${tabs.length} tabs`);
+          if (tabs.length >= 2) {
+            showcaseTab = tabs[1]; // Second tab is usually "Showcase products"
+            console.log('[TikTok Unlocked] Found Showcase tab via TUXTabBar (2nd tab)');
           }
         }
       }
 
-      // Method 3: Find in product-search-bar container
+      // Method 3: Find in product-search-bar container with text validation
       if (!showcaseTab) {
         const searchBar = document.querySelector('.product-search-bar, [class*="product-search"]');
         if (searchBar) {
           const tabs = searchBar.querySelectorAll('.TUXTab, [class*="tab"]');
-          if (tabs.length >= 2) {
-            showcaseTab = tabs[1];
-            console.log('[TikTok Unlocked] Found Showcase tab via product-search-bar');
+          for (const tab of tabs) {
+            if (tab.textContent.includes('Showcase') || tab.textContent.includes('showcase')) {
+              showcaseTab = tab;
+              console.log('[TikTok Unlocked] Found Showcase tab via product-search-bar text match');
+              break;
+            }
           }
         }
       }
 
-      // Method 4: XPath to find text "Showcase products"
+      // Method 4: XPath to find text "Showcase products" (most flexible)
       if (!showcaseTab) {
-        const xpath = "//*[contains(text(),'Showcase products')]";
+        const xpath = "//*[contains(translate(text(), 'SHOWCASE', 'showcase'), 'showcase')]";
         const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
         if (result.singleNodeValue) {
           showcaseTab = result.singleNodeValue;
@@ -605,20 +611,20 @@ function randomSleep(delayConfig) {
       for (const row of rows) {
         // Get product data from each column
         const productName = row.querySelector('td:nth-child(1) .product-name')?.textContent?.trim() ||
-                          row.querySelector('td:nth-child(1) span[class*="product-name"]')?.textContent?.trim() ||
-                          row.querySelector('td:nth-child(1)')?.textContent?.trim() || '';
+          row.querySelector('td:nth-child(1) span[class*="product-name"]')?.textContent?.trim() ||
+          row.querySelector('td:nth-child(1)')?.textContent?.trim() || '';
 
         const productId = row.querySelector('td:nth-child(2) div')?.textContent?.trim() ||
-                         row.querySelector('td:nth-child(2)')?.textContent?.trim() || '';
+          row.querySelector('td:nth-child(2)')?.textContent?.trim() || '';
 
         const price = row.querySelector('td:nth-child(3) div')?.textContent?.trim() ||
-                     row.querySelector('td:nth-child(3)')?.textContent?.trim() || '';
+          row.querySelector('td:nth-child(3)')?.textContent?.trim() || '';
 
         const stock = row.querySelector('td:nth-child(4) div')?.textContent?.trim() ||
-                     row.querySelector('td:nth-child(4)')?.textContent?.trim() || '';
+          row.querySelector('td:nth-child(4)')?.textContent?.trim() || '';
 
         const status = row.querySelector('td:nth-child(6) div div')?.textContent?.trim() ||
-                      row.querySelector('td:nth-child(6)')?.textContent?.trim() || '';
+          row.querySelector('td:nth-child(6)')?.textContent?.trim() || '';
 
         // Skip if no product ID or already seen
         if (!productId || seenProductIds.has(productId)) {
@@ -718,12 +724,12 @@ function randomSleep(delayConfig) {
 
           // Get product name
           const productName = row.querySelector('td:nth-child(1) .product-name')?.textContent?.trim() ||
-                            row.querySelector('td:nth-child(1) span[class*="product-name"]')?.textContent?.trim() ||
-                            row.querySelector('.product-name-cell span')?.textContent?.trim() || '';
+            row.querySelector('td:nth-child(1) span[class*="product-name"]')?.textContent?.trim() ||
+            row.querySelector('.product-name-cell span')?.textContent?.trim() || '';
 
           // Get product ID from second column
           const productId = row.querySelector('td:nth-child(2) div')?.textContent?.trim() ||
-                           row.querySelector('td:nth-child(2)')?.textContent?.trim() || '';
+            row.querySelector('td:nth-child(2)')?.textContent?.trim() || '';
 
           // Clean product ID
           const cleanProductId = productId.replace(/\s+/g, '').trim();
@@ -1130,7 +1136,7 @@ function randomSleep(delayConfig) {
               headerText = el.textContent.trim();
               break;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
       }
 
@@ -1138,7 +1144,7 @@ function randomSleep(delayConfig) {
 
       // Try to parse month and year
       const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                          'July', 'August', 'September', 'October', 'November', 'December'];
+        'July', 'August', 'September', 'October', 'November', 'December'];
       let currentMonth = -1;
       let currentYear = -1;
 
