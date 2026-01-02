@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow AI Unlocked</title>
+  <link rel="stylesheet" href="../css/variables.css">
+  <link rel="stylesheet" href="../css/main.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="stylesheet" href="../css/license.css">
+  <link rel="stylesheet" href="../css/tabs.css">
+  <link rel="stylesheet" href="../css/tiktok.css">
+</head>
+<body>
+  <!-- License Overlay -->
+  <div class="license-overlay" id="licenseOverlay">
+    <div class="license-container">
+      <img src="../icons/icon128.png" alt="Flow AI Unlocked" class="license-logo">
+      <h1 class="license-title">Flow AI Unlocked</h1>
+      <p class="license-version">v3.2</p>
+      <div class="license-form">
+        <h3>กรุณากรอก License Key</h3>
+        <div class="license-input-group">
+          <input type="text" id="licenseKeyInput" class="license-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="30">
+        </div>
+        <button type="button" id="licenseSubmitBtn" class="license-btn">ยืนยัน License</button>
+        <div id="licenseMessage" class="license-message"></div>
+      </div>
+      <div class="license-footer">
+        <p class="machine-id-label">Machine ID:</p>
+        <p class="machine-id-value" id="machineIdDisplay">-</p>
+        <p>ซื้อ License ได้ที่ <a href="https://aiunlock.co" target="_blank">aiunlock.co</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-container" id="appContainer" hidden>
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <img src="../icons/icon32.png" alt="Flow AI Unlocked">
+        <span>Flow AI Unlocked <small class="version-text">v3.2</small></span>
+      </div>
+      <div class="header-actions">
+        <button id="refreshDataBtn" class="icon-btn" title="รีเฟรชข้อมูล">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+        <button id="openWarehouseHeaderBtn" class="icon-btn" title="เปิดคลังสินค้า">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </button>
+        <button id="openPromptWarehouseBtn" class="icon-btn" title="เปิดคลัง Prompt">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+        </button>
+        <button id="settingsBtn" class="icon-btn" title="ตั้งค่า">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button id="logoutBtn" class="icon-btn license-logout-btn" title="ออกจากระบบ">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Guide Banner -->
+    <a href="https://aiunlock.co/courses/%E0%B8%84%E0%B8%B9%E0%B9%88%E0%B8%A1%E0%B8%B7%E0%B8%AD-flow-x-unlocked-%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B8%97%E0%B8%B3%E0%B8%84%E0%B8%A5%E0%B8%B4%E0%B8%9B%E0%B8%9B%E0%B8%B1%E0%B8%81%E0%B8%95%E0%B8%B0%E0%B8%81%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B9%82%E0%B8%99%E0%B8%A1%E0%B8%B1%E0%B8%95%E0%B8%B4/learn" target="_blank" class="guide-banner">
+      <div class="guide-banner-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+        </svg>
+      </div>
+      <span class="guide-banner-title">คู่มือการใช้งาน Flow X Unlocked</span>
+      <div class="guide-banner-arrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- Tab Navigation -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" data-tab="ai-generator">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+        AI Reviews
+      </button>
+      <button class="tab-btn" data-tab="ai-story">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          <line x1="12" y1="6" x2="16" y2="6"/>
+          <line x1="12" y1="10" x2="16" y2="10"/>
+        </svg>
+        AI Story
+      </button>
+      <button class="tab-btn" data-tab="tiktok">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12A5 5 0 1 0 9 2a5 5 0 0 0 0 10z"/>
+          <path d="M15 8a5 5 0 0 0 5-3"/>
+          <path d="M15 22v-8"/>
+        </svg>
+        TikTok
+      </button>
+      <button class="tab-btn" data-tab="warehouse">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        คลังสินค้า
+      </button>
+    </nav>
+
+    <!-- Tab Contents -->
+    <main class="main-content">
+      <!-- Tab 1: AI Generator -->
+      <div class="tab-content active" id="tab-ai-generator">
+        <!-- Section: Product Images -->
+        <section class="section" id="productImagesSection">
+          <div class="section-header">
+            <h2 class="section-title">ภาพสินค้า</h2>
+            <div class="product-mode-toggle">
+              <label class="radio-label">
+                <input type="radio" name="productMode" value="manual" checked>
+                <span>แบบเดิม</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="productMode" value="warehouse">
+                <span>จากคลัง</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Manual Mode -->
+          <div id="manualProductMode">
+            <div class="product-row">
+              <div class="image-upload-box" id="productImageBox">
+                <input type="file" id="productImageInput" accept="image/*" hidden>
+                <div class="upload-placeholder">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span>สินค้า</span>
+                </div>
+                <img id="productImagePreview" class="image-preview" hidden>
+                <button class="remove-image-btn" hidden>&times;</button>
+              </div>
+              <div class="image-upload-box" id="personImageBox">
+                <input type="file" id="personImageInput" accept="image/*" hidden>
+                <div class="upload-placeholder">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>คน</span>
+                </div>
+                <img id="personImagePreview" class="image-preview" hidden>
+                <button class="remove-image-btn" hidden>&times;</button>
+              </div>
+              <div class="form-group product-name-input">
+                <input type="text" id="productName" placeholder="ชื่อสินค้า...">
+                <div class="product-options-row">
+                  <div class="gender-radio-group">
+                    <label class="radio-label">
+                      <input type="radio" name="reviewerGender" value="female" checked>
+                      <span>หญิง</span>
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="reviewerGender" value="male">
+                      <span>ชาย</span>
+                    </label>
+                  </div>
+                  <div class="loop-count-group">
+                    <label class="loop-label">จำนวน:</label>
+                    <select id="loopCountSelect">
+                      <option value="1" selected>1</option>
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="30">30</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="200">200</option>
+                      <option value="custom">กำหนดเอง</option>
+                    </select>
+                    <input type="number" id="customLoopCount" class="custom-loop-input" min="1" placeholder="จำนวน" hidden>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Warehouse Mode -->
+          <div id="warehouseProductMode" hidden>
+            <div class="form-row">
+              <div class="form-group half">
+                <label for="warehouseProductSearch">ค้นหาสินค้า</label>
+                <input type="text" id="warehouseProductSearch" placeholder="พิมพ์ชื่อสินค้า..." class="search-input">
+              </div>
+              <div class="form-group half">
+                <label for="warehouseCharacterSelect">เลือกตัวละคร</label>
+                <select id="warehouseCharacterSelect">
+                  <option value="">-- เลือกตัวละคร --</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group full">
+                <label for="warehouseProductSelect">เลือกสินค้า</label>
+                <select id="warehouseProductSelect">
+                  <option value="">-- เลือกสินค้า --</option>
+                </select>
+              </div>
+            </div>
+            <div class="product-row">
+              <div class="image-upload-box warehouse-preview-box" id="warehouseProductImageBox">
+                <div class="upload-placeholder" id="warehouseProductPlaceholder">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  <span>สินค้า</span>
+                </div>
+                <img id="warehouseProductImagePreview" class="image-preview" hidden>
+              </div>
+              <div class="image-upload-box warehouse-preview-box" id="warehouseCharacterImageBox">
+                <div class="upload-placeholder" id="warehouseCharacterPlaceholder">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>คน</span>
+                </div>
+                <img id="warehouseCharacterImagePreview" class="image-preview" hidden>
+              </div>
+              <div class="form-group product-name-input">
+                <input type="text" id="warehouseProductName" placeholder="ชื่อสินค้า..." readonly>
+                <div class="product-options-row">
+                  <div class="gender-radio-group">
+                    <label class="radio-label">
+                      <input type="radio" name="reviewerGenderWarehouse" value="female" checked>
+                      <span>หญิง</span>
+                    </label>
+                    <label class="radio-label">
+                      <input type="radio" name="reviewerGenderWarehouse" value="male">
+                      <span>ชาย</span>
+                    </label>
+                  </div>
+                  <div class="loop-count-group">
+                    <label class="loop-label">จำนวน:</label>
+                    <select id="loopCountSelectWarehouse">
+                      <option value="1" selected>1</option>
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="30">30</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                      <option value="200">200</option>
+                      <option value="custom">กำหนดเอง</option>
+                    </select>
+                    <input type="number" id="customLoopCountWarehouse" class="custom-loop-input" min="1" placeholder="จำนวน" hidden>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Prompt Style (Combined Image + Video) -->
+        <section class="section" id="promptStyleSection">
+          <div class="section-header">
+            <h2 class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              สไตล์ Prompt
+            </h2>
+            <button id="variableGuideBtn" class="icon-btn icon-btn-sm" title="คู่มือตัวแปร">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Image Style Dropdown -->
+          <div class="form-group style-selector-row">
+            <label>ภาพ</label>
+            <div class="style-dropdown-wrapper">
+              <select id="imageStyleSelect" class="style-dropdown">
+                <!-- Options rendered by JS -->
+              </select>
+              <button class="style-edit-btn" id="editImageTemplateBtn" title="แก้ไข" style="display: none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="style-manage-btn" id="manageTemplatesBtn" title="สร้างใหม่">+</button>
+            </div>
+          </div>
+
+          <!-- Video Style Dropdown -->
+          <div class="form-group style-selector-row">
+            <label>วิดีโอ</label>
+            <div class="style-dropdown-wrapper">
+              <select id="videoStyleSelect" class="style-dropdown">
+                <!-- Options rendered by JS -->
+              </select>
+              <button class="style-edit-btn" id="editVideoTemplateBtn" title="แก้ไข" style="display: none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="style-manage-btn" id="manageVideoTemplatesBtn" title="สร้างใหม่">+</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Details -->
+        <section class="section" id="detailsSection">
+          <div class="section-header">
+            <h2 class="section-title">รายละเอียดภาพปก</h2>
+            <div class="section-header-actions">
+              <label class="toggle-label">
+                <input type="checkbox" id="coverDetailsEnabled">
+                <span>เปิดใช้</span>
+              </label>
+            </div>
+          </div>
+          <div id="coverDetailsContent" hidden>
+            <p class="section-hint">ใช้ | เพื่อสุ่ม เช่น ข้อความ1|ข้อความ2|ข้อความ3</p>
+            <div class="form-group">
+              <label for="mainHeading">หัวข้อหลัก</label>
+              <input type="text" id="mainHeading" placeholder="กรอกหัวข้อหลัก...">
+            </div>
+            <div class="form-group">
+              <label for="subHeading">หัวข้อย่อย</label>
+              <input type="text" id="subHeading" placeholder="กรอกหัวข้อย่อย...">
+            </div>
+            <div class="form-group">
+              <label for="price">ราคา</label>
+              <input type="text" id="price" placeholder="กรอกราคา...">
+            </div>
+            <button class="btn btn-sm btn-secondary" id="generateDetailsBtn">สร้างรายละเอียด</button>
+          </div>
+        </section>
+
+        <!-- Section: UGC Character -->
+        <section class="section" id="ugcSection">
+          <h2 class="section-title">
+            ตัวละคร UGC
+            <span class="section-badge" id="ugcBadge">เปิดใช้งาน</span>
+          </h2>
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="gender">เพศ</label>
+              <select id="gender">
+                <option value="random" selected>สุ่ม</option>
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+              </select>
+            </div>
+            <div class="form-group half">
+              <label for="ageRange">ช่วงอายุ</label>
+              <select id="ageRange">
+                <option value="random" selected>สุ่ม</option>
+                <option value="18-25">18-25 ปี</option>
+                <option value="26-35">26-35 ปี</option>
+                <option value="36-45">36-45 ปี</option>
+                <option value="46-55">46-55 ปี</option>
+                <option value="55+">55+ ปี</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: Burst Mode (กระหน่ำ) -->
+        <section class="section" id="burstModeSection">
+          <div class="section-header">
+            <h2 class="section-title">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+              </svg>
+              โหมดกระหน่ำ
+            </h2>
+            <label class="toggle-label">
+              <input type="checkbox" id="burstModeToggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="burst-mode-content" id="burstModeContent" hidden>
+            <!-- Selection Mode Toggle -->
+            <div class="burst-selection-mode">
+              <label class="radio-option">
+                <input type="radio" name="burstSelectionMode" value="random" checked>
+                <span class="radio-label">สุ่มสินค้า</span>
+              </label>
+              <label class="radio-option">
+                <input type="radio" name="burstSelectionMode" value="manual">
+                <span class="radio-label">เลือกสินค้าเอง</span>
+              </label>
+            </div>
+
+            <!-- Random Mode Content -->
+            <div class="burst-random-content" id="burstRandomContent">
+              <p class="section-hint">สุ่มสินค้าจากคลังและทำซ้ำตามจำนวนรอบที่กำหนด</p>
+              <div class="form-row">
+                <div class="form-group half">
+                  <label for="burstProductCount">จำนวนสินค้า</label>
+                  <input type="number" id="burstProductCount" class="form-control" value="5" min="1" max="50">
+                </div>
+                <div class="form-group half">
+                  <label for="burstRoundCount">รอบต่อสินค้า</label>
+                  <input type="number" id="burstRoundCount" class="form-control" value="3" min="1" max="20">
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual Mode Content -->
+            <div class="burst-manual-content" id="burstManualContent" hidden>
+              <p class="section-hint">เลือกสินค้าที่ต้องการแล้วกำหนดรอบ</p>
+
+              <!-- Selected Products List -->
+              <div class="burst-selected-list" id="burstSelectedList">
+                <div class="burst-empty-state">ยังไม่ได้เลือกสินค้า</div>
+              </div>
+
+              <!-- Add Product Button -->
+              <button type="button" class="btn btn-outline btn-sm burst-add-btn" id="burstAddProductBtn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                เลือกสินค้า
+              </button>
+
+              <!-- Round Count for Manual Mode -->
+              <div class="form-row" style="margin-top: 12px;">
+                <div class="form-group">
+                  <label for="burstManualRoundCount">รอบต่อสินค้า</label>
+                  <input type="number" id="burstManualRoundCount" class="form-control" value="3" min="1" max="20">
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary (shared) -->
+            <div class="burst-summary" id="burstSummary">
+              <span class="burst-calc">5 สินค้า × 3 รอบ = <strong>15 ครั้ง</strong></span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Modal: Select Products for Burst Mode -->
+        <div class="modal-overlay" id="burstProductModal" hidden>
+          <div class="modal-container modal-lg">
+            <div class="modal-header">
+              <h3 class="modal-title">เลือกสินค้าสำหรับโหมดกระหน่ำ</h3>
+              <button type="button" class="modal-close" id="burstModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+              <!-- Search & Filter -->
+              <div class="burst-modal-toolbar">
+                <input type="text" class="form-control" id="burstProductSearch" placeholder="ค้นหาสินค้า...">
+                <div class="burst-select-actions">
+                  <button type="button" class="btn btn-sm btn-outline" id="burstSelectAll">เลือกทั้งหมด</button>
+                  <button type="button" class="btn btn-sm btn-outline" id="burstDeselectAll">ยกเลิกทั้งหมด</button>
+                </div>
+              </div>
+
+              <!-- Product Grid -->
+              <div class="burst-product-grid" id="burstProductGrid">
+                <!-- Products will be rendered here -->
+              </div>
+            </div>
+            <div class="modal-footer">
+              <span class="burst-modal-count" id="burstModalCount">เลือกแล้ว 0 ชิ้น</span>
+              <button type="button" class="btn btn-outline" id="burstModalCancel">ยกเลิก</button>
+              <button type="button" class="btn btn-primary" id="burstModalConfirm">ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Controls -->
+        <section class="section" id="controlsSection">
+          <h2 class="section-title">ควบคุม</h2>
+          <div class="button-row">
+            <button class="btn btn-primary" id="automationBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Automation
+            </button>
+            <button class="btn btn-outline" id="stopAutomationBtn" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="6" width="12" height="12"></rect>
+              </svg>
+              หยุด
+            </button>
+          </div>
+          <!-- Prompt Generation Buttons (always visible) -->
+          <div class="button-row" style="margin-top: 8px;">
+            <button class="btn btn-prompt-image" id="generateImagePromptBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              Prompt ภาพ
+            </button>
+            <button class="btn btn-prompt-video" id="generateVideoPromptBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+              Prompt วิดีโอ
+            </button>
+          </div>
+          <!-- Debug Buttons (hidden by default) -->
+          <div id="debugButtonsWrapper" style="display: none;">
+            <div class="button-row" style="margin-top: 8px;">
+              <button class="btn btn-secondary btn-sm" id="testVideoModeBtn">Video Mode</button>
+              <button class="btn btn-secondary btn-sm" id="testImageModeBtn">Image Mode</button>
+              <button class="btn btn-secondary btn-sm" id="testSelectImageBtn">Select Image</button>
+            </div>
+            <div class="button-row" style="margin-top: 8px;">
+              <button class="btn btn-secondary btn-sm" id="testDownloadBtn">Download</button>
+              <button class="btn btn-secondary btn-sm" id="testSwitchImageBtn">Switch Image</button>
+            </div>
+          </div>
+          <div class="automation-status" id="automationStatus" hidden>
+            <span class="status-text" id="automationStatusText">กำลังทำงาน...</span>
+            <div class="burst-progress" id="burstProgress" hidden>
+              <div class="burst-progress-text" id="burstProgressText">สินค้า 1/5 - รอบ 1/3</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Prompt Output -->
+        <section class="section" id="promptOutputSection" hidden>
+          <h2 class="section-title">Prompt ที่สร้าง</h2>
+          <div class="prompt-output">
+            <textarea id="promptOutput" readonly></textarea>
+            <button class="copy-btn" id="copyPromptBtn" title="คัดลอก">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- Tab: AI Story -->
+      <div class="tab-content" id="tab-ai-story">
+        <!-- Section: เลือกตัวละคร (Character Selection) -->
+        <section class="section" id="storyCharacterSection">
+          <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            เลือกตัวละคร
+          </h2>
+          <div class="form-row">
+            <div class="form-group full">
+              <label for="storyCharacterSelect">ตัวละครจากคลัง</label>
+              <select id="storyCharacterSelect">
+                <option value="">-- เลือกตัวละคร --</option>
+              </select>
+            </div>
+          </div>
+          <div class="product-row" style="justify-content: flex-start;">
+            <div class="image-upload-box warehouse-preview-box" id="storyCharacterImageBox">
+              <div class="upload-placeholder" id="storyCharacterPlaceholder">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>ตัวละคร</span>
+              </div>
+              <img id="storyCharacterImagePreview" class="image-preview" hidden>
+            </div>
+            <div class="form-group product-name-input" style="flex: 1;">
+              <label for="storyCharacterName">ชื่อตัวละคร</label>
+              <input type="text" id="storyCharacterName" placeholder="ชื่อตัวละคร..." readonly>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section: หัวข้อเรื่อง (Story Topic) -->
+        <section class="section" id="storyTopicSection">
+          <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            </svg>
+            หัวข้อเรื่อง
+          </h2>
+          <div class="form-group">
+            <input type="text" id="storyTopic" placeholder="พิมพ์หัวข้อเรื่องที่ต้องการสร้าง...">
+          </div>
+          <!-- Story Mode Selection -->
+          <div class="form-row" style="margin-bottom: 8px;">
+            <div class="story-mode-selector">
+              <label class="mode-label">หมวด:</label>
+              <div class="mode-radio-group">
+                <label class="radio-label">
+                  <input type="radio" name="storyMode" value="content" checked>
+                  <span>เนื้อหา</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="storyMode" value="repeat">
+                  <span>ทำซ้ำ</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="gender-radio-group">
+              <label class="radio-label">
+                <input type="radio" name="storyGender" value="female" checked>
+                <span>หญิง</span>
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="storyGender" value="male">
+                <span>ชาย</span>
+              </label>
+            </div>
+            <div class="loop-count-group">
+              <label class="loop-label">จำนวนวิดีโอ:</label>
+              <select id="storyLoopCountSelect">
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="custom">กำหนดเอง</option>
+              </select>
+              <input type="number" id="storyCustomLoopCount" class="custom-loop-input" min="1" placeholder="จำนวน" hidden>
+            </div>
+          </div>
+
+          <!-- สไตล์เรื่อง และ สไตล์วิดีโอ (อยู่ด้วยกันก่อนรายละเอียด) -->
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group style-selector-row" style="flex: 1;">
+              <label>สไตล์เรื่อง</label>
+              <div class="style-dropdown-wrapper">
+                <select id="storyImageStyleSelect" class="style-dropdown">
+                  <!-- Options rendered by JS -->
+                </select>
+                <button id="storyVariableGuideBtn" class="icon-btn icon-btn-sm" title="คู่มือตัวแปร">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="form-group style-selector-row" style="flex: 1;">
+              <label>สไตล์วิดีโอ</label>
+              <div class="style-dropdown-wrapper">
+                <select id="storyVideoStyleSelect" class="style-dropdown">
+                  <!-- Options rendered by JS -->
+                </select>
+                <button class="style-manage-btn" id="storyManageVideoTemplatesBtn" title="สร้างใหม่">+</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- รายละเอียดเรื่อง -->
+          <div class="form-group" style="margin-top: 12px;">
+            <div class="story-details-header">
+              <label for="storyDetails">รายละเอียดเรื่อง</label>
+              <button type="button" id="generateStoryDetailsBtn" class="btn-generate-story">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+                สร้างรายละเอียด
+              </button>
+            </div>
+            <textarea id="storyDetails" rows="5" placeholder="ใส่รายละเอียดเรื่องราว หรือกดปุ่ม 'สร้างรายละเอียด' เพื่อให้ AI สร้างฉากตามจำนวนวิดีโอที่เลือก..."></textarea>
+            <p class="style-warning" id="storyStyleWarning" hidden>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>เนื้อเรื่องนี้สร้างจากสไตล์: <strong id="storyStyleUsedName"></strong></span>
+            </p>
+          </div>
+        </section>
+
+        <!-- Section: Controls -->
+        <section class="section" id="storyControlsSection">
+          <h2 class="section-title">ควบคุม</h2>
+          <div class="button-row">
+            <button class="btn btn-primary" id="storyAutomationBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              Automation
+            </button>
+            <button class="btn btn-outline" id="storyStopAutomationBtn" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="6" width="12" height="12"></rect>
+              </svg>
+              หยุด
+            </button>
+          </div>
+          <!-- Prompt Generation Buttons (always visible) -->
+          <div class="button-row" style="margin-top: 8px;">
+            <button class="btn btn-prompt-image" id="storyGenerateImagePromptBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              Prompt ภาพ
+            </button>
+            <button class="btn btn-prompt-video" id="storyGenerateVideoPromptBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+              Prompt วิดีโอ
+            </button>
+          </div>
+          <div class="automation-status" id="storyAutomationStatus" hidden>
+            <span class="status-text" id="storyAutomationStatusText">กำลังทำงาน...</span>
+          </div>
+        </section>
+
+        <!-- Prompt Output -->
+        <section class="section" id="storyPromptOutputSection" hidden>
+          <h2 class="section-title">Prompt ที่สร้าง</h2>
+          <div class="prompt-output">
+            <textarea id="storyPromptOutput" readonly></textarea>
+            <button class="copy-btn" id="storyCopyPromptBtn" title="คัดลอก">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Style Change Warning Modal -->
+        <div class="modal-overlay" id="storyStyleChangeModal" hidden>
+          <div class="modal-container modal-sm">
+            <div class="modal-header">
+              <h3 class="modal-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #f39c12;">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                เปลี่ยนสไตล์?
+              </h3>
+              <button type="button" class="modal-close" id="styleChangeModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="modal-message">
+                เนื้อเรื่องนี้ถูกสร้างจากสไตล์ <strong id="styleChangeOldStyle"></strong>
+              </p>
+              <p class="modal-hint">
+                หากต้องการใช้สไตล์ใหม่ แนะนำให้กด "สร้างรายละเอียด" อีกครั้งเพื่อสร้างเนื้อเรื่องที่เหมาะกับสไตล์ใหม่
+              </p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" id="styleChangeCancel">ยกเลิก</button>
+              <button type="button" class="btn btn-primary" id="styleChangeConfirm">ดำเนินการต่อ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: TikTok Uploader -->
+      <div class="tab-content" id="tab-tiktok">
+        <!-- Mode Selection -->
+        <section class="section tiktok-section">
+          <div class="mode-selector mode-selector-4">
+            <label class="mode-option">
+              <input type="radio" name="tiktokPostMode" value="manual" checked>
+              <span class="mode-label">กรอกเอง</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="tiktokPostMode" value="warehouse">
+              <span class="mode-label">จากคลัง</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="tiktokPostMode" value="burst">
+              <span class="mode-label">กระหน่ำ</span>
+            </label>
+            <label class="mode-option">
+              <input type="radio" name="tiktokPostMode" value="content">
+              <span class="mode-label">คอนเท้นท์</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Manual Product Info Section -->
+        <section class="section tiktok-section" id="tiktokManualSection">
+          <h2 class="section-title">ข้อมูลสินค้า</h2>
+          <div class="form-group">
+            <label for="tiktokProductName" id="tiktokProductNameLabel">ชื่อสินค้า</label>
+            <input type="text" id="tiktokProductName" placeholder="กรอกชื่อสินค้า..." class="form-control">
+          </div>
+          <div class="form-group" id="tiktokProductIdGroup">
+            <label for="tiktokProductId">Product ID</label>
+            <input type="text" id="tiktokProductId" placeholder="กรอก Product ID..." class="form-control">
+          </div>
+          <div class="form-group" id="tiktokCartNameGroup">
+            <label for="tiktokCartName">ชื่อตะกร้า <span class="char-count" id="tiktokCartNameCount">0/29</span></label>
+            <input type="text" id="tiktokCartName" placeholder="กรอกชื่อตะกร้า..." class="form-control" maxlength="29">
+          </div>
+        </section>
+
+        <!-- Warehouse Section -->
+        <section class="section tiktok-section" id="tiktokWarehouseSection" hidden>
+          <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+            เลือกจากคลัง
+          </h2>
+          <div class="form-group">
+            <label for="tiktokWarehouseProductSelect">เลือกสินค้า</label>
+            <select id="tiktokWarehouseProductSelect" class="form-control">
+              <option value="">-- เลือกสินค้า --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="tiktokWarehouseVideoCount">จำนวนวิดีโอที่จะอัพ <span class="label-hint" id="tiktokPendingVideoCount">(รอ: 0)</span></label>
+            <input type="number" id="tiktokWarehouseVideoCount" class="form-control" value="1" min="1" max="1" disabled>
+          </div>
+          <div class="warehouse-video-summary" id="tiktokWarehouseVideoSummary" hidden>
+            <span class="summary-text">จะอัพโหลด <strong id="tiktokVideoUploadCount">1</strong> วิดีโอจากคลัง</span>
+          </div>
+          <div class="form-group" id="tiktokWarehouseCartNameGroup">
+            <label for="tiktokWarehouseCartName">ชื่อตะกร้า <span class="char-count" id="tiktokWarehouseCartNameCount">0/29</span></label>
+            <input type="text" id="tiktokWarehouseCartName" placeholder="กรอกชื่อตะกร้า (จะใช้ชื่อสินค้าถ้าว่าง)..." class="form-control" maxlength="29">
+          </div>
+        </section>
+
+        <!-- Content Mode Section -->
+        <section class="section tiktok-section" id="tiktokContentSection" hidden>
+          <h2 class="section-title">ข้อมูลคลิป</h2>
+          <div class="form-group">
+            <label for="tiktokContentTitle">หัวข้อคลิป</label>
+            <input type="text" id="tiktokContentTitle" placeholder="กรอกหัวข้อคลิป..." class="form-control">
+          </div>
+        </section>
+
+        <!-- Burst Mode Section (กระหน่ำ) -->
+        <section class="section tiktok-section" id="tiktokBurstSection" hidden>
+          <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            โหมดกระหน่ำ
+          </h2>
+
+          <!-- Selection Mode Toggle -->
+          <div class="burst-selection-mode" id="tiktokBurstSelectionMode">
+            <label class="radio-option">
+              <input type="radio" name="tiktokBurstSelectionMode" value="auto" checked>
+              <span class="radio-label">อัตโนมัติ</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" name="tiktokBurstSelectionMode" value="manual">
+              <span class="radio-label">เลือกสินค้าเอง</span>
+            </label>
+          </div>
+
+          <!-- Auto Mode Content -->
+          <div class="tiktok-burst-auto-content" id="tiktokBurstAutoContent">
+            <p class="section-hint">อัพโหลดวิดีโอจากคลังโดยอัตโนมัติ</p>
+
+            <div class="form-group">
+              <label for="tiktokBurstVideoCount">จำนวนวิดีโอที่จะอัพ <span class="label-hint" id="tiktokBurstMaxCount">(สูงสุด: 0)</span></label>
+              <input type="number" id="tiktokBurstVideoCount" class="form-control" value="1" min="1" max="1">
+            </div>
+
+            <div class="form-group">
+              <label>โหมดการอัพโหลด</label>
+              <div class="burst-upload-mode">
+                <label class="radio-label">
+                  <input type="radio" name="tiktokBurstUploadMode" value="sequential" checked>
+                  <span>อัพทีละสินค้า</span>
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="tiktokBurstUploadMode" value="random">
+                  <span>สุ่มสินค้า</span>
+                </label>
+              </div>
+              <p class="field-hint" id="tiktokBurstModeHint">อัพวิดีโอทุกตัวของสินค้าแรกก่อน แล้วค่อยไปสินค้าถัดไป</p>
+            </div>
+
+            <div class="burst-video-summary" id="tiktokBurstVideoSummary">
+              <div class="burst-stat">
+                <span class="burst-stat-label">วิดีโอรอคิว</span>
+                <span class="burst-stat-value" id="tiktokBurstPendingCount">0</span>
+              </div>
+              <div class="burst-stat">
+                <span class="burst-stat-label">สินค้าที่มีวิดีโอ</span>
+                <span class="burst-stat-value" id="tiktokBurstProductCount">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manual Mode Content -->
+          <div class="tiktok-burst-manual-content" id="tiktokBurstManualContent" hidden>
+            <p class="section-hint">เลือกสินค้าที่ต้องการอัพโหลดวิดีโอ</p>
+
+            <!-- Selected Products List -->
+            <div class="burst-selected-list" id="tiktokBurstSelectedList">
+              <div class="burst-empty-state">ยังไม่ได้เลือกสินค้า</div>
+            </div>
+
+            <!-- Add Product Button -->
+            <button type="button" class="btn btn-outline btn-sm burst-add-btn" id="tiktokBurstAddProductBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              เลือกสินค้า
+            </button>
+
+            <!-- Manual Mode Summary -->
+            <div class="burst-video-summary" id="tiktokBurstManualSummary" style="margin-top: 12px;">
+              <div class="burst-stat">
+                <span class="burst-stat-label">สินค้าที่เลือก</span>
+                <span class="burst-stat-value" id="tiktokBurstManualProductCount">0</span>
+              </div>
+              <div class="burst-stat">
+                <span class="burst-stat-label">วิดีโอทั้งหมด</span>
+                <span class="burst-stat-value" id="tiktokBurstManualVideoCount">0</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group" id="tiktokBurstCartNameGroup">
+            <label for="tiktokBurstCartName">ชื่อตะกร้า (ใช้เมื่อคลังไม่มี) <span class="char-count" id="tiktokBurstCartNameCount">0/29</span></label>
+            <input type="text" id="tiktokBurstCartName" placeholder="ชื่อตะกร้าสำรอง..." class="form-control" maxlength="29">
+            <p class="field-hint" id="tiktokBurstCartNameHint">ถ้าสินค้าในคลังไม่มีชื่อตะกร้า จะใช้ชื่อนี้แทน</p>
+          </div>
+        </section>
+
+        <!-- Modal: Select Products for TikTok Burst Mode -->
+        <div class="modal-overlay" id="tiktokBurstProductModal" hidden>
+          <div class="modal-container modal-lg">
+            <div class="modal-header">
+              <h3 class="modal-title">เลือกสินค้าสำหรับโหมดกระหน่ำ</h3>
+              <button type="button" class="modal-close" id="tiktokBurstModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+              <!-- Search & Filter -->
+              <div class="burst-modal-toolbar">
+                <input type="text" class="form-control" id="tiktokBurstProductSearch" placeholder="ค้นหาสินค้า...">
+                <div class="burst-select-actions">
+                  <button type="button" class="btn btn-sm btn-outline" id="tiktokBurstSelectAll">เลือกทั้งหมด</button>
+                  <button type="button" class="btn btn-sm btn-outline" id="tiktokBurstDeselectAll">ยกเลิกทั้งหมด</button>
+                </div>
+              </div>
+
+              <!-- Product Grid -->
+              <div class="burst-product-grid" id="tiktokBurstProductGrid">
+                <!-- Products will be rendered here -->
+              </div>
+            </div>
+            <div class="modal-footer">
+              <span class="burst-modal-count" id="tiktokBurstModalCount">เลือกแล้ว 0 ชิ้น</span>
+              <button type="button" class="btn btn-outline" id="tiktokBurstModalCancel">ยกเลิก</button>
+              <button type="button" class="btn btn-primary" id="tiktokBurstModalConfirm">ยืนยัน</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Section -->
+        <section class="section tiktok-section" id="tiktokUploadSection">
+          <h2 class="section-title" id="tiktokUploadSectionTitle">เลือกไฟล์วิดีโอ</h2>
+          <div class="upload-row">
+            <div class="upload-area-compact" id="tiktokUploadArea">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span>เลือกไฟล์</span>
+              <input type="file" id="tiktokFileInput" accept="image/*,video/*" multiple hidden>
+            </div>
+            <button class="btn-clear" id="tiktokClearFilesBtn" title="ล้างไฟล์" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Caption Section -->
+        <section class="section tiktok-section">
+          <h2 class="section-title">แคปชั่น</h2>
+          <textarea class="caption-editor form-control" id="tiktokCaptionEditor" placeholder="แคปชั่นจะแสดงที่นี่..."></textarea>
+        </section>
+
+        <!-- Schedule Section -->
+        <section class="section tiktok-section">
+          <h2 class="section-title">ตั้งเวลาโพส</h2>
+          <div class="form-row">
+            <div class="form-group half">
+              <label for="tiktokScheduleTime">เวลาเริ่มโพส</label>
+              <input type="datetime-local" id="tiktokScheduleTime" class="form-control">
+            </div>
+            <div class="form-group half">
+              <label for="tiktokPostInterval">ห่างกัน</label>
+              <select id="tiktokPostInterval" class="form-control">
+                <option value="10">10 นาที</option>
+                <option value="15">15 นาที</option>
+                <option value="20">20 นาที</option>
+                <option value="30">30 นาที</option>
+                <option value="45">45 นาที</option>
+                <option value="60">1 ชั่วโมง</option>
+                <option value="120">2 ชั่วโมง</option>
+                <option value="180">3 ชั่วโมง</option>
+                <option value="240">4 ชั่วโมง</option>
+                <option value="360">6 ชั่วโมง</option>
+                <option value="480">8 ชั่วโมง</option>
+                <option value="720">12 ชั่วโมง</option>
+                <option value="1440" selected>24 ชั่วโมง</option>
+                <option value="2880">48 ชั่วโมง</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <!-- Automation Section -->
+        <section class="section tiktok-section">
+          <div class="button-row">
+            <button class="btn btn-primary" id="tiktokAutomationBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              </svg>
+              Automation
+            </button>
+            <button class="btn btn-outline" id="tiktokStopBtn" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              Stop
+            </button>
+            <button class="btn btn-secondary" id="tiktokScanBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+              สแกนสินค้า
+            </button>
+          </div>
+          <div class="automation-status" id="tiktokAutomationStatus"></div>
+        </section>
+      </div>
+
+      <!-- Tab 3: Warehouse -->
+      <div class="tab-content" id="tab-warehouse">
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">คลังสินค้า</h2>
+          </div>
+
+          <!-- Action Buttons Row -->
+          <div class="warehouse-actions-row">
+            <button class="btn btn-primary" id="openWarehouseBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              เปิดคลังสินค้า
+            </button>
+            <button class="btn btn-secondary" id="syncTiktokBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M16 21h5v-5"/>
+              </svg>
+              ดึงข้อมูลจาก Showcase
+            </button>
+          </div>
+          <p class="section-hint">เปิดหน้า Showcase ใน TikTok แล้วกดปุ่ม "ดึงข้อมูล" เพื่อนำเข้าสินค้า</p>
+
+          <!-- Quick Stats -->
+          <div class="warehouse-stats" id="warehouseStats">
+            <div class="stat-item">
+              <span class="stat-value" id="totalProductsCount">0</span>
+              <span class="stat-label">สินค้า</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="totalCategoriesCount">0</span>
+              <span class="stat-label">หมวดหมู่</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="totalCharactersCount">0</span>
+              <span class="stat-label">ตัวละคร</span>
+            </div>
+          </div>
+
+          <!-- Video Stats -->
+          <div class="warehouse-video-stats" id="warehouseVideoStats">
+            <div class="video-stat-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+              <span>สถิติวิดีโอ</span>
+            </div>
+            <div class="video-stat-items">
+              <div class="video-stat-item total">
+                <span class="video-stat-value" id="sidebarTotalVideos">0</span>
+                <span class="video-stat-label">ทั้งหมด</span>
+              </div>
+              <div class="video-stat-item pending">
+                <span class="video-stat-value" id="sidebarPendingVideos">0</span>
+                <span class="video-stat-label">รอ Upload</span>
+              </div>
+              <div class="video-stat-item uploaded">
+                <span class="video-stat-value" id="sidebarUploadedVideos">0</span>
+                <span class="video-stat-label">โพสแล้ว</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Products -->
+          <div class="recent-products">
+            <h3 class="subsection-title">สินค้าล่าสุด</h3>
+            <div class="product-grid" id="recentProductsGrid">
+              <p class="empty-message">ยังไม่มีสินค้าในคลัง</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-content">
+        <p class="footer-copyright">© 2025 บริษัท เอไอ อันล็อก อินโนเวชั่น จำกัด<br>สงวนลิขสิทธิ์ทั้งหมด</p>
+        <p class="footer-powered">Powered by <a href="https://aiunlock.co" target="_blank">AI Unlocked</a></p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settingsModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>ตั้งค่า</h3>
+        <div class="modal-header-actions">
+          <button class="btn btn-primary btn-sm" id="saveSettingsBtn">บันทึก</button>
+          <button class="close-btn" id="closeSettingsBtn">&times;</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>เลือกโมเดล AI</label>
+          <div class="model-toggle">
+            <button type="button" class="toggle-btn active" id="toggleGemini" data-model="gemini">Gemini</button>
+            <button type="button" class="toggle-btn" id="toggleOpenai" data-model="openai">OpenAI</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="geminiApiKey">Gemini API Key</label>
+          <input type="password" id="geminiApiKey" placeholder="กรอก Gemini API Key...">
+        </div>
+        <div class="form-group">
+          <label for="openaiApiKey">OpenAI API Key</label>
+          <input type="password" id="openaiApiKey" placeholder="กรอก OpenAI API Key...">
+        </div>
+
+        <!-- Delay Settings -->
+        <div class="settings-divider"></div>
+        <div class="form-group">
+          <label for="downloadDelay">Delay ก่อนดาวน์โหลด (วินาที)</label>
+          <p class="field-hint">รอให้วิดีโอโหลดเสร็จก่อนกดดาวน์โหลด</p>
+          <select id="downloadDelay" class="form-control">
+            <option value="15">15 วินาที</option>
+            <option value="60">60 วินาที</option>
+            <option value="80">80 วินาที</option>
+            <option value="90" selected>90 วินาที</option>
+            <option value="120">120 วินาที (2 นาที)</option>
+            <option value="180">180 วินาที (3 นาที)</option>
+            <option value="240">240 วินาที (4 นาที)</option>
+          </select>
+        </div>
+
+        <!-- Debug Mode & Skip Download Toggle -->
+        <div class="settings-divider"></div>
+        <div class="settings-toggle-row">
+          <div class="form-group toggle-item">
+            <label class="toggle-label">
+              <span>แสดงปุ่ม Debug</span>
+              <input type="checkbox" id="showDebugButtons">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="form-group toggle-item">
+            <label class="toggle-label">
+              <span>ข้ามดาวน์โหลด</span>
+              <input type="checkbox" id="skipDownload">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <p class="field-hint">Debug: แสดงปุ่มทดสอบ | ข้ามดาวน์โหลด: ระบบจะข้ามขั้นตอนดาวน์โหลดวิดีโอ</p>
+
+        <!-- Backup/Restore Section -->
+        <div class="settings-divider"></div>
+        <div class="form-group">
+          <label>สำรอง/กู้คืนข้อมูล</label>
+          <p class="field-hint">Export ข้อมูลทั้งหมด (คลังสินค้า, ภาพ, API Key, Prompt) เป็นไฟล์ JSON</p>
+          <div class="backup-buttons">
+            <button type="button" class="btn btn-secondary btn-sm" id="exportDataBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="importDataBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Import
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Template Modal -->
+  <div class="modal-overlay" id="videoTemplateModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>สร้าง Video Template</h3>
+        <button class="close-btn" id="closeVideoTemplateModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form class="template-form">
+          <div class="form-group">
+            <label for="videoTemplateName">ชื่อ Template</label>
+            <input type="text" id="videoTemplateName" placeholder="เช่น แนวตลก, แนว Cinematic" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="videoTemplatePrompt">System Prompt</label>
+            <textarea id="videoTemplatePrompt" placeholder="คำสั่งสำหรับ AI ในการสร้าง video prompt..." class="form-control"></textarea>
+            <p class="field-hint template-hint">
+              <strong>ตัวแปรที่ใช้ได้:</strong><br>
+              <code>{{productName}}</code> = ชื่อสินค้า<br>
+              <code>{{genderText}}</code> = เพศ (ผู้ชาย/ผู้หญิง)<br>
+              <code>{{genderTextEn}}</code> = เพศอังกฤษ (Thai man/Thai woman)
+            </p>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="loadDefaultVideoTemplateBtn">โหลด Default</button>
+        <button class="btn btn-secondary" id="cancelVideoTemplateBtn">ยกเลิก</button>
+        <button class="btn btn-primary" id="saveVideoTemplateBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Manager Modal -->
+  <div class="modal-overlay" id="templateManagerModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>สร้าง Template</h3>
+        <button class="close-btn" id="closeTemplateModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form class="template-form">
+          <div class="form-group">
+            <label for="customTemplateName">ชื่อ Template</label>
+            <input type="text" id="customTemplateName" placeholder="เช่น Minimal Style" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="customTemplateDesc">คำอธิบายสั้นๆ</label>
+            <input type="text" id="customTemplateDesc" placeholder="เช่น ภาพเรียบง่าย สะอาดตา" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="customTemplatePrompt">System Prompt</label>
+            <textarea id="customTemplatePrompt" placeholder="คำสั่งสำหรับ AI ในการสร้าง prompt..." class="form-control"></textarea>
+            <p class="field-hint template-hint">
+              <strong>ตัวแปรที่ใช้ได้:</strong><br>
+              <code>{{productName}}</code> = ชื่อสินค้า<br>
+              <code>{{personDescription}}</code> = คำอธิบายคนในภาพ<br>
+              <code>{{genderText}}</code> = เพศ (ผู้ชาย/ผู้หญิง)<br>
+              <code>{{genderTextEn}}</code> = เพศอังกฤษ (Thai man/Thai woman)
+            </p>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="loadDefaultTemplateBtn">โหลด Default</button>
+        <button class="btn btn-secondary" id="cancelTemplateBtn">ยกเลิก</button>
+        <button class="btn btn-primary" id="saveTemplateBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variable Guide Modal -->
+  <div class="modal-overlay" id="variableGuideModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>คู่มือตัวแปร Prompt</h3>
+        <button class="close-btn" id="closeVariableGuideModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 16px; color: var(--text-secondary);">ใช้ตัวแปรเหล่านี้ใน User Message Template เพื่อแทนที่ข้อมูลอัตโนมัติ:</p>
+
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <thead>
+            <tr>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary);">ตัวแปร</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary);">คำอธิบาย</th>
+              <th style="padding: 10px; text-align: left; border-bottom: 1px solid var(--border-color); background: var(--bg-secondary);">ตัวอย่าง</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">{{productName}}</code></td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">ชื่อสินค้า</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">เซรั่มวิตามินซี</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">{{personDescription}}</code></td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">คำอธิบายคนในภาพ</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">หญิงไทยอายุ 25-30 ปี</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">{{genderText}}</code></td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">เพศภาษาไทย</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">ผู้หญิง / ผู้ชาย</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);"><code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px;">{{genderTextEn}}</code></td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">เพศภาษาอังกฤษ</td>
+              <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">Thai woman / Thai man</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+          <h4 style="font-size: 0.875rem; margin-bottom: 8px;">ตัวอย่างการใช้งาน:</h4>
+          <pre style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.8125rem; line-height: 1.5; white-space: pre-wrap;">สร้างภาพ {{genderTextEn}} กำลังถือ {{productName}}
+โดยให้แสดงความพอใจกับสินค้า
+ลักษณะคน: {{personDescription}}</pre>
+        </div>
+
+        <div style="background: rgba(52, 152, 219, 0.1); border-radius: 8px; padding: 16px;">
+          <h4 style="font-size: 0.875rem; margin-bottom: 8px; color: var(--accent-color);">เคล็ดลับ:</h4>
+          <ul style="padding-left: 20px; margin: 0;">
+            <li style="font-size: 0.875rem; margin-bottom: 4px; color: var(--text-secondary);">System Prompt ควรเป็นคำสั่งหลักที่กำหนดบทบาทของ AI</li>
+            <li style="font-size: 0.875rem; margin-bottom: 4px; color: var(--text-secondary);">User Message Template คือข้อความที่จะส่งไปพร้อมรูปภาพ</li>
+            <li style="font-size: 0.875rem; margin-bottom: 4px; color: var(--text-secondary);">ตัวแปรจะถูกแทนที่อัตโนมัติตอน generate</li>
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="closeVariableGuideBtn">เข้าใจแล้ว</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="../js/wasmLoader.js"></script>
+  <script src="../license.js"></script>
+  <script src="../config.js"></script>
+  <script src="../js/utils/storage.js"></script>
+  <script src="../js/utils/helpers.js"></script>
+  <script src="../js/api/imageUtils.js"></script>
+  <script src="../js/data/promptTemplates.js"></script>
+  <script src="../js/data/videoPromptTemplates.js"></script>
+  <script src="../js/api/systemPrompt.js"></script>
+  <script src="../js/api/geminiApi.js"></script>
+  <script src="../js/api/openaiApi.js"></script>
+  <script src="../js/api/responseParser.js"></script>
+  <script src="../js/modules/videoStorage.js"></script>
+  <script src="../js/modules/promptStorage.js"></script>
+  <script src="../js/modules/productWarehouse.js"></script>
+  <script src="../js/modules/imageUpload.js"></script>
+  <script src="../js/modules/settings.js"></script>
+  <script src="../js/modules/ugcSection.js"></script>
+  <script src="../js/modules/promptGenerator.js"></script>
+  <script src="../js/modules/coverDetails.js"></script>
+  <script src="../js/modules/burstMode.js"></script>
+  <script src="../js/modules/promptTemplateSelector.js"></script>
+  <script src="../js/modules/videoPromptTemplateSelector.js"></script>
+  <script src="../js/modules/controls.js"></script>
+  <script src="../js/modules/formState.js"></script>
+  <script src="../js/tabs/tiktokUploader.js"></script>
+  <script src="../js/sidebar.js"></script>
+</body>
+</html>
