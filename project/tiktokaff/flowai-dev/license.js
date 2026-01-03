@@ -118,8 +118,8 @@ const License = {
   async verify(licenseKey = null) {
     // License system disabled - always return valid
     this.licenseKey = 'FREE-VERSION';
-    return { 
-      valid: true, 
+    return {
+      valid: true,
       code: 'FREE_VERSION',
       message: 'Free version - all features unlocked',
       program: {
@@ -136,8 +136,8 @@ const License = {
   async activate() {
     // License system disabled - always return success
     this.licenseKey = 'FREE-VERSION';
-    return { 
-      success: true, 
+    return {
+      success: true,
       code: 'FREE_VERSION',
       message: 'Free version activated',
       program: {
@@ -146,92 +146,92 @@ const License = {
       }
     };
   },
-      const response = await fetch(`${this.BASE_URL}/api/licenses/activate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          license_key: this.licenseKey,
-          machine_id: this.machineId,
-          device_name: deviceInfo.deviceName,
-          os_info: deviceInfo.osInfo
-        })
-      });
+  const response = await fetch(`${this.BASE_URL}/api/licenses/activate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      license_key: this.licenseKey,
+      machine_id: this.machineId,
+      device_name: deviceInfo.deviceName,
+      os_info: deviceInfo.osInfo
+    })
+  });
 
-      const data = await response.json();
+  const data = await response.json();
 
-      if (data.success) {
-        await this.saveLicenseKey(this.licenseKey);
-        if (data.program) {
-          this.programInfo = data.program;
-        }
+  if(data.success) {
+    await this.saveLicenseKey(this.licenseKey);
+if (data.program) {
+  this.programInfo = data.program;
+}
       }
 
-      return data;
+return data;
     } catch (error) {
-      console.error('License activate error:', error);
-      return { success: false, code: 'NETWORK_ERROR', error: error.message };
-    }
+  console.error('License activate error:', error);
+  return { success: false, code: 'NETWORK_ERROR', error: error.message };
+}
   },
 
   /**
    * Heartbeat check (disabled)
    */
   async heartbeat() {
-    // License system disabled - always return valid
-    return { valid: true, code: 'FREE_VERSION' };
-  },
+  // License system disabled - always return valid
+  return { valid: true, code: 'FREE_VERSION' };
+},
 
   /**
    * Main validation function (disabled - always returns success)
    */
   async validateAndActivate(licenseKey = null) {
-    // License system disabled - always return success
-    this.licenseKey = 'FREE-VERSION';
-    return {
-      success: true,
-      message: 'Free version - all features unlocked',
-      program: {
-        name: 'Eddication Flow AI',
-        version: '4.0',
-        features: ['all']
-      }
-    };
-  },
+  // License system disabled - always return success
+  this.licenseKey = 'FREE-VERSION';
+  return {
+    success: true,
+    message: 'Free version - all features unlocked',
+    program: {
+      name: 'Eddication Flow AI',
+      version: '4.0',
+      features: ['all']
+    }
+  };
+},
 
-  /**
-   * Start heartbeat interval (disabled)
-   */
-  startHeartbeat(intervalMs = 8 * 60 * 60 * 1000) {
-    // License system disabled - do nothing
-  },
+/**
+ * Start heartbeat interval (disabled)
+ */
+startHeartbeat(intervalMs = 8 * 60 * 60 * 1000) {
+  // License system disabled - do nothing
+},
 
-  /**
-   * Stop heartbeat interval (disabled)
-   */
-  stopHeartbeat() {
-    // License system disabled - do nothing
-  },
+/**
+ * Stop heartbeat interval (disabled)
+ */
+stopHeartbeat() {
+  // License system disabled - do nothing
+},
 
-  /**
-   * Callback when license becomes invalid (disabled)
-   */
-  onLicenseInvalid: null,
+/**
+ * Callback when license becomes invalid (disabled)
+ */
+onLicenseInvalid: null,
 
   /**
    * Check if has valid stored license (disabled - always returns true)
    */
   async hasStoredLicense() {
-    this.licenseKey = 'FREE-VERSION';
-    return true;
-  },
+  this.licenseKey = 'FREE-VERSION';
+  return true;
+},
 
-  /**
-   * Hide license overlay and show main app
-   */
-  hideOverlay() {
-    const overlay = document.getElementById('licenseOverlay');
-    const appContainer = document.getElementById('appContainer');
-    if (overlay) overlay.style.display = 'none';
-    if (appContainer) appContainer.removeAttribute('hidden');
-  }
+/**
+ * Hide license overlay and show main app
+ */
+hideOverlay() {
+  const overlay = document.getElementById('licenseOverlay');
+  const appContainer = document.getElementById('appContainer');
+  if (overlay) overlay.style.display = 'none';
+  if (appContainer) appContainer.removeAttribute('hidden');
+}
 };

@@ -119,7 +119,7 @@ const Settings = {
     ], (result) => {
       this.geminiInput.value = result.geminiApiKey || '';
       this.openaiInput.value = result.openaiApiKey || '';
-      
+
       // Load platform credentials
       if (this.facebookAccessTokenInput) {
         this.facebookAccessToken = result.facebookAccessToken || '';
@@ -137,7 +137,7 @@ const Settings = {
         this.shopeePartnerKey = result.shopeePartnerKey || '';
         this.shopeePartnerKeyInput.value = this.shopeePartnerKey;
       }
-      
+
       this.setModel(result.selectedModel || 'gemini');
 
       // Load skip download setting
