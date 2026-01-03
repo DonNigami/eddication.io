@@ -1793,6 +1793,8 @@ ${lyrics}
    * Setup tab switching
    */
   setupTabs() {
+    console.log('[FlowAI] Starting setupTabs...');
+    
     try {
       const tabBtns = document.querySelectorAll('.tab-btn');
       
@@ -1801,16 +1803,18 @@ ${lyrics}
         return;
       }
 
-      tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
+      tabBtns.forEach((btn, index) => {
+        btn.onclick = () => {
           const tabName = btn.dataset.tab;
+          console.log(`[FlowAI] Tab button ${index} clicked: ${tabName}`);
           this.switchTab(tabName);
-        });
+        };
       });
       
-      console.log('[FlowAI] Tabs setup complete');
+      console.log(`[FlowAI] ✓ Tabs setup complete (${tabBtns.length} buttons)`);
     } catch (error) {
-      console.error('[FlowAI] Error setting up tabs:', error);
+      console.error('[FlowAI] Fatal error in setupTabs:', error);
+      console.error('[FlowAI] Stack:', error.stack);
     }
   }
 
@@ -1840,107 +1844,155 @@ ${lyrics}
   /**
    * Setup header buttons
    */
+  /**
+   * Setup header buttons
+   */
   setupHeaderButtons() {
+    console.log('[FlowAI] Starting setupHeaderButtons...');
+    
     try {
       // Refresh button
       const refreshBtn = document.getElementById('refreshDataBtn');
       if (refreshBtn) {
-        refreshBtn.addEventListener('click', async () => {
+        refreshBtn.onclick = async () => {
+          console.log('[FlowAI] Refresh clicked');
           refreshBtn.classList.add('spinning');
-          await this.refreshData();
-          refreshBtn.classList.remove('spinning');
-          showToast('รีเฟรชข้อมูลเรียบร้อย', 'success');
-        });
+          try {
+            await this.refreshData();
+            showToast('รีเฟรชข้อมูลเรียบร้อย', 'success');
+          } catch (err) {
+            console.error('[FlowAI] Refresh error:', err);
+            showToast('ไม่สามารถรีเฟรชได้: ' + err.message, 'error');
+          } finally {
+            refreshBtn.classList.remove('spinning');
+          }
+        };
+        console.log('[FlowAI] ✓ Refresh button setup');
+      } else {
+        console.warn('[FlowAI] ✗ refreshDataBtn not found');
       }
 
       // Logout button
       const logoutBtn = document.getElementById('logoutBtn');
       if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.onclick = () => {
+          console.log('[FlowAI] Logout clicked');
           if (confirm('ต้องการออกจากระบบหรือไม่?')) {
             this.handleLogout();
           }
-        });
+        };
+        console.log('[FlowAI] ✓ Logout button setup');
+      } else {
+        console.warn('[FlowAI] ✗ logoutBtn not found');
       }
 
       // Open warehouse button
       const openWarehouseBtn = document.getElementById('openWarehouseBtn');
       if (openWarehouseBtn) {
-        openWarehouseBtn.addEventListener('click', () => {
+        openWarehouseBtn.onclick = () => {
+          console.log('[FlowAI] Open Warehouse (sidebar) clicked');
           chrome.tabs.create({ url: chrome.runtime.getURL('html/warehouse.html') });
-        });
+        };
+        console.log('[FlowAI] ✓ Open Warehouse (sidebar) button setup');
       }
 
       // Open warehouse header button (shortcut)
       const openWarehouseHeaderBtn = document.getElementById('openWarehouseHeaderBtn');
       if (openWarehouseHeaderBtn) {
-        openWarehouseHeaderBtn.addEventListener('click', () => {
+        openWarehouseHeaderBtn.onclick = () => {
+          console.log('[FlowAI] Open Warehouse (header) clicked');
           chrome.tabs.create({ url: chrome.runtime.getURL('html/warehouse.html') });
-        });
+        };
+        console.log('[FlowAI] ✓ Open Warehouse (header) button setup');
+      } else {
+        console.warn('[FlowAI] ✗ openWarehouseHeaderBtn not found');
       }
 
       // Sync from TikTok button
       const syncTiktokBtn = document.getElementById('syncTiktokBtn');
       if (syncTiktokBtn) {
-        syncTiktokBtn.addEventListener('click', () => this.syncFromTiktok());
+        syncTiktokBtn.onclick = () => {
+          console.log('[FlowAI] Sync from TikTok clicked');
+          this.syncFromTiktok();
+        };
+        console.log('[FlowAI] ✓ Sync TikTok button setup');
       }
 
       // Open Prompt Warehouse button
       const openPromptWarehouseBtn = document.getElementById('openPromptWarehouseBtn');
       if (openPromptWarehouseBtn) {
-        openPromptWarehouseBtn.addEventListener('click', () => {
+        openPromptWarehouseBtn.onclick = () => {
+          console.log('[FlowAI] Open Prompt Warehouse clicked');
           chrome.tabs.create({ url: chrome.runtime.getURL('html/prompt-warehouse.html') });
-        });
+        };
+        console.log('[FlowAI] ✓ Open Prompt Warehouse button setup');
+      } else {
+        console.warn('[FlowAI] ✗ openPromptWarehouseBtn not found');
       }
 
       // Testing Panel button
       const openTestingPanelBtn = document.getElementById('openTestingPanelBtn');
       if (openTestingPanelBtn) {
-        openTestingPanelBtn.addEventListener('click', () => {
+        openTestingPanelBtn.onclick = () => {
+          console.log('[FlowAI] Testing Panel clicked');
           if (window.testingPanel) {
             window.testingPanel.toggle();
+          } else {
+            console.warn('[FlowAI] Testing panel not initialized');
           }
-        });
+        };
+        console.log('[FlowAI] ✓ Testing Panel button setup');
+      } else {
+        console.warn('[FlowAI] ✗ openTestingPanelBtn not found');
       }
 
       // Variable Guide button
       const variableGuideBtn = document.getElementById('variableGuideBtn');
       if (variableGuideBtn) {
-        variableGuideBtn.addEventListener('click', () => {
+        variableGuideBtn.onclick = () => {
+          console.log('[FlowAI] Variable Guide clicked');
           const modal = document.getElementById('variableGuideModal');
-          if (modal) modal.style.display = 'flex';
-        });
+          if (modal) {
+            modal.style.display = 'flex';
+          }
+        };
+        console.log('[FlowAI] ✓ Variable Guide button setup');
       }
 
       // Variable Guide Modal close buttons
       const closeVariableGuideModal = document.getElementById('closeVariableGuideModal');
-      const closeVariableGuideBtn = document.getElementById('closeVariableGuideBtn');
-
       if (closeVariableGuideModal) {
-        closeVariableGuideModal.addEventListener('click', () => {
-          document.getElementById('variableGuideModal').style.display = 'none';
-        });
+        closeVariableGuideModal.onclick = () => {
+          const modal = document.getElementById('variableGuideModal');
+          if (modal) modal.style.display = 'none';
+        };
+        console.log('[FlowAI] ✓ Close Variable Guide (X) button setup');
       }
 
+      const closeVariableGuideBtn = document.getElementById('closeVariableGuideBtn');
       if (closeVariableGuideBtn) {
-        closeVariableGuideBtn.addEventListener('click', () => {
-          document.getElementById('variableGuideModal').style.display = 'none';
-        });
+        closeVariableGuideBtn.onclick = () => {
+          const modal = document.getElementById('variableGuideModal');
+          if (modal) modal.style.display = 'none';
+        };
+        console.log('[FlowAI] ✓ Close Variable Guide button setup');
       }
 
       // Close modal on overlay click
       const variableGuideModal = document.getElementById('variableGuideModal');
       if (variableGuideModal) {
-        variableGuideModal.addEventListener('click', (e) => {
+        variableGuideModal.onclick = (e) => {
           if (e.target === variableGuideModal) {
             variableGuideModal.style.display = 'none';
           }
-        });
+        };
+        console.log('[FlowAI] ✓ Variable Guide modal overlay click setup');
       }
 
-      console.log('[FlowAI] Header buttons setup complete');
+      console.log('[FlowAI] ✓✓✓ All header buttons setup complete ✓✓✓');
     } catch (error) {
-      console.error('[FlowAI] Error setting up header buttons:', error);
+      console.error('[FlowAI] Fatal error in setupHeaderButtons:', error);
+      console.error('[FlowAI] Stack:', error.stack);
     }
   } if(variableGuideModal) {
     variableGuideModal.addEventListener('click', (e) => {
@@ -2144,6 +2196,8 @@ resetSyncButton() {
  * Setup settings modal
  */
 setupSettingsModal() {
+  console.log('[FlowAI] Starting setupSettingsModal...');
+  
   try {
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
@@ -2151,53 +2205,68 @@ setupSettingsModal() {
     const saveBtn = document.getElementById('saveSettingsBtn');
 
     if (!settingsBtn || !settingsModal || !closeBtn || !saveBtn) {
-      console.warn('[FlowAI] Settings modal elements not found');
+      console.warn('[FlowAI] Some settings modal elements not found:');
+      console.warn('  settingsBtn:', !!settingsBtn);
+      console.warn('  settingsModal:', !!settingsModal);
+      console.warn('  closeBtn:', !!closeBtn);
+      console.warn('  saveBtn:', !!saveBtn);
       return;
     }
 
-    // Open modal
-    settingsBtn.addEventListener('click', () => {
-      this.loadSettingsToModal();
-      settingsModal.style.display = 'flex';
-    });
-
-    // Close modal
+    // Close modal function
     const closeModal = () => {
+      console.log('[FlowAI] Closing settings modal');
       settingsModal.style.display = 'none';
     };
 
-    closeBtn.addEventListener('click', closeModal);
+    // Open modal
+    settingsBtn.onclick = () => {
+      console.log('[FlowAI] Settings button clicked');
+      this.loadSettingsToModal();
+      settingsModal.style.display = 'flex';
+    };
+
+    // Close button
+    closeBtn.onclick = closeModal;
 
     // Close on overlay click
-    settingsModal.addEventListener('click', (e) => {
+    settingsModal.onclick = (e) => {
       if (e.target === settingsModal) closeModal();
-    });
+    };
 
     // Save settings
-    saveBtn.addEventListener('click', () => {
+    saveBtn.onclick = () => {
+      console.log('[FlowAI] Save settings clicked');
       this.saveSettings();
       closeModal();
-    });
+    };
 
     // Model toggle buttons
     const toggleGemini = document.getElementById('toggleGemini');
     const toggleOpenai = document.getElementById('toggleOpenai');
 
     if (toggleGemini && toggleOpenai) {
-      toggleGemini.addEventListener('click', () => {
+      toggleGemini.onclick = () => {
+        console.log('[FlowAI] Toggle Gemini');
         toggleGemini.classList.add('active');
         toggleOpenai.classList.remove('active');
-      });
+      };
 
-      toggleOpenai.addEventListener('click', () => {
+      toggleOpenai.onclick = () => {
+        console.log('[FlowAI] Toggle OpenAI');
         toggleOpenai.classList.add('active');
         toggleGemini.classList.remove('active');
-      });
+      };
+      
+      console.log('[FlowAI] ✓ Model toggle buttons setup');
+    } else {
+      console.warn('[FlowAI] Model toggle buttons not found');
     }
 
-    console.log('[FlowAI] Settings modal setup complete');
+    console.log('[FlowAI] ✓ Settings modal setup complete');
   } catch (error) {
-    console.error('[FlowAI] Error setting up settings modal:', error);
+    console.error('[FlowAI] Fatal error in setupSettingsModal:', error);
+    console.error('[FlowAI] Stack:', error.stack);
   }
 }
 
@@ -2305,23 +2374,21 @@ setupSettingsModal() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[FlowAI] DOM Content Loaded - Initializing app...');
+  
   window.flowAIUnlocked = new FlowAIUnlocked();
 
   // Initialize Testing Panel
   if (window.TestingPanel) {
+    console.log('[FlowAI] Initializing Testing Panel...');
     window.testingPanel = new TestingPanel();
     window.testingPanel.init().then(() => {
-      console.log('[FlowAI] Testing Panel initialized');
-
-      // Add button event listener
-      const testingPanelBtn = document.getElementById('openTestingPanelBtn');
-      if (testingPanelBtn) {
-        testingPanelBtn.addEventListener('click', () => {
-          window.testingPanel.toggle();
-        });
-      }
+      console.log('[FlowAI] ✓ Testing Panel initialized successfully');
     }).catch(error => {
-      console.error('[FlowAI] Failed to initialize Testing Panel:', error);
+      console.error('[FlowAI] ✗ Failed to initialize Testing Panel:', error);
     });
+  } else {
+    console.warn('[FlowAI] TestingPanel class not found');
   }
 });
+
