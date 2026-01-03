@@ -188,15 +188,25 @@ class FlowAIUnlocked {
    * Initialize app after license check
    */
   async initApp() {
+    console.log('[FlowAI] initApp() starting...');
+    
     // V12: Auto-update video templates to include "single prompt only" constraint
     await this.autoFixVideoTemplates();
 
+    console.log('[FlowAI] Setting up tabs...');
     this.setupTabs();
+    
+    console.log('[FlowAI] Setting up header buttons...');
     this.setupHeaderButtons();
+    
+    console.log('[FlowAI] Setting up settings modal...');
     this.setupSettingsModal();
+    
+    console.log('[FlowAI] Loading warehouse stats...');
     this.loadWarehouseStats();
 
     // Initialize AI Generator modules (existing flow-unlocked-db modules)
+    console.log('[FlowAI] Initializing modules...');
     if (typeof ImageUpload !== 'undefined') ImageUpload.init();
     if (typeof Settings !== 'undefined') Settings.init();
     if (typeof UGCSection !== 'undefined') UGCSection.init();
@@ -212,9 +222,9 @@ class FlowAIUnlocked {
     if (typeof TikTokUploader !== 'undefined') TikTokUploader.init();
 
     // Initialize AI Story tab
-    this.initStoryTab();
+    await this.initStoryTab();
 
-    console.log('Flow AI Unlocked initialized');
+    console.log('[FlowAI] Flow AI v4.0 (Eddication) initialized successfully');
   }
 
   /**
@@ -1783,14 +1793,25 @@ ${lyrics}
    * Setup tab switching
    */
   setupTabs() {
-    const tabBtns = document.querySelectorAll('.tab-btn');
+    try {
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      
+      if (tabBtns.length === 0) {
+        console.warn('[FlowAI] No tab buttons found');
+        return;
+      }
 
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tabName = btn.dataset.tab;
-        this.switchTab(tabName);
+      tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabName = btn.dataset.tab;
+          this.switchTab(tabName);
+        });
       });
-    });
+      
+      console.log('[FlowAI] Tabs setup complete');
+    } catch (error) {
+      console.error('[FlowAI] Error setting up tabs:', error);
+    }
   }
 
   /**
@@ -1820,103 +1841,126 @@ ${lyrics}
    * Setup header buttons
    */
   setupHeaderButtons() {
-    // Refresh button
-    const refreshBtn = document.getElementById('refreshDataBtn');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', async () => {
-        refreshBtn.classList.add('spinning');
-        await this.refreshData();
-        refreshBtn.classList.remove('spinning');
-        showToast('รีเฟรชข้อมูลเรียบร้อย', 'success');
-      });
-    }
+    try {
+      // Refresh button
+      const refreshBtn = document.getElementById('refreshDataBtn');
+      if (refreshBtn) {
+        refreshBtn.addEventListener('click', async () => {
+          refreshBtn.classList.add('spinning');
+          await this.refreshData();
+          refreshBtn.classList.remove('spinning');
+          showToast('รีเฟรชข้อมูลเรียบร้อย', 'success');
+        });
+      }
 
-    // Logout button
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', () => {
-        if (confirm('ต้องการออกจากระบบหรือไม่?')) {
-          this.handleLogout();
-        }
-      });
-    }
+      // Logout button
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (confirm('ต้องการออกจากระบบหรือไม่?')) {
+            this.handleLogout();
+          }
+        });
+      }
 
-    // Open warehouse button
-    const openWarehouseBtn = document.getElementById('openWarehouseBtn');
-    if (openWarehouseBtn) {
-      openWarehouseBtn.addEventListener('click', () => {
-        chrome.tabs.create({ url: chrome.runtime.getURL('html/warehouse.html') });
-      });
-    }
+      // Open warehouse button
+      const openWarehouseBtn = document.getElementById('openWarehouseBtn');
+      if (openWarehouseBtn) {
+        openWarehouseBtn.addEventListener('click', () => {
+          chrome.tabs.create({ url: chrome.runtime.getURL('html/warehouse.html') });
+        });
+      }
 
-    // Open warehouse header button (shortcut)
-    const openWarehouseHeaderBtn = document.getElementById('openWarehouseHeaderBtn');
-    if (openWarehouseHeaderBtn) {
-      openWarehouseHeaderBtn.addEventListener('click', () => {
-        chrome.tabs.create({ url: chrome.runtime.getURL('html/warehouse.html') });
-      });
-    }
+      // Open warehouse header button (shortcut)
+      const openWarehouseHeaderBtn = document.getElementById('openWarehouseHeaderBtn');
+      if (openWarehouseHeaderBtn) {
+        openWarehouseHeaderBtn.addEventListener('click', () => {
+          chrome.tabs.create({ url: chrome.runtime.getURL('html/warehouse.html') });
+        });
+      }
 
-    // Sync from TikTok button
-    const syncTiktokBtn = document.getElementById('syncTiktokBtn');
-    if (syncTiktokBtn) {
-      syncTiktokBtn.addEventListener('click', () => this.syncFromTiktok());
-    }
+      // Sync from TikTok button
+      const syncTiktokBtn = document.getElementById('syncTiktokBtn');
+      if (syncTiktokBtn) {
+        syncTiktokBtn.addEventListener('click', () => this.syncFromTiktok());
+      }
 
-    // Open Prompt Warehouse button
-    const openPromptWarehouseBtn = document.getElementById('openPromptWarehouseBtn');
-    if (openPromptWarehouseBtn) {
-      openPromptWarehouseBtn.addEventListener('click', () => {
-        chrome.tabs.create({ url: chrome.runtime.getURL('html/prompt-warehouse.html') });
-      });
-    }
+      // Open Prompt Warehouse button
+      const openPromptWarehouseBtn = document.getElementById('openPromptWarehouseBtn');
+      if (openPromptWarehouseBtn) {
+        openPromptWarehouseBtn.addEventListener('click', () => {
+          chrome.tabs.create({ url: chrome.runtime.getURL('html/prompt-warehouse.html') });
+        });
+      }
 
-    // Variable Guide button
-    const variableGuideBtn = document.getElementById('variableGuideBtn');
-    if (variableGuideBtn) {
-      variableGuideBtn.addEventListener('click', () => {
-        const modal = document.getElementById('variableGuideModal');
-        if (modal) modal.style.display = 'flex';
-      });
-    }
+      // Testing Panel button
+      const openTestingPanelBtn = document.getElementById('openTestingPanelBtn');
+      if (openTestingPanelBtn) {
+        openTestingPanelBtn.addEventListener('click', () => {
+          if (window.testingPanel) {
+            window.testingPanel.toggle();
+          }
+        });
+      }
 
-    // Variable Guide Modal close buttons
-    const closeVariableGuideModal = document.getElementById('closeVariableGuideModal');
-    const closeVariableGuideBtn = document.getElementById('closeVariableGuideBtn');
+      // Variable Guide button
+      const variableGuideBtn = document.getElementById('variableGuideBtn');
+      if (variableGuideBtn) {
+        variableGuideBtn.addEventListener('click', () => {
+          const modal = document.getElementById('variableGuideModal');
+          if (modal) modal.style.display = 'flex';
+        });
+      }
 
-    if (closeVariableGuideModal) {
-      closeVariableGuideModal.addEventListener('click', () => {
-        document.getElementById('variableGuideModal').style.display = 'none';
-      });
-    }
+      // Variable Guide Modal close buttons
+      const closeVariableGuideModal = document.getElementById('closeVariableGuideModal');
+      const closeVariableGuideBtn = document.getElementById('closeVariableGuideBtn');
 
-    if (closeVariableGuideBtn) {
-      closeVariableGuideBtn.addEventListener('click', () => {
-        document.getElementById('variableGuideModal').style.display = 'none';
-      });
-    }
+      if (closeVariableGuideModal) {
+        closeVariableGuideModal.addEventListener('click', () => {
+          document.getElementById('variableGuideModal').style.display = 'none';
+        });
+      }
 
-    // Close modal on overlay click
-    const variableGuideModal = document.getElementById('variableGuideModal');
-    if (variableGuideModal) {
-      variableGuideModal.addEventListener('click', (e) => {
-        if (e.target === variableGuideModal) {
-          variableGuideModal.style.display = 'none';
-        }
-      });
+      if (closeVariableGuideBtn) {
+        closeVariableGuideBtn.addEventListener('click', () => {
+          document.getElementById('variableGuideModal').style.display = 'none';
+        });
+      }
+
+      // Close modal on overlay click
+      const variableGuideModal = document.getElementById('variableGuideModal');
+      if (variableGuideModal) {
+        variableGuideModal.addEventListener('click', (e) => {
+          if (e.target === variableGuideModal) {
+            variableGuideModal.style.display = 'none';
+          }
+        });
+      }
+
+      console.log('[FlowAI] Header buttons setup complete');
+    } catch (error) {
+      console.error('[FlowAI] Error setting up header buttons:', error);
     }
+  } if(variableGuideModal) {
+    variableGuideModal.addEventListener('click', (e) => {
+      if (e.target === variableGuideModal) {
+        variableGuideModal.style.display = 'none';
+      }
+    });
   }
+}
 
   /**
    * Sync products from TikTok Shop
    */
   async syncFromTiktok() {
-    const syncBtn = document.getElementById('syncTiktokBtn');
+  const syncBtn = document.getElementById('syncTiktokBtn');
 
-    try {
-      // Disable button and show loading
-      syncBtn.disabled = true;
-      syncBtn.innerHTML = `
+  try {
+    // Disable button and show loading
+    syncBtn.disabled = true;
+    syncBtn.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
           <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
           <path d="M3 3v5h5"/>
@@ -1924,82 +1968,82 @@ ${lyrics}
         กำลังดึงข้อมูล...
       `;
 
-      showToast('กำลังดึงข้อมูลจาก Showcase (ทุกหน้า)...', 'info');
+    showToast('กำลังดึงข้อมูลจาก Showcase (ทุกหน้า)...', 'info');
 
-      // Find TikTok tab
-      const tabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
+    // Find TikTok tab
+    const tabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
 
-      if (tabs.length === 0) {
-        showToast('ไม่พบหน้า TikTok Shop กรุณาเปิดหน้า TikTok Shop ก่อน', 'error');
-        this.resetSyncButton();
-        return;
-      }
-
-      const tiktokTab = tabs[0];
-
-      // Send message to content script
-      const response = await new Promise((resolve) => {
-        chrome.tabs.sendMessage(tiktokTab.id, { action: 'getProductsForWarehouse' }, (resp) => {
-          if (chrome.runtime.lastError) {
-            const errMsg = chrome.runtime.lastError.message || 'Unknown error';
-            console.error('sendMessage error:', errMsg);
-            // Most common cause: content script not loaded
-            resolve({ success: false, error: 'กรุณา refresh หน้า TikTok แล้วลองใหม่' });
-          } else {
-            resolve(resp);
-          }
-        });
-      });
-
-      console.log('Sync response:', response);
-
-      if (!response || !response.success) {
-        showToast(response?.error || 'ไม่สามารถดึงข้อมูลได้ ลอง refresh หน้า TikTok', 'error');
-        this.resetSyncButton();
-        return;
-      }
-
-      const products = response.products || [];
-
-      if (products.length === 0) {
-        showToast('ไม่พบสินค้าในตาราง กรุณาเปิดหน้าเลือกสินค้า', 'error');
-        this.resetSyncButton();
-        return;
-      }
-
-      // Get existing products to check for duplicates
-      const existingProducts = await ProductWarehouse.getAll();
-      const existingProductIds = new Set(existingProducts.map(p => p.productId).filter(id => id));
-
-      // Filter out duplicates
-      const newProducts = products.filter(p => !existingProductIds.has(p.productId));
-
-      if (newProducts.length === 0) {
-        showToast(`สินค้าทั้งหมด ${products.length} รายการมีในคลังแล้ว`, 'info');
-        this.resetSyncButton();
-        return;
-      }
-
-      // Convert image URLs to base64
-      showToast(`กำลังดาวน์โหลดภาพ ${newProducts.length} รายการ...`, 'info');
-      const productsWithBase64 = await this.convertImagesToBase64(newProducts);
-
-      // Save new products
-      await ProductWarehouse.saveMultiple(productsWithBase64);
-
-      // Reload stats
-      await this.loadWarehouseStats();
-      await this.loadRecentProducts();
-
-      showToast(`เพิ่ม ${newProducts.length} สินค้าใหม่ (ข้าม ${products.length - newProducts.length} รายการที่ซ้ำ)`, 'success');
-
-    } catch (error) {
-      console.error('TikTok sync error:', error);
-      showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
-    } finally {
+    if (tabs.length === 0) {
+      showToast('ไม่พบหน้า TikTok Shop กรุณาเปิดหน้า TikTok Shop ก่อน', 'error');
       this.resetSyncButton();
+      return;
     }
+
+    const tiktokTab = tabs[0];
+
+    // Send message to content script
+    const response = await new Promise((resolve) => {
+      chrome.tabs.sendMessage(tiktokTab.id, { action: 'getProductsForWarehouse' }, (resp) => {
+        if (chrome.runtime.lastError) {
+          const errMsg = chrome.runtime.lastError.message || 'Unknown error';
+          console.error('sendMessage error:', errMsg);
+          // Most common cause: content script not loaded
+          resolve({ success: false, error: 'กรุณา refresh หน้า TikTok แล้วลองใหม่' });
+        } else {
+          resolve(resp);
+        }
+      });
+    });
+
+    console.log('Sync response:', response);
+
+    if (!response || !response.success) {
+      showToast(response?.error || 'ไม่สามารถดึงข้อมูลได้ ลอง refresh หน้า TikTok', 'error');
+      this.resetSyncButton();
+      return;
+    }
+
+    const products = response.products || [];
+
+    if (products.length === 0) {
+      showToast('ไม่พบสินค้าในตาราง กรุณาเปิดหน้าเลือกสินค้า', 'error');
+      this.resetSyncButton();
+      return;
+    }
+
+    // Get existing products to check for duplicates
+    const existingProducts = await ProductWarehouse.getAll();
+    const existingProductIds = new Set(existingProducts.map(p => p.productId).filter(id => id));
+
+    // Filter out duplicates
+    const newProducts = products.filter(p => !existingProductIds.has(p.productId));
+
+    if (newProducts.length === 0) {
+      showToast(`สินค้าทั้งหมด ${products.length} รายการมีในคลังแล้ว`, 'info');
+      this.resetSyncButton();
+      return;
+    }
+
+    // Convert image URLs to base64
+    showToast(`กำลังดาวน์โหลดภาพ ${newProducts.length} รายการ...`, 'info');
+    const productsWithBase64 = await this.convertImagesToBase64(newProducts);
+
+    // Save new products
+    await ProductWarehouse.saveMultiple(productsWithBase64);
+
+    // Reload stats
+    await this.loadWarehouseStats();
+    await this.loadRecentProducts();
+
+    showToast(`เพิ่ม ${newProducts.length} สินค้าใหม่ (ข้าม ${products.length - newProducts.length} รายการที่ซ้ำ)`, 'success');
+
+  } catch (error) {
+    console.error('TikTok sync error:', error);
+    showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+  } finally {
+    this.resetSyncButton();
   }
+}
 
   /**
    * Convert image URLs to base64
@@ -2007,52 +2051,52 @@ ${lyrics}
    * @returns {Array} - Products with base64 images
    */
   async convertImagesToBase64(products) {
-    const results = [];
+  const results = [];
 
-    for (const product of products) {
-      try {
-        if (product.productImage && product.productImage.startsWith('http')) {
-          // Fetch image and convert to base64
-          const response = await fetch(product.productImage);
-          const blob = await response.blob();
-          const base64 = await this.blobToBase64(blob);
-          results.push({ ...product, productImage: base64 });
-        } else {
-          // Already base64 or empty
-          results.push(product);
-        }
-      } catch (error) {
-        console.error('Error converting image:', error);
-        // Keep the product but without image
-        results.push({ ...product, productImage: '' });
+  for (const product of products) {
+    try {
+      if (product.productImage && product.productImage.startsWith('http')) {
+        // Fetch image and convert to base64
+        const response = await fetch(product.productImage);
+        const blob = await response.blob();
+        const base64 = await this.blobToBase64(blob);
+        results.push({ ...product, productImage: base64 });
+      } else {
+        // Already base64 or empty
+        results.push(product);
       }
+    } catch (error) {
+      console.error('Error converting image:', error);
+      // Keep the product but without image
+      results.push({ ...product, productImage: '' });
     }
-
-    return results;
   }
 
-  /**
-   * Convert blob to base64
-   * @param {Blob} blob
-   * @returns {Promise<string>}
-   */
-  blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
+  return results;
+}
 
-  /**
-   * Reset sync button to default state
-   */
-  resetSyncButton() {
-    const syncBtn = document.getElementById('syncTiktokBtn');
-    if (syncBtn) {
-      syncBtn.disabled = false;
-      syncBtn.innerHTML = `
+/**
+ * Convert blob to base64
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Reset sync button to default state
+ */
+resetSyncButton() {
+  const syncBtn = document.getElementById('syncTiktokBtn');
+  if (syncBtn) {
+    syncBtn.disabled = false;
+    syncBtn.innerHTML = `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
           <path d="M3 3v5h5"/>
@@ -2061,49 +2105,55 @@ ${lyrics}
         </svg>
         ดึงข้อมูลจาก Showcase
       `;
-    }
   }
+}
 
   /**
    * Refresh data from storage (products, characters)
    */
   async refreshData() {
-    // Reload warehouse dropdowns in AI Generator
-    if (typeof ImageUpload !== 'undefined') {
-      await ImageUpload.loadWarehouseProducts();
-      await ImageUpload.loadWarehouseCharacters();
-    }
-
-    // Reload AI Story characters and prompt styles
-    await this.loadStoryCharacters();
-    await this.loadStoryPromptStyles();
-
-    // Reload warehouse videos in TikTok tab
-    if (typeof TikTokUploader !== 'undefined') {
-      await TikTokUploader.refreshWarehouseData();
-    }
-
-    // Reload prompt templates from warehouse
-    if (typeof PromptTemplateSelector !== 'undefined') {
-      await PromptTemplateSelector.reload();
-    }
-    if (typeof VideoPromptTemplateSelector !== 'undefined') {
-      await VideoPromptTemplateSelector.reload();
-    }
-
-    // Reload warehouse stats
-    await this.loadWarehouseStats();
-    await this.loadRecentProducts();
+  // Reload warehouse dropdowns in AI Generator
+  if (typeof ImageUpload !== 'undefined') {
+    await ImageUpload.loadWarehouseProducts();
+    await ImageUpload.loadWarehouseCharacters();
   }
 
-  /**
-   * Setup settings modal
-   */
-  setupSettingsModal() {
+  // Reload AI Story characters and prompt styles
+  await this.loadStoryCharacters();
+  await this.loadStoryPromptStyles();
+
+  // Reload warehouse videos in TikTok tab
+  if (typeof TikTokUploader !== 'undefined') {
+    await TikTokUploader.refreshWarehouseData();
+  }
+
+  // Reload prompt templates from warehouse
+  if (typeof PromptTemplateSelector !== 'undefined') {
+    await PromptTemplateSelector.reload();
+  }
+  if (typeof VideoPromptTemplateSelector !== 'undefined') {
+    await VideoPromptTemplateSelector.reload();
+  }
+
+  // Reload warehouse stats
+  await this.loadWarehouseStats();
+  await this.loadRecentProducts();
+}
+
+/**
+ * Setup settings modal
+ */
+setupSettingsModal() {
+  try {
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
     const closeBtn = document.getElementById('closeSettingsBtn');
     const saveBtn = document.getElementById('saveSettingsBtn');
+
+    if (!settingsBtn || !settingsModal || !closeBtn || !saveBtn) {
+      console.warn('[FlowAI] Settings modal elements not found');
+      return;
+    }
 
     // Open modal
     settingsBtn.addEventListener('click', () => {
@@ -2133,117 +2183,124 @@ ${lyrics}
     const toggleGemini = document.getElementById('toggleGemini');
     const toggleOpenai = document.getElementById('toggleOpenai');
 
-    toggleGemini.addEventListener('click', () => {
-      toggleGemini.classList.add('active');
-      toggleOpenai.classList.remove('active');
-    });
+    if (toggleGemini && toggleOpenai) {
+      toggleGemini.addEventListener('click', () => {
+        toggleGemini.classList.add('active');
+        toggleOpenai.classList.remove('active');
+      });
 
-    toggleOpenai.addEventListener('click', () => {
-      toggleOpenai.classList.add('active');
-      toggleGemini.classList.remove('active');
-    });
+      toggleOpenai.addEventListener('click', () => {
+        toggleOpenai.classList.add('active');
+        toggleGemini.classList.remove('active');
+      });
+    }
+
+    console.log('[FlowAI] Settings modal setup complete');
+  } catch (error) {
+    console.error('[FlowAI] Error setting up settings modal:', error);
   }
+}
 
   /**
    * Load settings to modal
    */
   async loadSettingsToModal() {
-    const result = await chrome.storage.local.get(['geminiApiKey', 'openaiApiKey', 'selectedModel']);
+  const result = await chrome.storage.local.get(['geminiApiKey', 'openaiApiKey', 'selectedModel']);
 
-    document.getElementById('geminiApiKey').value = result.geminiApiKey || '';
-    document.getElementById('openaiApiKey').value = result.openaiApiKey || '';
+  document.getElementById('geminiApiKey').value = result.geminiApiKey || '';
+  document.getElementById('openaiApiKey').value = result.openaiApiKey || '';
 
-    const model = result.selectedModel || 'gemini';
-    document.getElementById('toggleGemini').classList.toggle('active', model === 'gemini');
-    document.getElementById('toggleOpenai').classList.toggle('active', model === 'openai');
-  }
+  const model = result.selectedModel || 'gemini';
+  document.getElementById('toggleGemini').classList.toggle('active', model === 'gemini');
+  document.getElementById('toggleOpenai').classList.toggle('active', model === 'openai');
+}
 
   /**
    * Save settings
    */
   async saveSettings() {
-    const geminiKey = document.getElementById('geminiApiKey').value.trim();
-    const openaiKey = document.getElementById('openaiApiKey').value.trim();
-    const model = document.getElementById('toggleGemini').classList.contains('active') ? 'gemini' : 'openai';
+  const geminiKey = document.getElementById('geminiApiKey').value.trim();
+  const openaiKey = document.getElementById('openaiApiKey').value.trim();
+  const model = document.getElementById('toggleGemini').classList.contains('active') ? 'gemini' : 'openai';
 
-    await chrome.storage.local.set({
-      geminiApiKey: geminiKey,
-      openaiApiKey: openaiKey,
-      selectedModel: model
-    });
+  await chrome.storage.local.set({
+    geminiApiKey: geminiKey,
+    openaiApiKey: openaiKey,
+    selectedModel: model
+  });
 
-    showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
-  }
+  showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
+}
 
   /**
    * Load warehouse stats
    */
   async loadWarehouseStats() {
-    if (typeof ProductWarehouse === 'undefined') return;
+  if (typeof ProductWarehouse === 'undefined') return;
 
-    const stats = await ProductWarehouse.getStats();
-    const categories = await ProductWarehouse.getCategories();
-    const videos = await ProductWarehouse.getVideos();
-    const characters = await ProductWarehouse.getCharacters();
+  const stats = await ProductWarehouse.getStats();
+  const categories = await ProductWarehouse.getCategories();
+  const videos = await ProductWarehouse.getVideos();
+  const characters = await ProductWarehouse.getCharacters();
 
-    // Basic stats
-    document.getElementById('totalProductsCount').textContent = stats.total;
-    document.getElementById('totalCategoriesCount').textContent = categories.length;
-    document.getElementById('totalCharactersCount').textContent = characters.length;
+  // Basic stats
+  document.getElementById('totalProductsCount').textContent = stats.total;
+  document.getElementById('totalCategoriesCount').textContent = categories.length;
+  document.getElementById('totalCharactersCount').textContent = characters.length;
 
-    // Video stats
-    let pendingCount = 0;
-    let uploadedCount = 0;
+  // Video stats
+  let pendingCount = 0;
+  let uploadedCount = 0;
 
-    videos.forEach(v => {
-      if (v.status === 'pending') {
-        pendingCount++;
-      } else if (v.status === 'uploaded') {
-        uploadedCount++;
-      }
-    });
+  videos.forEach(v => {
+    if (v.status === 'pending') {
+      pendingCount++;
+    } else if (v.status === 'uploaded') {
+      uploadedCount++;
+    }
+  });
 
-    document.getElementById('sidebarTotalVideos').textContent = videos.length;
-    document.getElementById('sidebarPendingVideos').textContent = pendingCount;
-    document.getElementById('sidebarUploadedVideos').textContent = uploadedCount;
-  }
+  document.getElementById('sidebarTotalVideos').textContent = videos.length;
+  document.getElementById('sidebarPendingVideos').textContent = pendingCount;
+  document.getElementById('sidebarUploadedVideos').textContent = uploadedCount;
+}
 
   /**
    * Load recent products
    */
   async loadRecentProducts() {
-    if (typeof ProductWarehouse === 'undefined') return;
+  if (typeof ProductWarehouse === 'undefined') return;
 
-    const products = await ProductWarehouse.getAll();
-    const grid = document.getElementById('recentProductsGrid');
+  const products = await ProductWarehouse.getAll();
+  const grid = document.getElementById('recentProductsGrid');
 
-    if (products.length === 0) {
-      grid.innerHTML = '<p class="empty-message">ยังไม่มีสินค้าในคลัง</p>';
-      return;
-    }
+  if (products.length === 0) {
+    grid.innerHTML = '<p class="empty-message">ยังไม่มีสินค้าในคลัง</p>';
+    return;
+  }
 
-    // Sort by createdAt desc and take first 6
-    const recent = products
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, 6);
+  // Sort by createdAt desc and take first 6
+  const recent = products
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 6);
 
-    grid.innerHTML = recent.map(p => `
+  grid.innerHTML = recent.map(p => `
       <div class="product-grid-item" data-id="${p.id}">
         <img src="${p.productImage}" alt="${p.name}">
         <div class="product-name-overlay">${p.name}</div>
       </div>
     `).join('');
 
-    // Add click handlers
-    grid.querySelectorAll('.product-grid-item').forEach(item => {
-      item.addEventListener('click', async () => {
-        const id = item.dataset.id;
-        await ProductWarehouse.selectProduct(id);
-        showToast('เลือกสินค้าแล้ว', 'success');
-        this.switchTab('ai-generator');
-      });
+  // Add click handlers
+  grid.querySelectorAll('.product-grid-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const id = item.dataset.id;
+      await ProductWarehouse.selectProduct(id);
+      showToast('เลือกสินค้าแล้ว', 'success');
+      this.switchTab('ai-generator');
     });
-  }
+  });
+}
 }
 
 // Initialize when DOM is ready
