@@ -189,19 +189,19 @@ class FlowAIUnlocked {
    */
   async initApp() {
     console.log('[FlowAI] initApp() starting...');
-    
+
     // V12: Auto-update video templates to include "single prompt only" constraint
     await this.autoFixVideoTemplates();
 
     console.log('[FlowAI] Setting up tabs...');
     this.setupTabs();
-    
+
     console.log('[FlowAI] Setting up header buttons...');
     this.setupHeaderButtons();
-    
+
     console.log('[FlowAI] Setting up settings modal...');
     this.setupSettingsModal();
-    
+
     console.log('[FlowAI] Loading warehouse stats...');
     this.loadWarehouseStats();
 
@@ -1794,10 +1794,10 @@ ${lyrics}
    */
   setupTabs() {
     console.log('[FlowAI] Starting setupTabs...');
-    
+
     try {
       const tabBtns = document.querySelectorAll('.tab-btn');
-      
+
       if (tabBtns.length === 0) {
         console.warn('[FlowAI] No tab buttons found');
         return;
@@ -1810,7 +1810,7 @@ ${lyrics}
           this.switchTab(tabName);
         };
       });
-      
+
       console.log(`[FlowAI] ✓ Tabs setup complete (${tabBtns.length} buttons)`);
     } catch (error) {
       console.error('[FlowAI] Fatal error in setupTabs:', error);
@@ -1849,7 +1849,7 @@ ${lyrics}
    */
   setupHeaderButtons() {
     console.log('[FlowAI] Starting setupHeaderButtons...');
-    
+
     try {
       // Refresh button
       const refreshBtn = document.getElementById('refreshDataBtn');
@@ -2197,7 +2197,7 @@ resetSyncButton() {
  */
 setupSettingsModal() {
   console.log('[FlowAI] Starting setupSettingsModal...');
-  
+
   try {
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
@@ -2257,7 +2257,7 @@ setupSettingsModal() {
         toggleOpenai.classList.add('active');
         toggleGemini.classList.remove('active');
       };
-      
+
       console.log('[FlowAI] ✓ Model toggle buttons setup');
     } else {
       console.warn('[FlowAI] Model toggle buttons not found');
@@ -2375,7 +2375,7 @@ setupSettingsModal() {
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   console.log('[FlowAI] DOM Content Loaded - Initializing app...');
-  
+
   window.flowAIUnlocked = new FlowAIUnlocked();
 
   // Initialize Testing Panel

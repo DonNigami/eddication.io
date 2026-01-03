@@ -146,32 +146,6 @@ const License = {
       }
     };
   },
-  const response = await fetch(`${this.BASE_URL}/api/licenses/activate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      license_key: this.licenseKey,
-      machine_id: this.machineId,
-      device_name: deviceInfo.deviceName,
-      os_info: deviceInfo.osInfo
-    })
-  });
-
-  const data = await response.json();
-
-  if(data.success) {
-    await this.saveLicenseKey(this.licenseKey);
-if (data.program) {
-  this.programInfo = data.program;
-}
-      }
-
-return data;
-    } catch (error) {
-  console.error('License activate error:', error);
-  return { success: false, code: 'NETWORK_ERROR', error: error.message };
-}
-  },
 
   /**
    * Heartbeat check (disabled)
