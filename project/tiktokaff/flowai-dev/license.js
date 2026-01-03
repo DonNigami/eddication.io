@@ -1,21 +1,26 @@
 /**
- * License Module for Flow AI Unlocked
- * Handles license verification and activation
+ * License Module - DISABLED
+ * License system has been removed - all features are now free
+ * Created by eddication
  */
 const License = {
-  BASE_URL: 'https://aiunlock.co',
-  PROGRAM_SLUG: 'flow-ai-unlocked',
+  BASE_URL: '',
+  PROGRAM_SLUG: 'eddication-flow-ai',
   machineId: null,
-  licenseKey: null,
+  licenseKey: 'FREE-VERSION',
   programInfo: null,
   heartbeatInterval: null,
 
   /**
-   * Initialize license module
+   * Initialize license module (disabled - auto-activate)
    */
   async init() {
-    this.machineId = await this.getMachineId();
-    await this.loadLicenseKey();
+    // License system disabled - auto-activate
+    this.machineId = 'eddication-free';
+    this.licenseKey = 'FREE-VERSION';
+    // Skip license verification and show app immediately
+    this.hideOverlay();
+    return;
   },
 
   /**
@@ -59,32 +64,28 @@ const License = {
   },
 
   /**
-   * Load license key from storage
+   * Load license key from storage (disabled)
    */
   async loadLicenseKey() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['licenseKey'], (result) => {
-        this.licenseKey = result.licenseKey || null;
-        resolve(this.licenseKey);
-      });
-    });
+    // License system disabled - always return FREE-VERSION
+    this.licenseKey = 'FREE-VERSION';
+    return this.licenseKey;
   },
 
   /**
-   * Save license key to storage
+   * Save license key to storage (disabled)
    */
   async saveLicenseKey(key) {
-    this.licenseKey = key;
-    await chrome.storage.local.set({ licenseKey: key });
+    // License system disabled - do nothing
+    this.licenseKey = 'FREE-VERSION';
   },
 
   /**
-   * Clear license data
+   * Clear license data (disabled)
    */
   async clearLicense() {
-    this.licenseKey = null;
-    this.programInfo = null;
-    await chrome.storage.local.remove(['licenseKey']);
+    // License system disabled - do nothing
+    this.licenseKey = 'FREE-VERSION';
   },
 
   /**
@@ -112,51 +113,39 @@ const License = {
   },
 
   /**
-   * Verify license with server
+   * Verify license with server (disabled - always returns valid)
    */
   async verify(licenseKey = null) {
-    if (licenseKey) {
-      this.licenseKey = licenseKey;
-    }
-
-    if (!this.licenseKey) {
-      return { valid: false, code: 'NO_LICENSE' };
-    }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/licenses/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          license_key: this.licenseKey,
-          machine_id: this.machineId,
-          program_slug: this.PROGRAM_SLUG
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.valid) {
-        await this.saveLicenseKey(this.licenseKey);
-        if (data.program) {
-          this.programInfo = data.program;
-        }
+    // License system disabled - always return valid
+    this.licenseKey = 'FREE-VERSION';
+    return { 
+      valid: true, 
+      code: 'FREE_VERSION',
+      message: 'Free version - all features unlocked',
+      program: {
+        name: 'Eddication Flow AI',
+        version: '4.0',
+        features: ['all']
       }
-
-      return data;
-    } catch (error) {
-      console.error('License verify error:', error);
-      return { valid: false, code: 'NETWORK_ERROR', error: error.message };
-    }
+    };
   },
 
   /**
-   * Activate license on this device
+   * Activate license on this device (disabled)
    */
   async activate() {
-    const deviceInfo = this.getDeviceInfo();
-
-    try {
+    // License system disabled - always return success
+    this.licenseKey = 'FREE-VERSION';
+    return { 
+      success: true, 
+      code: 'FREE_VERSION',
+      message: 'Free version activated',
+      program: {
+        name: 'Eddication Flow AI',
+        version: '4.0'
+      }
+    };
+  },
       const response = await fetch(`${this.BASE_URL}/api/licenses/activate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -185,128 +174,64 @@ const License = {
   },
 
   /**
-   * Heartbeat check
+   * Heartbeat check (disabled)
    */
   async heartbeat() {
-    if (!this.licenseKey) {
-      return { valid: false, code: 'NO_LICENSE' };
-    }
-
-    try {
-      const response = await fetch(`${this.BASE_URL}/api/licenses/heartbeat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          license_key: this.licenseKey,
-          machine_id: this.machineId
-        })
-      });
-
-      return await response.json();
-    } catch (error) {
-      // Offline mode - allow if previously activated
-      console.warn('Heartbeat failed (offline):', error);
-      return { valid: true, code: 'OFFLINE' };
-    }
+    // License system disabled - always return valid
+    return { valid: true, code: 'FREE_VERSION' };
   },
 
   /**
-   * Main validation function - verify and activate if needed
+   * Main validation function (disabled - always returns success)
    */
   async validateAndActivate(licenseKey = null) {
-    const result = await this.verify(licenseKey);
-
-    if (!result.valid) {
-      const messages = {
-        'LICENSE_NOT_FOUND': 'License Key ไม่ถูกต้อง',
-        'LICENSE_INACTIVE': 'License ถูกระงับการใช้งาน',
-        'LICENSE_EXPIRED': 'License หมดอายุแล้ว',
-        'MAX_ACTIVATIONS_REACHED': 'เปิดใช้งานครบจำนวนเครื่องแล้ว กรุณา deactivate เครื่องอื่นก่อน',
-        'PROGRAM_MISMATCH': 'License นี้ไม่สามารถใช้กับโปรแกรมนี้ได้',
-        'NETWORK_ERROR': 'ไม่สามารถเชื่อมต่อ server ได้',
-        'NO_LICENSE': 'กรุณากรอก License Key'
-      };
-
-      return {
-        success: false,
-        message: messages[result.code] || result.error || 'เกิดข้อผิดพลาด',
-        code: result.code
-      };
-    }
-
-    // Already activated
-    if (result.code === 'ALREADY_ACTIVATED') {
-      return {
-        success: true,
-        message: 'License ถูกต้อง',
-        program: result.program
-      };
-    }
-
-    // Needs activation
-    if (result.code === 'NEEDS_ACTIVATION') {
-      const activateResult = await this.activate();
-
-      if (activateResult.success) {
-        return {
-          success: true,
-          message: 'เปิดใช้งาน License สำเร็จ',
-          program: activateResult.program
-        };
-      } else {
-        const activateMessages = {
-          'MAX_ACTIVATIONS_REACHED': 'เปิดใช้งานครบจำนวนเครื่องแล้ว',
-          'LICENSE_NOT_FOUND': 'License Key ไม่ถูกต้อง',
-          'LICENSE_INACTIVE': 'License ถูกระงับการใช้งาน',
-          'LICENSE_EXPIRED': 'License หมดอายุแล้ว',
-          'NETWORK_ERROR': 'ไม่สามารถเชื่อมต่อ server ได้'
-        };
-
-        return {
-          success: false,
-          message: activateMessages[activateResult.code] || activateResult.error || 'ไม่สามารถเปิดใช้งานได้',
-          code: activateResult.code
-        };
+    // License system disabled - always return success
+    this.licenseKey = 'FREE-VERSION';
+    return {
+      success: true,
+      message: 'Free version - all features unlocked',
+      program: {
+        name: 'Eddication Flow AI',
+        version: '4.0',
+        features: ['all']
       }
-    }
-
-    return { success: false, message: 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ' };
+    };
   },
 
   /**
-   * Start heartbeat interval
+   * Start heartbeat interval (disabled)
    */
   startHeartbeat(intervalMs = 8 * 60 * 60 * 1000) {
-    // Check every 8 hours
-    this.heartbeatInterval = setInterval(async () => {
-      const result = await this.heartbeat();
-      if (!result.valid && result.code !== 'OFFLINE') {
-        // License revoked or expired
-        this.onLicenseInvalid?.(result);
-      }
-    }, intervalMs);
+    // License system disabled - do nothing
   },
 
   /**
-   * Stop heartbeat interval
+   * Stop heartbeat interval (disabled)
    */
   stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
+    // License system disabled - do nothing
   },
 
   /**
-   * Callback when license becomes invalid
+   * Callback when license becomes invalid (disabled)
    */
   onLicenseInvalid: null,
 
   /**
-   * Check if has valid stored license (quick check without API call)
+   * Check if has valid stored license (disabled - always returns true)
    */
   async hasStoredLicense() {
-    await this.loadLicenseKey();
-    return !!this.licenseKey;
+    this.licenseKey = 'FREE-VERSION';
+    return true;
+  },
+
+  /**
+   * Hide license overlay and show main app
+   */
+  hideOverlay() {
+    const overlay = document.getElementById('licenseOverlay');
+    const appContainer = document.getElementById('appContainer');
+    if (overlay) overlay.style.display = 'none';
+    if (appContainer) appContainer.removeAttribute('hidden');
   }
 };

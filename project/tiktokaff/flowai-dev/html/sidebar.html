@@ -16,36 +16,29 @@
 </head>
 
 <body>
-  <!-- License Overlay -->
-  <div class="license-overlay" id="licenseOverlay">
+  <!-- License Overlay (Hidden - Free Version) -->
+  <div class="license-overlay" id="licenseOverlay" style="display: none;">
     <div class="license-container">
-      <img src="../icons/icon128.png" alt="Flow AI Unlocked" class="license-logo">
-      <h1 class="license-title">Flow AI Unlocked</h1>
-      <p class="license-version">v3.2</p>
+      <img src="../icons/icon128.png" alt="Eddication Flow AI" class="license-logo">
+      <h1 class="license-title">Eddication Flow AI</h1>
+      <p class="license-version">v4.0 - Free Edition</p>
       <div class="license-form">
-        <h3>กรุณากรอก License Key</h3>
-        <div class="license-input-group">
-          <input type="text" id="licenseKeyInput" class="license-input" placeholder="XXXX-XXXX-XXXX-XXXX"
-            maxlength="30">
-        </div>
-        <button type="button" id="licenseSubmitBtn" class="license-btn">ยืนยัน License</button>
-        <div id="licenseMessage" class="license-message"></div>
+        <h3>Loading...</h3>
+        <p style="color: var(--text-secondary);">กำลังเริ่มต้นระบบ...</p>
       </div>
       <div class="license-footer">
-        <p class="machine-id-label">Machine ID:</p>
-        <p class="machine-id-value" id="machineIdDisplay">-</p>
-        <p>ซื้อ License ได้ที่ <a href="https://aiunlock.co" target="_blank">aiunlock.co</a></p>
+        <p>Created by <a href="https://eddication.io" target="_blank">Eddication</a></p>
       </div>
     </div>
   </div>
 
   <!-- App Container -->
-  <div class="app-container" id="appContainer" hidden>
+  <div class="app-container" id="appContainer">
     <!-- Header -->
     <header class="header">
       <div class="logo">
-        <img src="../icons/icon32.png" alt="Flow AI Unlocked">
-        <span>Flow AI Unlocked <small class="version-text">v3.2</small></span>
+        <img src="../icons/icon32.png" alt="Eddication Flow AI">
+        <span>Eddication Flow AI <small class="version-text">v4.0</small></span>
       </div>
       <div class="header-actions">
         <button id="refreshDataBtn" class="icon-btn" title="รีเฟรชข้อมูล">
@@ -1217,8 +1210,8 @@
     <!-- Footer -->
     <footer class="app-footer">
       <div class="footer-content">
-        <p class="footer-copyright">© 2025 บริษัท เอไอ อันล็อก อินโนเวชั่น จำกัด<br>สงวนลิขสิทธิ์ทั้งหมด</p>
-        <p class="footer-powered">Powered by <a href="https://aiunlock.co" target="_blank">AI Unlocked</a></p>
+        <p class="footer-copyright">© 2025 Eddication<br>สงวนลิขสิทธิ์ทั้งหมด</p>
+        <p class="footer-powered">Created by <a href="https://eddication.io" target="_blank">Eddication</a></p>
       </div>
     </footer>
   </div>
@@ -1248,6 +1241,37 @@
         <div class="form-group">
           <label for="openaiApiKey">OpenAI API Key</label>
           <input type="password" id="openaiApiKey" placeholder="กรอก OpenAI API Key...">
+        </div>
+
+        <!-- Platform Credentials -->
+        <div class="settings-divider"></div>
+        <h4 style="margin: 0 0 12px 0; color: var(--text-primary);">🔑 Platform Credentials</h4>
+        
+        <div class="form-group">
+          <label for="facebookAccessToken">Facebook Access Token</label>
+          <p class="field-hint">Access Token สำหรับ Facebook Graph API (สำหรับอัปโหลด Reels)</p>
+          <input type="password" id="facebookAccessToken" placeholder="กรอก Facebook Access Token...">
+          <a href="https://developers.facebook.com/tools/explorer/" target="_blank" style="font-size: 12px; color: var(--accent-color);">→ รับ Token ที่ Facebook Graph API Explorer</a>
+        </div>
+
+        <div class="form-group">
+          <label for="youtubeApiKey">YouTube API Key</label>
+          <p class="field-hint">API Key สำหรับ YouTube Data API (สำหรับอัปโหลด Shorts)</p>
+          <input type="password" id="youtubeApiKey" placeholder="กรอก YouTube API Key...">
+          <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="font-size: 12px; color: var(--accent-color);">→ สร้าง API Key ที่ Google Cloud Console</a>
+        </div>
+
+        <div class="form-group">
+          <label for="shopeePartnerId">Shopee Partner ID</label>
+          <p class="field-hint">Partner ID จาก Shopee Open Platform</p>
+          <input type="text" id="shopeePartnerId" placeholder="กรอก Shopee Partner ID...">
+        </div>
+
+        <div class="form-group">
+          <label for="shopeePartnerKey">Shopee Partner Key</label>
+          <p class="field-hint">Partner Key จาก Shopee Open Platform</p>
+          <input type="password" id="shopeePartnerKey" placeholder="กรอก Shopee Partner Key...">
+          <a href="https://open.shopee.com/developer-guide/3" target="_blank" style="font-size: 12px; color: var(--accent-color);">→ ดูคู่มือที่ Shopee Open Platform</a>
         </div>
 
         <!-- Delay Settings -->

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Flow AI Unlocked",
-  "version": "3.2",
-  "description": "AI Content Generator + TikTok Uploader - All in One",
+  "name": "Eddication Flow AI",
+  "version": "4.0",
+  "description": "AI Content Generator + Multi-Platform Uploader by Eddication",
   "permissions": [
     "storage",
     "unlimitedStorage",

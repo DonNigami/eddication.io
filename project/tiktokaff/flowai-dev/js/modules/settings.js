@@ -6,6 +6,10 @@ const Settings = {
   modal: null,
   geminiInput: null,
   openaiInput: null,
+  facebookAccessTokenInput: null,
+  youtubeApiKeyInput: null,
+  shopeePartnerIdInput: null,
+  shopeePartnerKeyInput: null,
   downloadDelaySelect: null,
   showDebugCheckbox: null,
   skipDownloadCheckbox: null,
@@ -19,6 +23,10 @@ const Settings = {
   videoGenerationDelay: 90,
   showDebugButtons: false,
   skipDownload: false,
+  facebookAccessToken: '',
+  youtubeApiKey: '',
+  shopeePartnerId: '',
+  shopeePartnerKey: '',
 
   /**
    * Initialize settings module
@@ -27,6 +35,10 @@ const Settings = {
     this.modal = document.getElementById('settingsModal');
     this.geminiInput = document.getElementById('geminiApiKey');
     this.openaiInput = document.getElementById('openaiApiKey');
+    this.facebookAccessTokenInput = document.getElementById('facebookAccessToken');
+    this.youtubeApiKeyInput = document.getElementById('youtubeApiKey');
+    this.shopeePartnerIdInput = document.getElementById('shopeePartnerId');
+    this.shopeePartnerKeyInput = document.getElementById('shopeePartnerKey');
     this.downloadDelaySelect = document.getElementById('downloadDelay');
     this.videoDurationSelect = document.getElementById('videoDuration');
     this.imageGenerationDelaySelect = document.getElementById('imageGenerationDelay');
@@ -101,11 +113,31 @@ const Settings = {
   loadSettings() {
     chrome.storage.local.get([
       'geminiApiKey', 'openaiApiKey', 'selectedModel',
+      'facebookAccessToken', 'youtubeApiKey', 'shopeePartnerId', 'shopeePartnerKey',
       'downloadDelay', 'videoDuration', 'imageGenerationDelay', 'videoGenerationDelay',
       'showDebugButtons', 'skipDownload'
     ], (result) => {
       this.geminiInput.value = result.geminiApiKey || '';
       this.openaiInput.value = result.openaiApiKey || '';
+      
+      // Load platform credentials
+      if (this.facebookAccessTokenInput) {
+        this.facebookAccessToken = result.facebookAccessToken || '';
+        this.facebookAccessTokenInput.value = this.facebookAccessToken;
+      }
+      if (this.youtubeApiKeyInput) {
+        this.youtubeApiKey = result.youtubeApiKey || '';
+        this.youtubeApiKeyInput.value = this.youtubeApiKey;
+      }
+      if (this.shopeePartnerIdInput) {
+        this.shopeePartnerId = result.shopeePartnerId || '';
+        this.shopeePartnerIdInput.value = this.shopeePartnerId;
+      }
+      if (this.shopeePartnerKeyInput) {
+        this.shopeePartnerKey = result.shopeePartnerKey || '';
+        this.shopeePartnerKeyInput.value = this.shopeePartnerKey;
+      }
+      
       this.setModel(result.selectedModel || 'gemini');
 
       // Load skip download setting
@@ -153,6 +185,10 @@ const Settings = {
   saveSettings() {
     const geminiApiKey = this.geminiInput.value.trim();
     const openaiApiKey = this.openaiInput.value.trim();
+    const facebookAccessToken = this.facebookAccessTokenInput?.value.trim() || '';
+    const youtubeApiKey = this.youtubeApiKeyInput?.value.trim() || '';
+    const shopeePartnerId = this.shopeePartnerIdInput?.value.trim() || '';
+    const shopeePartnerKey = this.shopeePartnerKeyInput?.value.trim() || '';
     const selectedModel = this.selectedModel;
     const showDebugButtons = this.showDebugCheckbox?.checked || false;
     const skipDownload = this.skipDownloadCheckbox?.checked || false;
@@ -167,9 +203,14 @@ const Settings = {
     this.videoGenerationDelay = videoGenerationDelay;
     this.showDebugButtons = showDebugButtons;
     this.skipDownload = skipDownload;
+    this.facebookAccessToken = facebookAccessToken;
+    this.youtubeApiKey = youtubeApiKey;
+    this.shopeePartnerId = shopeePartnerId;
+    this.shopeePartnerKey = shopeePartnerKey;
 
     chrome.storage.local.set({
       geminiApiKey, openaiApiKey, selectedModel,
+      facebookAccessToken, youtubeApiKey, shopeePartnerId, shopeePartnerKey,
       downloadDelay, videoDuration, imageGenerationDelay, videoGenerationDelay,
       showDebugButtons, skipDownload
     }, () => {
@@ -207,8 +248,34 @@ const Settings = {
     return this.videoGenerationDelay;
   },
 
+  /**   * Get Facebook Access Token
+   */
+  getFacebookAccessToken() {
+    return this.facebookAccessToken;
+  },
+
   /**
-   * Check if download should be skipped
+   * Get YouTube API Key
+   */
+  getYoutubeApiKey() {
+    return this.youtubeApiKey;
+  },
+
+  /**
+   * Get Shopee Partner ID
+   */
+  getShopeePartnerId() {
+    return this.shopeePartnerId;
+  },
+
+  /**
+   * Get Shopee Partner Key
+   */
+  getShopeePartnerKey() {
+    return this.shopeePartnerKey;
+  },
+
+  /**   * Check if download should be skipped
    */
   isSkipDownload() {
     return this.skipDownload;
