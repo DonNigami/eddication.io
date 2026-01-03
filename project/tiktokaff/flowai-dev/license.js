@@ -229,9 +229,22 @@ onLicenseInvalid: null,
  * Hide license overlay and show main app
  */
 hideOverlay() {
-  const overlay = document.getElementById('licenseOverlay');
-  const appContainer = document.getElementById('appContainer');
-  if (overlay) overlay.style.display = 'none';
-  if (appContainer) appContainer.removeAttribute('hidden');
+  try {
+    const overlay = document.getElementById('licenseOverlay');
+    const appContainer = document.getElementById('appContainer');
+
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
+
+    if (appContainer) {
+      appContainer.hidden = false;
+      appContainer.style.display = 'flex';
+    }
+
+    console.log('[License] App unlocked - free version activated');
+  } catch (error) {
+    console.error('[License] Error showing app:', error);
+  }
 }
 };

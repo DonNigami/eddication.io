@@ -17,33 +17,11 @@ class FlowAIUnlocked {
    * Check license before starting app
    */
   async checkLicense() {
-    // Initialize license module
+    // Initialize license module (disabled - auto-activate as free version)
     await License.init();
 
-    // Display machine ID
-    this.displayMachineId();
-
-    // Setup license form events
-    this.setupLicenseForm();
-
-    // Check if has stored license
-    if (await License.hasStoredLicense()) {
-      // Verify with server
-      this.showLicenseMessage('กำลังตรวจสอบ License...', 'info');
-      const result = await License.validateAndActivate();
-
-      if (result.success) {
-        // License valid - show app
-        this.showApp();
-      } else {
-        // License invalid - show license overlay
-        this.showLicenseOverlay();
-        this.showLicenseMessage(result.message, 'error');
-      }
-    } else {
-      // No stored license - show license overlay
-      this.showLicenseOverlay();
-    }
+    // License system disabled - show app immediately
+    this.showApp();
   }
 
   /**
@@ -167,23 +145,25 @@ class FlowAIUnlocked {
    * Show main app (hide license overlay)
    */
   showApp() {
-    document.getElementById('licenseOverlay').hidden = true;
-    document.getElementById('appContainer').hidden = false;
+    const overlay = document.getElementById('licenseOverlay');
+    const appContainer = document.getElementById('appContainer');
+
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.hidden = true;
+    }
+    if (appContainer) {
+      appContainer.style.display = 'flex';
+      appContainer.hidden = false;
+    }
+
+    console.log('[FlowAI] App initialized - Free version activated');
 
     // Initialize the app
     this.initApp();
 
-    // Start license heartbeat
-    License.startHeartbeat();
-
-    // Handle license invalidation
-    License.onLicenseInvalid = (result) => {
-      console.warn('License became invalid:', result);
-      showToast('License ไม่ถูกต้องหรือหมดอายุ', 'error');
-      setTimeout(() => {
-        this.handleLogout();
-      }, 2000);
-    };
+    // License system disabled - no heartbeat needed
+    // License.startHeartbeat();
   }
 
   /**
