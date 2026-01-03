@@ -1,0 +1,477 @@
+/* Testing Panel Styles */
+
+.testing-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(5px);
+}
+
+.testing-panel-overlay.hidden {
+    display: none;
+}
+
+.testing-panel {
+    background: #1e1e1e;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.testing-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #333;
+}
+
+.testing-panel-header h3 {
+    margin: 0;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.testing-panel-header .close-btn {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.testing-panel-header .close-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+.testing-panel-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.testing-section {
+    margin-bottom: 32px;
+}
+
+.testing-section:last-child {
+    margin-bottom: 0;
+}
+
+.testing-section h4 {
+    margin: 0 0 16px 0;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Platform Test Buttons */
+.platform-test-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.test-btn, .test-btn-primary {
+    padding: 10px 20px;
+    border: 1px solid #444;
+    background: #2a2a2a;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.test-btn:hover {
+    background: #333;
+    border-color: #555;
+}
+
+.test-btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.test-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.test-btn:active, .test-btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Validation Controls */
+.validation-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.validation-controls input[type="file"],
+.validation-controls input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 16px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.validation-controls input[type="text"]::placeholder {
+    color: #666;
+}
+
+.validation-results {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 16px;
+    min-height: 100px;
+    color: #ccc;
+}
+
+.validation-result {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.platform-validation {
+    padding: 12px;
+    border-radius: 6px;
+    background: #333;
+}
+
+.platform-validation.valid {
+    border-left: 3px solid #4caf50;
+}
+
+.platform-validation.invalid {
+    border-left: 3px solid #f44336;
+}
+
+.platform-validation h5 {
+    margin: 0 0 8px 0;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.platform-validation ul {
+    margin: 8px 0 0 0;
+    padding-left: 20px;
+    font-size: 13px;
+}
+
+.platform-validation ul.errors {
+    color: #f44336;
+}
+
+.platform-validation ul.warnings {
+    color: #ff9800;
+}
+
+/* Error Log Controls */
+.error-log-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.error-log-viewer {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 16px;
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    color: #ccc;
+}
+
+.error-log {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.error-entry {
+    padding: 12px;
+    background: #333;
+    border-radius: 6px;
+    border-left: 3px solid #f44336;
+}
+
+.error-time {
+    color: #999;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.error-message {
+    color: #f44336;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.error-context {
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.error-context strong {
+    color: #fff;
+}
+
+.error-context pre {
+    margin: 4px 0 0 0;
+    padding: 8px;
+    background: #1e1e1e;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 11px;
+    color: #4caf50;
+}
+
+/* Test Results Controls */
+.test-results-controls {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.test-results-viewer {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 16px;
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+    color: #ccc;
+}
+
+.test-result {
+    padding: 12px;
+    background: #333;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.test-result.passed {
+    border-left: 3px solid #4caf50;
+}
+
+.test-result.failed {
+    border-left: 3px solid #f44336;
+}
+
+.test-result:last-child {
+    margin-bottom: 0;
+}
+
+.result-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.result-icon {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.test-result.passed .result-icon {
+    color: #4caf50;
+}
+
+.test-result.failed .result-icon {
+    color: #f44336;
+}
+
+.result-platform {
+    flex: 1;
+    font-weight: 600;
+    color: #fff;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+.result-time {
+    color: #999;
+    font-size: 12px;
+}
+
+.result-details {
+    font-size: 13px;
+}
+
+.result-errors, .result-warnings {
+    margin-top: 8px;
+}
+
+.result-errors strong {
+    color: #f44336;
+}
+
+.result-warnings strong {
+    color: #ff9800;
+}
+
+.result-errors ul, .result-warnings ul {
+    margin: 4px 0 0 0;
+    padding-left: 20px;
+}
+
+.result-errors li {
+    color: #f44336;
+}
+
+.result-warnings li {
+    color: #ff9800;
+}
+
+/* Test Status */
+.test-status {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.test-status.info {
+    background: #2196f3;
+    color: #fff;
+}
+
+.test-status.success {
+    background: #4caf50;
+    color: #fff;
+}
+
+.test-status.warning {
+    background: #ff9800;
+    color: #fff;
+}
+
+.test-status.error {
+    background: #f44336;
+    color: #fff;
+}
+
+/* Performance Stats */
+.performance-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.performance-stats .stat {
+    padding: 16px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.performance-stats .stat label {
+    color: #999;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.performance-stats .stat span {
+    color: #fff;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+/* Scrollbar Styles */
+.testing-panel-content::-webkit-scrollbar,
+.error-log-viewer::-webkit-scrollbar,
+.test-results-viewer::-webkit-scrollbar {
+    width: 8px;
+}
+
+.testing-panel-content::-webkit-scrollbar-track,
+.error-log-viewer::-webkit-scrollbar-track,
+.test-results-viewer::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.testing-panel-content::-webkit-scrollbar-thumb,
+.error-log-viewer::-webkit-scrollbar-thumb,
+.test-results-viewer::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.testing-panel-content::-webkit-scrollbar-thumb:hover,
+.error-log-viewer::-webkit-scrollbar-thumb:hover,
+.test-results-viewer::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .testing-panel {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .platform-test-buttons {
+        flex-direction: column;
+    }
+
+    .test-btn, .test-btn-primary {
+        width: 100%;
+    }
+
+    .validation-controls {
+        flex-direction: column;
+    }
+
+    .validation-controls input[type="file"],
+    .validation-controls input[type="text"] {
+        width: 100%;
+    }
+
+    .performance-stats {
+        grid-template-columns: 1fr;
+    }
+}
