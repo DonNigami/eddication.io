@@ -151,74 +151,74 @@ const License = {
    * Heartbeat check (disabled)
    */
   async heartbeat() {
-  // License system disabled - always return valid
-  return { valid: true, code: 'FREE_VERSION' };
-},
+    // License system disabled - always return valid
+    return { valid: true, code: 'FREE_VERSION' };
+  },
 
   /**
    * Main validation function (disabled - always returns success)
    */
   async validateAndActivate(licenseKey = null) {
-  // License system disabled - always return success
-  this.licenseKey = 'FREE-VERSION';
-  return {
-    success: true,
-    message: 'Free version - all features unlocked',
-    program: {
-      name: 'Eddication Flow AI',
-      version: '4.0',
-      features: ['all']
-    }
-  };
-},
+    // License system disabled - always return success
+    this.licenseKey = 'FREE-VERSION';
+    return {
+      success: true,
+      message: 'Free version - all features unlocked',
+      program: {
+        name: 'Eddication Flow AI',
+        version: '4.0',
+        features: ['all']
+      }
+    };
+  },
 
-/**
- * Start heartbeat interval (disabled)
- */
-startHeartbeat(intervalMs = 8 * 60 * 60 * 1000) {
-  // License system disabled - do nothing
-},
+  /**
+   * Start heartbeat interval (disabled)
+   */
+  startHeartbeat(intervalMs = 8 * 60 * 60 * 1000) {
+    // License system disabled - do nothing
+  },
 
-/**
- * Stop heartbeat interval (disabled)
- */
-stopHeartbeat() {
-  // License system disabled - do nothing
-},
+  /**
+   * Stop heartbeat interval (disabled)
+   */
+  stopHeartbeat() {
+    // License system disabled - do nothing
+  },
 
-/**
- * Callback when license becomes invalid (disabled)
- */
-onLicenseInvalid: null,
+  /**
+   * Callback when license becomes invalid (disabled)
+   */
+  onLicenseInvalid: null,
 
   /**
    * Check if has valid stored license (disabled - always returns true)
    */
   async hasStoredLicense() {
-  this.licenseKey = 'FREE-VERSION';
-  return true;
-},
+    this.licenseKey = 'FREE-VERSION';
+    return true;
+  },
 
-/**
- * Hide license overlay and show main app
- */
-hideOverlay() {
-  try {
-    const overlay = document.getElementById('licenseOverlay');
-    const appContainer = document.getElementById('appContainer');
+  /**
+   * Hide license overlay and show main app
+   */
+  hideOverlay() {
+    try {
+      const overlay = document.getElementById('licenseOverlay');
+      const appContainer = document.getElementById('appContainer');
 
-    if (overlay) {
-      overlay.style.display = 'none';
+      if (overlay) {
+        overlay.style.display = 'none';
+      }
+
+      if (appContainer) {
+        appContainer.hidden = false;
+        appContainer.style.display = 'flex';
+      }
+
+      console.log('[License] App unlocked - free version activated');
+    } catch (error) {
+      console.error('[License] Error showing app:', error);
     }
-
-    if (appContainer) {
-      appContainer.hidden = false;
-      appContainer.style.display = 'flex';
-    }
-
-    console.log('[License] App unlocked - free version activated');
-  } catch (error) {
-    console.error('[License] Error showing app:', error);
   }
-}
 };
