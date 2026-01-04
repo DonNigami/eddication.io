@@ -497,24 +497,47 @@ const TikTokUploader = {
   },
 
   /**
-   * Send message to content script
+   * Send message to content script with retry
    */
-  sendMessage(tabId, message) {
-    return new Promise((resolve) => {
+  async sendMessage(tabId, message, retries = 3) {
+    for (let i = 0; i < retries; i++) {
       try {
-        chrome.tabs.sendMessage(tabId, message, (response) => {
-          if (chrome.runtime.lastError) {
-            console.warn('sendMessage error:', chrome.runtime.lastError.message);
-            resolve({ success: false, error: chrome.runtime.lastError.message });
-          } else {
-            resolve(response);
-          }
+        // Check if tab exists first
+        const tab = await chrome.tabs.get(tabId).catch(() => null);
+        if (!tab) {
+          return { success: false, error: 'Tab not found' };
+        }
+
+        // Try to send message
+        const response = await new Promise((resolve) => {
+          chrome.tabs.sendMessage(tabId, message, (response) => {
+            if (chrome.runtime.lastError) {
+              resolve({ success: false, error: chrome.runtime.lastError.message });
+            } else {
+              resolve(response || { success: true });
+            }
+          });
         });
+
+        // If successful or not a connection error, return
+        if (response.success || !response.error?.includes('Could not establish connection')) {
+          return response;
+        }
+
+        // Wait before retry
+        if (i < retries - 1) {
+          console.log(`Retry ${i + 1}/${retries - 1} after connection error...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       } catch (e) {
         console.warn('sendMessage exception:', e);
-        resolve({ success: false, error: e.message });
+        if (i === retries - 1) {
+          return { success: false, error: e.message };
+        }
       }
-    });
+    }
+
+    return { success: false, error: 'Max retries reached' };
   },
 
   /**
