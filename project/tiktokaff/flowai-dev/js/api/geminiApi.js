@@ -9,7 +9,7 @@ const GeminiApi = {
   /**
    * Generate prompt using Gemini API
    */
-  async generatePrompt(apiKey, productImage, productName, hasPersonImage, ugcSettings) {
+  async generatePrompt(apiKey, productImage, productName, hasPersonImage, ugcSettings, videoLength = 8) {
     const url = `${this.API_URL}/${this.MODEL}:generateContent?key=${apiKey}`;
 
     // Resize image before sending
@@ -36,7 +36,7 @@ const GeminiApi = {
               }
             },
             {
-              text: SystemPrompt.buildUserMessage(productName, hasPersonImage, ugcSettings)
+              text: SystemPrompt.buildUserMessage(productName, hasPersonImage, ugcSettings, videoLength)
             }
           ]
         }

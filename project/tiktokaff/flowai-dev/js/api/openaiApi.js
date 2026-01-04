@@ -9,7 +9,7 @@ const OpenaiApi = {
   /**
    * Generate prompt using OpenAI Responses API (vision)
    */
-  async generatePrompt(apiKey, productImage, productName, hasPersonImage, ugcSettings) {
+  async generatePrompt(apiKey, productImage, productName, hasPersonImage, ugcSettings, videoLength = 8) {
     // Resize image before sending
     const resizedImage = await ImageUtils.resizeImage(productImage);
 
@@ -29,7 +29,7 @@ const OpenaiApi = {
             },
             {
               type: 'input_text',
-              text: SystemPrompt.buildUserMessage(productName, hasPersonImage, ugcSettings)
+              text: SystemPrompt.buildUserMessage(productName, hasPersonImage, ugcSettings, videoLength)
             }
           ]
         }

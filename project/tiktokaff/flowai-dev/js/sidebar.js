@@ -468,6 +468,10 @@ class FlowAIUnlocked {
     const genderRadio = document.querySelector('input[name="storyGender"]:checked');
     const styleSelect = document.getElementById('storyImageStyleSelect');
     const modeRadio = document.querySelector('input[name="storyMode"]:checked');
+    const clipLengthSelect = document.getElementById('storyVideoLengthSelect');
+
+    const clipLength = parseInt(clipLengthSelect?.value, 10) || 8;
+    const sceneDurationText = clipLength >= 16 ? '2-5 วินาที' : '1-3 วินาที';
 
     // Get topic
     const topic = topicInput?.value?.trim();
@@ -540,6 +544,8 @@ class FlowAIUnlocked {
 สไตล์: ${styleName}
 ${styleDescription}
 
+ความยาวคลิป: ~${clipLength} วินาที (แบ่งเป็น ${videoCount} ฉาก)
+
 กฎสำคัญ:
 1. วิเคราะห์อารมณ์/ความหมายของเนื้อเพลง → แปลงเป็นฉากภาพที่สื่อความรู้สึกนั้น
 2. เน้นบรรยาย "สถานที่ บรรยากาศ แสง สี องค์ประกอบ" ไม่ใช่เนื้อเรื่อง
@@ -565,6 +571,7 @@ ${styleDescription}
 
 เนื้อเพลง/อารมณ์: ${topic}
 จำนวนฉาก: ${videoCount} ฉาก
+ความยาวคลิปที่ต้องการ: ~${clipLength} วินาที (แบ่งเป็น ${videoCount} ฉาก)
 ${characterName !== 'ตัวละครหลัก' ? `หมายเหตุ: อาจมี silhouette หรือท่าทางของคน (${genderText}) เป็นองค์ประกอบบางฉาก แต่ไม่ต้องเน้นหน้า` : 'หมายเหตุ: ไม่จำเป็นต้องมีคนในฉาก เน้นบรรยากาศ'}
 
 สร้าง ${videoCount} ฉากภาพที่สื่อความรู้สึกตามเนื้อเพลง เน้นบรรยากาศ/สถานที่/แสงสี (ห้ามมีบทพูด)`;
@@ -577,10 +584,11 @@ ${characterName !== 'ตัวละครหลัก' ? `หมายเหต
 
 สไตล์: ${styleName}
 ${styleDescription}
+ความยาวคลิปทั้งหมด: ~${clipLength} วินาที (แบ่งเป็น ${videoCount} ฉาก)
 
 กฎการเขียน:
 1. เขียนเป็นภาษาไทย
-2. แต่ละฉากมีความยาว 5-8 วินาที
+2. แต่ละฉากมีความยาว ${sceneDurationText}
 3. ฉากต้องต่อเนื่องกันเป็นเรื่องราว
 4. ปรับแต่งอารมณ์และเนื้อหาให้เข้ากับสไตล์ที่กำหนด
 5. มี climax หรือจุดพีคในฉากสุดท้าย
@@ -1064,10 +1072,23 @@ ${styleDescription}
           userMessage
         );
 
+        // Convert prompt to English and add 9:16 aspect ratio specification
+        let finalPrompt = result.trim();
+
+        // Add English translation request if the result is in Thai
+        if (this.containsThai(finalPrompt)) {
+          const englishPrompt = await this.translatePromptToEnglish(finalPrompt);
+          // Format: Add 9:16 aspect ratio spec and English prompt
+          finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${englishPrompt}`;
+        } else {
+          // Already in English, just add aspect ratio
+          finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${finalPrompt}`;
+        }
+
         const promptData = {
           sceneNumber: i + 1,
           sceneName: scene.name,
-          prompt: result.trim()
+          prompt: finalPrompt
         };
         prompts.push(promptData);
 
@@ -1568,16 +1589,16 @@ ${lyrics}
 
         // Step 1: Upload character image (skip if no character)
         if (hasCharacterImage) {
-          this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 1/12: อัพภาพตัวละคร...');
-          await this.uploadCharacterImage(character);
+          this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 1/13: อัพภาพตัวละคร...');
+          await this.uploadCharacterImageWithMediaAsset(character);
           if (!this.isStoryAutomationRunning) break;
           await this.delay(20000);
         } else {
-          this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 1/12: ข้ามอัพภาพ (ไม่มีตัวละคร)...');
+          this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 1/13: ข้ามอัพภาพ (ไม่มีตัวละคร)...');
           await this.delay(500);
         }
 
-        // Step 2: Get Image Prompt (use pre-generated if available, otherwise generate new)
+        // Step 3: Get Image Prompt (use pre-generated if available, otherwise generate new)
         if (!this.isStoryAutomationRunning) break;
         let imagePrompt;
         if (hasPreGeneratedPrompts && this.generatedPrompts[sceneIndex]) {
@@ -1750,6 +1771,79 @@ ${lyrics}
 
     // Use Controls.uploadImageToWeb for consistent behavior
     await Controls.uploadImageToWeb(character.image);
+  }
+
+  /**
+   * Upload Character Image with Media Asset Button Click
+   * Sequence:
+   * 1. Click Add button
+   * 2. Wait for dialog
+   * 3. Click Media Asset Button
+   * 4. Wait 2 seconds
+   * 5. Upload file
+   * 6. Click Confirm
+   */
+  async uploadCharacterImageWithMediaAsset(character) {
+    if (!character.image) {
+      throw new Error('ตัวละครไม่มีรูปภาพ');
+    }
+
+    await Controls.uploadImageToWebWithMediaAsset(character.image);
+  }
+
+  /**
+   * Click Media Asset Button - Select previously uploaded/selected media
+   */
+  async clickMediaAssetButton() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      if (!tab) {
+        throw new Error('ไม่พบแท็บที่ใช้งาน');
+      }
+
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          // Try to find and click the media asset button
+          // Target: <button class="sc-fbea20b2-9 cdgKGS">
+          const mediaAssetBtn = document.querySelector('button.sc-fbea20b2-9.cdgKGS');
+
+          if (mediaAssetBtn) {
+            console.log('[Story] Clicking media asset button');
+            mediaAssetBtn.click();
+            return true;
+          }
+
+          // Fallback: look for button with aria-label containing "media" or "asset"
+          const buttons = document.querySelectorAll('button');
+          for (const btn of buttons) {
+            const ariaLabel = btn.getAttribute('aria-label') || '';
+            if (ariaLabel.toLowerCase().includes('media') || ariaLabel.toLowerCase().includes('asset')) {
+              console.log('[Story] Found media asset button by aria-label, clicking...');
+              btn.click();
+              return true;
+            }
+          }
+
+          // Fallback: look by span text content
+          for (const btn of buttons) {
+            const span = btn.querySelector('span');
+            if (span && span.textContent.toLowerCase().includes('previously uploaded')) {
+              console.log('[Story] Found media asset button by text, clicking...');
+              btn.click();
+              return true;
+            }
+          }
+
+          console.warn('[Story] Media asset button not found');
+          return false;
+        }
+      });
+    } catch (error) {
+      console.error('[Story] Error clicking media asset button:', error);
+      throw error;
+    }
   }
 
   /**
@@ -2362,6 +2456,87 @@ ${lyrics}
         this.switchTab('ai-generator');
       });
     });
+  }
+
+  /**
+   * Detect if text contains Thai characters
+   */
+  containsThai(text) {
+    // Thai Unicode range: \u0E00-\u0E7F
+    const thaiPattern = /[\u0E00-\u0E7F]/;
+    return thaiPattern.test(text);
+  }
+
+  /**
+   * Translate prompt from Thai to English using AI
+   */
+  async translatePromptToEnglish(thaiPrompt) {
+    try {
+      // Get settings for API
+      const settings = await new Promise(resolve => {
+        chrome.storage.local.get(['selectedModel', 'geminiApiKey', 'openaiApiKey'], resolve);
+      });
+
+      const model = settings.selectedModel || 'gemini';
+      const apiKey = model === 'gemini' ? settings.geminiApiKey : settings.openaiApiKey;
+
+      if (!apiKey) {
+        console.warn('[TranslatePrompt] No API key available, returning original Thai prompt');
+        return thaiPrompt;
+      }
+
+      const translateSystemPrompt = `You are a professional image generation prompt translator. 
+Translate the given Thai image generation prompt to English while:
+1. Preserving all visual details and descriptive elements
+2. Maintaining the exact style, mood, and composition requirements
+3. Keeping technical parameters (aspect ratio, lighting, camera angles, etc.)
+4. Making it compatible with image generation AI (DALL-E, Midjourney, Stable Diffusion, etc.)
+
+Return ONLY the English prompt, no explanations or preamble.`;
+
+      const userMsg = `Translate this Thai image prompt to English for use in image generation AI:\n\n${thaiPrompt}`;
+
+      if (model === 'gemini') {
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: { text: translateSystemPrompt } },
+            contents: { parts: { text: userMsg } }
+          })
+        });
+
+        if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
+        const data = await response.json();
+        return data.candidates?.[0]?.content?.parts?.[0]?.text || thaiPrompt;
+      } else {
+        // OpenAI
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: translateSystemPrompt },
+              { role: 'user', content: userMsg }
+            ],
+            temperature: 0.7,
+            max_tokens: 500
+          })
+        });
+
+        if (!response.ok) throw new Error(`OpenAI API error: ${response.status}`);
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || thaiPrompt;
+      }
+    } catch (error) {
+      console.error('[TranslatePrompt] Error:', error);
+      // Return original if translation fails
+      return thaiPrompt;
+    }
   }
 }
 

@@ -7,12 +7,17 @@ let wasmModule = null;
 let licenseValidator = null;
 let selectorManager = null;
 let automationManager = null;
+let wasmDisabled = false;
 
 /**
  * โหลด WASM module
  */
 async function loadWasmModule() {
   if (wasmModule) return wasmModule;
+  if (wasmDisabled || (typeof window !== 'undefined' && window.__flowxWasmDisabled)) {
+    wasmDisabled = true;
+    return null;
+  }
 
   try {
     // Import WASM module
@@ -33,8 +38,10 @@ async function loadWasmModule() {
     console.log('[WASM] Module loaded successfully');
     return wasmModule;
   } catch (error) {
-    console.error('[WASM] Failed to load module:', error);
-    throw error;
+    console.log('[WASM] CSP detected - using fallback mode (CSS selectors). Extension working normally.');
+    wasmDisabled = true;
+    try { window.__flowxWasmDisabled = true; } catch (_) { }
+    return null;
   }
 }
 
@@ -42,6 +49,7 @@ async function loadWasmModule() {
  * ตรวจสอบ License
  */
 async function validateLicenseWasm(licenseKey, machineId) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
   return licenseValidator.validate(licenseKey, machineId);
 }
@@ -50,6 +58,7 @@ async function validateLicenseWasm(licenseKey, machineId) {
  * สร้าง Machine Hash
  */
 async function generateMachineHashWasm(input) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
   return licenseValidator.generate_machine_hash(input);
 }
@@ -58,6 +67,7 @@ async function generateMachineHashWasm(input) {
  * Encrypt data
  */
 async function encryptWasm(data) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
   return licenseValidator.encrypt(data);
 }
@@ -66,6 +76,7 @@ async function encryptWasm(data) {
  * Decrypt data
  */
 async function decryptWasm(data) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
   return licenseValidator.decrypt(data);
 }
@@ -76,6 +87,7 @@ async function decryptWasm(data) {
  * Get selector by name
  */
 async function getSelectorWasm(name) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
 
   const selectorMap = {
@@ -112,6 +124,7 @@ async function getSelectorWasm(name) {
  * Get all selectors as object
  */
 async function getAllSelectorsWasm() {
+  if (wasmDisabled) return {};
   await loadWasmModule();
 
   return {
@@ -140,6 +153,7 @@ async function getAllSelectorsWasm() {
  * Get confirm button texts
  */
 async function getConfirmTextsWasm() {
+  if (wasmDisabled) return [];
   await loadWasmModule();
   return selectorManager.get_confirm_texts();
 }
@@ -150,7 +164,9 @@ async function getConfirmTextsWasm() {
  * Get automation step info
  */
 async function getAutomationStepWasm(index) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
+  if (!automationManager) return null;
   return automationManager.get_step(index);
 }
 
@@ -158,7 +174,9 @@ async function getAutomationStepWasm(index) {
  * Get total automation steps
  */
 async function getTotalStepsWasm() {
+  if (wasmDisabled) return 0;
   await loadWasmModule();
+  if (!automationManager) return 0;
   return automationManager.total_steps();
 }
 
@@ -166,7 +184,9 @@ async function getTotalStepsWasm() {
  * Get step delay
  */
 async function getStepDelayWasm(index) {
+  if (wasmDisabled) return 0;
   await loadWasmModule();
+  if (!automationManager) return 0;
   return automationManager.get_step_delay(index);
 }
 
@@ -174,7 +194,9 @@ async function getStepDelayWasm(index) {
  * Get step action type
  */
 async function getStepActionWasm(index) {
+  if (wasmDisabled) return null;
   await loadWasmModule();
+  if (!automationManager) return null;
   return automationManager.get_step_action(index);
 }
 
@@ -182,7 +204,9 @@ async function getStepActionWasm(index) {
  * Get step description
  */
 async function getStepDescriptionWasm(index) {
+  if (wasmDisabled) return '';
   await loadWasmModule();
+  if (!automationManager) return '';
   return automationManager.get_step_description(index);
 }
 
@@ -190,7 +214,9 @@ async function getStepDescriptionWasm(index) {
  * Get status text
  */
 async function getStatusTextWasm(loopNum, totalLoops) {
+  if (wasmDisabled) return '';
   await loadWasmModule();
+  if (!automationManager) return '';
   return automationManager.get_status_text(loopNum, totalLoops);
 }
 
@@ -198,23 +224,27 @@ async function getStatusTextWasm(loopNum, totalLoops) {
  * Start automation
  */
 async function startAutomationWasm() {
+  if (wasmDisabled) return;
   await loadWasmModule();
-  automationManager.start();
+  if (automationManager) automationManager.start();
 }
 
 /**
  * Stop automation
  */
 async function stopAutomationWasm() {
+  if (wasmDisabled) return;
   await loadWasmModule();
-  automationManager.stop();
+  if (automationManager) automationManager.stop();
 }
 
 /**
  * Check if automation is running
  */
 async function isAutomationRunningWasm() {
+  if (wasmDisabled) return false;
   await loadWasmModule();
+  if (!automationManager) return false;
   return automationManager.is_running();
 }
 
@@ -222,7 +252,9 @@ async function isAutomationRunningWasm() {
  * Move to next step
  */
 async function nextStepWasm() {
+  if (wasmDisabled) return false;
   await loadWasmModule();
+  if (!automationManager) return false;
   return automationManager.next_step();
 }
 
@@ -230,7 +262,9 @@ async function nextStepWasm() {
  * Get current step index
  */
 async function getCurrentStepIndexWasm() {
+  if (wasmDisabled) return 0;
   await loadWasmModule();
+  if (!automationManager) return 0;
   return automationManager.current_step_index();
 }
 

@@ -75,32 +75,35 @@ const SystemPrompt = {
    * @param {string} productName - Product name
    * @param {boolean} hasPersonImage - Whether person image is provided
    * @param {object} ugcSettings - UGC character settings (gender, ageRange)
+   * @param {number} videoLength - Video length in seconds (8 or 16)
    */
-  buildUserMessage(productName, hasPersonImage, ugcSettings) {
+  buildUserMessage(productName, hasPersonImage, ugcSettings, videoLength = 8) {
     // If template has userMessageTemplate, use it
     if (this.currentTemplate && this.currentTemplate.userMessageTemplate) {
-      return this.buildFromTemplate(productName, hasPersonImage, ugcSettings);
+      return this.buildFromTemplate(productName, hasPersonImage, ugcSettings, videoLength);
     }
 
     // Default message building
-    return this.buildDefaultMessage(productName, hasPersonImage, ugcSettings);
+    return this.buildDefaultMessage(productName, hasPersonImage, ugcSettings, videoLength);
   },
 
   /**
    * Build message from template
    */
-  buildFromTemplate(productName, hasPersonImage, ugcSettings) {
+  buildFromTemplate(productName, hasPersonImage, ugcSettings, videoLength) {
     let message = this.currentTemplate.userMessageTemplate;
 
     const genderText = this.getGenderText(ugcSettings.gender);
     const genderTextEn = this.getGenderTextEn(ugcSettings.gender);
     const personDescription = this.buildPersonDescription(hasPersonImage, ugcSettings, genderText, genderTextEn);
+    const videoLengthText = videoLength === 16 ? '16' : '8';
 
     // Replace placeholders
     message = message.replace(/\{\{productName\}\}/g, productName || 'ไม่ระบุชื่อ');
     message = message.replace(/\{\{personDescription\}\}/g, personDescription);
     message = message.replace(/\{\{genderTextEn\}\}/g, genderTextEn);
     message = message.replace(/\{\{genderText\}\}/g, genderText);
+    message = message.replace(/\{\{videoLength\}\}/g, videoLengthText);
 
     return message;
   },
@@ -108,7 +111,7 @@ const SystemPrompt = {
   /**
    * Build default message (original logic)
    */
-  buildDefaultMessage(productName, hasPersonImage, ugcSettings) {
+  buildDefaultMessage(productName, hasPersonImage, ugcSettings, videoLength) {
     let message = `สินค้า: ${productName || 'ไม่ระบุชื่อ'}\n\n`;
 
     const genderText = this.getGenderText(ugcSettings.gender);
@@ -118,7 +121,7 @@ const SystemPrompt = {
       message += `คนในภาพ: คนไทย${genderText} (${genderTextEn}) - ใช้เฉพาะใบหน้าจากภาพที่แนบเท่านั้น (face reference only) แต่ให้สร้างท่าทาง เสื้อผ้า และฉากใหม่ที่เหมาะกับการรีวิวสินค้านี้\n`;
     } else {
       const ageText = ugcSettings.ageRange === 'random' ? 'สุ่ม (18-55 ปี)' :
-                      ugcSettings.ageRange || 'ไม่ระบุ';
+        ugcSettings.ageRange || 'ไม่ระบุ';
       message += `คนในภาพ: คนไทย${genderText} (${genderTextEn}) อายุ ${ageText}\n`;
     }
 
@@ -135,7 +138,7 @@ const SystemPrompt = {
       return `คนในภาพ: ${genderText} (${genderTextEn}) - ใช้เฉพาะใบหน้าจากภาพที่แนบเท่านั้น (face reference only)`;
     } else {
       const ageText = ugcSettings.ageRange === 'random' ? 'สุ่ม (18-55 ปี)' :
-                      ugcSettings.ageRange || 'ไม่ระบุ';
+        ugcSettings.ageRange || 'ไม่ระบุ';
       return `คนในภาพ: ${genderText} (${genderTextEn}) อายุ ${ageText}`;
     }
   },

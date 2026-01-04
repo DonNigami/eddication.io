@@ -3,6 +3,9 @@
   "name": "Eddication Flow AI",
   "version": "4.0",
   "description": "AI Content Generator + Multi-Platform Uploader by Eddication",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self';"
+  },
   "permissions": [
     "storage",
     "unlimitedStorage",
@@ -65,7 +68,7 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     },
-    "default_title": "Flow AI Unlocked"
+    "default_title": "Eddication Flow AI"
   },
   "icons": {
     "16": "icons/icon16.png",
@@ -75,7 +78,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["aiunlocked.png"],
+      "resources": ["icons/icon128.png"],
       "matches": ["<all_urls>"]
     }
   ]

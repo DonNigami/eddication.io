@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flow AI Unlocked</title>
+  <title>Eddication Flow AI</title>
   <link rel="stylesheet" href="../css/variables.css">
   <link rel="stylesheet" href="../css/main.css">
   <link rel="stylesheet" href="../css/components.css">
@@ -86,23 +86,6 @@
         </button>
       </div>
     </header>
-
-    <!-- Guide Banner -->
-    <a href="https://aiunlock.co/courses/%E0%B8%84%E0%B8%B9%E0%B9%88%E0%B8%A1%E0%B8%B7%E0%B8%AD-flow-x-unlocked-%E0%B8%95%E0%B8%B1%E0%B8%A7%E0%B8%97%E0%B8%B3%E0%B8%84%E0%B8%A5%E0%B8%B4%E0%B8%9B%E0%B8%9B%E0%B8%B1%E0%B8%81%E0%B8%95%E0%B8%B0%E0%B8%81%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%AD%E0%B8%B1%E0%B8%95%E0%B9%82%E0%B8%99%E0%B8%A1%E0%B8%B1%E0%B8%95%E0%B8%B4/learn"
-      target="_blank" class="guide-banner">
-      <div class="guide-banner-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-        </svg>
-      </div>
-      <span class="guide-banner-title">คู่มือการใช้งาน Flow X Unlocked</span>
-      <div class="guide-banner-arrow">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </div>
-    </a>
 
     <!-- Tab Navigation -->
     <nav class="tab-nav">
@@ -351,6 +334,17 @@
                 </svg>
               </button>
               <button class="style-manage-btn" id="manageVideoTemplatesBtn" title="สร้างใหม่">+</button>
+            </div>
+          </div>
+
+          <!-- Video Length Selector -->
+          <div class="form-group style-selector-row">
+            <label>ความยาวคลิป</label>
+            <div class="style-dropdown-wrapper">
+              <select id="videoLengthSelect" class="style-dropdown">
+                <option value="8" selected>8 วินาที (TikTok, Shorts)</option>
+                <option value="16">16 วินาที (Extended)</option>
+              </select>
             </div>
           </div>
         </section>
@@ -683,6 +677,19 @@
               </select>
               <input type="number" id="storyCustomLoopCount" class="custom-loop-input" min="1" placeholder="จำนวน"
                 hidden>
+            </div>
+          </div>
+
+          <!-- ความยาวคลิป -->
+          <div class="form-row" style="margin-top: 8px;">
+            <div class="form-group style-selector-row" style="flex: 1;">
+              <label>ความยาวคลิป</label>
+              <div class="style-dropdown-wrapper">
+                <select id="storyVideoLengthSelect" class="style-dropdown">
+                  <option value="8" selected>8 วินาที (สั้น)</option>
+                  <option value="16">16 วินาที (ยาว)</option>
+                </select>
+              </div>
             </div>
           </div>
 

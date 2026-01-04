@@ -12,18 +12,25 @@ let _wasmSelectors = null;
  */
 async function loadWasmSelectors() {
   if (_wasmSelectors) return _wasmSelectors;
+  if (typeof window !== 'undefined' && window.__flowxWasmDisabled) {
+    _wasmSelectors = getFallbackSelectors();
+    return _wasmSelectors;
+  }
 
   try {
     if (typeof WasmLoader !== 'undefined') {
       _wasmSelectors = await WasmLoader.getAllSelectors();
       console.log('[Controls] WASM selectors loaded');
     } else {
-      console.warn('[Controls] WasmLoader not available, using fallback');
+      console.log('[Controls] WasmLoader not available, using fallback');
       _wasmSelectors = getFallbackSelectors();
     }
   } catch (error) {
-    console.error('[Controls] Failed to load WASM selectors:', error);
+    console.log('[Controls] CSP detected - using fallback selectors. Extension working normally.');
+    // Avoid retrying WASM load in this session when CSP blocks wasm-eval
     _wasmSelectors = getFallbackSelectors();
+    // Prevent future attempts in this session
+    try { window.__flowxWasmDisabled = true; } catch (_) { }
   }
 
   return _wasmSelectors;
@@ -196,6 +203,10 @@ const Controls = {
     const ugcSettings = { gender: reviewerGender, ageRange: UGCSection.getSettings().ageRange };
     const coverDetails = await CoverDetails.getDetails();
 
+    // Get video length from select element (default to 8 if not found)
+    const videoLengthSelect = document.getElementById('videoLengthSelect');
+    const videoLength = videoLengthSelect ? parseInt(videoLengthSelect.value) : 8;
+
     this.isGenerating = true;
     const btn = document.getElementById('generatePromptBtn');
     if (btn) btn.disabled = true;
@@ -205,11 +216,11 @@ const Controls = {
       let rawResponse;
       if (settings.model === 'gemini') {
         rawResponse = await GeminiApi.generatePrompt(
-          settings.apiKey, productImage, productName, hasPersonImage, ugcSettings
+          settings.apiKey, productImage, productName, hasPersonImage, ugcSettings, videoLength
         );
       } else {
         rawResponse = await OpenaiApi.generatePrompt(
-          settings.apiKey, productImage, productName, hasPersonImage, ugcSettings
+          settings.apiKey, productImage, productName, hasPersonImage, ugcSettings, videoLength
         );
       }
 
@@ -502,6 +513,187 @@ ${headingParts.join('\n')}`;
   },
 
   /**
+   * Upload Image to Web with Media Asset Button Click
+   * Inserts the media asset button click between dialog open and file upload
+   */
+  async uploadImageToWebWithMediaAsset(imageBase64) {
+    if (!imageBase64) {
+      throw new Error('ไม่มีรูปภาพ');
+    }
+
+    const selectors = await loadWasmSelectors();
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!this.canScriptTab(tab)) {
+      throw new Error('กรุณาเปิดหน้าเว็บที่ต้องการใช้งานก่อน');
+    }
+
+    // Step 1: Click add button (0-800ms)
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: (sel) => {
+        let btn = document.querySelector(sel);
+        if (!btn) {
+          const buttons = document.querySelectorAll('div.sc-76e54377-0 button');
+          for (const button of buttons) {
+            const icon = button.querySelector('i');
+            if (icon && icon.textContent.trim() === 'add') {
+              btn = icon;
+              break;
+            }
+          }
+        }
+        if (btn) {
+          btn.click();
+          return true;
+        }
+        return false;
+      },
+      args: [selectors.addButton]
+    });
+
+    // Step 2: Wait for dialog to open (800-1800ms)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // ✅ NEW: Click Media Asset Button (1800-3000ms)
+    const mediaAssetResults = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => {
+        // Strategy 1: Direct class selector
+        const mediaAssetBtn = document.querySelector('button.sc-fbea20b2-9.cdgKGS');
+
+        if (mediaAssetBtn) {
+          console.log('[Upload] Clicking media asset button');
+          mediaAssetBtn.click();
+          return true;
+        }
+
+        // Strategy 2: Search by aria-label
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+          const ariaLabel = btn.getAttribute('aria-label') || '';
+          if (ariaLabel.toLowerCase().includes('media') || ariaLabel.toLowerCase().includes('asset')) {
+            console.log('[Upload] Found media asset button by aria-label');
+            btn.click();
+            return true;
+          }
+        }
+
+        // Strategy 3: Search by text content
+        for (const btn of buttons) {
+          const span = btn.querySelector('span');
+          if (span && span.textContent.toLowerCase().includes('previously uploaded')) {
+            console.log('[Upload] Found media asset button by text');
+            btn.click();
+            return true;
+          }
+        }
+
+        console.warn('[Upload] Media asset button not found');
+        return false;
+      }
+    });
+
+    const mediaAssetClicked = mediaAssetResults?.[0]?.result || false;
+
+    // Step 3: Wait for media selection UI (3000-5000ms)
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // If media asset button was NOT clicked, proceed with file upload
+    if (!mediaAssetClicked) {
+      // Step 4: Upload file directly (5000-5500ms)
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: (base64Image, fileInputSel) => {
+          const byteString = atob(base64Image.split(',')[1]);
+          const mimeType = base64Image.split(',')[0].split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([ab], { type: mimeType });
+          const file = new File([blob], 'uploaded-image.png', { type: mimeType });
+
+          const fileInput = document.querySelector(fileInputSel) ||
+            document.querySelector('[role="dialog"] input[type="file"]') ||
+            document.querySelector('input[type="file"]');
+
+          if (fileInput) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+            fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+            fileInput.dispatchEvent(new Event('input', { bubbles: true }));
+            return 'input';
+          }
+          return false;
+        },
+        args: [imageBase64, selectors.fileInput]
+      });
+
+      if (results && results[0] && results[0].result) {
+        // Step 5: Wait for preview (5500-6500ms)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Step 6: Click confirm (6500-6700ms)
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: (confirmSel) => {
+            const confirmBtn = document.querySelector(confirmSel);
+            if (confirmBtn) {
+              confirmBtn.click();
+              return true;
+            }
+            const buttons = document.querySelectorAll('[id^="radix-"] button, [role="dialog"] button');
+            for (const btn of buttons) {
+              const text = btn.textContent.toLowerCase();
+              if (text.includes('use') || text.includes('apply') || text.includes('confirm') || text.includes('select')) {
+                btn.click();
+                return true;
+              }
+            }
+            return false;
+          },
+          args: [selectors.confirmButton]
+        });
+
+        Helpers.showToast('อัพโหลดภาพแล้ว', 'success');
+      } else {
+        throw new Error('ไม่พบช่องอัพโหลด');
+      }
+    } else {
+      // Media asset was selected - wait for user to select and confirm
+      console.log('[Upload] Media asset button clicked, waiting for user selection');
+
+      // Wait for user selection to complete (up to 10 seconds)
+      let confirmed = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Check if upload dialog is still open
+        const isDialogStillOpen = await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          func: () => {
+            return !!document.querySelector('[role="dialog"]');
+          }
+        });
+
+        if (!isDialogStillOpen?.[0]?.result) {
+          confirmed = true;
+          break;
+        }
+      }
+
+      if (confirmed) {
+        Helpers.showToast('เลือกไฟล์จากคลังแล้ว', 'success');
+      } else {
+        Helpers.showToast('กำลังรอการเลือกไฟล์จากคลังของคุณ', 'info');
+      }
+    }
+  },
+
+  /**
    * Upload person image to web (WASM selectors)
    */
   async uploadPersonToWeb(tab, personImage) {
@@ -565,6 +757,10 @@ ${headingParts.join('\n')}`;
 
       if (results && results[0] && results[0].result) {
         await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Click Crop and Save button 3 times for character image
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        await this.clickCropAndSave(tab, 3);
 
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
@@ -804,6 +1000,12 @@ ${headingParts.join('\n')}`;
     const selectors = await loadWasmSelectors();
     const duration = Settings.getVideoDuration() || 10;
 
+    // If selectors for duration are missing (e.g., fallback mode), skip to avoid unserializable args
+    if (!selectors.Gen5DurationBtn || !selectors.Gen5DurationMenuItem) {
+      console.log('[Controls] Duration selectors unavailable in fallback mode; skipping setVideoDuration');
+      return;
+    }
+
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -938,6 +1140,7 @@ ${headingParts.join('\n')}`;
 
       if (results && results[0] && results[0].result) {
         Helpers.showToast('กดเลือกภาพแล้ว', 'success');
+        await this.clickCropAndSave(tab, 3);
       } else {
         Helpers.showToast('ไม่พบปุ่มเลือกภาพ', 'error');
       }
@@ -945,6 +1148,140 @@ ${headingParts.join('\n')}`;
       console.error('Select image error:', error);
       Helpers.showToast('เกิดข้อผิดพลาด', 'error');
     }
+  },
+
+  /**
+   * Click Crop and Save button multiple times after image selection
+   */
+  async clickCropAndSave(tab, times = 5) {
+    if (!tab || !this.canScriptTab(tab)) {
+      console.log('[clickCropAndSave] Cannot script tab');
+      return false;
+    }
+
+    let successCount = 0;
+
+    for (let i = 0; i < times; i++) {
+      // Wait longer to ensure dialog renders
+      await new Promise(resolve => setTimeout(resolve, 1500 + (i * 200)));
+
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => {
+          console.log('[clickCropAndSave] Attempt to find and click Crop and Save button');
+
+          // Strategy 1: Try to find button by class selectors from HTML
+          let button = null;
+
+          // Direct class match (from inspector: sc-c177465c-1 gdArnN sc-19de2353-7 jcyPCc)
+          button = document.querySelector('button.sc-c177465c-1.sc-19de2353-7');
+          if (button && button.textContent.includes('Crop and Save')) {
+            console.log('[clickCropAndSave] Found via class selector (Strategy 1a)');
+            try {
+              button.focus();
+              button.click();
+
+              // Extra event triggers
+              setTimeout(() => {
+                button.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+              }, 50);
+              setTimeout(() => {
+                button.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+              }, 100);
+              setTimeout(() => {
+                button.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+              }, 150);
+
+              return true;
+            } catch (e) {
+              console.error('[clickCropAndSave] Strategy 1a failed:', e);
+            }
+          }
+
+          // Strategy 2: Find by searching all buttons for crop icon + text
+          const buttons = document.querySelectorAll('button');
+          console.log(`[clickCropAndSave] Found ${buttons.length} buttons, searching...`);
+
+          for (const btn of buttons) {
+            const iconElement = btn.querySelector('i.material-icons');
+            const hasIcon = iconElement && iconElement.textContent.trim() === 'crop';
+            const hasText = btn.textContent.includes('Crop and Save');
+
+            if (hasIcon && hasText) {
+              // Check visibility
+              const rect = btn.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.right > 0) {
+                console.log('[clickCropAndSave] Found button with crop icon, clicking (Strategy 2)');
+                try {
+                  // Use focus to ensure it's active
+                  btn.focus();
+
+                  // Click with delay between events
+                  btn.click();
+
+                  // Trigger pointer events as well
+                  setTimeout(() => {
+                    btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                  }, 50);
+                  setTimeout(() => {
+                    btn.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                  }, 100);
+
+                  return true;
+                } catch (e) {
+                  console.error('[clickCropAndSave] Strategy 2 failed:', e);
+                }
+              }
+            }
+          }
+
+          // Strategy 3: Find button by text only
+          console.log('[clickCropAndSave] Trying text-only search (Strategy 3)');
+          for (const btn of buttons) {
+            const text = btn.textContent.trim();
+            if (text === 'Crop and Save' || (text.includes('Crop and Save') && text.length < 100)) {
+              const rect = btn.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0 && rect.bottom > 0) {
+                console.log('[clickCropAndSave] Found by text, clicking (Strategy 3)');
+                try {
+                  btn.focus();
+                  btn.click();
+
+                  setTimeout(() => {
+                    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                  }, 50);
+                  setTimeout(() => {
+                    btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                  }, 100);
+
+                  return true;
+                } catch (e) {
+                  console.error('[clickCropAndSave] Strategy 3 failed:', e);
+                }
+              }
+            }
+          }
+
+          console.log('[clickCropAndSave] No button found after trying all strategies');
+          return false;
+        }
+      });
+
+      if (results && results[0] && results[0].result) {
+        console.log(`[clickCropAndSave] Successfully clicked on attempt ${i + 1}`);
+        successCount++;
+      } else {
+        console.log(`[clickCropAndSave] Click attempt ${i + 1} failed`);
+      }
+    }
+
+    if (successCount > 0) {
+      Helpers.showToast(`กด Crop and Save สำเร็จ ${successCount} ครั้ง`, 'success');
+      return true;
+    }
+
+    console.log('[clickCropAndSave] Failed to click button after all attempts');
+    return false;
   },
 
   /**
@@ -1011,7 +1348,7 @@ ${headingParts.join('\n')}`;
   async showWebOverlay() {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const logoUrl = chrome.runtime.getURL('aiunlocked.png');
+      const logoUrl = chrome.runtime.getURL('icons/icon128.png');
 
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -1044,7 +1381,7 @@ ${headingParts.join('\n')}`;
                 align-items: center;
                 min-width: 280px;
               ">
-                <img src="${logoSrc}" alt="AI Unlocked" style="
+                <img src="${logoSrc}" alt="Eddication Flow AI" style="
                   width: 64px;
                   height: 64px;
                   border-radius: 50%;
