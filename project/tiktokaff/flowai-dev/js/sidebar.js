@@ -472,6 +472,8 @@ class FlowAIUnlocked {
     const genderRadio = document.querySelector('input[name="storyGender"]:checked');
 
     const count = parseInt(countInput?.value || 3);
+    const goals = document.getElementById('topicGoals')?.value?.trim() || '';
+
     if (count < 1 || count > 10) {
       alert('กรุณาใส่จำนวนหัวข้อระหว่าง 1-10');
       return;
@@ -541,9 +543,10 @@ class FlowAIUnlocked {
       }
 
       // Create prompt for generating topics
+      const goalsSection = goals ? `\n\nเป้าหมาย/ประเด็นที่ต้องการ:\n${goals}` : '';
       const prompt = `สร้างหัวข้อเรื่องสำหรับคลิปสั้น TikTok จำนวน ${count} หัวข้อ
       
-ตัวละคร: ${characterName} (${genderText})
+ตัวละคร: ${characterName} (${genderText})${goalsSection}
 
 กรุณาสร้างหัวข้อที่:
 1. น่าสนใจและดึงดูดผู้ชม
@@ -637,15 +640,23 @@ class FlowAIUnlocked {
           // Show topics in input (first topic)
           topicInput.value = topics[0];
 
-          // If more than 1 topic, show selection dialog
+          // If more than 1 topic, show selection dialog to choose multiple
           if (topics.length > 1) {
-            const selectedTopic = await this.showTopicSelectionDialog(topics);
-            if (selectedTopic) {
-              topicInput.value = selectedTopic;
+            const selectedTopics = await this.showTopicSelectionDialog(topics);
+            if (selectedTopics && selectedTopics.length > 0) {
+              // If user selected multiple topics, create details for each
+              if (selectedTopics.length > 1) {
+                topicInput.value = selectedTopics.join(' | ');
+                await this.generateDetailsForMultipleTopics(selectedTopics);
+              } else {
+                // Single selection
+                topicInput.value = selectedTopics[0];
+                showToast('เลือกหัวข้อเรียบร้อย!', 'success');
+              }
             }
+          } else {
+            showToast('สร้างหัวข้อสำเร็จ!', 'success');
           }
-
-          showToast('สร้างหัวข้อสำเร็จ!', 'success');
         } else {
           topicInput.value = response.substring(0, 200); // Fallback
           showToast('สร้างหัวข้อสำเร็จ!', 'success');
@@ -659,6 +670,87 @@ class FlowAIUnlocked {
     } finally {
       generateBtn.disabled = false;
       generateBtn.innerHTML = originalText;
+    }
+  }
+
+  /**
+   * Generate details for multiple topics
+   */
+  async generateDetailsForMultipleTopics(selectedTopics) {
+    const detailsTextarea = document.getElementById('storyDetails');
+    const generateBtn = document.getElementById('generateTopicsBtn');
+
+    // Ask user if they want to auto-generate details for all topics
+    const autoGenerate = confirm(`ต้องการสร้างรายละเอียดอัตโนมัติสำหรับ ${selectedTopics.length} หัวข้อหรือไม่?\n\nคลิก "ตกลง" เพื่อสร้างอัตโนมัติ\nคลิก "ยกเลิก" เพื่อสร้างแต่ละรายการด้วยตนเอง`);
+
+    if (!autoGenerate) {
+      showToast(`เลือกหัวข้อ ${selectedTopics.length} หัวข้อแล้ว - สามารถสร้างรายละเอียดแต่ละรายการแยกกัน`, 'info');
+      return;
+    }
+
+    // Auto-generate details for each topic
+    const allDetails = [];
+
+    for (let i = 0; i < selectedTopics.length; i++) {
+      const topic = selectedTopics[i];
+      try {
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = `<span class="spinner"></span> สร้างรายละเอียด (${i + 1}/${selectedTopics.length})...`;
+
+        const details = await this.generateDetailForTopic(topic);
+        allDetails.push(`หัวข้อ ${i + 1}: ${topic}\n${details}\n`);
+
+        // Add small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`Error generating details for topic "${topic}":`, error);
+        allDetails.push(`หัวข้อ ${i + 1}: ${topic}\n[ไม่สามารถสร้างรายละเอียดได้]\n`);
+      }
+    }
+
+    detailsTextarea.value = allDetails.join('\n---\n\n');
+    generateBtn.disabled = false;
+    generateBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px;"><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></svg>Gen หัวข้อ';
+    showToast('สร้างรายละเอียดเรียบร้อย!', 'success');
+  }
+
+  /**
+   * Generate detail for a single topic
+   */
+  async generateDetailForTopic(topic) {
+    const settings = await chrome.storage.local.get(['selectedAI', 'geminiApiKey', 'openaiApiKey']);
+    let selectedAI = settings.selectedAI || 'gemini';
+    let geminiApiKey = settings.geminiApiKey;
+    let openaiApiKey = settings.openaiApiKey;
+
+    const characterName = document.getElementById('storyCharacterName')?.value || 'ตัวละครหลัก';
+    const genderRadio = document.querySelector('input[name="storyGender"]:checked');
+    const gender = genderRadio?.value || 'female';
+    const genderText = gender === 'male' ? 'ผู้ชาย' : 'ผู้หญิง';
+
+    const prompt = `สร้างรายละเอียดสำหรับคลิป TikTok เรื่องสั้นเกี่ยวกับหัวข้อต่อไปนี้:
+
+หัวข้อ: ${topic}
+ตัวละคร: ${characterName} (${genderText})
+
+กรุณาสร้างรายละเอียด:
+1. ความยาวประมาณ 50-100 คำ
+2. เหมาะสำหรับคลิปสั้น 8-16 วินาที
+3. น่าสนใจและสร้างความอยากเห็นในผู้ชม
+4. อธิบายเนื้อหาหลักของเรื่อง
+
+ตอบกลับโดยให้รายละเอียดเท่านั้น ไม่ต้องมีหัวข้อหรือหมายเลข`;
+
+    try {
+      if (selectedAI === 'openai' && openaiApiKey) {
+        return await OpenAIApi.generateText(prompt, openaiApiKey);
+      } else if (geminiApiKey) {
+        return await GeminiApi.generateText(prompt, geminiApiKey);
+      } else {
+        throw new Error('ไม่มี API Key ที่ตั้งค่าไว้');
+      }
+    } catch (error) {
+      throw new Error(`ไม่สามารถสร้างรายละเอียดได้: ${error.message}`);
     }
   }
 
@@ -1046,37 +1138,88 @@ class FlowAIUnlocked {
       const list = document.createElement('div');
       list.style.cssText = 'display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;';
 
+      const selectedTopics = new Set();
+      const topicCheckboxes = {};
+
       topics.forEach((topic, index) => {
-        const button = document.createElement('button');
-        button.textContent = `${index + 1}. ${topic}`;
-        button.style.cssText = `
+        const checkboxContainer = document.createElement('label');
+        checkboxContainer.style.cssText = `
+          display: flex;
+          align-items: center;
           padding: 12px;
-          text-align: left;
           border: 1px solid #ddd;
           border-radius: 4px;
           background: white;
           cursor: pointer;
           transition: all 0.2s;
+          user-select: none;
         `;
-        button.onmouseover = () => {
-          button.style.background = '#f5f5f5';
-          button.style.borderColor = '#999';
+        checkboxContainer.onmouseover = () => {
+          checkboxContainer.style.background = '#f5f5f5';
+          checkboxContainer.style.borderColor = '#999';
         };
-        button.onmouseout = () => {
-          button.style.background = 'white';
-          button.style.borderColor = '#ddd';
+        checkboxContainer.onmouseout = () => {
+          if (!topicCheckboxes[index].checked) {
+            checkboxContainer.style.background = 'white';
+            checkboxContainer.style.borderColor = '#ddd';
+          }
         };
-        button.onclick = () => {
-          document.body.removeChild(modal);
-          resolve(topic);
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = topic;
+        checkbox.style.cssText = 'margin-right: 12px; cursor: pointer;';
+        topicCheckboxes[index] = checkbox;
+
+        const label = document.createElement('span');
+        label.textContent = `${index + 1}. ${topic}`;
+        label.style.cssText = 'flex: 1;';
+
+        checkbox.onchange = () => {
+          if (checkbox.checked) {
+            selectedTopics.add(topic);
+            checkboxContainer.style.background = '#e8f5e9';
+            checkboxContainer.style.borderColor = '#4caf50';
+          } else {
+            selectedTopics.delete(topic);
+            checkboxContainer.style.background = 'white';
+            checkboxContainer.style.borderColor = '#ddd';
+          }
         };
-        list.appendChild(button);
+
+        checkboxContainer.appendChild(checkbox);
+        checkboxContainer.appendChild(label);
+        list.appendChild(checkboxContainer);
       });
+
+      const buttonRow = document.createElement('div');
+      buttonRow.style.cssText = 'display: flex; gap: 8px; margin-bottom: 12px;';
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'สร้างรายละเอียด';
+      confirmBtn.style.cssText = `
+        flex: 1;
+        padding: 10px;
+        border: 1px solid #4caf50;
+        border-radius: 4px;
+        background: #4caf50;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+      `;
+      confirmBtn.onclick = () => {
+        if (selectedTopics.size === 0) {
+          alert('กรุณาเลือกหัวข้ออย่างน้อย 1 หัวข้อ');
+          return;
+        }
+        document.body.removeChild(modal);
+        resolve(Array.from(selectedTopics));
+      };
 
       const cancelBtn = document.createElement('button');
       cancelBtn.textContent = 'ปิด';
       cancelBtn.style.cssText = `
-        width: 100%;
+        flex: 1;
         padding: 10px;
         border: 1px solid #ddd;
         border-radius: 4px;
@@ -1088,9 +1231,12 @@ class FlowAIUnlocked {
         resolve(null);
       };
 
+      buttonRow.appendChild(confirmBtn);
+      buttonRow.appendChild(cancelBtn);
+
       content.appendChild(title);
       content.appendChild(list);
-      content.appendChild(cancelBtn);
+      content.appendChild(buttonRow);
       modal.appendChild(content);
       document.body.appendChild(modal);
     });
