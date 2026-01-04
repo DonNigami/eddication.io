@@ -2,7 +2,7 @@
  * OpenAI API Module
  * Handles communication with OpenAI API (Responses API for vision)
  */
-const OpenaiApi = {
+const OpenAIApi = {
   MODEL: 'gpt-5-nano',
   API_URL: 'https://api.openai.com/v1/responses',
 

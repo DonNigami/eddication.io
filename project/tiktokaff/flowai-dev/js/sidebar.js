@@ -559,6 +559,10 @@ class FlowAIUnlocked {
 
       try {
         if (selectedAI === 'openai') {
+          // Check if OpenAIApi is available
+          if (typeof OpenAIApi === 'undefined') {
+            throw new Error('OpenAI API module not loaded. Please reload the page.');
+          }
           response = await OpenAIApi.generateText(prompt, openaiApiKey);
         } else {
           response = await GeminiApi.generateText(prompt, geminiApiKey);
@@ -605,6 +609,10 @@ class FlowAIUnlocked {
       // Retry with OpenAI if needed
       if (retryWithOpenAI) {
         try {
+          // Check if OpenAIApi is available
+          if (typeof OpenAIApi === 'undefined') {
+            throw new Error('OpenAI API module not loaded. Please reload the page.');
+          }
           response = await OpenAIApi.generateText(prompt, openaiApiKey);
         } catch (retryError) {
           console.error('OpenAI also failed:', retryError);
