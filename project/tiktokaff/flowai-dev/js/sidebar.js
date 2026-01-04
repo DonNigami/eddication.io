@@ -487,6 +487,59 @@ class FlowAIUnlocked {
     generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
 
     try {
+      // Get API settings
+      const settings = await chrome.storage.local.get(['selectedAI', 'geminiApiKey', 'openaiApiKey']);
+      let selectedAI = settings.selectedAI || 'gemini';
+      let geminiApiKey = settings.geminiApiKey;
+      let openaiApiKey = settings.openaiApiKey;
+
+      // Check if API keys are configured
+      const hasGemini = geminiApiKey && geminiApiKey.trim();
+      const hasOpenAI = openaiApiKey && openaiApiKey.trim();
+
+      // If no API keys, show API selection dialog
+      if (!hasGemini && !hasOpenAI) {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+        
+        const choice = await this.showAPISelectionDialog();
+        if (!choice) return;
+        
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
+        
+        selectedAI = choice.api;
+        if (choice.api === 'gemini') {
+          geminiApiKey = choice.apiKey;
+          await chrome.storage.local.set({ selectedAI: 'gemini', geminiApiKey });
+        } else {
+          openaiApiKey = choice.apiKey;
+          await chrome.storage.local.set({ selectedAI: 'openai', openaiApiKey });
+        }
+      } else if (!hasGemini && selectedAI === 'gemini') {
+        // Gemini selected but no key
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+        const apiKey = await this.showAPIKeyInputDialog('Gemini');
+        if (!apiKey) return;
+        geminiApiKey = apiKey;
+        await chrome.storage.local.set({ geminiApiKey });
+        
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
+      } else if (!hasOpenAI && selectedAI === 'openai') {
+        // OpenAI selected but no key
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = originalText;
+        const apiKey = await this.showAPIKeyInputDialog('OpenAI');
+        if (!apiKey) return;
+        openaiApiKey = apiKey;
+        await chrome.storage.local.set({ openaiApiKey });
+        
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
+      }
+
       // Create prompt for generating topics
       const prompt = `สร้างหัวข้อเรื่องสำหรับคลิปสั้น TikTok จำนวน ${count} หัวข้อ
       
@@ -501,14 +554,11 @@ class FlowAIUnlocked {
 ตอบกลับเป็นรายการหัวข้อเท่านั้น เรียงลำดับหมายเลข 1-${count}`;
 
       // Call AI API
-      const settings = await chrome.storage.local.get(['selectedAI', 'geminiApiKey', 'openaiApiKey']);
-      const selectedAI = settings.selectedAI || 'gemini';
-
       let response;
       if (selectedAI === 'openai') {
-        response = await OpenAIApi.generateText(prompt, settings.openaiApiKey);
+        response = await OpenAIApi.generateText(prompt, openaiApiKey);
       } else {
-        response = await GeminiApi.generateText(prompt, settings.geminiApiKey);
+        response = await GeminiApi.generateText(prompt, geminiApiKey);
       }
 
       if (response) {
@@ -551,6 +601,261 @@ class FlowAIUnlocked {
       generateBtn.disabled = false;
       generateBtn.innerHTML = originalText;
     }
+  }
+
+  /**
+   * Show API selection dialog
+   */
+  async showAPISelectionDialog() {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        padding: 20px;
+      `;
+
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 450px;
+        width: 100%;
+      `;
+
+      const title = document.createElement('h3');
+      title.textContent = 'เลือก AI API';
+      title.style.cssText = 'margin: 0 0 16px 0; color: #333;';
+
+      const subtitle = document.createElement('p');
+      subtitle.textContent = 'กรุณาเลือก AI API และกรอก API Key';
+      subtitle.style.cssText = 'margin: 0 0 16px 0; color: #666; font-size: 14px;';
+
+      // Gemini option
+      const geminiBtn = document.createElement('button');
+      geminiBtn.textContent = '🔷 Google Gemini';
+      geminiBtn.style.cssText = `
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+      `;
+      geminiBtn.onmouseover = () => {
+        geminiBtn.style.borderColor = '#4285F4';
+        geminiBtn.style.background = '#F0F7FF';
+      };
+      geminiBtn.onmouseout = () => {
+        geminiBtn.style.borderColor = '#ddd';
+        geminiBtn.style.background = 'white';
+      };
+      geminiBtn.onclick = async () => {
+        document.body.removeChild(modal);
+        const apiKey = await this.showAPIKeyInputDialog('Google Gemini');
+        if (apiKey) {
+          resolve({ api: 'gemini', apiKey });
+        } else {
+          resolve(null);
+        }
+      };
+
+      // OpenAI option
+      const openaiBtn = document.createElement('button');
+      openaiBtn.textContent = '🔴 OpenAI (GPT-4o-mini)';
+      openaiBtn.style.cssText = `
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+      `;
+      openaiBtn.onmouseover = () => {
+        openaiBtn.style.borderColor = '#10A37F';
+        openaiBtn.style.background = '#F0FBF8';
+      };
+      openaiBtn.onmouseout = () => {
+        openaiBtn.style.borderColor = '#ddd';
+        openaiBtn.style.background = 'white';
+      };
+      openaiBtn.onclick = async () => {
+        document.body.removeChild(modal);
+        const apiKey = await this.showAPIKeyInputDialog('OpenAI');
+        if (apiKey) {
+          resolve({ api: 'openai', apiKey });
+        } else {
+          resolve(null);
+        }
+      };
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'ยกเลิก';
+      cancelBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        margin-top: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+      `;
+      cancelBtn.onclick = () => {
+        document.body.removeChild(modal);
+        resolve(null);
+      };
+
+      content.appendChild(title);
+      content.appendChild(subtitle);
+      content.appendChild(geminiBtn);
+      content.appendChild(openaiBtn);
+      content.appendChild(cancelBtn);
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+    });
+  }
+
+  /**
+   * Show API key input dialog
+   */
+  async showAPIKeyInputDialog(apiName) {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10002;
+        padding: 20px;
+      `;
+
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 450px;
+        width: 100%;
+      `;
+
+      const title = document.createElement('h3');
+      title.textContent = `ใส่ ${apiName} API Key`;
+      title.style.cssText = 'margin: 0 0 8px 0; color: #333;';
+
+      const help = document.createElement('p');
+      help.style.cssText = 'margin: 0 0 16px 0; font-size: 12px; color: #999;';
+      if (apiName.includes('Gemini')) {
+        help.innerHTML = `ได้จาก <a href="https://ai.google.dev/api" target="_blank" style="color: #4285F4;">Google AI Studio</a>`;
+      } else {
+        help.innerHTML = `ได้จาก <a href="https://platform.openai.com/api-keys" target="_blank" style="color: #10A37F;">OpenAI Dashboard</a>`;
+      }
+
+      const input = document.createElement('input');
+      input.type = 'password';
+      input.placeholder = 'sk-... หรือ AIzaSy...';
+      input.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        margin-bottom: 16px;
+        box-sizing: border-box;
+      `;
+
+      const showBtn = document.createElement('button');
+      showBtn.textContent = '👁️ แสดง';
+      showBtn.style.cssText = `
+        padding: 4px 8px;
+        margin-bottom: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 12px;
+      `;
+      showBtn.onclick = () => {
+        input.type = input.type === 'password' ? 'text' : 'password';
+        showBtn.textContent = input.type === 'password' ? '👁️ แสดง' : '🚫 ซ่อน';
+      };
+
+      const buttonRow = document.createElement('div');
+      buttonRow.style.cssText = 'display: flex; gap: 8px; margin-bottom: 12px;';
+      buttonRow.appendChild(input);
+      buttonRow.appendChild(showBtn);
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = '✓ บันทึก API Key';
+      confirmBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        background: #4285F4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 8px;
+      `;
+      confirmBtn.onclick = () => {
+        const key = input.value.trim();
+        if (!key) {
+          alert('กรุณากรอก API Key');
+          return;
+        }
+        document.body.removeChild(modal);
+        resolve(key);
+      };
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'ยกเลิก';
+      cancelBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+      `;
+      cancelBtn.onclick = () => {
+        document.body.removeChild(modal);
+        resolve(null);
+      };
+
+      content.appendChild(title);
+      content.appendChild(help);
+      content.appendChild(buttonRow);
+      content.appendChild(confirmBtn);
+      content.appendChild(cancelBtn);
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+      
+      // Focus input
+      setTimeout(() => input.focus(), 100);
+    });
   }
 
   /**
