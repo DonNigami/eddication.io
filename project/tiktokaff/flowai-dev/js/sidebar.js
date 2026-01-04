@@ -501,13 +501,13 @@ class FlowAIUnlocked {
       if (!hasGemini && !hasOpenAI) {
         generateBtn.disabled = false;
         generateBtn.innerHTML = originalText;
-        
+
         const choice = await this.showAPISelectionDialog();
         if (!choice) return;
-        
+
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
-        
+
         selectedAI = choice.api;
         if (choice.api === 'gemini') {
           geminiApiKey = choice.apiKey;
@@ -524,7 +524,7 @@ class FlowAIUnlocked {
         if (!apiKey) return;
         geminiApiKey = apiKey;
         await chrome.storage.local.set({ geminiApiKey });
-        
+
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
       } else if (!hasOpenAI && selectedAI === 'openai') {
@@ -535,7 +535,7 @@ class FlowAIUnlocked {
         if (!apiKey) return;
         openaiApiKey = apiKey;
         await chrome.storage.local.set({ openaiApiKey });
-        
+
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
       }
@@ -555,10 +555,46 @@ class FlowAIUnlocked {
 
       // Call AI API
       let response;
-      if (selectedAI === 'openai') {
-        response = await OpenAIApi.generateText(prompt, openaiApiKey);
-      } else {
-        response = await GeminiApi.generateText(prompt, geminiApiKey);
+      let retryWithOpenAI = false;
+
+      try {
+        if (selectedAI === 'openai') {
+          response = await OpenAIApi.generateText(prompt, openaiApiKey);
+        } else {
+          response = await GeminiApi.generateText(prompt, geminiApiKey);
+        }
+      } catch (apiError) {
+        // Check if it's a Gemini quota error
+        if (selectedAI === 'gemini' && apiError.message.includes('quota') && hasOpenAI) {
+          console.warn('Gemini quota exceeded, switching to OpenAI...');
+          generateBtn.disabled = false;
+          generateBtn.innerHTML = originalText;
+
+          // Show dialog to switch to OpenAI
+          const switchResult = await this.showAPIQuotaErrorDialog('Gemini');
+          if (switchResult) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
+
+            selectedAI = 'openai';
+            await chrome.storage.local.set({ selectedAI: 'openai' });
+            retryWithOpenAI = true;
+          } else {
+            throw apiError;
+          }
+        } else {
+          throw apiError;
+        }
+      }
+
+      // Retry with OpenAI if needed
+      if (retryWithOpenAI) {
+        try {
+          response = await OpenAIApi.generateText(prompt, openaiApiKey);
+        } catch (retryError) {
+          console.error('OpenAI also failed:', retryError);
+          throw new Error(`OpenAI Error: ${retryError.message}`);
+        }
       }
 
       if (response) {
@@ -852,9 +888,99 @@ class FlowAIUnlocked {
       content.appendChild(cancelBtn);
       modal.appendChild(content);
       document.body.appendChild(modal);
-      
+
       // Focus input
       setTimeout(() => input.focus(), 100);
+    });
+  }
+
+  /**
+   * Show API quota error dialog (when Gemini quota exceeded)
+   */
+  async showAPIQuotaErrorDialog(failedAPI) {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10003;
+        padding: 20px;
+      `;
+
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 450px;
+        width: 100%;
+      `;
+
+      const icon = document.createElement('div');
+      icon.textContent = '⚠️';
+      icon.style.cssText = 'font-size: 48px; text-align: center; margin-bottom: 16px;';
+
+      const title = document.createElement('h3');
+      title.textContent = `${failedAPI} Quota ถูกใช้หมด`;
+      title.style.cssText = 'margin: 0 0 12px 0; color: #333; text-align: center;';
+
+      const message = document.createElement('p');
+      message.textContent = `${failedAPI} API quota ของคุณถูกใช้หมดแล้ว ระบบจะเปลี่ยนไปใช้ OpenAI แทนอัตโนมัติ`;
+      message.style.cssText = 'margin: 0 0 16px 0; color: #666; font-size: 14px; text-align: center;';
+
+      const switchBtn = document.createElement('button');
+      switchBtn.textContent = '✓ ใช้ OpenAI แทน';
+      switchBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        background: #10A37F;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-bottom: 8px;
+        font-weight: 500;
+      `;
+      switchBtn.onclick = () => {
+        document.body.removeChild(modal);
+        resolve(true);
+      };
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'ยกเลิก';
+      cancelBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+      `;
+      cancelBtn.onclick = () => {
+        document.body.removeChild(modal);
+        resolve(false);
+      };
+
+      const helpText = document.createElement('p');
+      helpText.style.cssText = 'margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; font-size: 12px; color: #999;';
+      helpText.innerHTML = `💡 วิธีแก้ไข: <a href="https://ai.google.dev/pricing" target="_blank" style="color: #4285F4;">อัพเกรด Gemini plan</a> หรือใช้ OpenAI ต่อไป`;
+
+      content.appendChild(icon);
+      content.appendChild(title);
+      content.appendChild(message);
+      content.appendChild(switchBtn);
+      content.appendChild(cancelBtn);
+      content.appendChild(helpText);
+      modal.appendChild(content);
+      document.body.appendChild(modal);
     });
   }
 
