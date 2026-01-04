@@ -89,5 +89,41 @@ const OpenaiApi = {
     const textOutput = data.output?.find(item => item.type === 'message');
     const content = textOutput?.content?.find(c => c.type === 'output_text');
     return content?.text || data.output_text || 'ไม่สามารถสร้าง prompt ได้';
+  },
+
+  /**
+   * Generate text using OpenAI Responses API (simple text-only)
+   */
+  async generateText(prompt, apiKey) {
+    if (!apiKey) {
+      throw new Error('กรุณาตั้งค่า OpenAI API Key ในหน้า Settings');
+    }
+
+    const requestBody = {
+      model: this.MODEL,
+      instructions: 'You are a helpful assistant.',
+      input: prompt
+    };
+
+    const response = await fetch(this.API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'OpenAI API error');
+    }
+
+    const data = await response.json();
+
+    // Extract text from output array
+    const textOutput = data.output?.find(item => item.type === 'message');
+    const content = textOutput?.content?.find(c => c.type === 'output_text');
+    return content?.text || data.output_text || '';
   }
 };

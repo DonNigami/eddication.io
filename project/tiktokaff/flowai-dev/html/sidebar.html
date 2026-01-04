@@ -633,6 +633,26 @@
           <div class="form-group">
             <input type="text" id="storyTopic" placeholder="พิมพ์หัวข้อเรื่องที่ต้องการสร้าง...">
           </div>
+          <div class="form-row" style="margin-top: 8px; gap: 8px;">
+            <div style="flex: 0 0 120px;">
+              <label
+                style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">จำนวนหัวข้อ</label>
+              <input type="number" id="topicGenerateCount" value="3" min="1" max="10" style="width: 100%;">
+            </div>
+            <div style="flex: 1;">
+              <label
+                style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block;">&nbsp;</label>
+              <button id="generateTopicsBtn" class="btn btn-secondary" style="width: 100%;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  style="margin-right: 4px;">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+                Gen หัวข้อ
+              </button>
+            </div>
+          </div>
           <!-- Story Mode Selection -->
           <div class="form-row" style="margin-bottom: 8px;">
             <div class="story-mode-selector">

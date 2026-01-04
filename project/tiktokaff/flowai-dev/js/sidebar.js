@@ -285,6 +285,12 @@ class FlowAIUnlocked {
       generateBtn.addEventListener('click', () => this.generateStoryDetails());
     }
 
+    // Setup generate topics button
+    const generateTopicsBtn = document.getElementById('generateTopicsBtn');
+    if (generateTopicsBtn) {
+      generateTopicsBtn.addEventListener('click', () => this.generateTopics());
+    }
+
     // Setup prompt generation buttons
     const imagePromptBtn = document.getElementById('storyGenerateImagePromptBtn');
     if (imagePromptBtn) {
@@ -453,6 +459,187 @@ class FlowAIUnlocked {
         if (genderRadio) genderRadio.checked = true;
       }
     }
+  }
+
+  /**
+   * Generate topics using AI
+   */
+  async generateTopics() {
+    const topicInput = document.getElementById('storyTopic');
+    const countInput = document.getElementById('topicGenerateCount');
+    const generateBtn = document.getElementById('generateTopicsBtn');
+    const characterNameInput = document.getElementById('storyCharacterName');
+    const genderRadio = document.querySelector('input[name="storyGender"]:checked');
+
+    const count = parseInt(countInput?.value || 3);
+    if (count < 1 || count > 10) {
+      alert('กรุณาใส่จำนวนหัวข้อระหว่าง 1-10');
+      return;
+    }
+
+    const characterName = characterNameInput?.value || 'ตัวละครหลัก';
+    const gender = genderRadio?.value || 'female';
+    const genderText = gender === 'male' ? 'ผู้ชาย' : 'ผู้หญิง';
+
+    // Disable button
+    const originalText = generateBtn.innerHTML;
+    generateBtn.disabled = true;
+    generateBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง...';
+
+    try {
+      // Create prompt for generating topics
+      const prompt = `สร้างหัวข้อเรื่องสำหรับคลิปสั้น TikTok จำนวน ${count} หัวข้อ
+      
+ตัวละคร: ${characterName} (${genderText})
+
+กรุณาสร้างหัวข้อที่:
+1. น่าสนใจและดึงดูดผู้ชม
+2. เหมาะสำหรับคลิปสั้น 8-16 วินาที
+3. มีความหลากหลาย ไม่ซ้ำกัน
+4. เหมาะสมกับเนื้อหาบันเทิงและการเล่าเรื่อง
+
+ตอบกลับเป็นรายการหัวข้อเท่านั้น เรียงลำดับหมายเลข 1-${count}`;
+
+      // Call AI API
+      const settings = await chrome.storage.local.get(['selectedAI', 'geminiApiKey', 'openaiApiKey']);
+      const selectedAI = settings.selectedAI || 'gemini';
+
+      let response;
+      if (selectedAI === 'openai') {
+        response = await OpenAIApi.generateText(prompt, settings.openaiApiKey);
+      } else {
+        response = await GeminiApi.generateText(prompt, settings.geminiApiKey);
+      }
+
+      if (response) {
+        // Parse response to extract topics
+        const lines = response.split('\n').filter(line => line.trim());
+        const topics = [];
+
+        for (const line of lines) {
+          // Extract topic from numbered list (e.g., "1. Topic here" or "1) Topic here")
+          const match = line.match(/^\d+[\.\)]\s*(.+)$/);
+          if (match) {
+            topics.push(match[1].trim());
+          }
+        }
+
+        if (topics.length > 0) {
+          // Show topics in input (first topic)
+          topicInput.value = topics[0];
+
+          // If more than 1 topic, show selection dialog
+          if (topics.length > 1) {
+            const selectedTopic = await this.showTopicSelectionDialog(topics);
+            if (selectedTopic) {
+              topicInput.value = selectedTopic;
+            }
+          }
+
+          showToast('สร้างหัวข้อสำเร็จ!', 'success');
+        } else {
+          topicInput.value = response.substring(0, 200); // Fallback
+          showToast('สร้างหัวข้อสำเร็จ!', 'success');
+        }
+      } else {
+        throw new Error('ไม่สามารถสร้างหัวข้อได้');
+      }
+    } catch (error) {
+      console.error('Error generating topics:', error);
+      showToast(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
+    } finally {
+      generateBtn.disabled = false;
+      generateBtn.innerHTML = originalText;
+    }
+  }
+
+  /**
+   * Show topic selection dialog
+   */
+  async showTopicSelectionDialog(topics) {
+    return new Promise((resolve) => {
+      // Create modal
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        padding: 20px;
+      `;
+
+      const content = document.createElement('div');
+      content.style.cssText = `
+        background: white;
+        border-radius: 8px;
+        padding: 24px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 80vh;
+        overflow-y: auto;
+      `;
+
+      const title = document.createElement('h3');
+      title.textContent = `เลือกหัวข้อที่ต้องการ (${topics.length} หัวข้อ)`;
+      title.style.cssText = 'margin: 0 0 16px 0; color: #333;';
+
+      const list = document.createElement('div');
+      list.style.cssText = 'display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;';
+
+      topics.forEach((topic, index) => {
+        const button = document.createElement('button');
+        button.textContent = `${index + 1}. ${topic}`;
+        button.style.cssText = `
+          padding: 12px;
+          text-align: left;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s;
+        `;
+        button.onmouseover = () => {
+          button.style.background = '#f5f5f5';
+          button.style.borderColor = '#999';
+        };
+        button.onmouseout = () => {
+          button.style.background = 'white';
+          button.style.borderColor = '#ddd';
+        };
+        button.onclick = () => {
+          document.body.removeChild(modal);
+          resolve(topic);
+        };
+        list.appendChild(button);
+      });
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'ปิด';
+      cancelBtn.style.cssText = `
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+      `;
+      cancelBtn.onclick = () => {
+        document.body.removeChild(modal);
+        resolve(null);
+      };
+
+      content.appendChild(title);
+      content.appendChild(list);
+      content.appendChild(cancelBtn);
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+    });
   }
 
   /**

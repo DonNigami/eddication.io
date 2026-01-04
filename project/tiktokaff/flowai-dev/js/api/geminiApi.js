@@ -108,5 +108,48 @@ const GeminiApi = {
 
     const data = await response.json();
     return data.candidates?.[0]?.content?.parts?.[0]?.text || 'ไม่สามารถสร้าง prompt ได้';
+  },
+
+  /**
+   * Generate text using Gemini API (simple text-only)
+   */
+  async generateText(prompt, apiKey) {
+    if (!apiKey) {
+      throw new Error('กรุณาตั้งค่า Gemini API Key ในหน้า Settings');
+    }
+
+    const url = `${this.API_URL}/${this.MODEL}:generateContent?key=${apiKey}`;
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 2048
+      }
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Gemini API error');
+    }
+
+    const data = await response.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
   }
 };
