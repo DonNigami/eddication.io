@@ -564,11 +564,26 @@ class FlowAIUnlocked {
           response = await GeminiApi.generateText(prompt, geminiApiKey);
         }
       } catch (apiError) {
+        const errorMsg = apiError.message || '';
+        const isQuotaError = errorMsg.includes('quota') || errorMsg.includes('RESOURCE_EXHAUSTED');
+
         // Check if it's a Gemini quota error
-        if (selectedAI === 'gemini' && apiError.message.includes('quota') && hasOpenAI) {
-          console.warn('Gemini quota exceeded, switching to OpenAI...');
+        if (selectedAI === 'gemini' && isQuotaError) {
+          console.warn('Gemini quota exceeded, attempting to switch to OpenAI...');
           generateBtn.disabled = false;
           generateBtn.innerHTML = originalText;
+
+          // If OpenAI key not available, ask user to provide it
+          if (!hasOpenAI) {
+            console.log('No OpenAI key available, asking user to provide one...');
+            const apiKey = await this.showAPIKeyInputDialog('OpenAI');
+            if (!apiKey) {
+              throw new Error('Gemini quota exceeded. OpenAI API Key is required to continue.');
+            }
+            openaiApiKey = apiKey;
+            await chrome.storage.local.set({ openaiApiKey });
+            hasOpenAI = true;
+          }
 
           // Show dialog to switch to OpenAI
           const switchResult = await this.showAPIQuotaErrorDialog('Gemini');
@@ -580,7 +595,7 @@ class FlowAIUnlocked {
             await chrome.storage.local.set({ selectedAI: 'openai' });
             retryWithOpenAI = true;
           } else {
-            throw apiError;
+            throw new Error('Gemini quota exceeded. User cancelled switching to OpenAI.');
           }
         } else {
           throw apiError;
