@@ -865,8 +865,11 @@ const TikTokUploader = {
 
     // Check if current tab is TikTok
     if (!tab || !tab.url || !tab.url.includes('tiktok.com')) {
-      // Try to find existing TikTok tab
-      const tiktokTabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
+      // Try to find existing TikTok upload tab (both URLs)
+      let tiktokTabs = await chrome.tabs.query({ url: '*://www.tiktok.com/tiktokstudio/upload*' });
+      if (tiktokTabs.length === 0) {
+        tiktokTabs = await chrome.tabs.query({ url: '*://www.tiktok.com/creator-center/upload*' });
+      }
 
       if (tiktokTabs.length > 0) {
         // Use existing TikTok tab
@@ -874,7 +877,7 @@ const TikTokUploader = {
         await chrome.tabs.update(tab.id, { active: true });
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
-        // Create new TikTok tab
+        // Create new TikTok tab (try tiktokstudio first, fallback to creator-center)
         showToast('กำลังเปิด TikTok...', 'info');
         tab = await chrome.tabs.create({
           url: 'https://www.tiktok.com/tiktokstudio/upload?from=creator_center',
