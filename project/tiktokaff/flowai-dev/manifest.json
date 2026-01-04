@@ -78,7 +78,11 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["icons/icon128.png"],
+      "resources": [
+        "icons/icon128.png",
+        "wasm/flow_core.js",
+        "wasm/flow_core_bg.wasm"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
