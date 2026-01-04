@@ -861,10 +861,47 @@ const TikTokUploader = {
     }
 
     // Get tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    let tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+
+    // Check if current tab is TikTok
     if (!tab || !tab.url || !tab.url.includes('tiktok.com')) {
-      showToast('กรุณาเปิดหน้า TikTok ก่อน', 'error');
-      return;
+      // Try to find existing TikTok tab
+      const tiktokTabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
+
+      if (tiktokTabs.length > 0) {
+        // Use existing TikTok tab
+        tab = tiktokTabs[0];
+        await chrome.tabs.update(tab.id, { active: true });
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        // Create new TikTok tab
+        showToast('กำลังเปิด TikTok...', 'info');
+        tab = await chrome.tabs.create({
+          url: 'https://www.tiktok.com/creator-center/upload?from=upload',
+          active: true
+        });
+
+        // Wait for page to load
+        await new Promise((resolve) => {
+          chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+            if (tabId === tab.id && changeInfo.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+              setTimeout(resolve, 2000);
+            }
+          });
+        });
+      }
+
+      // Inject content script
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (e) {
+        console.log('Content script already injected or error:', e);
+      }
     }
 
     // Prepare files list
@@ -1104,7 +1141,29 @@ const TikTokUploader = {
     `;
 
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      let tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+
+      // Check if current tab is TikTok
+      if (!tab || !tab.url || !tab.url.includes('tiktok.com')) {
+        // Try to find existing TikTok tab
+        const tiktokTabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
+        
+        if (tiktokTabs.length > 0) {
+          tab = tiktokTabs[0];
+          await chrome.tabs.update(tab.id, { active: true });
+        } else {
+          showToast('กรุณาเปิดหน้า TikTok ก่อน', 'error');
+          this.scanBtn.disabled = false;
+          this.scanBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            สแกนสินค้า
+          `;
+          return;
+        }
+      }
 
       if (tab && tab.url && tab.url.includes('tiktok.com')) {
         chrome.tabs.sendMessage(tab.id, { action: 'scanProducts' }, response => {
