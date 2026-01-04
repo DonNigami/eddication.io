@@ -877,386 +877,489 @@ const TikTokUploader = {
         // Create new TikTok tab
         showToast('กำลังเปิด TikTok...', 'info');
         tab = await chrome.tabs.create({
-          url: 'https://www.tiktok.com/creator-center/upload?from=upload',
-          active: true
-        });
-
-        // Wait for page to load
-        await new Promise((resolve) => {
-          chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
-            if (tabId === tab.id && changeInfo.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener);
-              setTimeout(resolve, 2000);
-            }
+          url: 'https://www.tiktok.com/tiktokstudio/upload?from=creator_center',
+          // Wait for page to load
+          await new Promise((resolve) => {
+            chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+              if (tabId === tab.id && changeInfo.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener);
+                setTimeout(resolve, 2000);
+              }
+            });
           });
-        });
-      }
+        }
 
       // Inject content script
       try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['content.js']
-        });
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (e) {
-        console.log('Content script already injected or error:', e);
-      }
-    }
-
-    // Prepare files list
-    let filesToUpload = [];
-    let warehouseVideoIds = [];
-    let warehouseVideoMetas = [];
-
-    if (useBurstMode) {
-      // Burst mode: get video files from burst selection
-      for (const video of burstVideosToUpload) {
-        const videoFile = await this.getWarehouseVideoFile(video.id);
-        if (videoFile) {
-          filesToUpload.push(videoFile);
-          warehouseVideoIds.push(video.id);
-          warehouseVideoMetas.push(video);
-        }
-      }
-
-      if (filesToUpload.length === 0) {
-        showToast('ไม่พบไฟล์วิดีโอในคลัง', 'error');
-        return;
-      }
-    } else if (useWarehouseVideo) {
-      // Get videos to upload based on count
-      const videosToUpload = this.getRandomPendingVideos(this.warehouseVideoCount);
-
-      if (videosToUpload.length === 0) {
-        showToast('ไม่พบวิดีโอที่จะอัพโหลด', 'error');
-        return;
-      }
-
-      // Get all video files
-      for (const video of videosToUpload) {
-        const videoFile = await this.getWarehouseVideoFile(video.id);
-        if (videoFile) {
-          filesToUpload.push(videoFile);
-          warehouseVideoIds.push(video.id);
-          warehouseVideoMetas.push(video);
-        }
-      }
-
-      if (filesToUpload.length === 0) {
-        showToast('ไม่พบไฟล์วิดีโอในคลัง', 'error');
-        return;
-      }
-    } else {
-      filesToUpload = this.files;
-    }
-
-    const clipCount = filesToUpload.length;
-    this.scheduleHistory = [];
-    this.isAutomationRunning = true;
-    this.shouldStopAutomation = false;
-
-    this.automationBtn.style.display = 'none';
-    this.stopBtn.style.display = 'flex';
-
-    await this.sendMessage(tab.id, { action: 'resetScheduleIndex' });
-
-    for (let i = 0; i < clipCount; i++) {
-      if (this.shouldStopAutomation) break;
-
-      this.updateAutomationStatus(i + 1, clipCount, 'start');
-
-      // For burst mode, get product info from the video's associated product
-      let currentProductName = productName;
-      let currentProductId = productId;
-      let currentCartName = cartName;
-
-      if (useBurstMode && burstVideosToUpload[i]?.product) {
-        const product = burstVideosToUpload[i].product;
-        currentProductName = product.name || '';
-        currentProductId = product.productId || '';
-        // Priority: product.cartName > burstCartNameInput > productName
-        if (product.cartName && product.cartName.trim()) {
-          currentCartName = product.cartName.trim().substring(0, 29);
-        } else if (this.burstCartNameInput?.value.trim()) {
-          currentCartName = this.burstCartNameInput.value.trim().substring(0, 29);
-        } else {
-          currentCartName = (product.name || '').substring(0, 29);
-        }
-      }
-
-      try {
-        // Upload
-        if (this.shouldStopAutomation) break;
-        this.updateAutomationStatus(i + 1, clipCount, 'upload');
-
-        const currentFile = filesToUpload[i];
-        const fileData = {
-          name: currentFile.name,
-          type: currentFile.type,
-          size: currentFile.size,
-          dataUrl: await this.fileToDataUrl(currentFile)
-        };
-
-        await this.sendMessage(tab.id, {
-          action: 'uploadToTikTok',
-          files: [fileData],
-          productName: currentProductName
-        });
-        await this.randomSleep(2, 4);
-
-        // Caption
-        if (this.shouldStopAutomation) break;
-        this.updateAutomationStatus(i + 1, clipCount, 'caption');
-        const caption = selectedModel === 'openai'
-          ? await this.callOpenAIAPI(currentProductName, apiKey)
-          : await this.callGeminiAPI(currentProductName, apiKey);
-        this.captionEditor.value = caption;
-        await this.randomSleep(2, 4);
-
-        // Fill caption
-        if (this.shouldStopAutomation) break;
-        this.updateAutomationStatus(i + 1, clipCount, 'fill');
-        await this.sendMessage(tab.id, { action: 'fillCaption', caption: caption });
-        await this.randomSleep(2, 4);
-
-        // Pin cart (product mode only, not for content mode)
-        if (!isContentMode) {
-          if (this.shouldStopAutomation) break;
-          this.updateAutomationStatus(i + 1, clipCount, 'cart');
-          await this.sendMessage(tab.id, { action: 'pinCart', productId: currentProductId, cartName: currentCartName });
-          await this.randomSleep(2, 4);
-        }
-
-        // Schedule
-        if (this.shouldStopAutomation) break;
-        this.updateAutomationStatus(i + 1, clipCount, 'schedule');
-        const scheduleResult = await this.sendMessage(tab.id, {
-          action: 'schedulePost',
-          scheduleTime: scheduleTime,
-          postInterval: parseInt(this.postIntervalSelect.value)
-        });
-
-        if (scheduleResult && scheduleResult.success) {
-          this.scheduleHistory.push({
-            productName: currentProductName,
-            productId: currentProductId,
-            caption,
-            cartName: currentCartName,
-            scheduleTime: scheduleResult.scheduleTime || scheduleTime,
-            videoFileName: currentFile?.name || '-'
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ['content.js']
           });
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (e) {
+          console.log('Content script already injected or error:', e);
+        }
+      }
 
-          // Update warehouse video status if using warehouse video or burst mode
-          if ((useWarehouseVideo || useBurstMode) && warehouseVideoIds[i]) {
-            await ProductWarehouse.updateVideoStatus(warehouseVideoIds[i], 'uploaded');
+      // Prepare files list
+      let filesToUpload = [];
+      let warehouseVideoIds = [];
+      let warehouseVideoMetas = [];
+
+      if (useBurstMode) {
+        // Burst mode: get video files from burst selection
+        for (const video of burstVideosToUpload) {
+          const videoFile = await this.getWarehouseVideoFile(video.id);
+          if (videoFile) {
+            filesToUpload.push(videoFile);
+            warehouseVideoIds.push(video.id);
+            warehouseVideoMetas.push(video);
           }
         }
 
-        await this.randomSleep(5, 8);
+        if (filesToUpload.length === 0) {
+          showToast('ไม่พบไฟล์วิดีโอในคลัง', 'error');
+          return;
+        }
+      } else if (useWarehouseVideo) {
+        // Get videos to upload based on count
+        const videosToUpload = this.getRandomPendingVideos(this.warehouseVideoCount);
 
-      } catch (error) {
-        console.error('Automation error:', error);
+        if (videosToUpload.length === 0) {
+          showToast('ไม่พบวิดีโอที่จะอัพโหลด', 'error');
+          return;
+        }
+
+        // Get all video files
+        for (const video of videosToUpload) {
+          const videoFile = await this.getWarehouseVideoFile(video.id);
+          if (videoFile) {
+            filesToUpload.push(videoFile);
+            warehouseVideoIds.push(video.id);
+            warehouseVideoMetas.push(video);
+          }
+        }
+
+        if (filesToUpload.length === 0) {
+          showToast('ไม่พบไฟล์วิดีโอในคลัง', 'error');
+          return;
+        }
+      } else {
+        filesToUpload = this.files;
       }
-    }
 
-    // Done
-    if (this.shouldStopAutomation) {
-      this.automationStatus.innerHTML = '';
-      this.automationStatus.classList.remove('active');
-      showToast('ยกเลิก Automation', 'warning');
-    } else {
-      this.updateAutomationStatus(clipCount, clipCount, 'csv');
-      this.exportScheduleCSV();
-      this.updateAutomationStatus(clipCount, clipCount, 'done');
-      showToast(`Automation เสร็จสิ้น ${clipCount} คลิป`, 'success');
-    }
+      const clipCount = filesToUpload.length;
+      this.scheduleHistory = [];
+      this.isAutomationRunning = true;
+      this.shouldStopAutomation = false;
 
-    this.isAutomationRunning = false;
-    this.shouldStopAutomation = false;
-    this.automationBtn.style.display = 'flex';
-    this.stopBtn.style.display = 'none';
+      this.automationBtn.style.display = 'none';
+      this.stopBtn.style.display = 'flex';
 
-    // Refresh warehouse data if used warehouse video or burst mode
-    if (useWarehouseVideo || useBurstMode) {
-      await this.refreshWarehouseData();
-    }
-  },
+      await this.sendMessage(tab.id, { action: 'resetScheduleIndex' });
 
-  /**
-   * Stop automation
-   */
-  stopAutomation() {
-    if (this.isAutomationRunning) {
-      this.shouldStopAutomation = true;
-      showToast('กำลังหยุด...', 'warning');
-    }
-  },
+      for (let i = 0; i < clipCount; i++) {
+        if (this.shouldStopAutomation) break;
 
-  /**
-   * Export schedule CSV
-   */
-  exportScheduleCSV() {
-    if (this.scheduleHistory.length === 0) return;
+        this.updateAutomationStatus(i + 1, clipCount, 'start');
 
-    const headers = ['ชื่อสินค้า', 'Product ID', 'แคปชั่น', 'ชื่อตะกร้า', 'วันเวลาตั้งเวลา', 'ชื่อไฟล์วิดีโอ'];
-    const rows = this.scheduleHistory.map(item => [
-      `"${(item.productName || '').replace(/"/g, '""')}"`,
-      `"${(item.productId || '').replace(/"/g, '""')}"`,
-      `"${(item.caption || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
-      `"${(item.cartName || '').replace(/"/g, '""')}"`,
-      `"${(item.scheduleTime || '').replace(/"/g, '""')}"`,
-      `"${(item.videoFileName || '').replace(/"/g, '""')}"`
-    ].join(','));
+        // For burst mode, get product info from the video's associated product
+        let currentProductName = productName;
+        let currentProductId = productId;
+        let currentCartName = cartName;
 
-    const csvContent = [headers.join(','), ...rows].join('\n');
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10);
-    const filename = `tiktok_schedule_${dateStr}.csv`;
+        if (useBurstMode && burstVideosToUpload[i]?.product) {
+          const product = burstVideosToUpload[i].product;
+          currentProductName = product.name || '';
+          currentProductId = product.productId || '';
+          // Priority: product.cartName > burstCartNameInput > productName
+          if (product.cartName && product.cartName.trim()) {
+            currentCartName = product.cartName.trim().substring(0, 29);
+          } else if (this.burstCartNameInput?.value.trim()) {
+            currentCartName = this.burstCartNameInput.value.trim().substring(0, 29);
+          } else {
+            currentCartName = (product.name || '').substring(0, 29);
+          }
+        }
 
-    // Download
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  },
+        try {
+          // Upload
+          if (this.shouldStopAutomation) break;
+          this.updateAutomationStatus(i + 1, clipCount, 'upload');
+
+          const currentFile = filesToUpload[i];
+          const fileData = {
+            name: currentFile.name,
+            type: currentFile.type,
+            size: currentFile.size,
+            dataUrl: await this.fileToDataUrl(currentFile)
+          };
+
+          await this.sendMessage(tab.id, {
+            action: 'uploadToTikTok',
+            files: [fileData],
+            productName: currentProductName
+          });
+          await this.randomSleep(2, 4);
+
+          // Caption
+          if (this.shouldStopAutomation) break;
+          this.updateAutomationStatus(i + 1, clipCount, 'caption');
+          const caption = selectedModel === 'openai'
+            ? await this.callOpenAIAPI(currentProductName, apiKey)
+            : await this.callGeminiAPI(currentProductName, apiKey);
+          this.captionEditor.value = caption;
+          await this.randomSleep(2, 4);
+
+          // Fill caption
+          if (this.shouldStopAutomation) break;
+          this.updateAutomationStatus(i + 1, clipCount, 'fill');
+          await this.sendMessage(tab.id, { action: 'fillCaption', caption: caption });
+          await this.randomSleep(2, 4);
+
+          // Pin cart (product mode only, not for content mode)
+          if (!isContentMode) {
+            if (this.shouldStopAutomation) break;
+            this.updateAutomationStatus(i + 1, clipCount, 'cart');
+            await this.sendMessage(tab.id, { action: 'pinCart', productId: currentProductId, cartName: currentCartName });
+            await this.randomSleep(2, 4);
+          }
+
+          // Schedule
+          if (this.shouldStopAutomation) break;
+          this.updateAutomationStatus(i + 1, clipCount, 'schedule');
+          const scheduleResult = await this.sendMessage(tab.id, {
+            action: 'schedulePost',
+            scheduleTime: scheduleTime,
+            postInterval: parseInt(this.postIntervalSelect.value)
+          });
+
+          if (scheduleResult && scheduleResult.success) {
+            this.scheduleHistory.push({
+              productName: currentProductName,
+              productId: currentProductId,
+              caption,
+              cartName: currentCartName,
+              scheduleTime: scheduleResult.scheduleTime || scheduleTime,
+              videoFileName: currentFile?.name || '-'
+            });
+
+            // Update warehouse video status if using warehouse video or burst mode
+            if ((useWarehouseVideo || useBurstMode) && warehouseVideoIds[i]) {
+              await ProductWarehouse.updateVideoStatus(warehouseVideoIds[i], 'uploaded');
+            }
+          }
+
+          await this.randomSleep(5, 8);
+
+        } catch (error) {
+          console.error('Automation error:', error);
+        }
+      }
+
+      // Done
+      if (this.shouldStopAutomation) {
+        this.automationStatus.innerHTML = '';
+        this.automationStatus.classList.remove('active');
+        showToast('ยกเลิก Automation', 'warning');
+      } else {
+        this.updateAutomationStatus(clipCount, clipCount, 'csv');
+        this.exportScheduleCSV();
+        this.updateAutomationStatus(clipCount, clipCount, 'done');
+        showToast(`Automation เสร็จสิ้น ${clipCount} คลิป`, 'success');
+      }
+
+      this.isAutomationRunning = false;
+      this.shouldStopAutomation = false;
+      this.automationBtn.style.display = 'flex';
+      this.stopBtn.style.display = 'none';
+
+      // Refresh warehouse data if used warehouse video or burst mode
+      if (useWarehouseVideo || useBurstMode) {
+        await this.refreshWarehouseData();
+      }
+    },
+
+    /**
+     * Stop automation
+     */
+    stopAutomation() {
+      if (this.isAutomationRunning) {
+        this.shouldStopAutomation = true;
+        showToast('กำลังหยุด...', 'warning');
+      }
+    },
+
+    /**
+     * Export schedule CSV
+     */
+    exportScheduleCSV() {
+      if (this.scheduleHistory.length === 0) return;
+
+      const headers = ['ชื่อสินค้า', 'Product ID', 'แคปชั่น', 'ชื่อตะกร้า', 'วันเวลาตั้งเวลา', 'ชื่อไฟล์วิดีโอ'];
+      const rows = this.scheduleHistory.map(item => [
+        `"${(item.productName || '').replace(/"/g, '""')}"`,
+        `"${(item.productId || '').replace(/"/g, '""')}"`,
+        `"${(item.caption || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+        `"${(item.cartName || '').replace(/"/g, '""')}"`,
+        `"${(item.scheduleTime || '').replace(/"/g, '""')}"`,
+        `"${(item.videoFileName || '').replace(/"/g, '""')}"`
+      ].join(','));
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const filename = `tiktok_schedule_${dateStr}.csv`;
+
+      // Download
+      const BOM = '\uFEFF';
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    },
 
   /**
    * Scan products
    */
   async scanProducts() {
-    this.scanBtn.disabled = true;
-    this.scanBtn.innerHTML = `
+      this.scanBtn.disabled = true;
+      this.scanBtn.innerHTML = `
       <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
       </svg>
       กำลังสแกน...
     `;
 
-    try {
-      let tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+      try {
+        let tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
 
-      // Check if current tab is TikTok
-      if (!tab || !tab.url || !tab.url.includes('tiktok.com')) {
-        // Try to find existing TikTok tab
-        const tiktokTabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
-        
-        if (tiktokTabs.length > 0) {
-          tab = tiktokTabs[0];
-          await chrome.tabs.update(tab.id, { active: true });
-        } else {
-          showToast('กรุณาเปิดหน้า TikTok ก่อน', 'error');
-          this.scanBtn.disabled = false;
-          this.scanBtn.innerHTML = `
+        // Check if current tab is TikTok
+        if (!tab || !tab.url || !tab.url.includes('tiktok.com')) {
+          // Try to find existing TikTok tab
+          const tiktokTabs = await chrome.tabs.query({ url: '*://*.tiktok.com/*' });
+
+          if (tiktokTabs.length > 0) {
+            tab = tiktokTabs[0];
+            await chrome.tabs.update(tab.id, { active: true });
+          } else {
+            showToast('กรุณาเปิดหน้า TikTok ก่อน', 'error');
+            this.scanBtn.disabled = false;
+            this.scanBtn.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"></circle>
               <path d="m21 21-4.35-4.35"></path>
             </svg>
             สแกนสินค้า
           `;
-          return;
-        }
-      }
-
-      if (tab && tab.url && tab.url.includes('tiktok.com')) {
-        chrome.tabs.sendMessage(tab.id, { action: 'scanProducts' }, response => {
-          if (chrome.runtime.lastError) {
-            showToast('เชื่อมต่อไม่ได้ ลอง refresh หน้า', 'error');
-          } else if (response) {
-            if (response.success) {
-              showToast(`พบสินค้า ${response.count} รายการ`, 'success');
-
-              if (response.csv) {
-                const BOM = '\uFEFF';
-                const blob = new Blob([BOM + response.csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.setAttribute('href', url);
-                link.setAttribute('download', 'tiktok_products.csv');
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-              }
-            } else {
-              showToast(response.error || 'เกิดข้อผิดพลาด', 'error');
-            }
+            return;
           }
+        }
+
+        if (tab && tab.url && tab.url.includes('tiktok.com')) {
+          chrome.tabs.sendMessage(tab.id, { action: 'scanProducts' }, response => {
+            if (chrome.runtime.lastError) {
+              showToast('เชื่อมต่อไม่ได้ ลอง refresh หน้า', 'error');
+            } else if (response) {
+              if (response.success) {
+                showToast(`พบสินค้า ${response.count} รายการ`, 'success');
+
+                if (response.csv) {
+                  const BOM = '\uFEFF';
+                  const blob = new Blob([BOM + response.csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.setAttribute('href', url);
+                  link.setAttribute('download', 'tiktok_products.csv');
+                  link.style.visibility = 'hidden';
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                }
+              } else {
+                showToast(response.error || 'เกิดข้อผิดพลาด', 'error');
+              }
+            }
+            this.resetScanButton();
+          });
+        } else {
+          showToast('กรุณาเปิดหน้า TikTok ก่อน', 'error');
           this.resetScanButton();
-        });
-      } else {
-        showToast('กรุณาเปิดหน้า TikTok ก่อน', 'error');
+        }
+      } catch (error) {
+        showToast('เกิดข้อผิดพลาดในการสแกน', 'error');
         this.resetScanButton();
       }
-    } catch (error) {
-      showToast('เกิดข้อผิดพลาดในการสแกน', 'error');
-      this.resetScanButton();
-    }
-  },
+    },
 
-  /**
-   * Reset scan button
-   */
-  resetScanButton() {
-    this.scanBtn.disabled = false;
-    this.scanBtn.innerHTML = `
+    /**
+     * Reset scan button
+     */
+    resetScanButton() {
+      this.scanBtn.disabled = false;
+      this.scanBtn.innerHTML = `
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/>
         <path d="m21 21-4.35-4.35"/>
       </svg>
       สแกนสินค้า
     `;
-  },
+    },
 
   /**
    * Load warehouse products to dropdown
    */
   async loadWarehouseProducts() {
-    if (!this.warehouseProductSelect) return;
+      if (!this.warehouseProductSelect) return;
 
-    try {
-      // Get products that have videos
-      const allProducts = await ProductWarehouse.getAll();
-      const allVideos = await ProductWarehouse.getVideos();
+      try {
+        // Get products that have videos
+        const allProducts = await ProductWarehouse.getAll();
+        const allVideos = await ProductWarehouse.getVideos();
 
-      // Filter products that have at least one video
-      const productIdsWithVideos = new Set(allVideos.map(v => v.productId));
-      this.warehouseProducts = allProducts.filter(p => productIdsWithVideos.has(p.id));
+        // Filter products that have at least one video
+        const productIdsWithVideos = new Set(allVideos.map(v => v.productId));
+        this.warehouseProducts = allProducts.filter(p => productIdsWithVideos.has(p.id));
 
-      // Render dropdown
-      this.warehouseProductSelect.innerHTML = '<option value="">-- เลือกสินค้า --</option>';
+        // Render dropdown
+        this.warehouseProductSelect.innerHTML = '<option value="">-- เลือกสินค้า --</option>';
 
-      this.warehouseProducts.forEach(product => {
-        const videoCount = allVideos.filter(v => v.productId === product.id).length;
-        const pendingCount = allVideos.filter(v => v.productId === product.id && v.status === 'pending').length;
-        const option = document.createElement('option');
-        option.value = product.id;
-        option.textContent = `${product.name} (${pendingCount}/${videoCount} วิดีโอ)`;
-        this.warehouseProductSelect.appendChild(option);
-      });
-    } catch (error) {
-      console.error('Error loading warehouse products:', error);
-    }
-  },
+        this.warehouseProducts.forEach(product => {
+          const videoCount = allVideos.filter(v => v.productId === product.id).length;
+          const pendingCount = allVideos.filter(v => v.productId === product.id && v.status === 'pending').length;
+          const option = document.createElement('option');
+          option.value = product.id;
+          option.textContent = `${product.name} (${pendingCount}/${videoCount} วิดีโอ)`;
+          this.warehouseProductSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading warehouse products:', error);
+      }
+    },
 
   /**
    * Handle warehouse product selection
    */
   async handleWarehouseProductSelect(productId) {
-    // Reset
-    this.selectedWarehouseProduct = null;
-    this.warehouseVideos = [];
-    this.warehouseVideoCount = 1;
+      // Reset
+      this.selectedWarehouseProduct = null;
+      this.warehouseVideos = [];
+      this.warehouseVideoCount = 1;
 
-    if (!productId) {
+      if (!productId) {
+        if (this.warehouseVideoCountInput) {
+          this.warehouseVideoCountInput.disabled = true;
+          this.warehouseVideoCountInput.max = 1;
+          this.warehouseVideoCountInput.value = 1;
+        }
+        if (this.pendingVideoCountLabel) {
+          this.pendingVideoCountLabel.textContent = '(รอ: 0)';
+        }
+        if (this.videoSummary) {
+          this.videoSummary.hidden = true;
+        }
+        return;
+      }
+
+      try {
+        // Find product
+        const product = this.warehouseProducts.find(p => p.id === productId);
+        if (!product) return;
+
+        this.selectedWarehouseProduct = product;
+
+        // Get videos for product (only pending ones for upload)
+        const allVideos = await ProductWarehouse.getVideosByProduct(productId);
+        // Filter pending and sort by createdAt (oldest first = upload order)
+        this.warehouseVideos = allVideos
+          .filter(v => v.status === 'pending')
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+        const pendingCount = this.warehouseVideos.length;
+
+        // Update pending label
+        if (this.pendingVideoCountLabel) {
+          this.pendingVideoCountLabel.textContent = `(รอ: ${pendingCount})`;
+        }
+
+        // Update input
+        if (this.warehouseVideoCountInput) {
+          if (pendingCount === 0) {
+            this.warehouseVideoCountInput.disabled = true;
+            this.warehouseVideoCountInput.max = 1;
+            this.warehouseVideoCountInput.value = 1;
+            if (this.videoSummary) this.videoSummary.hidden = true;
+          } else {
+            this.warehouseVideoCountInput.disabled = false;
+            this.warehouseVideoCountInput.max = pendingCount;
+            this.warehouseVideoCountInput.value = Math.min(pendingCount, 1);
+            this.warehouseVideoCount = parseInt(this.warehouseVideoCountInput.value);
+            if (this.videoSummary) this.videoSummary.hidden = false;
+            if (this.videoUploadCount) this.videoUploadCount.textContent = this.warehouseVideoCount;
+          }
+        }
+
+      } catch (error) {
+        console.error('Error handling warehouse product selection:', error);
+      }
+    },
+
+    /**
+     * Get random pending videos from selected product
+     */
+    getRandomPendingVideos(count) {
+      if (this.warehouseVideos.length === 0) return [];
+
+      // Take first N videos (already sorted by createdAt)
+      return this.warehouseVideos.slice(0, Math.min(count, this.warehouseVideos.length));
+    },
+
+    /**
+     * Format duration
+     */
+    formatDuration(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    },
+
+    /**
+     * Format file size
+     */
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    },
+
+  /**
+   * Get video file from warehouse
+   */
+  async getWarehouseVideoFile(videoId) {
+      try {
+        const file = await VideoStorage.get(videoId);
+        return file;
+      } catch (error) {
+        console.error('Error getting video file:', error);
+        return null;
+      }
+    },
+
+  /**
+   * Refresh warehouse data (called from parent)
+   */
+  async refreshWarehouseData() {
+      await this.loadWarehouseProducts();
+      // Reset video count input
       if (this.warehouseVideoCountInput) {
         this.warehouseVideoCountInput.disabled = true;
         this.warehouseVideoCountInput.max = 1;
@@ -1268,272 +1371,166 @@ const TikTokUploader = {
       if (this.videoSummary) {
         this.videoSummary.hidden = true;
       }
-      return;
-    }
+      this.selectedWarehouseProduct = null;
+      this.warehouseVideos = [];
+      this.warehouseVideoCount = 1;
 
-    try {
-      // Find product
-      const product = this.warehouseProducts.find(p => p.id === productId);
-      if (!product) return;
-
-      this.selectedWarehouseProduct = product;
-
-      // Get videos for product (only pending ones for upload)
-      const allVideos = await ProductWarehouse.getVideosByProduct(productId);
-      // Filter pending and sort by createdAt (oldest first = upload order)
-      this.warehouseVideos = allVideos
-        .filter(v => v.status === 'pending')
-        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-
-      const pendingCount = this.warehouseVideos.length;
-
-      // Update pending label
-      if (this.pendingVideoCountLabel) {
-        this.pendingVideoCountLabel.textContent = `(รอ: ${pendingCount})`;
+      // Refresh burst mode if active
+      if (this.currentMode === 'burst') {
+        await this.loadBurstModeData();
       }
-
-      // Update input
-      if (this.warehouseVideoCountInput) {
-        if (pendingCount === 0) {
-          this.warehouseVideoCountInput.disabled = true;
-          this.warehouseVideoCountInput.max = 1;
-          this.warehouseVideoCountInput.value = 1;
-          if (this.videoSummary) this.videoSummary.hidden = true;
-        } else {
-          this.warehouseVideoCountInput.disabled = false;
-          this.warehouseVideoCountInput.max = pendingCount;
-          this.warehouseVideoCountInput.value = Math.min(pendingCount, 1);
-          this.warehouseVideoCount = parseInt(this.warehouseVideoCountInput.value);
-          if (this.videoSummary) this.videoSummary.hidden = false;
-          if (this.videoUploadCount) this.videoUploadCount.textContent = this.warehouseVideoCount;
-        }
-      }
-
-    } catch (error) {
-      console.error('Error handling warehouse product selection:', error);
-    }
-  },
-
-  /**
-   * Get random pending videos from selected product
-   */
-  getRandomPendingVideos(count) {
-    if (this.warehouseVideos.length === 0) return [];
-
-    // Take first N videos (already sorted by createdAt)
-    return this.warehouseVideos.slice(0, Math.min(count, this.warehouseVideos.length));
-  },
-
-  /**
-   * Format duration
-   */
-  formatDuration(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  },
-
-  /**
-   * Format file size
-   */
-  formatFileSize(bytes) {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  },
-
-  /**
-   * Get video file from warehouse
-   */
-  async getWarehouseVideoFile(videoId) {
-    try {
-      const file = await VideoStorage.get(videoId);
-      return file;
-    } catch (error) {
-      console.error('Error getting video file:', error);
-      return null;
-    }
-  },
-
-  /**
-   * Refresh warehouse data (called from parent)
-   */
-  async refreshWarehouseData() {
-    await this.loadWarehouseProducts();
-    // Reset video count input
-    if (this.warehouseVideoCountInput) {
-      this.warehouseVideoCountInput.disabled = true;
-      this.warehouseVideoCountInput.max = 1;
-      this.warehouseVideoCountInput.value = 1;
-    }
-    if (this.pendingVideoCountLabel) {
-      this.pendingVideoCountLabel.textContent = '(รอ: 0)';
-    }
-    if (this.videoSummary) {
-      this.videoSummary.hidden = true;
-    }
-    this.selectedWarehouseProduct = null;
-    this.warehouseVideos = [];
-    this.warehouseVideoCount = 1;
-
-    // Refresh burst mode if active
-    if (this.currentMode === 'burst') {
-      await this.loadBurstModeData();
-    }
-  },
+    },
 
   /**
    * Load burst mode data - get all pending videos from warehouse
    */
   async loadBurstModeData() {
-    try {
-      // Get all pending videos
-      const allVideos = await ProductWarehouse.getVideos();
-      this.burstAllPendingVideos = allVideos.filter(v => v.status === 'pending');
+      try {
+        // Get all pending videos
+        const allVideos = await ProductWarehouse.getVideos();
+        this.burstAllPendingVideos = allVideos.filter(v => v.status === 'pending');
 
-      const pendingCount = this.burstAllPendingVideos.length;
+        const pendingCount = this.burstAllPendingVideos.length;
 
-      // Get unique product count that have pending videos
-      const productIds = new Set(this.burstAllPendingVideos.map(v => v.productId));
-      const productCount = productIds.size;
+        // Get unique product count that have pending videos
+        const productIds = new Set(this.burstAllPendingVideos.map(v => v.productId));
+        const productCount = productIds.size;
 
-      // Update UI
-      if (this.burstMaxCountLabel) {
-        this.burstMaxCountLabel.textContent = `(สูงสุด: ${pendingCount})`;
-      }
-      if (this.burstPendingCountLabel) {
-        this.burstPendingCountLabel.textContent = pendingCount;
-      }
-      if (this.burstProductCountLabel) {
-        this.burstProductCountLabel.textContent = productCount;
-      }
-
-      // Update input max value
-      if (this.burstVideoCountInput) {
-        this.burstVideoCountInput.max = Math.max(pendingCount, 1);
-        if (this.burstVideoCount > pendingCount) {
-          this.burstVideoCount = Math.max(pendingCount, 1);
-          this.burstVideoCountInput.value = this.burstVideoCount;
+        // Update UI
+        if (this.burstMaxCountLabel) {
+          this.burstMaxCountLabel.textContent = `(สูงสุด: ${pendingCount})`;
         }
+        if (this.burstPendingCountLabel) {
+          this.burstPendingCountLabel.textContent = pendingCount;
+        }
+        if (this.burstProductCountLabel) {
+          this.burstProductCountLabel.textContent = productCount;
+        }
+
+        // Update input max value
+        if (this.burstVideoCountInput) {
+          this.burstVideoCountInput.max = Math.max(pendingCount, 1);
+          if (this.burstVideoCount > pendingCount) {
+            this.burstVideoCount = Math.max(pendingCount, 1);
+            this.burstVideoCountInput.value = this.burstVideoCount;
+          }
+        }
+
+        // Update mode hint
+        this.updateBurstModeHint();
+
+        // Load manual products after we have video data
+        await this.loadBurstManualProducts();
+
+      } catch (error) {
+        console.error('Error loading burst mode data:', error);
       }
+    },
 
-      // Update mode hint
-      this.updateBurstModeHint();
+    /**
+     * Update burst mode hint text based on selected mode
+     */
+    updateBurstModeHint() {
+      if (!this.burstModeHint) return;
 
-      // Load manual products after we have video data
-      await this.loadBurstManualProducts();
+      if (this.burstUploadMode === 'sequential') {
+        this.burstModeHint.textContent = 'อัพวิดีโอทุกตัวของสินค้าแรกก่อน แล้วค่อยไปสินค้าถัดไป';
+      } else {
+        this.burstModeHint.textContent = 'สุ่มเลือกวิดีโอจากทุกสินค้าแบบสุ่ม';
+      }
+    },
 
-    } catch (error) {
-      console.error('Error loading burst mode data:', error);
-    }
-  },
+    /**
+     * Set burst selection mode (auto or manual)
+     */
+    setBurstSelectionMode(mode) {
+      this.burstSelectionMode = mode;
+      localStorage.setItem('tiktok_burst_selection_mode', mode);
 
-  /**
-   * Update burst mode hint text based on selected mode
-   */
-  updateBurstModeHint() {
-    if (!this.burstModeHint) return;
-
-    if (this.burstUploadMode === 'sequential') {
-      this.burstModeHint.textContent = 'อัพวิดีโอทุกตัวของสินค้าแรกก่อน แล้วค่อยไปสินค้าถัดไป';
-    } else {
-      this.burstModeHint.textContent = 'สุ่มเลือกวิดีโอจากทุกสินค้าแบบสุ่ม';
-    }
-  },
-
-  /**
-   * Set burst selection mode (auto or manual)
-   */
-  setBurstSelectionMode(mode) {
-    this.burstSelectionMode = mode;
-    localStorage.setItem('tiktok_burst_selection_mode', mode);
-
-    if (this.burstAutoContent) {
-      this.burstAutoContent.hidden = mode !== 'auto';
-    }
-    if (this.burstManualContent) {
-      this.burstManualContent.hidden = mode !== 'manual';
-    }
-  },
+      if (this.burstAutoContent) {
+        this.burstAutoContent.hidden = mode !== 'auto';
+      }
+      if (this.burstManualContent) {
+        this.burstManualContent.hidden = mode !== 'manual';
+      }
+    },
 
   /**
    * Open burst product selection modal
    */
   async openBurstProductModal() {
-    if (!this.burstModal) return;
+      if (!this.burstModal) return;
 
-    // Initialize temp selection with current manual products
-    this.burstTempSelectedIds = new Set(this.burstManualProducts.map(p => p.id));
+      // Initialize temp selection with current manual products
+      this.burstTempSelectedIds = new Set(this.burstManualProducts.map(p => p.id));
 
-    // Render products (only those with pending videos)
-    await this.renderBurstProductGrid();
+      // Render products (only those with pending videos)
+      await this.renderBurstProductGrid();
 
-    // Clear search
-    if (this.burstProductSearch) {
-      this.burstProductSearch.value = '';
-    }
+      // Clear search
+      if (this.burstProductSearch) {
+        this.burstProductSearch.value = '';
+      }
 
-    // Update count
-    this.updateBurstModalCount();
+      // Update count
+      this.updateBurstModalCount();
 
-    // Show modal
-    this.burstModal.hidden = false;
-  },
+      // Show modal
+      this.burstModal.hidden = false;
+    },
 
-  /**
-   * Close burst product selection modal
-   */
-  closeBurstProductModal() {
-    if (this.burstModal) {
-      this.burstModal.hidden = true;
-    }
-    this.burstTempSelectedIds.clear();
-  },
+    /**
+     * Close burst product selection modal
+     */
+    closeBurstProductModal() {
+      if (this.burstModal) {
+        this.burstModal.hidden = true;
+      }
+      this.burstTempSelectedIds.clear();
+    },
 
   /**
    * Render product grid in burst modal (only products with pending videos)
    */
   async renderBurstProductGrid(filter = '') {
-    if (!this.burstProductGrid) return;
+      if (!this.burstProductGrid) return;
 
-    // Get products that have pending videos
-    const productsWithVideos = [];
-    const productVideoCount = {};
+      // Get products that have pending videos
+      const productsWithVideos = [];
+      const productVideoCount = {};
 
-    this.burstAllPendingVideos.forEach(video => {
-      if (!productVideoCount[video.productId]) {
-        productVideoCount[video.productId] = 0;
+      this.burstAllPendingVideos.forEach(video => {
+        if (!productVideoCount[video.productId]) {
+          productVideoCount[video.productId] = 0;
+        }
+        productVideoCount[video.productId]++;
+      });
+
+      const allProducts = await ProductWarehouse.getAll();
+      allProducts.forEach(product => {
+        if (productVideoCount[product.id]) {
+          productsWithVideos.push({
+            ...product,
+            videoCount: productVideoCount[product.id]
+          });
+        }
+      });
+
+      // Filter by search
+      let products = productsWithVideos;
+      if (filter) {
+        const searchLower = filter.toLowerCase();
+        products = productsWithVideos.filter(p =>
+          p.name.toLowerCase().includes(searchLower)
+        );
       }
-      productVideoCount[video.productId]++;
-    });
 
-    const allProducts = await ProductWarehouse.getAll();
-    allProducts.forEach(product => {
-      if (productVideoCount[product.id]) {
-        productsWithVideos.push({
-          ...product,
-          videoCount: productVideoCount[product.id]
-        });
+      if (products.length === 0) {
+        this.burstProductGrid.innerHTML = '<div class="burst-empty-state">ไม่พบสินค้าที่มีวิดีโอรอคิว</div>';
+        return;
       }
-    });
 
-    // Filter by search
-    let products = productsWithVideos;
-    if (filter) {
-      const searchLower = filter.toLowerCase();
-      products = productsWithVideos.filter(p =>
-        p.name.toLowerCase().includes(searchLower)
-      );
-    }
-
-    if (products.length === 0) {
-      this.burstProductGrid.innerHTML = '<div class="burst-empty-state">ไม่พบสินค้าที่มีวิดีโอรอคิว</div>';
-      return;
-    }
-
-    this.burstProductGrid.innerHTML = products.map(product => `
+      this.burstProductGrid.innerHTML = products.map(product => `
       <div class="burst-product-card ${this.burstTempSelectedIds.has(product.id) ? 'selected' : ''}"
            data-id="${product.id}">
         <div class="burst-product-card-checkbox"></div>
@@ -1543,124 +1540,124 @@ const TikTokUploader = {
       </div>
     `).join('');
 
-    // Bind click events
-    this.burstProductGrid.querySelectorAll('.burst-product-card').forEach(card => {
-      card.addEventListener('click', () => {
-        const id = card.dataset.id;
-        this.toggleBurstProductSelection(id, card);
+      // Bind click events
+      this.burstProductGrid.querySelectorAll('.burst-product-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.id;
+          this.toggleBurstProductSelection(id, card);
+        });
       });
-    });
-  },
+    },
 
-  /**
-   * Toggle product selection in burst modal
-   */
-  toggleBurstProductSelection(id, cardElement) {
-    if (this.burstTempSelectedIds.has(id)) {
-      this.burstTempSelectedIds.delete(id);
-      cardElement.classList.remove('selected');
-    } else {
-      this.burstTempSelectedIds.add(id);
-      cardElement.classList.add('selected');
-    }
-    this.updateBurstModalCount();
-  },
+    /**
+     * Toggle product selection in burst modal
+     */
+    toggleBurstProductSelection(id, cardElement) {
+      if (this.burstTempSelectedIds.has(id)) {
+        this.burstTempSelectedIds.delete(id);
+        cardElement.classList.remove('selected');
+      } else {
+        this.burstTempSelectedIds.add(id);
+        cardElement.classList.add('selected');
+      }
+      this.updateBurstModalCount();
+    },
 
-  /**
-   * Update burst modal count display
-   */
-  updateBurstModalCount() {
-    if (this.burstModalCount) {
-      this.burstModalCount.textContent = `เลือกแล้ว ${this.burstTempSelectedIds.size} ชิ้น`;
-    }
-  },
+    /**
+     * Update burst modal count display
+     */
+    updateBurstModalCount() {
+      if (this.burstModalCount) {
+        this.burstModalCount.textContent = `เลือกแล้ว ${this.burstTempSelectedIds.size} ชิ้น`;
+      }
+    },
 
-  /**
-   * Filter products in burst modal
-   */
-  filterBurstProducts(query) {
-    this.renderBurstProductGrid(query);
-  },
+    /**
+     * Filter products in burst modal
+     */
+    filterBurstProducts(query) {
+      this.renderBurstProductGrid(query);
+    },
 
   /**
    * Select all products in burst modal
    */
   async selectAllBurstProducts() {
-    const productVideoCount = {};
-    this.burstAllPendingVideos.forEach(video => {
-      productVideoCount[video.productId] = true;
-    });
+      const productVideoCount = {};
+      this.burstAllPendingVideos.forEach(video => {
+        productVideoCount[video.productId] = true;
+      });
 
-    const allProducts = await ProductWarehouse.getAll();
-    allProducts.forEach(p => {
-      if (productVideoCount[p.id]) {
-        this.burstTempSelectedIds.add(p.id);
-      }
-    });
+      const allProducts = await ProductWarehouse.getAll();
+      allProducts.forEach(p => {
+        if (productVideoCount[p.id]) {
+          this.burstTempSelectedIds.add(p.id);
+        }
+      });
 
-    this.burstProductGrid.querySelectorAll('.burst-product-card').forEach(card => {
-      card.classList.add('selected');
-    });
+      this.burstProductGrid.querySelectorAll('.burst-product-card').forEach(card => {
+        card.classList.add('selected');
+      });
 
-    this.updateBurstModalCount();
-  },
+      this.updateBurstModalCount();
+    },
 
-  /**
-   * Deselect all products in burst modal
-   */
-  deselectAllBurstProducts() {
-    this.burstTempSelectedIds.clear();
+    /**
+     * Deselect all products in burst modal
+     */
+    deselectAllBurstProducts() {
+      this.burstTempSelectedIds.clear();
 
-    this.burstProductGrid.querySelectorAll('.burst-product-card').forEach(card => {
-      card.classList.remove('selected');
-    });
+      this.burstProductGrid.querySelectorAll('.burst-product-card').forEach(card => {
+        card.classList.remove('selected');
+      });
 
-    this.updateBurstModalCount();
-  },
+      this.updateBurstModalCount();
+    },
 
   /**
    * Confirm product selection from burst modal
    */
   async confirmBurstProductSelection() {
-    const allProducts = await ProductWarehouse.getAll();
+      const allProducts = await ProductWarehouse.getAll();
 
-    // Get selected products with video count
-    const productVideoCount = {};
-    this.burstAllPendingVideos.forEach(video => {
-      if (!productVideoCount[video.productId]) {
-        productVideoCount[video.productId] = 0;
+      // Get selected products with video count
+      const productVideoCount = {};
+      this.burstAllPendingVideos.forEach(video => {
+        if (!productVideoCount[video.productId]) {
+          productVideoCount[video.productId] = 0;
+        }
+        productVideoCount[video.productId]++;
+      });
+
+      this.burstManualProducts = allProducts
+        .filter(p => this.burstTempSelectedIds.has(p.id))
+        .map(p => ({
+          ...p,
+          videoCount: productVideoCount[p.id] || 0
+        }));
+
+      // Close modal
+      this.closeBurstProductModal();
+
+      // Update UI
+      this.renderBurstSelectedList();
+      this.updateBurstManualSummary();
+      this.saveBurstManualProducts();
+    },
+
+    /**
+     * Render selected products list for burst manual mode
+     */
+    renderBurstSelectedList() {
+      if (!this.burstSelectedList) return;
+
+      if (this.burstManualProducts.length === 0) {
+        this.burstSelectedList.innerHTML = '<div class="burst-empty-state">ยังไม่ได้เลือกสินค้า</div>';
+        return;
       }
-      productVideoCount[video.productId]++;
-    });
 
-    this.burstManualProducts = allProducts
-      .filter(p => this.burstTempSelectedIds.has(p.id))
-      .map(p => ({
-        ...p,
-        videoCount: productVideoCount[p.id] || 0
-      }));
-
-    // Close modal
-    this.closeBurstProductModal();
-
-    // Update UI
-    this.renderBurstSelectedList();
-    this.updateBurstManualSummary();
-    this.saveBurstManualProducts();
-  },
-
-  /**
-   * Render selected products list for burst manual mode
-   */
-  renderBurstSelectedList() {
-    if (!this.burstSelectedList) return;
-
-    if (this.burstManualProducts.length === 0) {
-      this.burstSelectedList.innerHTML = '<div class="burst-empty-state">ยังไม่ได้เลือกสินค้า</div>';
-      return;
-    }
-
-    this.burstSelectedList.innerHTML = this.burstManualProducts.map((product, index) => `
+      this.burstSelectedList.innerHTML = this.burstManualProducts.map((product, index) => `
       <div class="burst-selected-item" data-index="${index}">
         <img src="${product.productImage}" alt="${product.name}" class="burst-selected-item-img">
         <span class="burst-selected-item-name">${product.name}</span>
@@ -1674,82 +1671,82 @@ const TikTokUploader = {
       </div>
     `).join('');
 
-    // Bind remove buttons
-    this.burstSelectedList.querySelectorAll('.burst-selected-item-remove').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const index = parseInt(btn.dataset.index);
-        this.removeBurstManualProduct(index);
+      // Bind remove buttons
+      this.burstSelectedList.querySelectorAll('.burst-selected-item-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const index = parseInt(btn.dataset.index);
+          this.removeBurstManualProduct(index);
+        });
       });
-    });
-  },
+    },
 
-  /**
-   * Remove a product from burst manual selection
-   */
-  removeBurstManualProduct(index) {
-    this.burstManualProducts.splice(index, 1);
-    this.renderBurstSelectedList();
-    this.updateBurstManualSummary();
-    this.saveBurstManualProducts();
-  },
+    /**
+     * Remove a product from burst manual selection
+     */
+    removeBurstManualProduct(index) {
+      this.burstManualProducts.splice(index, 1);
+      this.renderBurstSelectedList();
+      this.updateBurstManualSummary();
+      this.saveBurstManualProducts();
+    },
 
-  /**
-   * Update burst manual mode summary
-   */
-  updateBurstManualSummary() {
-    const productCount = this.burstManualProducts.length;
-    const videoCount = this.burstManualProducts.reduce((sum, p) => sum + (p.videoCount || 0), 0);
+    /**
+     * Update burst manual mode summary
+     */
+    updateBurstManualSummary() {
+      const productCount = this.burstManualProducts.length;
+      const videoCount = this.burstManualProducts.reduce((sum, p) => sum + (p.videoCount || 0), 0);
 
-    if (this.burstManualProductCount) {
-      this.burstManualProductCount.textContent = productCount;
-    }
-    if (this.burstManualVideoCount) {
-      this.burstManualVideoCount.textContent = videoCount;
-    }
-  },
+      if (this.burstManualProductCount) {
+        this.burstManualProductCount.textContent = productCount;
+      }
+      if (this.burstManualVideoCount) {
+        this.burstManualVideoCount.textContent = videoCount;
+      }
+    },
 
-  /**
-   * Save burst manual products to localStorage
-   */
-  saveBurstManualProducts() {
-    const ids = this.burstManualProducts.map(p => p.id);
-    localStorage.setItem('tiktok_burst_manual_products', JSON.stringify(ids));
-  },
+    /**
+     * Save burst manual products to localStorage
+     */
+    saveBurstManualProducts() {
+      const ids = this.burstManualProducts.map(p => p.id);
+      localStorage.setItem('tiktok_burst_manual_products', JSON.stringify(ids));
+    },
 
   /**
    * Load burst manual products from localStorage
    */
   async loadBurstManualProducts() {
-    const saved = localStorage.getItem('tiktok_burst_manual_products');
-    if (!saved) return;
+      const saved = localStorage.getItem('tiktok_burst_manual_products');
+      if (!saved) return;
 
-    try {
-      const ids = JSON.parse(saved);
-      const allProducts = await ProductWarehouse.getAll();
+      try {
+        const ids = JSON.parse(saved);
+        const allProducts = await ProductWarehouse.getAll();
 
-      // Get video counts
-      const productVideoCount = {};
-      this.burstAllPendingVideos.forEach(video => {
-        if (!productVideoCount[video.productId]) {
-          productVideoCount[video.productId] = 0;
-        }
-        productVideoCount[video.productId]++;
-      });
+        // Get video counts
+        const productVideoCount = {};
+        this.burstAllPendingVideos.forEach(video => {
+          if (!productVideoCount[video.productId]) {
+            productVideoCount[video.productId] = 0;
+          }
+          productVideoCount[video.productId]++;
+        });
 
-      this.burstManualProducts = allProducts
-        .filter(p => ids.includes(p.id) && productVideoCount[p.id])
-        .map(p => ({
-          ...p,
-          videoCount: productVideoCount[p.id] || 0
-        }));
+        this.burstManualProducts = allProducts
+          .filter(p => ids.includes(p.id) && productVideoCount[p.id])
+          .map(p => ({
+            ...p,
+            videoCount: productVideoCount[p.id] || 0
+          }));
 
-      this.renderBurstSelectedList();
-      this.updateBurstManualSummary();
-    } catch (e) {
-      console.error('Error loading burst manual products:', e);
-    }
-  },
+        this.renderBurstSelectedList();
+        this.updateBurstManualSummary();
+      } catch (e) {
+        console.error('Error loading burst manual products:', e);
+      }
+    },
 
   /**
    * Get videos for burst mode based on upload mode
@@ -1757,79 +1754,79 @@ const TikTokUploader = {
    * @returns {Array} Array of video objects with product info
    */
   async getBurstVideos(count) {
-    // Get all products for product info
-    const allProducts = await ProductWarehouse.getAll();
-    const productMap = {};
-    allProducts.forEach(p => { productMap[p.id] = p; });
+      // Get all products for product info
+      const allProducts = await ProductWarehouse.getAll();
+      const productMap = {};
+      allProducts.forEach(p => { productMap[p.id] = p; });
 
-    let videosToProcess = [];
+      let videosToProcess = [];
 
-    // Manual mode: get videos only from selected products
-    if (this.burstSelectionMode === 'manual') {
-      if (this.burstManualProducts.length === 0) return [];
+      // Manual mode: get videos only from selected products
+      if (this.burstSelectionMode === 'manual') {
+        if (this.burstManualProducts.length === 0) return [];
 
-      const selectedIds = new Set(this.burstManualProducts.map(p => p.id));
-      videosToProcess = this.burstAllPendingVideos.filter(v => selectedIds.has(v.productId));
-    } else {
-      // Auto mode: use all pending videos
-      if (this.burstAllPendingVideos.length === 0) return [];
-      videosToProcess = this.burstAllPendingVideos;
-    }
-
-    let selectedVideos = [];
-
-    // For manual mode, use all videos from selected products (no count limit)
-    // For auto mode, use count limit
-    const effectiveCount = this.burstSelectionMode === 'manual' ? videosToProcess.length : count;
-
-    if (this.burstSelectionMode === 'manual' || this.burstUploadMode === 'sequential') {
-      // Sequential: Sort by product, then by createdAt
-      // Group videos by product
-      const videosByProduct = {};
-      videosToProcess.forEach(video => {
-        if (!videosByProduct[video.productId]) {
-          videosByProduct[video.productId] = [];
-        }
-        videosByProduct[video.productId].push(video);
-      });
-
-      // Sort videos in each product by createdAt
-      Object.keys(videosByProduct).forEach(productId => {
-        videosByProduct[productId].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      });
-
-      // Get product IDs sorted by first video's createdAt
-      const productIds = Object.keys(videosByProduct).sort((a, b) => {
-        const aFirst = videosByProduct[a][0]?.createdAt || 0;
-        const bFirst = videosByProduct[b][0]?.createdAt || 0;
-        return aFirst - bFirst;
-      });
-
-      // Pick videos sequentially by product
-      let remaining = effectiveCount;
-      for (const productId of productIds) {
-        if (remaining <= 0) break;
-        const productVideos = videosByProduct[productId];
-        const toTake = Math.min(remaining, productVideos.length);
-        for (let i = 0; i < toTake; i++) {
-          const video = productVideos[i];
-          selectedVideos.push({
-            ...video,
-            product: productMap[video.productId] || null
-          });
-        }
-        remaining -= toTake;
+        const selectedIds = new Set(this.burstManualProducts.map(p => p.id));
+        videosToProcess = this.burstAllPendingVideos.filter(v => selectedIds.has(v.productId));
+      } else {
+        // Auto mode: use all pending videos
+        if (this.burstAllPendingVideos.length === 0) return [];
+        videosToProcess = this.burstAllPendingVideos;
       }
 
-    } else {
-      // Random: Shuffle and pick
-      const shuffled = [...videosToProcess].sort(() => Math.random() - 0.5);
-      selectedVideos = shuffled.slice(0, effectiveCount).map(video => ({
-        ...video,
-        product: productMap[video.productId] || null
-      }));
-    }
+      let selectedVideos = [];
 
-    return selectedVideos;
-  }
-};
+      // For manual mode, use all videos from selected products (no count limit)
+      // For auto mode, use count limit
+      const effectiveCount = this.burstSelectionMode === 'manual' ? videosToProcess.length : count;
+
+      if (this.burstSelectionMode === 'manual' || this.burstUploadMode === 'sequential') {
+        // Sequential: Sort by product, then by createdAt
+        // Group videos by product
+        const videosByProduct = {};
+        videosToProcess.forEach(video => {
+          if (!videosByProduct[video.productId]) {
+            videosByProduct[video.productId] = [];
+          }
+          videosByProduct[video.productId].push(video);
+        });
+
+        // Sort videos in each product by createdAt
+        Object.keys(videosByProduct).forEach(productId => {
+          videosByProduct[productId].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        });
+
+        // Get product IDs sorted by first video's createdAt
+        const productIds = Object.keys(videosByProduct).sort((a, b) => {
+          const aFirst = videosByProduct[a][0]?.createdAt || 0;
+          const bFirst = videosByProduct[b][0]?.createdAt || 0;
+          return aFirst - bFirst;
+        });
+
+        // Pick videos sequentially by product
+        let remaining = effectiveCount;
+        for (const productId of productIds) {
+          if (remaining <= 0) break;
+          const productVideos = videosByProduct[productId];
+          const toTake = Math.min(remaining, productVideos.length);
+          for (let i = 0; i < toTake; i++) {
+            const video = productVideos[i];
+            selectedVideos.push({
+              ...video,
+              product: productMap[video.productId] || null
+            });
+          }
+          remaining -= toTake;
+        }
+
+      } else {
+        // Random: Shuffle and pick
+        const shuffled = [...videosToProcess].sort(() => Math.random() - 0.5);
+        selectedVideos = shuffled.slice(0, effectiveCount).map(video => ({
+          ...video,
+          product: productMap[video.productId] || null
+        }));
+      }
+
+      return selectedVideos;
+    }
+  };
