@@ -488,7 +488,7 @@
   <script>
     const LIFF_ID = '2007705394-y4mV76Gv';
     const WEB_APP_URL =
-      'https://script.google.com/macros/s/AKfycbxn8IxIhL9zdO1QMEyAZ8TThppvApILg7oyGdrPFeKU7L83ClgxxmTKz0bhj0u5ZJM/exec';
+      'https://script.google.com/macros/s/AKfycbz2wmX2Nix3C09KDRVDqfldqYBYscy2k_z4bS6u55guRDgUwQFZNTkNTuloVVOiBc1dRw/exec';
 
     let currentUserId = '';
     let currentReference = '';
@@ -500,6 +500,11 @@
     let alcoholAllDone = false;
     let jobClosed = false; // จาก backend: d.jobClosed
     let tripEnded = false; // ✅ เพิ่ม: จาก backend: d.tripEnded หรือหลัง endtrip สำเร็จ
+    let processDataFields = {}; // เก็บข้อมูล processdata
+
+    // เก็บข้อมูลสาขาสำหรับ processdata
+    let currentBranchName = '';
+    let currentBranchCode = '';
 
     function showLoading(message) {
       Swal.fire({
@@ -552,7 +557,7 @@
         checkin: 'Check-in สำเร็จ',
         fuel: 'ลงน้ำมันสำเร็จ',
         unload: 'ลงเสร็จสำเร็จ',
-        review: 'ประเมินสำเร็จ',
+        processdata: 'บันทึกข้อมูลผู้รับน้ำมันสำเร็จ',
         checkout: 'Check-out สำเร็จ',
         closejob: 'ปิดงานสำเร็จ',
         endtrip: 'จบทริปสำเร็จ', // เผื่อใช้ทีหลัง
@@ -564,7 +569,7 @@
       if (type === 'checkin') timeText = stop.checkInTime || '';
       else if (type === 'fuel') timeText = stop.fuelingTime || '';
       else if (type === 'unload') timeText = stop.unloadDoneTime || '';
-      else if (type === 'review') timeText = stop.reviewedTime || '';
+      else if (type === 'processdata') timeText = stop.processdataTime || '';
       else if (type === 'checkout') timeText = stop.checkOutTime || '';
 
       const odoText =
@@ -611,6 +616,11 @@
 
         const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
         const colorBar = type === 'checkout' ? '#16a085' : '#1abc9c';
+
+        // ไม่ส่ง Flex สำหรับ processdata
+        if (type === 'processdata') {
+          return;
+        }
 
         let timeText = '';
         if (type === 'checkin') timeText = stop.checkInTime || '';
@@ -784,6 +794,8 @@
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
+        currentBranchName = d.branchName || d.branch || '';
+        currentBranchCode = d.branchCode || d.branchId || '';
 
         currentDrivers =
           (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
@@ -800,6 +812,9 @@
 
         jobClosed = !!d.jobClosed;     // จาก backend
         tripEnded = !!d.tripEnded;     // ✅ รับ flag จบทริปจาก backend (ถ้ามี)
+
+        // รีเซต processdata fields
+        processDataFields = {};
 
         renderSummary(d);
         renderAlcoholSection();
@@ -827,6 +842,7 @@
       alcoholAllDone = false;
       jobClosed = false;
       tripEnded = false; // ✅ reset state จบทริป
+      processDataFields = {}; // reset processdata
     }
 
     function renderSummary(d) {
@@ -1066,70 +1082,7 @@
       }
     }
 
-    function initSwalSignaturePad(canvasId, clearBtnId) {
-      const canvas = document.getElementById(canvasId);
-      if (!canvas) return;
-
-      const ctx = canvas.getContext('2d');
-      let drawing = false;
-
-      const getPos = (e) => {
-        const rect = canvas.getBoundingClientRect();
-        if (e.touches && e.touches.length > 0) {
-          return {
-            x: e.touches[0].clientX - rect.left,
-            y: e.touches[0].clientY - rect.top,
-          };
-        }
-        return {
-          x: e.clientX - rect.left,
-          y: e.clientY - rect.top,
-        };
-      };
-
-      const startDraw = (e) => {
-        e.preventDefault();
-        drawing = true;
-        const pos = getPos(e);
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-      };
-
-      const draw = (e) => {
-        if (!drawing) return;
-        e.preventDefault();
-        const pos = getPos(e);
-        ctx.lineTo(pos.x, pos.y);
-        ctx.strokeStyle = '#111';
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-      };
-
-      const endDraw = (e) => {
-        if (!drawing) return;
-        e.preventDefault();
-        drawing = false;
-      };
-
-      canvas.addEventListener('mousedown', startDraw);
-      canvas.addEventListener('mousemove', draw);
-      window.addEventListener('mouseup', endDraw);
-
-      canvas.addEventListener('touchstart', startDraw, { passive: false });
-      canvas.addEventListener('touchmove', draw, { passive: false });
-      canvas.addEventListener('touchend', endDraw, { passive: false });
-
-      const clearBtn = document.getElementById(clearBtnId);
-      if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-        });
-      }
-    }
-
-    async function startReview(rowIndex, seq) {
+    async function recordProcessData(rowIndex, seq) {
       if (!currentReference) {
         showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
         return;
@@ -1140,62 +1093,84 @@
         (stop && (stop.destination2 || stop.destination1)) || 'จุดส่ง';
 
       const { value: formValues } = await Swal.fire({
-        title: 'ประเมินความพึงพอใจ',
+        title: 'บันทึกข้อมูลผู้รับน้ำมัน',
         html: `
             <div style="text-align:left;">
-              <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
-                ปลายทาง: <b>${destName}</b>
+              <div style="font-size:0.85rem;color:#555;margin-bottom:8px;padding:8px;background:#f0f0f0;border-radius:6px;">
+                <div><b>เลขงาน:</b> ${currentReference}</div>
+                <div><b>ชื่อสาขา:</b> ${currentBranchName || '-'}</div>
+                <div><b>รหัสสาขา:</b> ${currentBranchCode || '-'}</div>
               </div>
 
-              <label style="font-size:0.8rem;color:#555;">ระดับความพึงพอใจ</label>
+              <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน *</label>
+              <input id="swalReceiverName" type="text"
+                class="swal2-input"
+                placeholder="เช่น นายสมิทร ใจดี"
+                style="width:100%;margin:4px 0 8px;">
+
+              <label style="font-size:0.8rem;color:#555;">ตำแหน่งผู้รับน้ำมัน *</label>
+              <input id="swalReceiverPosition" type="text"
+                class="swal2-input"
+                placeholder="เช่น หัวหน้าลาน, ผู้จัดการสาขา"
+                style="width:100%;margin:4px 0 8px;">
+
+              <label style="font-size:0.8rem;color:#555;margin-top:6px;"><b>ประเภทผู้รับน้ำมัน</b></label>
               <div style="margin:4px 0 10px;font-size:0.85rem;">
-                <label style="margin-right:10px;">
-                  <input type="radio" name="reviewScore" value="น้อย"> น้อย
+                <label style="display:block;margin-bottom:4px;">
+                  <input type="radio" name="receiverType" value="manager"> ผู้จัดการสาขา
                 </label>
-                <label style="margin-right:10px;">
-                  <input type="radio" name="reviewScore" value="ปานกลาง"> ปานกลาง
+                <label style="display:block;margin-bottom:4px;">
+                  <input type="radio" name="receiverType" value="frontHasCard"> หน้าลานมีบัตร
                 </label>
-                <label>
-                  <input type="radio" name="reviewScore" value="มาก"> มาก
+                <label style="display:block;">
+                  <input type="radio" name="receiverType" value="frontNoCard"> หน้าลานไม่มีบัตร
                 </label>
               </div>
 
-              <label style="font-size:0.8rem;color:#555;">ลายเซ็นผู้รับสินค้า</label>
-              <div style="border:1px solid #ccc;border-radius:8px;padding:6px;margin-top:4px;">
-                <canvas id="signCanvas" width="280" height="160" style="width:100%;height:auto;background:#fafafa;border-radius:6px;"></canvas>
-                <button type="button" id="btnClearSign"
-                  style="margin-top:4px;padding:4px 10px;border-radius:999px;border:1px solid #ccc;font-size:0.75rem;background:#fff;">
-                  ล้างลายเซ็น
-                </button>
+              <label style="font-size:0.8rem;color:#555;margin-top:6px;"><b>สถานะการขึ้นหลังถัง</b></label>
+              <div style="margin:4px 0 10px;font-size:0.85rem;">
+                <label style="display:block;margin-bottom:4px;">
+                  <input type="radio" name="fuelTankStatus" value="yes"> ขึ้นหลังถัง
+                </label>
+                <label style="display:block;">
+                  <input type="radio" name="fuelTankStatus" value="no"> ไม่ขึ้นหลังถัง
+                </label>
               </div>
             </div>
           `,
-        didOpen: () => {
-          initSwalSignaturePad('signCanvas', 'btnClearSign');
-        },
         focusConfirm: false,
         showCancelButton: true,
-        confirmButtonText: 'บันทึกการประเมิน',
+        confirmButtonText: 'บันทึกข้อมูล',
         cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#1abc9c',
         preConfirm: () => {
-          const radio = document.querySelector(
-            'input[name="reviewScore"]:checked'
-          );
-          if (!radio) {
-            Swal.showValidationMessage('กรุณาเลือกระดับความพึงพอใจ');
+          const name = document.getElementById('swalReceiverName').value.trim();
+          const position = document.getElementById('swalReceiverPosition').value.trim();
+          const typeRadio = document.querySelector('input[name="receiverType"]:checked');
+          const tankRadio = document.querySelector('input[name="fuelTankStatus"]:checked');
+
+          if (!name) {
+            Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
+            return false;
+          }
+          if (!position) {
+            Swal.showValidationMessage('กรุณากรอกตำแหน่งผู้รับน้ำมัน');
+            return false;
+          }
+          if (!typeRadio) {
+            Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
+            return false;
+          }
+          if (!tankRadio) {
+            Swal.showValidationMessage('กรุณาเลือกสถานะการขึ้นหลังถัง');
             return false;
           }
 
-          const canvas = document.getElementById('signCanvas');
-          let dataUrl = '';
-          if (canvas) {
-            dataUrl = canvas.toDataURL('image/png');
-          }
-
           return {
-            score: radio.value,
-            signatureDataUrl: dataUrl,
+            receiverName: name,
+            receiverPosition: position,
+            receiverType: typeRadio.value,
+            fuelTankStatus: tankRadio.value,
           };
         },
       });
@@ -1204,7 +1179,7 @@
         return;
       }
 
-      const { score, signatureDataUrl } = formValues;
+      const { receiverName, receiverPosition, receiverType, fuelTankStatus } = formValues;
 
       try {
         showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
@@ -1224,23 +1199,21 @@
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        showLoading('กำลังบันทึกการประเมิน...');
-
-        let signatureBase64 = '';
-        if (signatureDataUrl && typeof signatureDataUrl === 'string') {
-          const parts = signatureDataUrl.split(',');
-          signatureBase64 = parts[1] || '';
-        }
+        showLoading('กำลังบันทึกข้อมูลผู้รับน้ำมัน...');
 
         const formData = new URLSearchParams();
-        formData.append('action', 'uploadReview');
+        formData.append('action', 'uploadProcessData');
         formData.append('reference', currentReference);
+        formData.append('branchName', currentBranchName);
+        formData.append('branchCode', currentBranchCode);
         formData.append('rowIndex', String(rowIndex));
         formData.append('userId', currentUserId);
-        formData.append('score', score);
+        formData.append('receiverName', receiverName);
+        formData.append('receiverPosition', receiverPosition);
+        formData.append('receiverType', receiverType);
+        formData.append('fuelTankStatus', fuelTankStatus);
         formData.append('lat', String(lat));
         formData.append('lng', String(lng));
-        formData.append('signatureBase64', signatureBase64);
 
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
@@ -1251,14 +1224,14 @@
         closeLoading();
 
         if (!json.success) {
-          showError(json.message || 'บันทึกการประเมินไม่สำเร็จ');
+          showError(json.message || 'บันทึกข้อมูลไม่สำเร็จ');
           return;
         }
 
-        await showSuccess('บันทึกสำเร็จ', 'บันทึกการประเมินเรียบร้อยแล้ว');
+        await showSuccess('บันทึกสำเร็จ', 'บันทึกข้อมูลผู้รับน้ำมันเรียบร้อยแล้ว');
 
         if (json.stop) {
-          showInlineFlex('review', json.stop);
+          showInlineFlex('processdata', json.stop);
         }
 
         if (currentReference) {
@@ -1268,7 +1241,7 @@
       } catch (err) {
         console.error(err);
         closeLoading();
-        showError('เกิดข้อผิดพลาดในการบันทึกการประเมิน');
+        showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
       }
     }
 
@@ -1303,7 +1276,7 @@
         const hasCheckIn = !!stop.checkInTime;
         const hasFuel = !!stop.fuelingTime;
         const hasUnloadDone = !!stop.unloadDoneTime;
-        const hasReviewed = !!stop.reviewedTime;
+        const hasProcessData = !!stop.processdataTime;
         const hasCheckOut = !!stop.checkOutTime;
         const isOrigin = !!stop.isOriginStop;
 
@@ -1358,14 +1331,14 @@
               ", 'UNLOAD_DONE', 'unload', " +
               stop.seq +
               ')">ลงเสร็จ</button>';
-          } else if (!hasReviewed) {
+          } else if (!hasProcessData) {
             btnHtml +=
-              '<button class="btn-small btn-outline" ' +
-              'onclick="startReview(' +
+              '<button class="btn-small btn-warning" ' +
+              'onclick="recordProcessData(' +
               stop.rowIndex +
               ', ' +
               stop.seq +
-              ')">ประเมิน</button>';
+              ')">บันทึกข้อมูล</button>';
           } else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
@@ -1454,8 +1427,8 @@
           '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
           (stop.unloadDoneTime || '-') +
           '</div>' +
-          '<div class="timeline-sub"><b>ประเมิน:</b> ' +
-          (stop.reviewedTime || '-') +
+          '<div class="timeline-sub"><b>บันทึกข้อมูล:</b> ' +
+          (stop.processdataTime || '-') +
           '</div>' +
           '<div class="timeline-sub"><b>Check-out:</b> ' +
           (stop.checkOutTime || '-') +
@@ -1952,7 +1925,7 @@
     window.startCheckin = startCheckin;
     window.doAlcoholCheck = doAlcoholCheck;
     window.getCurrentPositionAsync = getCurrentPositionAsync;
-    window.startReview = startReview;
+    window.recordProcessData = recordProcessData;
     window.navigateToStop = navigateToStop;
     window.openEndTripDialog = openEndTripDialog;
     window.saveEndTripSummary = saveEndTripSummary;
