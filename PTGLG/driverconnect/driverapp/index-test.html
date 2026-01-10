@@ -1042,7 +1042,7 @@
         showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
 
         const formData = new URLSearchParams();
-        formData.append('action', 'uploadAlcohol');
+        formData.append('action', 'uploadalcohol');
         formData.append('reference', currentReference);
         formData.append('driverName', driverName);
         formData.append('userId', currentUserId);
@@ -1202,7 +1202,7 @@
         showLoading('กำลังบันทึกข้อมูลผู้รับน้ำมัน...');
 
         const formData = new URLSearchParams();
-        formData.append('action', 'uploadProcessData');
+        formData.append('action', 'processdata');
         formData.append('reference', currentReference);
         formData.append('branchName', currentBranchName);
         formData.append('branchCode', currentBranchCode);
@@ -1219,7 +1219,32 @@
           method: 'POST',
           body: formData,
         });
-        const json = await res.json();
+
+        if (!res.ok) {
+          const rawErr = await res.text().catch(() => '');
+          console.error('HTTP error uploadProcessData:', res.status, rawErr);
+          closeLoading();
+          showError(
+            'ไม่สามารถบันทึกข้อมูลได้ (HTTP ' +
+            res.status +
+            ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
+          );
+          return;
+        }
+
+        const raw = await res.text();
+        let json;
+        try {
+          json = JSON.parse(raw);
+        } catch (e) {
+          console.error('Response from uploadProcessData is not valid JSON:', raw);
+          closeLoading();
+          showError(
+            'เกิดข้อผิดพลาดในการบันทึกข้อมูล (รูปแบบข้อมูลไม่ถูกต้อง): ' +
+            (raw || 'NO_RESPONSE')
+          );
+          return;
+        }
 
         closeLoading();
 
