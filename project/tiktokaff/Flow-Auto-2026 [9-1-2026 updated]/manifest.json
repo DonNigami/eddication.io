@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "Flow Auto 2026 by AI Influencer TH",
+  "version": "2026",
+  "description": "Chrome extension สำหรับใช้งาน Google Labs Flow - Flow Auto 2026 by AI Influencer TH",
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://labs.google/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://labs.google/fx/tools/flow",
+        "https://labs.google/fx/tools/flow/*",
+        "https://labs.google/fx/tools/flow*",
+        "https://*/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "เปิด Flow Auto 2026 by AI Influencer TH"
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

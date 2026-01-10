@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow Auto 2026 by AI Influencer TH</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1 class="app-title">Flow Auto 2026</h1>
+      <p class="app-subtitle">by AI Influencer TH V. 1.1</p>
+    </div>
+
+    <!-- Section 1: Connection & Mode -->
+    <div class="section-card" style="border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);">
+        <div class="section-header">
+            <span class="section-icon">🔗</span>
+            <span class="section-title">Connection</span>
+        </div>
+        
+        <!-- ปุ่มเชื่อมต่อ -->
+        <button class="connect-btn" id="connectBtn">
+            <span class="icon"><svg viewBox="0 0 24 24"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"></path></svg></span> เชื่อมต่อกับ Flow
+        </button>
+
+        <!-- เลือกโหมดการทำงาน -->
+        <div class="mode-selector" style="margin-top: 16px;">
+            <button class="mode-btn active" id="imageModeBtn" data-mode="image">
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"></path></svg></span> Frames to Video & Images
+            </button>
+            <button class="mode-btn" id="textModeBtn" data-mode="text">
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"></path></svg></span> Text to Video & Scene
+            </button>
+        </div>
+    </div>
+
+    <!-- Section 2: Media Assets -->
+    <div class="section-card" style="border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);">
+        <div class="section-header">
+            <span class="section-icon">📂</span>
+            <span class="section-title">Media Assets</span>
+        </div>
+
+        <!-- ส่วนอัปโหลดรูปสินค้า -->
+        <div class="upload-section" id="uploadSection">
+            <label class="section-label" style="display: block; margin-bottom: 12px; color: var(--text-primary);">
+                <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"></circle><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"></path></svg></span> 
+                รูปสินค้า <span class="required" id="imageRequired" style="color: var(--danger);">*</span>
+                <span class="image-count" id="imageCount" style="color: var(--accent-gold);">(0)</span>
+            </label>
+            
+            <div class="upload-grid" id="uploadGrid">
+                <!-- Slots will be generated dynamically -->
+            </div>
+            
+            <!-- ปุ่มเลือกรูปภาพเพิ่มเติม -->
+            <button id="selectFilesBtn" class="glass-btn" style="width: 100%; padding: 12px; margin-top: 12px;">
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"></path></svg></span> เลือกรูปภาพ...
+            </button>
+
+            <!-- ปุ่มจัดการรูปภาพ -->
+            <button id="manageImagesBtn" class="glass-btn" style="width: 100%; padding: 12px; margin-top: 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.3); display: none;">
+                <span class="icon">🖼️</span> จัดการรูปภาพ (<span id="manageImageCount">0</span>)
+            </button>
+
+            <!-- ปุ่มดึงรูปจาก TikTok -->
+            <button id="fetchTikTokBtn" class="glass-btn" style="width: 100%; padding: 12px; margin-top: 8px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.1);">
+                <span class="icon" style="filter: drop-shadow(0 0 2px rgba(255,0,80,0.5));">🎵</span> ดึงรูปจาก TikTok/Studio
+            </button>
+
+            <!-- ปุ่มเปิด TikTok Studio -->
+            <button id="openTikTokStudioBtn" class="glass-btn" style="width: 100%; padding: 12px; margin-top: 8px; background: rgba(255, 20, 147, 0.2); border: 1px solid rgba(255, 20, 147, 0.3);">
+                <span class="icon">🚀</span> เปิด TikTok Studio
+            </button>
+            
+            <input type="file" id="fileInput" accept="image/*" style="display: none;" multiple>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Upload CSV -->
+        <div class="form-group" id="mainCsvSection">
+            <label>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z"></path></svg></span> CSV Prompts <span class="required" style="color: var(--danger);">*</span>
+            </label>
+            <input type="file" id="csvInput" accept=".csv" class="file-input" style="margin-bottom: 8px;">
+            <div id="csvStatus" class="status-text">ยังไม่ได้เลือกไฟล์</div>
+            
+            <!-- ตัวเลือกใช้ Prompt เดียวกับทุกรูป -->
+            <div class="checkbox-wrapper">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="useSinglePrompt">
+                    <span>ใช้ 1 Prompt กับทุกรูปภาพ</span>
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="randomizeImages">
+                    <span>สุ่มลำดับรูปภาพ (Random Images)</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Extend Scene Section (Text to Video Mode Only) -->
+        <div id="extendSceneSection" class="hidden" style="margin-top: 16px; border-top: 1px solid var(--glass-border); padding-top: 16px;">
+            <div class="checkbox-wrapper" style="margin-bottom: 12px;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="extendSceneToggle">
+                    <span><b>Extend Scene Mode</b> (ต่อฉากจาก Prompts)</span>
+                </label>
+            </div>
+
+            <div id="extendSceneControls" class="hidden">
+                <div class="form-group">
+                    <label>
+                        <span class="icon">📄</span> CSV Prompts สำหรับต่อฉาก
+                    </label>
+                    <input type="file" id="extendCsvInput" accept=".csv" class="file-input" style="margin-bottom: 8px;">
+                    <div id="extendCsvStatus" class="status-text">ยังไม่ได้เลือกไฟล์</div>
+                </div>
+                
+                <div class="extend-controls-group" style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="startExtendBtn" class="glass-btn" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none;">
+                        <span class="icon">🎬</span> Start Extend
+                    </button>
+                    <button id="stopExtendBtn" class="glass-btn danger" style="flex: 0 0 auto; padding: 12px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; display: none;">
+                        <span class="icon">⏹</span> Stop
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Creative Control -->
+    <div class="section-card" style="border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);">
+        <div class="section-header">
+            <span class="section-icon">🎨</span>
+            <span class="section-title">Creative Control</span>
+        </div>
+
+        <!-- Manual Prompt Input (Alternative) -->
+        <details id="manualInputDetails">
+            <summary><span class="icon" style="margin-right:4px;"><svg viewBox="0 0 24 24" style="width:1em;height:1em;fill:currentColor;"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"></path></svg></span> Manual Input (ทางเลือก)</summary>
+            <div class="details-content">
+                <div class="form-group">
+                    <label>เลือกสไตล์ (Style Selection)</label>
+                    <select id="styleSelect">
+                        <option value="">-- เลือกสไตล์ --</option>
+                        <option value="luxury_director">1️⃣ Ultimate Luxury Director</option>
+                        <option value="cinematic_prestige">2️⃣ Cinematic Volumetric Prestige</option>
+                        <option value="dark_authority">3️⃣ Dark Premium Authority</option>
+                        <option value="minimal_billion">4️⃣ Minimal Billion-Dollar Look</option>
+                        <option value="epic_scale">5️⃣ Epic Scale & Motion Luxury</option>
+                        <option value="smart_tech">6️⃣ Smart Tech Energy Mode</option>
+                        <option value="emotional_story">7️⃣ Emotional Storytelling Luxury</option>
+                        <option value="nature_fusion">8️⃣ Nature Fusion (Smart Match)</option>
+                        <option value="viral_hook">9️⃣ Viral Hook Luxury Short-Form</option>
+                        <option value="master_brain">🔟 Master Commercial Brain (Auto Everything)</option>
+                    </select>
+                    
+                    <!-- Random Style Option (Visible when > 2 images) -->
+                    <div id="randomStyleContainer" class="checkbox-wrapper" style="display: none; margin-top: 8px; padding: 8px; background: rgba(255, 215, 0, 0.1); border-radius: 8px; border: 1px solid rgba(255, 215, 0, 0.2);">
+                        <label class="checkbox-label" style="width: 100%; cursor: pointer;">
+                            <input type="checkbox" id="randomStyleCheckbox">
+                            <span style="color: var(--accent-gold); font-weight: 600;">🎲 Random Style กับทุกภาพที่เลือก (Random All)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>ชื่อสินค้า / หัวข้อ (Optional)</label>
+                    <input type="text" id="manualProduct" placeholder="เช่น รองเท้าวิ่ง, ครีมกันแดด">
+                </div>
+                <div class="form-group">
+                    <label>Prompts (Auto-generated)</label>
+                    <textarea id="manualPrompts" rows="8" placeholder="เลือกสไตล์ด้านบน หรือใส่ Prompts เองที่นี่..."></textarea>
+                    <button id="smartEnhanceBtn" class="control-btn secondary" style="width: 100%; margin-top: 8px;">
+                        <span class="icon"><svg viewBox="0 0 24 24"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 2l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5zM19 15l-1.25 2.75L15 19l2.75 1.25L19 23l1.25-2.75L23 19l-2.75-1.25L19 15z"></path></svg></span> ✨ Smart Enhance (AI Prompt)
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label>Negative Prompts (ไม่ต้องการ)</label>
+                    <textarea id="negativePrompts" rows="4" placeholder="ใส่สิ่งที่ไม่ต้องการให้ปรากฏในภาพ เช่น text, watermark, blurry, low quality..."></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-wrapper" style="flex-direction: column; gap: 8px;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="noCaptionsCheckbox" checked>
+                            <span>ไม่เอา Captions (ข้อความคำบรรยาย)</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="noTextOnImageCheckbox" checked>
+                            <span>ไม่เอาตัวหนังสือบนภาพ (Text overlay)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- Section 4: Configuration -->
+    <div class="section-card" style="border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);">
+        <div class="section-header">
+            <span class="section-icon">⚙️</span>
+            <span class="section-title">Configuration</span>
+        </div>
+
+        <!-- รูปแบบวิดีโอ -->
+        <div class="form-group">
+            <label>
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zm-10-7h9v6h-9z"></path></svg></span> รูปแบบวิดีโอ
+            </label>
+            <select id="colorSelect">
+                <option value="9:16">แนวตั้ง 9:16</option>
+                <option value="16:9">แนวนอน 16:9</option>
+            </select>
+        </div>
+
+        <!-- Advanced Settings -->
+        <details class="styled-details">
+            <summary><span class="icon" style="margin-right:4px;"><svg viewBox="0 0 24 24" style="width:1em;height:1em;fill:currentColor;"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L5.09 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"></path></svg></span> ตั้งค่าเวลา & การทำงาน</summary>
+            <div class="details-content">
+                
+                <!-- Negative Prompts Settings -->
+                <div class="form-group" style="margin-bottom: 16px; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.2);">
+                    <div class="checkbox-wrapper" style="margin-bottom: 12px;">
+                        <label class="checkbox-label" style="width: 100%; cursor: pointer;">
+                            <input type="checkbox" id="useNegativePromptsCheckbox" checked>
+                            <span style="color: #ef4444; font-weight: 600;">🚫 ใช้ Negative Prompts (กรองสิ่งที่ไม่ต้องการ)</span>
+                        </label>
+                    </div>
+                    <div class="checkbox-wrapper" style="flex-direction: column; gap: 8px;">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="globalNoCaptionsCheckbox" checked>
+                            <span>ไม่เอา Captions (ข้อความคำบรรยาย)</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="globalNoTextCheckbox" checked>
+                            <span>ไม่เอา Text หรือข้อความทุกชนิดบนวิดีโอ</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>รอหลังอัปโหลด (วินาที)</label>
+                        <input type="number" id="uploadDelay" value="10" step="0.5" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>รอหลัง Crop (วินาที)</label>
+                        <input type="number" id="saveDelay" value="10" step="0.5" min="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>รอระหว่างงาน (วินาที)</label>
+                    <input type="number" id="taskCooldown" value="15" step="1" min="1">
+                </div>
+
+                <div class="divider">
+                    <button id="clearStorageBtn" type="button" class="control-btn danger" style="width:100%; justify-content:center;">
+                        <span class="icon"><svg viewBox="0 0 24 24"><path d="M19.36 2.72l1.42 1.42-5.72 5.72 5.72 5.72-1.42 1.42-5.72-5.72-5.72 5.72-1.42-1.42 5.72-5.72-5.72-5.72 1.42-1.42 5.72 5.72z"></path></svg></span> ล้าง Storage (แก้ปัญหาเต็ม)
+                    </button>
+                </div>
+
+                <div class="divider">
+                    <label class="sub-label" style="color: var(--text-secondary); font-size: 12px; font-weight: 600;">โหมดพักเครื่อง (Batch Pause)</label>
+                    <div class="batch-control">
+                        <span>ทำ</span>
+                        <input type="number" id="batchSize" value="5" min="1">
+                        <span>งาน แล้วหยุด</span>
+                    </div>
+                    <div class="batch-control">
+                        <span>พัก</span>
+                        <input type="number" id="batchPauseTime" value="120" min="0">
+                        <span>วินาที</span>
+                    </div>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- Section 5: Action Panel -->
+    <div class="section-card" style="border-color: var(--accent-gold); box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);">
+        <div class="section-header">
+            <span class="section-icon">🚀</span>
+            <span class="section-title">Execution</span>
+        </div>
+
+        <div class="control-panel">
+            <button class="generate-btn" id="generateBtn">
+                <span class="icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg></span> Start (สร้างเนื้อหา)
+            </button>
+            
+            <div class="automation-controls">
+               <button id="pauseBtn" class="control-btn warning">
+                 <span class="icon"><svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg></span> Pause
+               </button>
+               <button id="stopBtn" class="control-btn danger">
+                 <span class="icon"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"></path></svg></span> Stop
+               </button>
+            </div>
+            
+            <button id="howToBtn" class="control-btn outline" style="border-style: dashed;">
+              <span class="icon"><svg viewBox="0 0 24 24"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"></path></svg></span> How to (คู่มือการใช้งาน)
+            </button>
+        </div>
+    </div>
+
+    <!-- Section 6: Auto Workflow -->
+    <div class="section-card" style="border-color: #6b7280; box-shadow: 0 0 20px rgba(107, 114, 128, 0.1); opacity: 0.6;">
+        <div class="section-header">
+            <span class="section-icon">🤖</span>
+            <span class="section-title">Auto Workflow</span>
+        </div>
+
+        <!-- Coming Soon Message -->
+        <div style="text-align: center; padding: 40px 20px; background: rgba(107, 114, 128, 0.1); border-radius: 16px; border: 2px dashed rgba(107, 114, 128, 0.3);">
+            <div style="font-size: 48px; margin-bottom: 16px;">🚧</div>
+            <h3 style="color: #6b7280; margin: 0 0 12px 0; font-size: 18px; font-weight: 600;">กำลังพัฒนา</h3>
+            <p style="color: #9ca3af; margin: 0; font-size: 14px; line-height: 1.6;">
+                ฟีเจอร์ Auto Workflow กำลังอยู่ในระหว่างการพัฒนาและปรับปรุง<br>
+                <strong style="color: #fbbf24;">รออัพเดท V.1.2 นะครับ</strong> 🎯
+            </p>
+            <div style="margin-top: 16px; padding: 12px; background: rgba(251, 191, 36, 0.1); border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.2);">
+                <p style="color: #f59e0b; margin: 0; font-size: 13px; font-weight: 500;">
+                    💡 ขณะนี้สามารถใช้งาน "Start (สร้างเนื้อหา)" ด้านบนได้ตามปกติ
+                </p>
+            </div>
+        </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

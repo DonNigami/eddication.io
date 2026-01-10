@@ -219,7 +219,7 @@ const Controls = {
           settings.apiKey, productImage, productName, hasPersonImage, ugcSettings, videoLength
         );
       } else {
-        rawResponse = await OpenaiApi.generatePrompt(
+        rawResponse = await OpenAIApi.generatePrompt(
           settings.apiKey, productImage, productName, hasPersonImage, ugcSettings, videoLength
         );
       }
@@ -312,7 +312,7 @@ ${headingParts.join('\n')}`;
       if (settings.model === 'gemini') {
         rawResponse = await GeminiApi.generateVideoPrompt(settings.apiKey, systemPrompt, userMessage);
       } else {
-        rawResponse = await OpenaiApi.generateVideoPrompt(settings.apiKey, systemPrompt, userMessage);
+        rawResponse = await OpenAIApi.generateVideoPrompt(settings.apiKey, systemPrompt, userMessage);
       }
 
       PromptGenerator.setPrompt(rawResponse);

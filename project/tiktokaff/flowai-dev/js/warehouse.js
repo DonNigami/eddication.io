@@ -1663,11 +1663,24 @@ async function callAIForHeadings(settings, productName) {
   }
 
   // Parse JSON response
-  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  // Clean response: remove markdown code blocks and extra text
+  let cleanResponse = response.trim();
+
+  // Remove markdown code blocks (```json ... ```)
+  cleanResponse = cleanResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+  // Extract JSON object
+  const jsonMatch = cleanResponse.match(/\{[\s\S]*?\}/);
   if (jsonMatch) {
-    return JSON.parse(jsonMatch[0]);
+    try {
+      return JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Response text:', response);
+      throw new Error('ไม่สามารถแปลง JSON ได้: ' + parseError.message);
+    }
   }
-  throw new Error('ไม่สามารถแปลงผลลัพธ์ได้');
+  throw new Error('ไม่พบ JSON ในผลลัพธ์');
 }
 
 /**
@@ -2050,14 +2063,14 @@ async function renderVideoList() {
   listContainer.innerHTML = videos.map(v => `
     <div class="video-item" data-id="${v.id}">
       ${v.thumbnail
-        ? `<img src="${v.thumbnail}" class="video-thumbnail" alt="Thumbnail">`
-        : `<div class="video-thumbnail-placeholder">
+      ? `<img src="${v.thumbnail}" class="video-thumbnail" alt="Thumbnail">`
+      : `<div class="video-thumbnail-placeholder">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="23 7 16 12 23 17 23 7"></polygon>
               <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
             </svg>
           </div>`
-      }
+    }
       <div class="video-info">
         <div class="video-name" title="${v.fileName}">${v.fileName}</div>
         <div class="video-meta">
@@ -2676,15 +2689,15 @@ function renderDuplicateList(type, duplicates) {
       <div class="duplicate-item" data-index="${index}">
         <input type="checkbox" checked data-dup-index="${index}">
         ${imageUrl
-          ? `<img src="${imageUrl}" class="duplicate-item-image" alt="Thumbnail">`
-          : `<div class="duplicate-item-image" style="display:flex;align-items:center;justify-content:center;background:#f5f5f5;">
+        ? `<img src="${imageUrl}" class="duplicate-item-image" alt="Thumbnail">`
+        : `<div class="duplicate-item-image" style="display:flex;align-items:center;justify-content:center;background:#f5f5f5;">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
                 <polyline points="21 15 16 10 5 21"></polyline>
               </svg>
             </div>`
-        }
+      }
         <div class="duplicate-item-info">
           <div class="duplicate-item-name" title="${itemName}">${itemName}</div>
           <div class="duplicate-item-date">เพิ่มเมื่อ ${createdAt}</div>
