@@ -1,0 +1,356 @@
+/* Platform Selector Styles */
+
+.platform-selector {
+  margin: 20px 0;
+  padding: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.platform-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.platform-selector-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+  padding: 5px 10px;
+  transition: opacity 0.3s;
+}
+
+.btn-link:hover {
+  opacity: 0.8;
+}
+
+/* Platform Grid */
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+/* Platform Card */
+
+.platform-card {
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  position: relative;
+}
+
+.platform-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.platform-card.selected {
+  border-color: var(--platform-color);
+  box-shadow: 0 0 0 3px rgba(var(--platform-color-rgb), 0.2);
+}
+
+.platform-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.platform-icon {
+  font-size: 32px;
+}
+
+/* Custom Checkbox */
+
+.platform-checkbox {
+  position: relative;
+}
+
+.platform-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.platform-checkbox label {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s;
+}
+
+.platform-checkbox label::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  transition: transform 0.2s;
+}
+
+.platform-checkbox input[type="checkbox"]:checked + label {
+  background: var(--platform-color, #667eea);
+}
+
+.platform-checkbox input[type="checkbox"]:checked + label::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* Platform Card Body */
+
+.platform-card-body h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.platform-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.feature-tag {
+  background: #f0f0f0;
+  color: #666;
+  font-size: 10px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: lowercase;
+}
+
+.platform-card.selected .feature-tag {
+  background: var(--platform-color);
+  color: white;
+  opacity: 0.8;
+}
+
+/* Platform Summary */
+
+.platform-summary {
+  text-align: center;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+}
+
+.platform-summary span {
+  color: white;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .platform-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .platform-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Upload Progress Indicator */
+
+.upload-progress-container {
+  margin: 20px 0;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.upload-progress-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  background: #f9f9f9;
+}
+
+.upload-progress-item:last-child {
+  margin-bottom: 0;
+}
+
+.upload-platform-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.upload-platform-info {
+  flex: 1;
+}
+
+.upload-platform-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.upload-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.upload-status-icon {
+  font-size: 24px;
+  margin-left: 10px;
+}
+
+.upload-status-icon.success {
+  color: #4caf50;
+}
+
+.upload-status-icon.error {
+  color: #f44336;
+}
+
+.upload-status-icon.uploading {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Multi-platform results */
+
+.upload-results {
+  margin: 20px 0;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+}
+
+.upload-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.upload-results-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.upload-results-summary {
+  display: flex;
+  gap: 15px;
+}
+
+.result-badge {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-badge.success {
+  background: #e8f5e9;
+  color: #4caf50;
+}
+
+.result-badge.error {
+  background: #ffebee;
+  color: #f44336;
+}
+
+.upload-results-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.upload-result-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border-left: 4px solid transparent;
+}
+
+.upload-result-item.success {
+  background: #f1f8f4;
+  border-left-color: #4caf50;
+}
+
+.upload-result-item.error {
+  background: #fef5f5;
+  border-left-color: #f44336;
+}
+
+.result-platform-icon {
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.result-platform-details {
+  flex: 1;
+}
+
+.result-platform-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.result-message {
+  font-size: 13px;
+  color: #666;
+}
+
+.result-error {
+  font-size: 13px;
+  color: #f44336;
+}

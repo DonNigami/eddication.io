@@ -1,0 +1,89 @@
+{
+  "manifest_version": 3,
+  "name": "Eddication Flow AI",
+  "version": "4.0",
+  "description": "AI Content Generator + Multi-Platform Uploader by Eddication",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self';"
+  },
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "activeTab",
+    "sidePanel",
+    "downloads",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "https://*.tiktok.com/*",
+    "https://seller.shopee.co.th/*",
+    "https://seller.shopee.com/*",
+    "https://seller.shopee.com.my/*",
+    "https://*.facebook.com/*",
+    "https://studio.youtube.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "html/sidebar.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.tiktok.com/*"],
+      "js": ["content/platforms/tiktok.js"],
+      "css": ["css/content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://seller.shopee.co.th/*",
+        "https://seller.shopee.com/*",
+        "https://seller.shopee.com.my/*"
+      ],
+      "js": ["content/platforms/shopee.js"],
+      "css": ["css/content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://*.facebook.com/*"],
+      "js": ["content/platforms/facebook.js"],
+      "css": ["css/content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://studio.youtube.com/*"],
+      "js": ["content/platforms/youtube.js"],
+      "css": ["css/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "Eddication Flow AI"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon128.png",
+        "wasm/flow_core.js",
+        "wasm/flow_core_bg.wasm"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

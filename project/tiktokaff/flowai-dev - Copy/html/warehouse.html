@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>คลังสินค้า - Eddication Flow AI</title>
+  <link rel="stylesheet" href="../css/variables.css">
+  <link rel="stylesheet" href="../css/warehouse.css">
+</head>
+
+<body>
+  <div class="warehouse-container">
+    <!-- Header -->
+    <header class="warehouse-header">
+      <div class="header-left">
+        <img src="../icons/icon32.png" alt="Eddication Flow AI" class="header-logo">
+        <h1>คลังสินค้า <span class="version-badge">v3.2</span></h1>
+      </div>
+      <div class="header-right">
+        <button id="cleanNamesBtn" class="btn btn-ai" title="ปรับชื่อสินค้าให้กระชับด้วย AI">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          ปรับชื่อสินค้า
+        </button>
+        <button id="generateAllBtn" class="btn btn-ai" title="สร้างรายละเอียดให้สินค้าทั้งหมด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          สร้างรายละเอียด AI
+        </button>
+        <button id="fixImagesBtn" class="btn btn-warning" title="แปลงภาพ URL เป็น Base64">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21h5v-5" />
+          </svg>
+          แก้ไขภาพ
+        </button>
+        <button id="importBtn" class="btn btn-outline" title="นำเข้าข้อมูล">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Import
+        </button>
+        <button id="exportBtn" class="btn btn-outline" title="ส่งออกข้อมูล">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+          Export
+        </button>
+        <button id="addCategoryBtn" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          เพิ่มหมวดหมู่
+        </button>
+        <button id="deleteAllProductsBtn" class="btn btn-danger" title="ลบสินค้าทั้งหมด">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          ลบทั้งหมด
+        </button>
+        <input type="file" id="importFileInput" accept=".json" hidden>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="stats-container">
+      <div class="stat-item stat-total">
+        <span class="stat-label">สินค้าทั้งหมด</span>
+        <span class="stat-value" id="totalProducts">0</span>
+        <span class="stat-unit">รายการ</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-categories" id="categoryStats"></div>
+    </div>
+
+    <!-- Video Stats -->
+    <div class="stats-container video-stats-container">
+      <div class="stat-item stat-video-total">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="23 7 16 12 23 17 23 7"></polygon>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+        </svg>
+        <span class="stat-label">วิดีโอทั้งหมด</span>
+        <span class="stat-value" id="totalVideos">0</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item stat-pending">
+        <span class="stat-badge pending"></span>
+        <span class="stat-label">รอ Upload</span>
+        <span class="stat-value" id="pendingVideos">0</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item stat-uploaded">
+        <span class="stat-badge uploaded"></span>
+        <span class="stat-label">โพสแล้ว</span>
+        <span class="stat-value" id="uploadedVideos">0</span>
+      </div>
+      <div class="stat-divider"></div>
+      <button class="btn btn-sm btn-danger" id="clearUploadedVideosBtn" title="ลบวิดีโอที่โพสแล้วทั้งหมด">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        ล้างที่โพสแล้ว
+      </button>
+    </div>
+
+    <!-- Storage Usage -->
+    <div class="storage-usage-container">
+      <div class="storage-usage-header">
+        <span class="storage-label">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+          พื้นที่เก็บข้อมูล
+        </span>
+        <span class="storage-info" id="storageInfo">0 MB / 10 MB</span>
+      </div>
+      <div class="storage-bar">
+        <div class="storage-bar-fill" id="storageBarFill" style="width: 0%"></div>
+      </div>
+      <div class="storage-actions">
+        <span class="storage-percent" id="storagePercent">0%</span>
+        <button class="btn btn-sm btn-danger" id="clearOldDataBtn" title="ลบสินค้าที่เก่าที่สุด">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          ล้างข้อมูลเก่า
+        </button>
+      </div>
+    </div>
+
+    <!-- Character Section -->
+    <section class="character-section">
+      <div class="section-header">
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          ตัวละคร UGC
+        </h2>
+        <button class="btn btn-primary btn-sm" id="addCharacterBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          เพิ่มตัวละคร
+        </button>
+      </div>
+
+      <!-- Character Grid -->
+      <div class="character-grid" id="characterGrid">
+        <div class="empty-state" id="characterEmptyState">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <p>ยังไม่มีตัวละคร</p>
+          <p class="empty-hint">คลิก "เพิ่มตัวละคร" เพื่อเริ่มต้น</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Product Section -->
+    <section class="upload-section">
+      <div class="section-header">
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          สินค้า
+        </h2>
+        <div class="section-header-actions">
+          <div class="category-select-wrapper">
+            <select id="uploadCategory">
+              <option value="">ทุกหมวดหมู่</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="addProductBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            เพิ่มสินค้า
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs" id="filterTabs">
+        <button class="filter-tab active" data-category="all">ทั้งหมด</button>
+      </div>
+
+      <!-- Product Grid -->
+      <div class="product-grid" id="productGrid">
+        <div class="empty-state" id="emptyState">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <p>ยังไม่มีสินค้าในคลัง</p>
+          <p class="empty-hint">คลิก "เพิ่มสินค้า" เพื่อเริ่มต้น</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Character Upload Modal -->
+  <div class="modal-overlay" id="characterUploadModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>เพิ่มตัวละคร</h3>
+        <button class="close-btn" id="closeCharacterUploadModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="drop-zone" id="characterDropZone">
+          <div class="drop-zone-content">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <p>ลากวางภาพตัวละครที่นี่</p>
+            <p class="drop-zone-hint">หรือ คลิกเพื่อเลือกไฟล์ (รองรับหลายไฟล์)</p>
+          </div>
+          <input type="file" id="characterFileInput" accept="image/*" multiple hidden>
+        </div>
+        <!-- Character Upload Preview -->
+        <div class="upload-preview" id="characterUploadPreview" hidden>
+          <h4>ตัวละครที่จะเพิ่ม</h4>
+          <div class="upload-grid" id="characterUploadGrid"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="clearCharacterUploadBtn">ล้างทั้งหมด</button>
+        <button class="btn btn-primary" id="saveAllCharactersBtn">บันทึกทั้งหมด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Upload Modal -->
+  <div class="modal-overlay" id="productUploadModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>เพิ่มสินค้า</h3>
+        <button class="close-btn" id="closeProductUploadModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="productUploadCategory">หมวดหมู่</label>
+          <select id="productUploadCategory">
+            <option value="">ไม่ระบุหมวดหมู่</option>
+          </select>
+        </div>
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-zone-content">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p>ลากวางภาพสินค้าที่นี่</p>
+            <p class="drop-zone-hint">หรือ คลิกเพื่อเลือกไฟล์ (รองรับหลายไฟล์)</p>
+          </div>
+          <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        </div>
+        <!-- Product Upload Preview -->
+        <div class="upload-preview" id="uploadPreview" hidden>
+          <h4>สินค้าที่จะเพิ่ม</h4>
+          <div class="upload-grid" id="uploadGrid"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="clearUploadBtn">ล้างทั้งหมด</button>
+        <button class="btn btn-primary" id="saveAllBtn">บันทึกทั้งหมด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>แก้ไขสินค้า</h3>
+        <button class="close-btn" id="closeEditModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="edit-preview">
+          <img id="editPreviewImage" src="" alt="Preview">
+        </div>
+        <div class="form-group">
+          <label for="editProductName">ชื่อสินค้า</label>
+          <textarea id="editProductName" rows="2" placeholder="ชื่อสินค้า..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="editProductId">รหัสสินค้า (ไม่จำเป็น)</label>
+          <input type="text" id="editProductId" placeholder="SKU-001">
+        </div>
+        <div class="form-group">
+          <label for="editMainHeading">หัวข้อหลัก</label>
+          <input type="text" id="editMainHeading" placeholder="ใช้ | เพื่อสุ่ม เช่น ดีมาก|เยี่ยม">
+        </div>
+        <div class="form-group">
+          <label for="editSubHeading">หัวข้อย่อย</label>
+          <input type="text" id="editSubHeading" placeholder="ใช้ | เพื่อสุ่ม เช่น ลดราคา|โปร">
+        </div>
+        <button class="btn btn-sm btn-ai" id="generateDetailsBtn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+          สร้างรายละเอียด AI
+        </button>
+        <div class="form-group">
+          <label for="editCartName">ชื่อตะกร้า (TikTok) <span class="char-count"
+              id="editCartNameCount">0/29</span></label>
+          <input type="text" id="editCartName" placeholder="ชื่อตะกร้าสำหรับ TikTok..." maxlength="29">
+        </div>
+        <div class="form-group">
+          <label for="editCategory">หมวดหมู่</label>
+          <select id="editCategory">
+            <option value="">ไม่ระบุหมวดหมู่</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelEditBtn">ยกเลิก</button>
+        <button class="btn btn-primary" id="saveEditBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Modal -->
+  <div class="modal-overlay" id="categoryModal" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="categoryModalTitle">เพิ่มหมวดหมู่</h3>
+        <button class="close-btn" id="closeCategoryModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="categoryName">ชื่อหมวดหมู่</label>
+          <input type="text" id="categoryName" placeholder="เช่น เครื่องสำอาง, อาหารเสริม">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelCategoryBtn">ยกเลิก</button>
+        <button class="btn btn-primary" id="saveCategoryBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteModal" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>ยืนยันการลบ</h3>
+        <button class="close-btn" id="closeDeleteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="deleteMessage">คุณต้องการลบสินค้านี้หรือไม่?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelDeleteBtn">ยกเลิก</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">ลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Character Edit Modal -->
+  <div class="modal-overlay" id="characterEditModal" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3>แก้ไขตัวละคร</h3>
+        <button class="close-btn" id="closeCharacterEditModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="edit-preview">
+          <img id="editCharacterImage" src="" alt="Preview">
+        </div>
+        <div class="form-group">
+          <label for="editCharacterName">ชื่อตัวละคร</label>
+          <input type="text" id="editCharacterName" placeholder="ชื่อตัวละคร...">
+        </div>
+        <div class="form-group">
+          <label for="editCharacterGender">เพศ</label>
+          <select id="editCharacterGender">
+            <option value="female">หญิง</option>
+            <option value="male">ชาย</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelCharacterEditBtn">ยกเลิก</button>
+        <button class="btn btn-primary" id="saveCharacterEditBtn">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Modal -->
+  <div class="modal-overlay" id="videoModal" hidden>
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7"></polygon>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+          </svg>
+          วิดีโอสินค้า: <span id="videoModalProductName">-</span>
+        </h3>
+        <button class="close-btn" id="closeVideoModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Video Upload Zone -->
+        <div class="video-upload-zone" id="videoDropZone">
+          <div class="drop-zone-content">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polygon points="23 7 16 12 23 17 23 7"></polygon>
+              <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+            </svg>
+            <p>ลากวางไฟล์วิดีโอที่นี่</p>
+            <p class="drop-zone-hint">หรือ คลิกเพื่อเลือกไฟล์ (รองรับหลายไฟล์)</p>
+          </div>
+          <input type="file" id="videoFileInput" accept="video/*" multiple hidden>
+        </div>
+
+        <!-- Video List -->
+        <div class="video-list-section">
+          <div class="video-list-header">
+            <h4>รายการวิดีโอ</h4>
+            <div class="video-filter-tabs">
+              <button class="video-filter-tab active" data-filter="all">ทั้งหมด</button>
+              <button class="video-filter-tab" data-filter="pending">รอ Upload</button>
+              <button class="video-filter-tab" data-filter="uploaded">Upload แล้ว</button>
+            </div>
+          </div>
+          <div class="video-list" id="videoList">
+            <div class="video-empty-state">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+              </svg>
+              <p>ยังไม่มีวิดีโอ</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="closeVideoModalBtn">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clean Names Modal -->
+  <div class="modal-overlay" id="cleanNamesModal" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>ปรับชื่อสินค้า</h3>
+        <button class="close-btn" id="closeCleanNamesModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 16px; color: var(--text-secondary);">
+          AI จะปรับชื่อสินค้าให้กระชับ โดยเอาเลขรุ่น, คำโปรโมชั่น, และข้อความสแปมออก
+        </p>
+        <div class="clean-names-options">
+          <button class="btn btn-primary btn-block" id="cleanAllNamesBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path
+                d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
+              </path>
+            </svg>
+            ทำทั้งหมด (<span id="cleanAllCount">0</span> รายการ)
+          </button>
+          <button class="btn btn-secondary btn-block" id="cleanUnprocessedNamesBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            เฉพาะที่ยังไม่เคยทำ (<span id="cleanUnprocessedCount">0</span> รายการ)
+          </button>
+        </div>
+        <div class="clean-names-progress" id="cleanNamesProgress" hidden>
+          <div class="progress-bar">
+            <div class="progress-fill" id="cleanNamesProgressFill"></div>
+          </div>
+          <p class="progress-text" id="cleanNamesProgressText">กำลังดำเนินการ...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelCleanNamesBtn">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generate Details Modal -->
+  <div class="modal-overlay" id="generateDetailsModal" hidden>
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>สร้างรายละเอียด AI</h3>
+        <button class="close-btn" id="closeGenerateDetailsModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 16px; color: var(--text-secondary);">
+          AI จะสร้างหัวข้อหลักและหัวข้อย่อยให้สินค้าโดยอัตโนมัติ
+        </p>
+        <div class="clean-names-options">
+          <button class="btn btn-primary btn-block" id="generateAllDetailsBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+            ทำทั้งหมด (<span id="generateAllCount">0</span> รายการ)
+          </button>
+          <button class="btn btn-secondary btn-block" id="generateUnprocessedDetailsBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            เฉพาะที่ยังไม่มีรายละเอียด (<span id="generateUnprocessedCount">0</span> รายการ)
+          </button>
+        </div>
+        <div class="clean-names-progress" id="generateDetailsProgress" hidden>
+          <div class="progress-bar">
+            <div class="progress-fill" id="generateDetailsProgressFill"></div>
+          </div>
+          <p class="progress-text" id="generateDetailsProgressText">กำลังดำเนินการ...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelGenerateDetailsBtn">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicate Detection Modal -->
+  <div class="modal-overlay" id="duplicateModal" hidden>
+    <div class="modal modal-md">
+      <div class="modal-header">
+        <h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          พบข้อมูลซ้ำ
+        </h3>
+        <button class="close-btn" id="closeDuplicateModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="duplicate-message" id="duplicateMessage">พบสินค้าที่มีอยู่แล้ว 0 รายการ:</p>
+        <div class="duplicate-list" id="duplicateList">
+          <!-- Duplicate items will be rendered here -->
+        </div>
+        <label class="duplicate-select-all">
+          <input type="checkbox" id="duplicateSelectAll">
+          <span>เลือกทั้งหมด</span>
+        </label>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="skipDuplicatesBtn">ข้ามที่เลือก</button>
+        <button class="btn btn-primary" id="importAllDuplicatesBtn">นำเข้าทั้งหมด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="../js/modules/videoStorage.js"></script>
+  <script src="../js/modules/productWarehouse.js"></script>
+  <script src="../js/warehouse.js"></script>
+</body>
+
+</html>
