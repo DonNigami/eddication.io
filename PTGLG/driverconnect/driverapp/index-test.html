@@ -1053,6 +1053,7 @@
 
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body: formData,
         });
 
@@ -1217,12 +1218,13 @@
 
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body: formData,
         });
 
         if (!res.ok) {
           const rawErr = await res.text().catch(() => '');
-          console.error('HTTP error uploadProcessData:', res.status, rawErr);
+          console.error('HTTP error processdata:', res.status, rawErr);
           closeLoading();
           showError(
             'ไม่สามารถบันทึกข้อมูลได้ (HTTP ' +
@@ -1237,13 +1239,32 @@
         try {
           json = JSON.parse(raw);
         } catch (e) {
-          console.error('Response from uploadProcessData is not valid JSON:', raw);
-          closeLoading();
-          showError(
-            'เกิดข้อผิดพลาดในการบันทึกข้อมูล (รูปแบบข้อมูลไม่ถูกต้อง): ' +
-            (raw || 'NO_RESPONSE')
-          );
-          return;
+          // Attempt GET fallback if POST returns non-JSON (e.g., NO_EVENT)
+          try {
+            const getUrl = WEB_APP_URL + '?' + formData.toString();
+            const getRes = await fetch(getUrl);
+            if (!getRes.ok) {
+              const getErr = await getRes.text().catch(() => '');
+              console.error('HTTP error GET processdata:', getRes.status, getErr);
+              closeLoading();
+              showError('ไม่สามารถบันทึกข้อมูลได้ (GET ' + getRes.status + ')');
+              return;
+            }
+            const getRaw = await getRes.text();
+            try {
+              json = JSON.parse(getRaw);
+            } catch (e2) {
+              console.error('Response from processdata (GET) is not valid JSON:', getRaw);
+              closeLoading();
+              showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล (รูปแบบข้อมูลไม่ถูกต้อง): ' + (raw || 'NO_RESPONSE'));
+              return;
+            }
+          } catch (fallbackErr) {
+            console.error('GET fallback error for processdata:', fallbackErr);
+            closeLoading();
+            showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล (ลองใช้ช่องทาง GET ไม่สำเร็จ)');
+            return;
+          }
         }
 
         closeLoading();
