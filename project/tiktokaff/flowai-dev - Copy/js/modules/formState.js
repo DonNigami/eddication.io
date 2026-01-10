@@ -3,7 +3,7 @@
  * Handles saving and restoring form values
  */
 const FormState = {
-  formFields: ['productName', 'mainHeading', 'subHeading', 'price', 'gender', 'ageRange', 'videoLengthSelect'],
+  formFields: ['productName', 'mainHeading', 'subHeading', 'price', 'gender', 'ageRange', 'videoLengthSelect', 'extendSceneToggle'],
 
   /**
    * Initialize form state

@@ -28,9 +28,11 @@ function createPNG(size) {
       const onLine3 = Math.abs(y - lineY3) < halfStroke && x >= padding && x <= size * 0.5;
 
       if (onLine1 || onLine2 || onLine3) {
+        // White text on lines
         pixels.push(255, 255, 255, 255);
       } else {
-        pixels.push(229, 57, 53, 255);
+        // Red background: #EF4444
+        pixels.push(239, 68, 68, 255);
       }
     }
   }

@@ -22,7 +22,8 @@
     "https://seller.shopee.com/*",
     "https://seller.shopee.com.my/*",
     "https://*.facebook.com/*",
-    "https://studio.youtube.com/*"
+    "https://studio.youtube.com/*",
+    "https://labs.google/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -57,6 +58,15 @@
     {
       "matches": ["https://studio.youtube.com/*"],
       "js": ["content/platforms/youtube.js"],
+      "css": ["css/content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://labs.google/fx/tools/flow",
+        "https://labs.google/fx/tools/flow/*"
+      ],
+      "js": ["content/platforms/googleFlow.js"],
       "css": ["css/content.css"],
       "run_at": "document_idle"
     }

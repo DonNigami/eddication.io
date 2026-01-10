@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="../css/tiktok.css">
   <link rel="stylesheet" href="../css/platformSelector.css">
   <link rel="stylesheet" href="../css/testingPanel.css">
+  <link rel="stylesheet" href="../css/extendScene.css">
 </head>
 
 <body>
@@ -120,6 +121,14 @@
           <polyline points="9 22 9 12 15 12 15 22" />
         </svg>
         คลังสินค้า
+      </button>
+      <button class="tab-btn" data-tab="extend-scene">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+          <line x1="7" y1="12" x2="17" y2="12" />
+          <line x1="12" y1="7" x2="12" y2="17" />
+        </svg>
+        🎬 Extend Scene
       </button>
     </nav>
 
@@ -1245,6 +1254,118 @@
           </div>
         </section>
       </div>
+
+      <!-- Tab 4: Extend Scene (Google Flow) -->
+      <div class="tab-content" id="tab-extend-scene" style="display: none;">
+        <!-- Extend Scene Section -->
+        <div id="extendSceneSection" class="section">
+          <div class="section-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+            <span style="font-size: 20px;">🎬</span>
+            <h3 style="margin: 0; color: var(--text-primary);">Extend Scene (Google Flow)</h3>
+          </div>
+
+          <!-- Enable Toggle -->
+          <div class="form-group">
+            <div
+              style="display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; margin: 0;">
+                <input type="checkbox" id="extendSceneToggle" style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="color: var(--text-primary); font-weight: 600;">Enable Extend Scene Mode</span>
+              </label>
+            </div>
+            <div style="margin-top: 8px; font-size: 0.875rem; color: var(--text-secondary);">
+              ต่อฉากอัตโนมัติจาก CSV prompts สำหรับ Google Labs Flow
+            </div>
+          </div>
+
+          <!-- Controls (Hidden by default) -->
+          <div id="extendSceneControls" style="display: none;">
+            <!-- CSV Upload -->
+            <div class="form-group">
+              <label
+                style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span>📄</span> CSV Prompts สำหรับต่อฉาก
+              </label>
+              <input type="file" id="extendCsvInput" accept=".csv"
+                style="display: block; margin-top: 8px; width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); cursor: pointer;">
+              <div id="extendCsvStatus" style="margin-top: 8px; font-size: 0.875rem; color: var(--text-secondary);">
+                ยังไม่ได้เลือกไฟล์ CSV
+              </div>
+            </div>
+
+            <!-- Preview Prompts (Hidden until CSV loaded) -->
+            <div id="extendPromptsPreview" style="display: none; margin-top: 16px;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <span style="color: var(--text-primary); font-weight: 600;">📋 Preview Prompts</span>
+                <span id="extendPromptsCount"
+                  style="background: var(--accent-color); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">0</span>
+              </div>
+              <div id="extendPromptsContent"
+                style="background: var(--bg-secondary); border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto;">
+                <!-- Prompts will be displayed here -->
+              </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+              <button id="startExtendBtn"
+                style="flex: 1; padding: 10px 16px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <span>🎬</span> Start Extend
+              </button>
+              <button id="stopExtendBtn"
+                style="display: none; flex: 1; padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                <span>⏹</span> Stop
+              </button>
+            </div>
+
+            <!-- Progress Display (Hidden until started) -->
+            <div id="extendProgress" style="display: none; margin-top: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.875rem;">
+                <span id="extendProgressText" style="color: var(--text-primary); font-weight: 600;">0/0 scenes</span>
+                <span id="extendProgressPercent" style="color: var(--accent-color); font-weight: 600;">0%</span>
+              </div>
+              <div
+                style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
+                <div id="extendProgressFill"
+                  style="width: 0%; height: 100%; background: var(--accent-color); transition: width 0.3s ease;"></div>
+              </div>
+              <div id="extendCurrentScene"
+                style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-left: 3px solid var(--accent-color); border-radius: 4px; color: var(--text-secondary); font-size: 0.875rem;">
+                พร้อมเริ่มต้น...
+              </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="form-group" style="margin-top: 24px;">
+              <details style="cursor: pointer;">
+                <summary
+                  style="color: var(--text-primary); font-weight: 600; padding: 8px 0; user-select: none; display: flex; align-items: center; gap: 6px;">
+                  <span>ℹ️</span> วิธีใช้งาน
+                </summary>
+                <div
+                  style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; border-radius: 4px;">
+                  <ol style="padding-left: 20px; line-height: 1.8; margin: 0; color: var(--text-secondary);">
+                    <li>เปิดหน้า <b>Google Labs Flow</b> ในแท็บใหม่</li>
+                    <li>สร้างโปรเจกต์และเข้าไปที่หน้า <b>SceneBuilder</b></li>
+                    <li>กลับมาที่ Extension นี้</li>
+                    <li>เปิด Extend Scene Mode</li>
+                    <li>อัปโหลด CSV ที่มี prompts (หนึ่ง prompt ต่อบรรทัด)</li>
+                    <li>คลิก <b>Start Extend</b> เพื่อเริ่มต่อฉากอัตโนมัติ</li>
+                    <li>Extension จะทำงานอัตโนมัติจนเสร็จทุก prompt</li>
+                  </ol>
+
+                  <div style="margin-top: 12px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                    <b style="color: var(--accent-color);">CSV Format:</b>
+                    <pre style="margin-top: 4px; font-size: 0.85em; color: #4ade80; margin: 8px 0;">A professional product showcase
+Modern minimalist scene
+Cinematic slow-motion reveal</pre>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+      </div>
     </main>
 
     <!-- Footer -->
@@ -1606,6 +1727,7 @@
   <script src="../js/modules/multiPlatformUploadManager.js"></script>
   <script src="../js/tabs/tiktokUploader.js"></script>
   <script src="../js/tabs/multiPlatformIntegration.js"></script>
+  <script src="../js/modules/extendScene.js"></script>
   <script src="../js/sidebar.js"></script>
 </body>
 

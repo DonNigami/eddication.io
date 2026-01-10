@@ -1,0 +1,116 @@
+<!-- ========================================
+     Extend Scene Section (Google Flow)
+     เพิ่มส่วนนี้ใน html/sidebar.html
+     ======================================== -->
+
+<!-- Extend Scene Section -->
+<div id="extendSceneSection" class="section-card hidden">
+    <div class="section-header">
+        <span class="section-icon">🎬</span>
+        <span class="section-title">Extend Scene (Google Flow)</span>
+    </div>
+
+    <!-- Enable Toggle -->
+    <div class="form-group">
+        <div class="checkbox-wrapper">
+            <label class="checkbox-label">
+                <input type="checkbox" id="extendSceneToggle">
+                <span><b>Enable Extend Scene Mode</b></span>
+            </label>
+            <div class="help-text">
+                ต่อฉากอัตโนมัติจาก CSV prompts สำหรับ Google Labs Flow
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls (Hidden by default) -->
+    <div id="extendSceneControls" class="hidden">
+        <!-- CSV Upload -->
+        <div class="form-group">
+            <label>
+                <span class="icon">📄</span> CSV Prompts สำหรับต่อฉาก
+            </label>
+            <input type="file" id="extendCsvInput" accept=".csv" class="file-input">
+            <div id="extendCsvStatus" class="status-text">
+                ยังไม่ได้เลือกไฟล์ CSV
+            </div>
+        </div>
+
+        <!-- Preview Prompts (Hidden until CSV loaded) -->
+        <div id="extendPromptsPreview" class="prompts-preview hidden">
+            <div class="preview-header">
+                <span>📋 Preview Prompts</span>
+                <span id="extendPromptsCount" class="badge">0</span>
+            </div>
+            <div id="extendPromptsContent" class="preview-content">
+                <!-- Prompts will be displayed here -->
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="extend-controls">
+            <button id="startExtendBtn" class="btn btn-primary">
+                <span class="icon">🎬</span> Start Extend
+            </button>
+            <button id="stopExtendBtn" class="btn btn-danger hidden">
+                <span class="icon">⏹</span> Stop
+            </button>
+        </div>
+
+        <!-- Progress Display (Hidden until started) -->
+        <div id="extendProgress" class="progress-container hidden">
+            <div class="progress-header">
+                <span id="extendProgressText">0/0 scenes</span>
+                <span id="extendProgressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div id="extendProgressFill" class="progress-fill"></div>
+            </div>
+            <div id="extendCurrentScene" class="current-scene">
+                พร้อมเริ่มต้น...
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="form-group" style="margin-top: 16px;">
+            <details>
+                <summary style="cursor: pointer; color: rgba(255,255,255,0.8); font-weight: 600;">
+                    <span class="icon">ℹ️</span> วิธีใช้งาน
+                </summary>
+                <div
+                    style="margin-top: 12px; padding: 12px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; border-radius: 4px;">
+                    <ol style="padding-left: 20px; line-height: 1.8; color: rgba(255,255,255,0.8);">
+                        <li>เปิดหน้า <b>Google Labs Flow</b> ในแท็บใหม่</li>
+                        <li>สร้างโปรเจกต์และเข้าไปที่หน้า <b>SceneBuilder</b></li>
+                        <li>กลับมาที่ Extension นี้</li>
+                        <li>เปิด Extend Scene Mode</li>
+                        <li>อัปโหลด CSV ที่มี prompts (หนึ่ง prompt ต่อบรรทัด)</li>
+                        <li>คลิก <b>Start Extend</b> เพื่อเริ่มต่อฉากอัตโนมัติ</li>
+                        <li>Extension จะทำงานอัตโนมัติจนเสร็จทุก prompt</li>
+                    </ol>
+
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px;">
+                        <b>CSV Format:</b>
+                        <pre style="margin-top: 4px; font-size: 0.85em; color: #4ade80;">A professional product showcase
+Modern minimalist scene
+Cinematic slow-motion reveal</pre>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================
+     CSS Link (Add to <head> section)
+     ======================================== -->
+<!--
+<link rel="stylesheet" href="../css/extendScene.css">
+-->
+
+<!-- ========================================
+     JavaScript Module (Add before </body>)
+     ======================================== -->
+<!--
+<script src="../js/modules/extendScene.js"></script>
+-->
