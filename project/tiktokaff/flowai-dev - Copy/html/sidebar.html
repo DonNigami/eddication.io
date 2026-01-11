@@ -807,6 +807,41 @@
             </div>
           </div>
 
+          <!-- Viral Hooks (NEW!) -->
+          <div class="form-group"
+            style="margin-top: 12px; padding: 12px; border: 2px solid #f59e0b; border-radius: 8px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <label style="display: flex; align-items: center; gap: 6px; margin: 0; cursor: pointer;">
+                <input type="checkbox" id="storyUseViralHook" style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="font-weight: 600; color: #92400e; font-size: 14px;">
+                  🎣 ใช้ Viral Hook (เปิดหัวดึงดูด)
+                </span>
+              </label>
+              <span
+                style="margin-left: auto; background: #f59e0b; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600;">NEW</span>
+            </div>
+
+            <div id="storyViralHookContainer" hidden>
+              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                <select id="storyViralHookSelect"
+                  style="flex: 1; padding: 8px; border: 2px solid #f59e0b; border-radius: 6px; background: white; color: #92400e; font-weight: 500;">
+                  <option value="">เลือกประเภท Hook...</option>
+                </select>
+                <button id="storyRandomViralHookBtn"
+                  style="padding: 8px 16px; background: #f59e0b; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; white-space: nowrap;">
+                  🎲 สุ่ม
+                </button>
+              </div>
+              <div id="storyViralHookPreview"
+                style="padding: 10px; background: white; border: 2px solid #fbbf24; border-radius: 6px; font-size: 13px; color: #78350f; min-height: 40px; display: flex; align-items: center;">
+                เลือกประเภท Hook แล้วกด "สุ่ม" หรือใช้ hook ที่สุ่มไว้
+              </div>
+              <p style="margin: 8px 0 0 0; font-size: 11px; color: #92400e; font-style: italic;">
+                💡 Hook จะถูกใส่ที่ฉากแรกเท่านั้น เพื่อดึงดูดความสนใจ 3 วินาทีแรก
+              </p>
+            </div>
+          </div>
+
           <!-- รายละเอียดเรื่อง -->
           <div class="form-group" style="margin-top: 12px;">
             <div class="story-details-header">
@@ -2142,6 +2177,8 @@ Cinematic slow-motion reveal</pre>
   <script src="../js/modules/formState.js"></script>
   <script src="../js/modules/platformSelector.js"></script>
   <script src="../js/modules/multiPlatformUploadManager.js"></script>
+  <script src="../js/modules/viralHooks.js"></script>
+  <script src="../js/modules/formatConverter.js"></script>
   <script src="../js/tabs/tiktokUploader.js"></script>
   <script src="../js/tabs/multiPlatformIntegration.js"></script>
   <script src="../js/modules/extendScene.js"></script>

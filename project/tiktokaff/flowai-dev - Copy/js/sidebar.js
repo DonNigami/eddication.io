@@ -233,6 +233,20 @@ class FlowAIUnlocked {
       // Initialize TikTok Uploader
       if (typeof TikTokUploader !== 'undefined') TikTokUploader.init();
 
+      // Initialize Viral Hooks (NEW!)
+      if (typeof ViralHooks !== 'undefined') {
+        this.viralHooks = new ViralHooks();
+        this.viralHooks.init();
+        console.log('[FlowAI] Viral Hooks initialized');
+      }
+
+      // Initialize Format Converter (NEW!)
+      if (typeof FormatConverter !== 'undefined') {
+        this.formatConverter = new FormatConverter();
+        this.formatConverter.init();
+        console.log('[FlowAI] Format Converter initialized');
+      }
+
       // Initialize AI Story tab
       await this.initStoryTab();
 
@@ -2699,10 +2713,20 @@ ${lyrics}
     const hasCharacter = character && character.name;
     const characterName = hasCharacter ? character.name : '';
 
+    // Apply viral hook to first scene if enabled
+    let sceneDescription = scene.description;
+    if (this.viralHooks && this.viralHooks.isEnabled() && scene.number === 1) {
+      const detailsTextarea = document.getElementById('storyDetails');
+      const storyDetails = detailsTextarea?.value?.trim() || '';
+      const context = this.viralHooks.extractContextFromStory(storyDetails);
+      sceneDescription = this.viralHooks.applyHookToScene(sceneDescription, context);
+      console.log('[Story] Applied viral hook to scene 1');
+    }
+
     // Build user message
     let userMessage = (template.userMessageTemplate || '')
       .replace(/\{\{characterName\}\}/g, characterName)
-      .replace(/\{\{sceneDescription\}\}/g, scene.description);
+      .replace(/\{\{sceneDescription\}\}/g, sceneDescription);
 
     // Only add gender info if character is selected
     if (hasCharacter && genderText) {
