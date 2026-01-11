@@ -8,6 +8,17 @@ if (typeof window.workflowState === 'undefined') {
     window.workflowState = {};
 }
 
+// Suppress external script errors that might interfere
+window.addEventListener('error', (event) => {
+    if (event.error?.message?.includes('workflowState')) {
+        console.warn('[Flow Extend] Suppressed external workflowState error');
+        event.preventDefault();
+        return true;
+    }
+}, true);
+
+console.log('[Flow Extend] Content script initialized');
+
 // Extend Scene Handler
 class GoogleFlowExtendHandler {
     constructor() {
@@ -364,20 +375,30 @@ class GoogleFlowExtendHandler {
 // Initialize handler
 try {
     const extendHandler = new GoogleFlowExtendHandler();
+    window.extendHandler = extendHandler; // Make globally accessible for debugging
 
     // Listen for messages from sidebar
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-        if (request.action === 'startBatch' && request.settings?.mode === 'extend') {
-            extendHandler.startBatch(request.tasks, request.settings);
-            sendResponse({ success: true });
-        } else if (request.action === 'stopAutomation') {
-            extendHandler.stop();
-            sendResponse({ success: true });
+        console.log('[Flow Extend] Received message:', request.action);
+        
+        try {
+            if (request.action === 'startBatch' && request.settings?.mode === 'extend') {
+                extendHandler.startBatch(request.tasks, request.settings);
+                sendResponse({ success: true, message: 'Batch started' });
+            } else if (request.action === 'stopAutomation') {
+                extendHandler.stop();
+                sendResponse({ success: true, message: 'Automation stopped' });
+            } else {
+                sendResponse({ success: false, error: 'Unknown action' });
+            }
+        } catch (error) {
+            console.error('[Flow Extend] Error handling message:', error);
+            sendResponse({ success: false, error: error.message });
         }
         return true; // Keep message channel open
     });
 
-    console.log('[Flow Extend] Content script loaded');
+    console.log('[Flow Extend] Content script loaded and ready');
 } catch (error) {
     console.error('[Flow Extend] Error initializing content script:', error);
 }
