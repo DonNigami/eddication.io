@@ -33,6 +33,8 @@ class ExtendScene {
         // Settings
         this.waitPercentInput = document.getElementById('extendWaitPercent');
         this.timeoutInput = document.getElementById('extendTimeout');
+        this.runCountInput = document.getElementById('extendRunCount');
+        this.shuffleToggle = document.getElementById('extendShuffleToggle');
 
         // Preview
         this.preview = document.getElementById('extendPromptsPreview');
@@ -355,8 +357,19 @@ class ExtendScene {
         this.stopBtn?.classList.remove('hidden');
         this.showProgress();
 
+        // Prepare prompt list with optional shuffle and run count
+        let promptList = Array.isArray(this.prompts) ? [...this.prompts] : [];
+        const runCountRaw = this.runCountInput?.value?.trim();
+        const runCount = runCountRaw ? Math.max(1, Math.min(parseInt(runCountRaw, 10) || 1, promptList.length)) : promptList.length;
+        const doShuffle = !!this.shuffleToggle?.checked;
+
+        if (doShuffle) {
+            promptList = this.shuffleArray(promptList);
+        }
+        promptList = promptList.slice(0, runCount);
+
         // Prepare tasks
-        const tasks = this.prompts.map((prompt, index) => ({
+        const tasks = promptList.map((prompt, index) => ({
             mode: 'extend',
             prompt: this.applyCameraAngle(prompt),
             id: index,
@@ -381,6 +394,7 @@ class ExtendScene {
             });
 
             if (response?.success) {
+                this.totalPrompts = promptList.length;
                 this.showNotification(`🚀 เริ่มต่อฉาก ${this.totalPrompts} รายการ`, 'success');
             } else {
                 throw new Error(response?.error || 'Unknown response error');
@@ -409,6 +423,15 @@ class ExtendScene {
             });
             this.resetUI();
         }
+    }
+
+    shuffleArray(arr) {
+        const a = [...arr];
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
     }
 
     randomizeCameraAngle() {
