@@ -395,11 +395,15 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
     window.ExtendScene = ExtendScene;
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+    try {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                window.extendScene = new ExtendScene();
+            });
+        } else {
             window.extendScene = new ExtendScene();
-        });
-    } else {
-        window.extendScene = new ExtendScene();
+        }
+    } catch (error) {
+        console.error('[ExtendScene] Error initializing:', error);
     }
 }

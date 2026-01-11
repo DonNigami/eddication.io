@@ -3,6 +3,11 @@
  * Handles automated scene extension for Google Labs Flow
  */
 
+// Safeguard: Define workflowState globally if it doesn't exist
+if (typeof window.workflowState === 'undefined') {
+    window.workflowState = {};
+}
+
 // Extend Scene Handler
 class GoogleFlowExtendHandler {
     constructor() {
@@ -357,18 +362,22 @@ class GoogleFlowExtendHandler {
 }
 
 // Initialize handler
-const extendHandler = new GoogleFlowExtendHandler();
+try {
+    const extendHandler = new GoogleFlowExtendHandler();
 
-// Listen for messages from sidebar
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'startBatch' && request.settings?.mode === 'extend') {
-        extendHandler.startBatch(request.tasks, request.settings);
-        sendResponse({ success: true });
-    } else if (request.action === 'stopAutomation') {
-        extendHandler.stop();
-        sendResponse({ success: true });
-    }
-    return true; // Keep message channel open
-});
+    // Listen for messages from sidebar
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === 'startBatch' && request.settings?.mode === 'extend') {
+            extendHandler.startBatch(request.tasks, request.settings);
+            sendResponse({ success: true });
+        } else if (request.action === 'stopAutomation') {
+            extendHandler.stop();
+            sendResponse({ success: true });
+        }
+        return true; // Keep message channel open
+    });
 
-console.log('[Flow Extend] Content script loaded');
+    console.log('[Flow Extend] Content script loaded');
+} catch (error) {
+    console.error('[Flow Extend] Error initializing content script:', error);
+}
