@@ -30,11 +30,11 @@ class GoogleFlowExtendHandler {
 
     // Messaging helpers
     sendLog(message) {
-        try { chrome.runtime.sendMessage({ action: 'extendLog', message }); } catch (_) {}
+        try { chrome.runtime.sendMessage({ action: 'extendLog', message }); } catch (_) { }
     }
 
     sendStatus(status) {
-        try { chrome.runtime.sendMessage({ action: 'extendStatus', status }); } catch (_) {}
+        try { chrome.runtime.sendMessage({ action: 'extendStatus', status }); } catch (_) { }
     }
 
     /**
@@ -370,7 +370,7 @@ class GoogleFlowExtendHandler {
                         if (percent >= targetPercent) {
                             clearInterval(interval);
                             console.log(`[Flow Extend] ✅ Reached ${percent}%!`);
-                            try { chrome.runtime.sendMessage({ action: 'extendProgress', current: percent, total: 100 }); } catch (_) {}
+                            try { chrome.runtime.sendMessage({ action: 'extendProgress', current: percent, total: 100 }); } catch (_) { }
                             this.sendStatus(`Reached ${percent}%`);
                             resolve(true);
                             return;
@@ -389,7 +389,7 @@ class GoogleFlowExtendHandler {
                         if (el.textContent.includes('100%') && el.offsetParent !== null) {
                             clearInterval(interval);
                             console.log('[Flow Extend] ✅ Found 100% completion');
-                            try { chrome.runtime.sendMessage({ action: 'extendProgress', current: 100, total: 100 }); } catch (_) {}
+                            try { chrome.runtime.sendMessage({ action: 'extendProgress', current: 100, total: 100 }); } catch (_) { }
                             this.sendStatus('Reached 100%');
                             resolve(true);
                             return;

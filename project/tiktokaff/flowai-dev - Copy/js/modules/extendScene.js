@@ -54,6 +54,11 @@ class ExtendScene {
         this.progressPercent = document.getElementById('extendProgressPercent');
         this.progressFill = document.getElementById('extendProgressFill');
         this.currentScene = document.getElementById('extendCurrentScene');
+
+        // Status & Log
+        this.statusBar = document.getElementById('extendStatusBar');
+        this.logList = document.getElementById('extendLogList');
+        this.clearCacheBtn = document.getElementById('clearExtendCacheBtn');
     }
 
     attachEventListeners() {
@@ -79,6 +84,10 @@ class ExtendScene {
 
         if (this.templateSelect) {
             this.templateSelect.addEventListener('change', () => this.handleTemplateChange());
+        }
+
+        if (this.clearCacheBtn) {
+            this.clearCacheBtn.addEventListener('click', () => this.handleClearCache());
         }
 
         // Listen for updates from content script
@@ -497,6 +506,33 @@ class ExtendScene {
 
     onError(error) {
         this.showError(`⚠️ เกิดข้อผิดพลาด: ${error}`);
+    }
+
+    // Clear cache and prompts
+    handleClearCache() {
+        if (!confirm('ต้องการล้างแคช prompts และข้อมูลการตั้งค่าใช้หรือไม่?')) {
+            return;
+        }
+
+        // Clear localStorage
+        chrome.storage.local.remove(['extendSceneState'], () => {
+            console.log('[ExtendScene] Cache cleared');
+        });
+
+        // Reset UI state
+        this.prompts = [];
+        this.totalPrompts = 0;
+        this.currentIndex = 0;
+        this.csvInput.value = '';
+        this.csvStatus.textContent = 'ยังไม่ได้เลือกไฟล์ CSV';
+        this.templateSelect.value = '';
+        this.templatePreview.style.display = 'none';
+        this.templatePreview.innerHTML = '';
+        this.preview.classList.add('hidden');
+        this.promptsContent.innerHTML = '';
+        this.promptsCount.textContent = '0';
+        this.logList.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.85rem;">✓ Cache cleared</div>';
+        this.showNotification('✓ ล้างแคชสำเร็จ', 'success');
     }
 
     // Utility: Get current state
