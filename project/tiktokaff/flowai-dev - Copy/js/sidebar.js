@@ -314,6 +314,11 @@ class FlowAIUnlocked {
       storyLoadTemplateBtn.addEventListener('click', () => this.loadStoryTemplatePrompts());
     }
 
+    const storyPopulateDetailsBtn = document.getElementById('storyPopulateDetailsBtn');
+    if (storyPopulateDetailsBtn) {
+      storyPopulateDetailsBtn.addEventListener('click', () => this.populateStoryDetailsFromTemplate());
+    }
+
     // Setup copy prompt button
     const copyBtn = document.getElementById('storyCopyPromptBtn');
     if (copyBtn) {
@@ -1981,6 +1986,59 @@ ${styleDescription}
     } catch (error) {
       console.error('Load story template error:', error);
       showToast('โหลดเทมเพลตไม่สำเร็จ', 'error');
+    }
+  }
+
+  /**
+   * Populate story details from template prompts
+   * โหลดเทมเพลต แล้วสร้างรายละเอียดตามจำนวนวิดีโอที่ระบุ
+   */
+  async populateStoryDetailsFromTemplate() {
+    const loopSelect = document.getElementById('storyLoopCountSelect');
+    const customInput = document.getElementById('storyCustomLoopCount');
+    const detailsTextarea = document.getElementById('storyDetails');
+
+    if (!loopSelect || !detailsTextarea) {
+      showToast('ไม่พบฟอร์ม', 'error');
+      return;
+    }
+
+    // Get loop count
+    const loopCount = parseInt(
+      loopSelect.value === 'custom' ? customInput?.value : loopSelect.value
+    ) || 1;
+
+    if (loopCount < 1) {
+      showToast('ระบุจำนวนวิดีโอที่ถูกต้อง (มากกว่า 0)', 'warning');
+      return;
+    }
+
+    // Load template prompts if not already loaded
+    let prompts = this.storyTemplatePrompts;
+    if (!prompts || prompts.length === 0) {
+      prompts = await this.loadStoryTemplatePrompts(true);
+      if (!prompts || prompts.length === 0) {
+        showToast('โหลดเทมเพลตไม่สำเร็จ หรือเลือกเทมเพลตก่อน', 'warning');
+        return;
+      }
+    }
+
+    try {
+      // Generate story details by cycling through template prompts
+      const details = [];
+      for (let i = 0; i < loopCount; i++) {
+        const promptIndex = i % prompts.length;
+        const prompt = prompts[promptIndex].prompt;
+        details.push(`ฉากที่ ${i + 1}: ${prompt}`);
+      }
+
+      const detailsText = details.join('\n\n');
+      detailsTextarea.value = detailsText;
+
+      showToast(`สร้างรายละเอียด ${loopCount} ฉากจากเทมเพลตแล้ว`, 'success');
+    } catch (error) {
+      console.error('Populate story details error:', error);
+      showToast('สร้างรายละเอียดไม่สำเร็จ', 'error');
     }
   }
 
