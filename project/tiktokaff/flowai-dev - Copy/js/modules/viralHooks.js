@@ -99,6 +99,67 @@ class ViralHooks {
     };
 
     /**
+     * Call-to-Action (CTA) templates for closing scenes
+     * Used for last scene to drive engagement/conversion
+     */
+    static CTAS = {
+        // Urgency CTAs (8)
+        urgency: [
+            "สั่งเลยตอนนี้ ก่อน {item} หมด",
+            "กดลิงก์ด้านล่างก่อนโปรโมชั่นจบ",
+            "เข้าไปดูความเห็นความได้เลย",
+            "ไปเช็คตอนนี้ ลดเหลือ {price} แต่",
+            "อย่าพลาด! ของดีจำนวนจำกัด",
+            "กดสั่งเลย ส่งฟรีวันนี้เท่านั้น",
+            "เร่วๆ ขณะของยังมี",
+            "ไม่ลังเล! โปรโมชั่นจบวันนี้"
+        ],
+
+        // Link/Visit CTAs (6)
+        visit: [
+            "ลิงก์อยู่ด้านล่าง ไปเช็คกันเลย",
+            "คลิกลิงก์ในโพสต์เพื่อสั่งการ",
+            "ไปเว็บของเรา {link} ดูรายละเอียด",
+            "ติดตามลิงก์ด้านล่างเพื่อรับสินค้า",
+            "เข้าไปดูกันที่ลิงก์ข้างนี้",
+            "กดปุ่มสั่งในความเห็นแรก"
+        ],
+
+        // Social/Share CTAs (5)
+        social: [
+            "แชร์ให้เพื่อนๆ ยังไม่รู้เรื่องนี้",
+            "ถ้าชอบ ให้ไลค์และแชร์นะ",
+            "บอกเพื่อนว่าเจอของดีแบบนี้",
+            "ปล่อยคนรัก tag เพื่อนลงความเห็น",
+            "ให้เพื่อนรู้ก่อนใครด้วย"
+        ],
+
+        // Follow/Subscribe CTAs (5)
+        follow: [
+            "ติดตามช่องนี้ สำหรับวิดีโออื่นๆ",
+            "ฟอลโล่เพื่อไม่พลาดข้อมูลดีๆ",
+            "ติดตามเพื่อดูวิดีโออื่นที่ดี",
+            "ติดตามเรา เพิ่มเติม {content_type}",
+            "ติดตามช่องเพื่อคำแนะนำดีๆ"
+        ],
+
+        // Review/Opinion CTAs (4)
+        opinion: [
+            "ความเห็นของคุณเป็นอย่างไร ลงความเห็นนะ",
+            "คุณจะลองหรือเปล่า บอกในความเห็น",
+            "รีวิว {product} ของคุณเป็นไงบ้าง",
+            "ถ้าลองแล้ว ลงรีวิวให้ผู้อื่นหน่อย"
+        ],
+
+        // Contact/Message CTAs (3)
+        contact: [
+            "ติดต่อเราในข้อความโดยตรง",
+            "ถ้ามีคำถาม ส่งข้อความมาได้",
+            "ไม่เข้าใจ? ฉันพร้อมตอบคำถาม"
+        ]
+    };
+
+    /**
      * Initialize the module
      */
     init() {
@@ -336,6 +397,68 @@ class ViralHooks {
         }
 
         return context;
+    }
+
+    /**
+     * Get random CTA from any category
+     */
+    getRandomCTA() {
+        const allCategories = Object.keys(ViralHooks.CTAS);
+        const randomCategory = allCategories[Math.floor(Math.random() * allCategories.length)];
+        const ctas = ViralHooks.CTAS[randomCategory];
+        const randomCTA = ctas[Math.floor(Math.random() * ctas.length)];
+
+        return {
+            category: randomCategory,
+            template: randomCTA,
+            index: ctas.indexOf(randomCTA)
+        };
+    }
+
+    /**
+     * Apply CTA to last scene
+     * @param {string} sceneDescription - Original scene description
+     * @param {object} context - Context variables
+     * @returns {string} - Scene with CTA appended
+     */
+    applyCTAToScene(sceneDescription, context = {}) {
+        const cta = this.getRandomCTA();
+        const formattedCTA = this.formatHook(cta.template, context);
+
+        console.log(`[ViralHooks] Applied CTA (${cta.category}): ${formattedCTA}`);
+
+        // Append CTA to scene (at end)
+        return `${sceneDescription}\n\n${formattedCTA}`;
+    }
+
+    /**
+     * Get CTA for last scene only
+     * @param {number} sceneNumber - Current scene number (1-based)
+     * @param {number} totalScenes - Total number of scenes
+     * @param {string} sceneDescription - Scene description
+     * @param {object} context - Context variables
+     * @returns {string} - Scene with or without CTA
+     */
+    getSceneWithCTA(sceneNumber, totalScenes, sceneDescription, context = {}) {
+        // Only apply to last scene
+        if (sceneNumber === totalScenes) {
+            return this.applyCTAToScene(sceneDescription, context);
+        }
+        return sceneDescription;
+    }
+
+    /**
+     * Get CTA by category
+     */
+    getCTAsByCategory(category) {
+        return ViralHooks.CTAS[category] || [];
+    }
+
+    /**
+     * Get all CTA categories
+     */
+    getAllCTACategories() {
+        return Object.keys(ViralHooks.CTAS);
     }
 
     /**

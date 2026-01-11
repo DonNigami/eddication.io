@@ -1918,6 +1918,24 @@ ${styleDescription}
           }
         }
 
+        // Apply viral hook to first scene if enabled
+        if (this.viralHooks && this.viralHooks.isEnabled() && scene.number === 1) {
+          const detailsTextarea = document.getElementById('storyDetails');
+          const storyDetails = detailsTextarea?.value?.trim() || '';
+          const context = this.viralHooks.extractContextFromStory(storyDetails);
+          finalPrompt = this.viralHooks.applyHookToScene(finalPrompt, context);
+          console.log('[Story] Applied viral hook to scene 1 in prompt generation');
+        }
+
+        // Apply CTA to last scene if enabled
+        if (this.viralHooks && scene.number === scenes.length) {
+          const detailsTextarea = document.getElementById('storyDetails');
+          const storyDetails = detailsTextarea?.value?.trim() || '';
+          const context = this.viralHooks.extractContextFromStory(storyDetails);
+          finalPrompt = this.viralHooks.applyCTAToScene(finalPrompt, context);
+          console.log(`[Story] Applied CTA to scene ${scenes.length} (last scene) in prompt generation`);
+        }
+
         const promptData = {
           sceneNumber: i + 1,
           sceneName: scene.name,
@@ -2581,7 +2599,7 @@ ${lyrics}
           this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 2/12: ใช้ Prompt Template ภาพ ${promptIndex + 1}/${templatePrompts.length}...`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: สร้าง Prompt ภาพ...');
-          imagePrompt = await this.generateScenePrompt('image', scene, character, genderText, genderTextEn);
+          imagePrompt = await this.generateScenePrompt('image', scene, character, genderText, genderTextEn, scenes.length);
         }
         if (!this.isStoryAutomationRunning) break;
         await this.delay(1000);
@@ -2630,7 +2648,7 @@ ${lyrics}
           this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template วิดีโอ ${promptIndex + 1}/${templatePrompts.length}...`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
-          videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn);
+          videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn, scenes.length);
         }
         if (!this.isStoryAutomationRunning) break;
         await this.delay(1000);
@@ -2713,8 +2731,14 @@ ${lyrics}
 
   /**
    * Generate prompt for a specific scene
+   * @param {string} type - 'image' or 'video'
+   * @param {object} scene - Scene object {number, name, description}
+   * @param {object} character - Character object
+   * @param {string} genderText - Gender text in Thai
+   * @param {string} genderTextEn - Gender text in English
+   * @param {number} totalScenes - Total number of scenes (optional, for CTA detection)
    */
-  async generateScenePrompt(type, scene, character, genderText, genderTextEn) {
+  async generateScenePrompt(type, scene, character, genderText, genderTextEn, totalScenes = null) {
     const template = type === 'image' ? this.storyImageTemplate : this.storyVideoTemplate;
 
     // Check if we have a character
@@ -2729,6 +2753,15 @@ ${lyrics}
       const context = this.viralHooks.extractContextFromStory(storyDetails);
       sceneDescription = this.viralHooks.applyHookToScene(sceneDescription, context);
       console.log('[Story] Applied viral hook to scene 1');
+    }
+
+    // Apply CTA to last scene if enabled
+    if (totalScenes && this.viralHooks && scene.number === totalScenes) {
+      const detailsTextarea = document.getElementById('storyDetails');
+      const storyDetails = detailsTextarea?.value?.trim() || '';
+      const context = this.viralHooks.extractContextFromStory(storyDetails);
+      sceneDescription = this.viralHooks.applyCTAToScene(sceneDescription, context);
+      console.log(`[Story] Applied CTA to scene ${totalScenes} (last scene)`);
     }
 
     // Build user message
