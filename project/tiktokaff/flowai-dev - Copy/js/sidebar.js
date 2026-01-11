@@ -1821,20 +1821,24 @@ ${styleDescription}
         `;
       }
 
+      // Check if template prompts from Extend Scene are loaded
+      let templatePrompts = this.storyTemplatePrompts;
+      const useTemplatePrompts = templatePrompts && templatePrompts.length > 0;
+
       // Generate prompts for each scene - display each one immediately
       // Batch size: 10 prompts per batch with 3s delay between batches
-      const BATCH_SIZE = 10;
-      const BATCH_DELAY_MS = 3000;
+      const BATCH_SIZE = useTemplatePrompts ? 1 : 10;  // No batching delay if using pre-made template prompts
+      const BATCH_DELAY_MS = useTemplatePrompts ? 500 : 3000;
 
       const prompts = [];
       for (let i = 0; i < scenes.length; i++) {
         const scene = scenes[i];
 
-        // Batch delay: pause after every BATCH_SIZE prompts
+        // Batch delay: pause after every BATCH_SIZE prompts (or between template prompts)
         if (i > 0 && i % BATCH_SIZE === 0) {
           const batchNum = Math.floor(i / BATCH_SIZE) + 1;
           const totalBatches = Math.ceil(scenes.length / BATCH_SIZE);
-          if (btn) {
+          if (btn && !useTemplatePrompts) {
             btn.innerHTML = `
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
                 <path d="M21 12a9 9 0 11-6.219-8.56"/>
@@ -1847,46 +1851,57 @@ ${styleDescription}
 
         // Update button to show progress
         if (btn) {
+          const typeLabel = type === 'image' ? 'ภาพ' : 'วิดีโอ';
+          const sourceLabel = useTemplatePrompts ? 'Template' : 'AI';
           btn.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
               <path d="M21 12a9 9 0 11-6.219-8.56"/>
             </svg>
-            ${i + 1}/${scenes.length}...
+            ${sourceLabel} ${i + 1}/${scenes.length}...
           `;
         }
 
-        // Build user message with scene
-        let userMessage = (template.userMessageTemplate || '')
-          .replace(/\{\{characterName\}\}/g, characterName)
-          .replace(/\{\{sceneDescription\}\}/g, scene.description);
+        let finalPrompt;
 
-        if (hasCharacter) {
-          userMessage = userMessage
-            .replace(/\{\{genderText\}\}/g, genderText + 'ไทย, ')
-            .replace(/\{\{genderTextEn\}\}/g, genderTextEn);
+        if (useTemplatePrompts) {
+          // Use template prompts sequentially
+          const promptIndex = i % templatePrompts.length;
+          finalPrompt = templatePrompts[promptIndex].prompt;
+          console.log(`Using template prompt ${promptIndex + 1}/${templatePrompts.length} for scene ${i + 1}`);
         } else {
-          userMessage = userMessage
-            .replace(/\{\{genderText\}\}/g, '')
-            .replace(/\{\{genderTextEn\}\}/g, '');
-        }
+          // Build user message with scene for AI generation
+          let userMessage = (template.userMessageTemplate || '')
+            .replace(/\{\{characterName\}\}/g, characterName)
+            .replace(/\{\{sceneDescription\}\}/g, scene.description);
 
-        // Call AI
-        const result = await this.callAIForStoryDetails(
-          template.systemPrompt || '',
-          userMessage
-        );
+          if (hasCharacter) {
+            userMessage = userMessage
+              .replace(/\{\{genderText\}\}/g, genderText + 'ไทย, ')
+              .replace(/\{\{genderTextEn\}\}/g, genderTextEn);
+          } else {
+            userMessage = userMessage
+              .replace(/\{\{genderText\}\}/g, '')
+              .replace(/\{\{genderTextEn\}\}/g, '');
+          }
 
-        // Convert prompt to English and add 9:16 aspect ratio specification
-        let finalPrompt = result.trim();
+          // Call AI
+          const result = await this.callAIForStoryDetails(
+            template.systemPrompt || '',
+            userMessage
+          );
 
-        // Add English translation request if the result is in Thai
-        if (this.containsThai(finalPrompt)) {
-          const englishPrompt = await this.translatePromptToEnglish(finalPrompt);
-          // Format: Add 9:16 aspect ratio spec and English prompt
-          finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${englishPrompt}`;
-        } else {
-          // Already in English, just add aspect ratio
-          finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${finalPrompt}`;
+          // Convert prompt to English and add 9:16 aspect ratio specification
+          finalPrompt = result.trim();
+
+          // Add English translation request if the result is in Thai
+          if (this.containsThai(finalPrompt)) {
+            const englishPrompt = await this.translatePromptToEnglish(finalPrompt);
+            // Format: Add 9:16 aspect ratio spec and English prompt
+            finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${englishPrompt}`;
+          } else {
+            // Already in English, just add aspect ratio
+            finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${finalPrompt}`;
+          }
         }
 
         const promptData = {
@@ -2529,12 +2544,17 @@ ${lyrics}
           await this.delay(500);
         }
 
-        // Step 3: Get Image Prompt (use pre-generated if available, otherwise generate new)
+        // Step 3: Get Image Prompt (use pre-generated if available, otherwise use template or generate new)
         if (!this.isStoryAutomationRunning) break;
         let imagePrompt;
         if (hasPreGeneratedPrompts && this.generatedPrompts[sceneIndex]) {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: ใช้ Prompt ภาพที่สร้างไว้...');
           imagePrompt = this.generatedPrompts[sceneIndex].prompt;
+        } else if (templatePrompts && templatePrompts.length > 0) {
+          // Use template prompts sequentially by scene index
+          const promptIndex = sceneIndex % templatePrompts.length;
+          imagePrompt = templatePrompts[promptIndex].prompt;
+          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 2/12: ใช้ Prompt Template ภาพ ${promptIndex + 1}/${templatePrompts.length}...`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: สร้าง Prompt ภาพ...');
           imagePrompt = await this.generateScenePrompt('image', scene, character, genderText, genderTextEn);
@@ -2574,14 +2594,14 @@ ${lyrics}
         if (!this.isStoryAutomationRunning) break;
         await this.delay(2000);
 
-        // Step 7: Generate Video Prompt (always generate new prompt each iteration)
+        // Step 7: Generate Video Prompt (use template or generate new)
         if (!this.isStoryAutomationRunning) break;
         let videoPrompt;
         if (templatePrompts && templatePrompts.length > 0) {
-          // Use template prompts cyclically
-          const promptIndex = i % templatePrompts.length;
+          // Use template prompts sequentially by scene index
+          const promptIndex = sceneIndex % templatePrompts.length;
           videoPrompt = templatePrompts[promptIndex].prompt;
-          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template ${promptIndex + 1}/${templatePrompts.length}...`);
+          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template วิดีโอ ${promptIndex + 1}/${templatePrompts.length}...`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
           videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn);
