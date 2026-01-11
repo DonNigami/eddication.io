@@ -1321,6 +1321,33 @@
               </div>
             </div>
 
+            <!-- AI Prompt Generator -->
+            <div class="form-group">
+              <label
+                style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span>✨</span> สร้าง Prompt จากคลิปก่อนหน้า
+              </label>
+              <textarea id="extendClipDescription"
+                placeholder="อธิบายคลิปก่อนหน้า เช่น: ผู้หญิงโชว์สินค้านวม ทำให้นอนสบาย ท่าอึบ..."
+                style="display: block; margin-top: 8px; width: 100%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-family: inherit; font-size: 0.85rem; resize: vertical; min-height: 80px; height: 80px;">
+              </textarea>
+              <div style="margin-top: 8px; display: flex; gap: 8px;">
+                <button id="generateExtendPromptsBtn"
+                  style="flex: 1; padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <span>⚡</span> สร้าง Prompts
+                </button>
+              </div>
+              <div id="extendGeneratorStatus"
+                style="margin-top: 8px; font-size: 0.875rem; color: var(--text-secondary);"></div>
+              <!-- Generated prompts preview -->
+              <div id="extendGeneratedPreview"
+                style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-left: 3px solid #10b981; border-radius: 6px; color: var(--text-primary); font-size: 0.85rem; display: none; max-height: 300px; overflow-y: auto;">
+              </div>
+              <button id="useGeneratedPromptsBtn" class="hidden"
+                style="margin-top: 12px; width: 100%; padding: 10px 16px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">ใช้
+                Prompts ที่สร้างขึ้น</button>
+            </div>
+
             <!-- Settings -->
             <div class="form-group" style="margin-top: 16px;">
               <label

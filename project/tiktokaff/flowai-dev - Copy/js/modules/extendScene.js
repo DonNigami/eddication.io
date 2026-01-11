@@ -59,6 +59,14 @@ class ExtendScene {
         this.statusBar = document.getElementById('extendStatusBar');
         this.logList = document.getElementById('extendLogList');
         this.clearCacheBtn = document.getElementById('clearExtendCacheBtn');
+
+        // Prompt Generator
+        this.clipDescription = document.getElementById('extendClipDescription');
+        this.generateBtn = document.getElementById('generateExtendPromptsBtn');
+        this.generatorStatus = document.getElementById('extendGeneratorStatus');
+        this.generatedPreview = document.getElementById('extendGeneratedPreview');
+        this.useGeneratedBtn = document.getElementById('useGeneratedPromptsBtn');
+        this.generatedPrompts = [];
     }
 
     attachEventListeners() {
@@ -88,6 +96,14 @@ class ExtendScene {
 
         if (this.clearCacheBtn) {
             this.clearCacheBtn.addEventListener('click', () => this.handleClearCache());
+        }
+
+        if (this.generateBtn) {
+            this.generateBtn.addEventListener('click', () => this.handleGeneratePrompts());
+        }
+
+        if (this.useGeneratedBtn) {
+            this.useGeneratedBtn.addEventListener('click', () => this.handleUseGeneratedPrompts());
         }
 
         // Listen for updates from content script
@@ -511,6 +527,132 @@ class ExtendScene {
     }
 
     // Callbacks from content script
+    handleGeneratePrompts() {
+        const description = this.clipDescription?.value?.trim();
+        if (!description) {
+            this.showError('⚠️ กรุณาอธิบายคลิปก่อนหน้า');
+            return;
+        }
+
+        if (this.generatorStatus) {
+            this.generatorStatus.textContent = '⏳ กำลังสร้าง prompts...';
+        }
+
+        // Generate 5 prompts based on description
+        this.generatedPrompts = this.generatePromptsFromDescription(description);
+
+        // Display generated prompts
+        if (this.generatedPreview && this.generatedPrompts.length > 0) {
+            const previewHtml = this.generatedPrompts.map((prompt, index) =>
+                `<div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-weight: 600; color: #10b981; font-size: 0.8rem; margin-bottom: 4px;">Prompt ${index + 1}</div>
+                    <div style="color: var(--text-primary); font-size: 0.85rem; line-height: 1.4;">${this.escapeHtml(prompt)}</div>
+                </div>`
+            ).join('');
+
+            this.generatedPreview.innerHTML = previewHtml;
+            this.generatedPreview.style.display = '';
+        }
+
+        if (this.useGeneratedBtn) {
+            this.useGeneratedBtn.classList.remove('hidden');
+        }
+
+        if (this.generatorStatus) {
+            this.generatorStatus.textContent = `✓ สร้าง ${this.generatedPrompts.length} prompts แล้ว`;
+        }
+
+        this.showNotification('✓ สร้าง prompts สำเร็จ', 'success');
+    }
+
+    generatePromptsFromDescription(description) {
+        // Template-based prompt generation based on description keywords
+        const prompts = [];
+        const desc = description.toLowerCase();
+
+        // Analyze description for keywords
+        const isProduct = desc.includes('สินค้า') || desc.includes('โชว์') || desc.includes('ผลิตภัณฑ์');
+        const isProblem = desc.includes('ปัญหา') || desc.includes('เจอ') || desc.includes('เสียหาย');
+        const isReview = desc.includes('รีวิว') || desc.includes('ความเห็น') || desc.includes('ดี');
+        const isStory = desc.includes('เรื่อง') || desc.includes('ประสบการณ์') || desc.includes('สาเหตุ');
+
+        // Generate 5-part narrative prompts
+        prompts.push(
+            `Extend seamlessly. Voice: Match previous tone and character. Expression shows interest in the topic. Speech: "${this.generateThaiSpeech('hook', desc)}" Audio: Natural background, clear voice, engaging energy. No text on screen. No Captions`
+        );
+
+        prompts.push(
+            `Continuous transition. Voice: Keep character identity, shift to more informative tone. Character demonstrates understanding. Speech: "${this.generateThaiSpeech('point1', desc)}" Audio: Clear voice, consistent pacing. No subtitles. No text on screen. No Captions`
+        );
+
+        prompts.push(
+            `Sequential extension. Voice: Same voice, tone becomes more engaging and practical. Show genuine emotion. Speech: "${this.generateThaiSpeech('point2', desc)}" Audio: High clarity, natural rhythm. No watermark. No text on screen. No Captions`
+        );
+
+        prompts.push(
+            `Deeper explanation. Voice: Keep narrative flow, tone is persuasive and trustworthy. Character leans in with emphasis. Speech: "${this.generateThaiSpeech('point3', desc)}" Audio: Warm tone, steady pacing. No subtitles. No text on screen. No Captions`
+        );
+
+        prompts.push(
+            `Final segment. Voice: Maintain voice identity, tone is warm and actionable. Close with genuine smile. Speech: "${this.generateThaiSpeech('cta', desc)}" Audio: Smooth closure, warm quality. No subtitles. No text on screen. No Captions`
+        );
+
+        return prompts;
+    }
+
+    generateThaiSpeech(type, description) {
+        // Generate appropriate Thai speech based on type and description
+        const templates = {
+            hook: [
+                'ตามที่เห็นในคลิปก่อนหน้า เรื่องนี้มีเรื่องสำคัญที่ต้องบอกต่อ',
+                'จากที่เห็นไปแล้ว ผมอยากจะขยายความเรื่องนี้ให้ชัดเจนขึ้น',
+                'มีสิ่งอีกหลายอย่างที่จำเป็นต้องรู้เกี่ยวกับเรื่องที่ได้เห็นไป'
+            ],
+            point1: [
+                'ประเด็นแรกที่สำคัญคือ เรื่องนี้มีผลกระทบต่อชีวิตประจำวันเยอะมาก',
+                'ถ้าเราดูให้ลึกลงไป เราจะพบว่ามีรายละเอียดที่น่าสนใจอีกหลายอย่าง',
+                'เริ่มต้นจากจุดนี้ไป เราต้องเข้าใจพื้นฐานให้ชัด'
+            ],
+            point2: [
+                'นอกจากนั้น ยังมีข้อดีอีกหลายอย่างที่อาจไม่ตระหนักตัว',
+                'จากประสบการณ์ของผม มีคนจำนวนมากที่เห็นคุณค่าของเรื่องนี้',
+                'สิ่งที่ผ่านมาเป็นแค่จุดเริ่มต้นของเรื่องใหญ่นี้เท่านั้น'
+            ],
+            point3: [
+                'สำคัญที่สุดคือ ท่านต้องเข้าใจว่าทำไมเรื่องนี้ถึงมีความหมาย',
+                'จากสิ่งที่พูดมา คิดว่าท่านเข้าใจแล้วว่าต้องทำยังไง',
+                'นี่คือสิ่งที่ผมอยากให้ท่านจำไว้ตรงนี้ครับ'
+            ],
+            cta: [
+                'ถ้าสนใจอยากรู้เพิ่มเติม หรืออยากลองด้วยตัวเอง ลิงก์ด้านล่างนี้เลย',
+                'ท่านสามารถดูข้อมูลเพิ่มเติมได้ในลิงก์ที่ฉันจะให้ไว้ด้านล่าง',
+                'ช่วงนี้มีโปรพิเศษด้วยนะ ใครที่สนใจลองดูด้านล่างได้เลย'
+            ]
+        };
+
+        const options = templates[type] || templates.hook;
+        return options[Math.floor(Math.random() * options.length)];
+    }
+
+    handleUseGeneratedPrompts() {
+        if (this.generatedPrompts.length === 0) {
+            this.showError('⚠️ ไม่มี prompts ที่สร้างขึ้น');
+            return;
+        }
+
+        this.prompts = this.generatedPrompts;
+        this.totalPrompts = this.prompts.length;
+        this.updateCsvStatus(`✓ ใช้ ${this.totalPrompts} prompts ที่สร้างขึ้น`, 'success');
+        this.showPreview();
+        this.showNotification('✓ โหลด prompts ที่สร้างขึ้นแล้ว', 'success');
+
+        // Hide the use button
+        if (this.useGeneratedBtn) {
+            this.useGeneratedBtn.classList.add('hidden');
+        }
+    }
+
+
     onComplete() {
         this.isActive = false;
         this.resetUI();
