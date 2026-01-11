@@ -2407,12 +2407,16 @@ ${lyrics}
         // Step 3: Get Image Prompt (use pre-generated if available, otherwise generate new)
         if (!this.isStoryAutomationRunning) break;
         let imagePrompt;
-        if (hasPreGeneratedPrompts && this.generatedPrompts[sceneIndex]) {
+        // Use scene.number for prompt index (1-based, convert to 0-based)
+        const promptIndex = (scene.number - 1) % (this.generatedPrompts?.length || scenes.length);
+
+        if (hasPreGeneratedPrompts && this.generatedPrompts[promptIndex]) {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: ใช้ Prompt ภาพที่สร้างไว้...');
-          imagePrompt = this.generatedPrompts[sceneIndex].prompt;
+          imagePrompt = this.generatedPrompts[promptIndex].prompt;
+          console.log(`[Story] Using pre-generated image prompt for scene ${scene.number} (index ${promptIndex})`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: สร้าง Prompt ภาพ...');
-          imagePrompt = await this.generateScenePrompt('image', scene, character, genderText, genderTextEn);
+          imagePrompt = await this.generateScenePrompt('image', scene, character, genderText, genderTextEn, scenes.length);
         }
         if (!this.isStoryAutomationRunning) break;
         await this.delay(1000);
@@ -2452,7 +2456,7 @@ ${lyrics}
         // Step 7: Generate Video Prompt (always generate new prompt each iteration)
         if (!this.isStoryAutomationRunning) break;
         this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
-        const videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn);
+        const videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn, scenes.length);
         if (!this.isStoryAutomationRunning) break;
         await this.delay(1000);
 

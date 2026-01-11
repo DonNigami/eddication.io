@@ -2587,17 +2587,21 @@ ${lyrics}
         // Step 3: Get Image Prompt (use pre-generated if available, otherwise use template or generate new)
         if (!this.isStoryAutomationRunning) break;
         let imagePrompt;
-        if (hasPreGeneratedPrompts && this.generatedPrompts && this.generatedPrompts.length > sceneIndex) {
+        // Use scene.number for prompt index (1-based, convert to 0-based)
+        const promptIndex = (scene.number - 1) % (this.generatedPrompts?.length || templatePrompts?.length || scenes.length);
+
+        if (hasPreGeneratedPrompts && this.generatedPrompts && this.generatedPrompts.length > promptIndex) {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: ใช้ Prompt ภาพที่สร้างไว้...');
-          imagePrompt = this.generatedPrompts[sceneIndex].prompt;
-          console.log(`[Story] Using pre-generated image prompt ${sceneIndex + 1}/${this.generatedPrompts.length}`);
+          imagePrompt = this.generatedPrompts[promptIndex].prompt;
+          console.log(`[Story] Using pre-generated image prompt for scene ${scene.number} (index ${promptIndex})`);
         } else if (templatePrompts && templatePrompts.length > 0) {
-          // Use template prompts sequentially by scene index
-          const promptIndex = sceneIndex % templatePrompts.length;
-          imagePrompt = templatePrompts[promptIndex].prompt;
+          // Use template prompts sequentially by scene number (not loop index)
+          const templateIndex = (scene.number - 1) % templatePrompts.length;
+          imagePrompt = templatePrompts[templateIndex].prompt;
           // Apply camera angle to template prompt
           imagePrompt = this.applyCameraAngleToPrompt(imagePrompt, 'storyCameraAngle');
-          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 2/12: ใช้ Prompt Template ภาพ ${promptIndex + 1}/${templatePrompts.length}...`);
+          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 2/12: ใช้ Prompt Template ภาพ ${templateIndex + 1}/${templatePrompts.length} (ฉาก ${scene.number})...`);
+          console.log(`[Story] Using template prompt index ${templateIndex} for scene ${scene.number}`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: สร้าง Prompt ภาพ...');
           imagePrompt = await this.generateScenePrompt('image', scene, character, genderText, genderTextEn, scenes.length);
@@ -2641,12 +2645,13 @@ ${lyrics}
         if (!this.isStoryAutomationRunning) break;
         let videoPrompt;
         if (templatePrompts && templatePrompts.length > 0) {
-          // Use template prompts sequentially by scene index
-          const promptIndex = sceneIndex % templatePrompts.length;
-          videoPrompt = templatePrompts[promptIndex].prompt;
+          // Use template prompts sequentially by scene number (not loop index)
+          const templateIndex = (scene.number - 1) % templatePrompts.length;
+          videoPrompt = templatePrompts[templateIndex].prompt;
           // Apply camera angle to template prompt
           videoPrompt = this.applyCameraAngleToPrompt(videoPrompt, 'storyCameraAngle');
-          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template วิดีโอ ${promptIndex + 1}/${templatePrompts.length}...`);
+          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template วิดีโอ ${templateIndex + 1}/${templatePrompts.length} (ฉาก ${scene.number})...`);
+          console.log(`[Story] Using template prompt index ${templateIndex} for scene ${scene.number} video`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
           videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn, scenes.length);
