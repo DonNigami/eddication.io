@@ -44,6 +44,10 @@ class ExtendScene {
         this.startBtn = document.getElementById('startExtendBtn');
         this.stopBtn = document.getElementById('stopExtendBtn');
 
+        // Camera Angle
+        this.cameraAngleSelect = document.getElementById('extendCameraAngle');
+        this.randomCameraAngleBtn = document.getElementById('randomCameraAngleBtn');
+
         // Template library
         this.templateSelect = document.getElementById('extendTemplateSelect');
         this.loadTemplateBtn = document.getElementById('loadExtendTemplateBtn');
@@ -104,6 +108,11 @@ class ExtendScene {
 
         if (this.useGeneratedBtn) {
             this.useGeneratedBtn.addEventListener('click', () => this.handleUseGeneratedPrompts());
+        }
+
+        // Camera Angle randomizer
+        if (this.randomCameraAngleBtn) {
+            this.randomCameraAngleBtn.addEventListener('click', () => this.randomizeCameraAngle());
         }
 
         // Listen for updates from content script
@@ -349,7 +358,7 @@ class ExtendScene {
         // Prepare tasks
         const tasks = this.prompts.map((prompt, index) => ({
             mode: 'extend',
-            prompt: prompt,
+            prompt: this.applyCameraAngle(prompt),
             id: index,
             type: 'extend_scene'
         }));
@@ -400,6 +409,47 @@ class ExtendScene {
             });
             this.resetUI();
         }
+    }
+
+    randomizeCameraAngle() {
+        const angles = ['front', 'side', 'top-down', 'low-angle', 'high-angle', 'pov', 'close-up', 'wide', 'dutch-tilt', 'tracking'];
+        const pick = angles[Math.floor(Math.random() * angles.length)];
+        if (this.cameraAngleSelect) {
+            this.cameraAngleSelect.value = pick;
+            this.showNotification(`🎥 มุมกล้อง: ${pick}`, 'info');
+        }
+    }
+
+    getCameraAngleDescription(value) {
+        const map = {
+            'front': 'Camera angle: front-facing, centered subject, head-on framing.',
+            'side': 'Camera angle: side profile, lateral perspective.',
+            'top-down': 'Camera angle: top-down overhead view.',
+            'low-angle': 'Camera angle: low angle (looking up), dramatic presence.',
+            'high-angle': 'Camera angle: high angle (looking down), overview perspective.',
+            'pov': 'Camera angle: POV (first person) perspective.',
+            'close-up': 'Camera angle: close-up, tight framing on face/object.',
+            'wide': 'Camera angle: wide shot, expansive framing.',
+            'dutch-tilt': 'Camera angle: Dutch tilt (diagonal horizon) for tension.',
+            'tracking': 'Camera angle: tracking shot following subject movement.'
+        };
+        return map[value] || '';
+    }
+
+    applyCameraAngle(prompt) {
+        const value = this.cameraAngleSelect?.value || 'random';
+        let chosen = value;
+        if (value === 'random') {
+            const angles = ['front', 'side', 'top-down', 'low-angle', 'high-angle', 'pov', 'close-up', 'wide', 'dutch-tilt', 'tracking'];
+            chosen = angles[Math.floor(Math.random() * angles.length)];
+        }
+        const desc = this.getCameraAngleDescription(chosen);
+        if (!desc) return prompt;
+        // Avoid duplicate camera instructions if prompt already contains Camera angle
+        if (/(Camera angle|มุมกล้อง)/i.test(prompt)) {
+            return prompt;
+        }
+        return `${prompt} ${desc}`;
     }
 
     async stopExtending() {
