@@ -1319,6 +1319,11 @@
                     <option value="technology_future_15.csv">Technology & Future (15)</option>
                     <option value="arts_entertainment_15.csv">Arts & Entertainment (15)</option>
                   </optgroup>
+                  <optgroup label="Product-specific Thai Speech">
+                    <option value="product_skincare_speech_15.csv">Skincare (Thai Speech, 15)</option>
+                    <option value="product_it_speech_15.csv">IT Devices & Accessories (Thai Speech, 15)</option>
+                    <option value="product_home_speech_15.csv">Home Goods (Thai Speech, 15)</option>
+                  </optgroup>
                   <option value="tiktok_basket_th_a.csv">TikTok Basket TH (A)</option>
                   <option value="tiktok_basket_th_b.csv">TikTok Basket TH (B)</option>
                   <option value="books_review_extend.csv">Books: Review Extend</option>
@@ -1512,20 +1517,22 @@ Cinematic slow-motion reveal</pre>
                 </div>
               </details>
 
-                <!-- Prompt Run Options -->
-                <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                  <div>
-                    <label style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">จำนวน Prompt ที่จะรัน</label>
-                    <input type="number" id="extendRunCount" min="1" placeholder="ทั้งหมด"
-                      style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 8px;">
-                    <label class="toggle-label" style="display: flex; align-items: center; gap: 8px;">
-                      <input type="checkbox" id="extendShuffleToggle">
-                      <span>สุ่มลำดับ Prompt</span>
-                    </label>
-                  </div>
+              <!-- Prompt Run Options -->
+              <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label
+                    style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">จำนวน
+                    Prompt ที่จะรัน</label>
+                  <input type="number" id="extendRunCount" min="1" placeholder="ทั้งหมด"
+                    style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
                 </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <label class="toggle-label" style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="extendShuffleToggle">
+                    <span>สุ่มลำดับ Prompt</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <!-- Live Log -->
