@@ -1944,6 +1944,8 @@ ${styleDescription}
         };
         prompts.push(promptData);
 
+        console.log(`[generateStoryPrompts] Scene ${scene.number}: Generated prompt (first 100 chars): ${finalPrompt.substring(0, 100)}...`);
+
         // Display this prompt immediately
         this.appendStoryPrompt(promptData, i);
 
@@ -1955,15 +1957,18 @@ ${styleDescription}
         }
       }
 
-      // Store prompts for copy all function
+      // Store prompts for copy all function (indexed by scene.number - 1)
       this.generatedPrompts = [];
       for (let i = 0; i < scenes.length; i++) {
-        this.generatedPrompts[i] = {
+        const sceneIndex = scenes[i].number - 1; // Convert 1-based to 0-based
+        this.generatedPrompts[sceneIndex] = {
           sceneNumber: scenes[i].number,
           sceneName: scenes[i].name,
           prompt: prompts[i]?.prompt || ''
         };
+        console.log(`[Storage] Stored prompt for scene ${scenes[i].number} at index ${sceneIndex}`);
       }
+      console.log(`[Storage] Total prompts stored: ${this.generatedPrompts.length}`);
 
       // Add copy all button at the end
       const listEl = document.getElementById('storyPromptsListLive');
