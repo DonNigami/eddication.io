@@ -1878,10 +1878,10 @@ ${styleDescription}
         let finalPrompt;
 
         if (useTemplatePrompts) {
-          // Use template prompts sequentially by scene index (not loop index)
-          const promptIndex = scene.number % templatePrompts.length;
+          // Use template prompts sequentially by scene index (FIXED: use 0-based index)
+          const promptIndex = (scene.number - 1) % templatePrompts.length;
           finalPrompt = templatePrompts[promptIndex].prompt;
-          console.log(`Using template prompt ${promptIndex + 1}/${templatePrompts.length} for scene ${scene.number} (position ${i + 1})`);
+          console.log(`Using template prompt ${promptIndex + 1}/${templatePrompts.length} for scene ${scene.number} (array index ${promptIndex})`);
         } else {
           // Build user message with scene for AI generation
           let userMessage = (template.userMessageTemplate || '')
@@ -1937,7 +1937,14 @@ ${styleDescription}
       }
 
       // Store prompts for copy all function
-      this.generatedPrompts = prompts;
+      this.generatedPrompts = [];
+      for (let i = 0; i < scenes.length; i++) {
+        this.generatedPrompts[i] = {
+          sceneNumber: scenes[i].number,
+          sceneName: scenes[i].name,
+          prompt: prompts[i]?.prompt || ''
+        };
+      }
 
       // Add copy all button at the end
       const listEl = document.getElementById('storyPromptsListLive');
@@ -2561,9 +2568,10 @@ ${lyrics}
         // Step 3: Get Image Prompt (use pre-generated if available, otherwise use template or generate new)
         if (!this.isStoryAutomationRunning) break;
         let imagePrompt;
-        if (hasPreGeneratedPrompts && this.generatedPrompts[sceneIndex]) {
+        if (hasPreGeneratedPrompts && this.generatedPrompts && this.generatedPrompts.length > sceneIndex) {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: ใช้ Prompt ภาพที่สร้างไว้...');
           imagePrompt = this.generatedPrompts[sceneIndex].prompt;
+          console.log(`[Story] Using pre-generated image prompt ${sceneIndex + 1}/${this.generatedPrompts.length}`);
         } else if (templatePrompts && templatePrompts.length > 0) {
           // Use template prompts sequentially by scene index
           const promptIndex = sceneIndex % templatePrompts.length;
