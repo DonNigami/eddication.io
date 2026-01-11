@@ -214,6 +214,28 @@
             </div>
           </div>
 
+          <!-- Camera Angle for AI Review -->
+          <div class="form-row" style="margin-top: 12px;">
+            <div class="form-group" style="flex: 1;">
+              <label
+                style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">มุมกล้อง</label>
+              <select id="reviewCameraAngle"
+                style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                <option value="random" selected>สุ่ม</option>
+                <option value="front">Front (ตรงหน้า)</option>
+                <option value="side">Side (ด้านข้าง)</option>
+                <option value="top-down">Top-Down (มุมสูงเหนือศีรษะ)</option>
+                <option value="low-angle">Low Angle (มุมเงย)</option>
+                <option value="high-angle">High Angle (มุมกด)</option>
+                <option value="pov">POV (มุมมองบุคคล)</option>
+                <option value="close-up">Close-up (ใกล้ใบหน้า/วัตถุ)</option>
+                <option value="wide">Wide (มุมกว้าง)</option>
+                <option value="dutch-tilt">Dutch Tilt (เอียงภาพ)</option>
+                <option value="tracking">Tracking (ติดตามการเคลื่อนไหว)</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Warehouse Mode -->
           <div id="warehouseProductMode" hidden>
             <div class="form-row">
@@ -730,6 +752,28 @@
                 <select id="storyVideoLengthSelect" class="style-dropdown">
                   <option value="8" selected>8 วินาที (สั้น)</option>
                   <option value="16">16 วินาที (ยาว)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- มุมกล้อง -->
+          <div class="form-row" style="margin-top: 8px;">
+            <div class="form-group style-selector-row" style="flex: 1;">
+              <label>มุมกล้อง</label>
+              <div class="style-dropdown-wrapper">
+                <select id="storyCameraAngle" class="style-dropdown">
+                  <option value="random" selected>สุ่ม</option>
+                  <option value="front">Front (ตรงหน้า)</option>
+                  <option value="side">Side (ด้านข้าง)</option>
+                  <option value="top-down">Top-Down (มุมสูงเหนือศีรษะ)</option>
+                  <option value="low-angle">Low Angle (มุมเงย)</option>
+                  <option value="high-angle">High Angle (มุมกด)</option>
+                  <option value="pov">POV (มุมมองบุคคล)</option>
+                  <option value="close-up">Close-up (ใกล้ใบหน้า/วัตถุ)</option>
+                  <option value="wide">Wide (มุมกว้าง)</option>
+                  <option value="dutch-tilt">Dutch Tilt (เอียงภาพ)</option>
+                  <option value="tracking">Tracking (ติดตามการเคลื่อนไหว)</option>
                 </select>
               </div>
             </div>

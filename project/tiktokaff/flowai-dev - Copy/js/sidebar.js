@@ -2554,6 +2554,8 @@ ${lyrics}
           // Use template prompts sequentially by scene index
           const promptIndex = sceneIndex % templatePrompts.length;
           imagePrompt = templatePrompts[promptIndex].prompt;
+          // Apply camera angle to template prompt
+          imagePrompt = this.applyCameraAngleToPrompt(imagePrompt, 'storyCameraAngle');
           this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 2/12: ใช้ Prompt Template ภาพ ${promptIndex + 1}/${templatePrompts.length}...`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: สร้าง Prompt ภาพ...');
@@ -2601,6 +2603,8 @@ ${lyrics}
           // Use template prompts sequentially by scene index
           const promptIndex = sceneIndex % templatePrompts.length;
           videoPrompt = templatePrompts[promptIndex].prompt;
+          // Apply camera angle to template prompt
+          videoPrompt = this.applyCameraAngleToPrompt(videoPrompt, 'storyCameraAngle');
           this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template วิดีโอ ${promptIndex + 1}/${templatePrompts.length}...`);
         } else {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
@@ -2717,7 +2721,59 @@ ${lyrics}
       userMessage
     );
 
-    return result.trim();
+    let finalPrompt = result.trim();
+
+    // Apply camera angle if selected
+    finalPrompt = this.applyCameraAngleToPrompt(finalPrompt, 'storyCameraAngle');
+
+    return finalPrompt;
+  }
+
+  /**
+   * Get camera angle description from value
+   */
+  getCameraAngleDescription(value) {
+    const map = {
+      'front': 'Camera angle: front-facing, centered subject, head-on framing.',
+      'side': 'Camera angle: side profile, lateral perspective.',
+      'top-down': 'Camera angle: top-down overhead view.',
+      'low-angle': 'Camera angle: low angle (looking up), dramatic presence.',
+      'high-angle': 'Camera angle: high angle (looking down), overview perspective.',
+      'pov': 'Camera angle: POV (first person) perspective.',
+      'close-up': 'Camera angle: close-up, tight framing on face/object.',
+      'wide': 'Camera angle: wide shot, expansive framing.',
+      'dutch-tilt': 'Camera angle: Dutch tilt (diagonal horizon) for tension.',
+      'tracking': 'Camera angle: tracking shot following subject movement.'
+    };
+    return map[value] || '';
+  }
+
+  /**
+   * Apply camera angle to prompt
+   * @param {string} prompt - Original prompt
+   * @param {string} selectId - ID of camera angle select element
+   */
+  applyCameraAngleToPrompt(prompt, selectId) {
+    const cameraSelect = document.getElementById(selectId);
+    if (!cameraSelect) return prompt;
+
+    const value = cameraSelect.value || 'random';
+    let chosen = value;
+
+    if (value === 'random') {
+      const angles = ['front', 'side', 'top-down', 'low-angle', 'high-angle', 'pov', 'close-up', 'wide', 'dutch-tilt', 'tracking'];
+      chosen = angles[Math.floor(Math.random() * angles.length)];
+    }
+
+    const desc = this.getCameraAngleDescription(chosen);
+    if (!desc) return prompt;
+
+    // Avoid duplicate camera instructions
+    if (/(Camera angle|มุมกล้อง)/i.test(prompt)) {
+      return prompt;
+    }
+
+    return `${prompt} ${desc}`;
   }
 
   /**
