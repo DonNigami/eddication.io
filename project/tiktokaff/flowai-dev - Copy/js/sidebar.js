@@ -1864,10 +1864,10 @@ ${styleDescription}
         let finalPrompt;
 
         if (useTemplatePrompts) {
-          // Use template prompts sequentially
-          const promptIndex = i % templatePrompts.length;
+          // Use template prompts sequentially by scene index (not loop index)
+          const promptIndex = scene.number % templatePrompts.length;
           finalPrompt = templatePrompts[promptIndex].prompt;
-          console.log(`Using template prompt ${promptIndex + 1}/${templatePrompts.length} for scene ${i + 1}`);
+          console.log(`Using template prompt ${promptIndex + 1}/${templatePrompts.length} for scene ${scene.number} (position ${i + 1})`);
         } else {
           // Build user message with scene for AI generation
           let userMessage = (template.userMessageTemplate || '')
