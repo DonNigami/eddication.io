@@ -170,10 +170,28 @@ class ExtendScene {
             const url = chrome.runtime.getURL(`examples/extend-prompts/${file}`);
             const res = await fetch(url);
             const text = await res.text();
-            const firstLine = (text.split(/\r?\n/).map(l => l.trim()).filter(Boolean))[0] || '';
+            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+            if (lines.length === 0) {
+                if (this.templatePreview) {
+                    this.templatePreview.style.display = '';
+                    this.templatePreview.textContent = 'ไม่พบ prompts';
+                }
+                return;
+            }
+
+            // Display all prompts (up to 5)
+            const previewPrompts = lines.slice(0, 5);
+            const previewHtml = previewPrompts.map((prompt, index) =>
+                `<div style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); last-child:border-bottom:none;">
+                    <div style="font-weight: 600; color: #3b82f6; font-size: 0.8rem; margin-bottom: 4px;">Prompt ${index + 1}</div>
+                    <div style="color: var(--text-primary); font-size: 0.85rem; line-height: 1.4;">${this.escapeHtml(prompt)}</div>
+                </div>`
+            ).join('');
+
             if (this.templatePreview) {
                 this.templatePreview.style.display = '';
-                this.templatePreview.textContent = `ตัวอย่าง prompt: ${firstLine}`;
+                this.templatePreview.innerHTML = previewHtml;
             }
         } catch (err) {
             if (this.templatePreview) {
