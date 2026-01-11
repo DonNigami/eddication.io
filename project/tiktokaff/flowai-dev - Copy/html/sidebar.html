@@ -1279,7 +1279,7 @@
           </div>
 
           <!-- Controls (Hidden by default) -->
-          <div id="extendSceneControls" style="display: none;">
+          <div id="extendSceneControls" class="hidden">
             <!-- CSV Upload -->
             <div class="form-group">
               <label
@@ -1294,7 +1294,7 @@
             </div>
 
             <!-- Preview Prompts (Hidden until CSV loaded) -->
-            <div id="extendPromptsPreview" style="display: none; margin-top: 16px;">
+            <div id="extendPromptsPreview" class="hidden" style="margin-top: 16px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                 <span style="color: var(--text-primary); font-weight: 600;">📋 Preview Prompts</span>
                 <span id="extendPromptsCount"
@@ -1313,13 +1313,14 @@
                 <span>🎬</span> Start Extend
               </button>
               <button id="stopExtendBtn"
-                style="display: none; flex: 1; padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                class="hidden"
+                style="flex: 1; padding: 10px 16px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px;">
                 <span>⏹</span> Stop
               </button>
             </div>
 
             <!-- Progress Display (Hidden until started) -->
-            <div id="extendProgress" style="display: none; margin-top: 16px;">
+            <div id="extendProgress" class="hidden" style="margin-top: 16px;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.875rem;">
                 <span id="extendProgressText" style="color: var(--text-primary); font-weight: 600;">0/0 scenes</span>
                 <span id="extendProgressPercent" style="color: var(--accent-color); font-weight: 600;">0%</span>
