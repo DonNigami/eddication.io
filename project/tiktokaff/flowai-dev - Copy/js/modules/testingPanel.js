@@ -512,7 +512,7 @@ class TestingPanel {
         }
 
         if (confirm('Clear all error logs?')) {
-            await this.errorHandler.clearErrors();
+            await this.errorHandler.clear();
             const viewer = document.getElementById('errorLogViewer');
             if (viewer) {
                 viewer.innerHTML = '<p>Error log cleared</p>';
