@@ -3,6 +3,13 @@
  * Handles automated scene extension for Google Labs Flow
  */
 
+// Prevent duplicate injection/redeclaration
+if (window.__flowExtendLoaded) {
+    console.log('[Flow Extend] Content script already loaded - skipping re-init');
+    return;
+}
+window.__flowExtendLoaded = true;
+
 // Safeguard: Define workflowState globally if it doesn't exist
 if (typeof window.workflowState === 'undefined') {
     window.workflowState = {};

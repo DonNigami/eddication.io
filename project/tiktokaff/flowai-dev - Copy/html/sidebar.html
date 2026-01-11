@@ -786,6 +786,128 @@
               </svg>
               <span>เนื้อเรื่องนี้สร้างจากสไตล์: <strong id="storyStyleUsedName"></strong></span>
             </p>
+
+            <!-- Template Library for AI Story (reuse Extend Scene templates) -->
+            <div class="form-group" style="margin-top: 12px;">
+              <label style="display: block; margin-bottom: 6px; font-weight: 600; color: var(--text-primary);">ดึง
+                Prompt จาก Template (ใช้กับ AI Story)</label>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <select id="storyTemplateSelect"
+                  style="flex: 1; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                  <option value="">เลือกเทมเพลต...</option>
+                  <optgroup label="Thai Culture">
+                    <option value="thai_culture_extend.csv">Thai Culture: Festival & Traditions</option>
+                  </optgroup>
+                  <optgroup label="Family & Love">
+                    <option value="thai_family_extend.csv">Thai Family: Love & Warmth</option>
+                  </optgroup>
+                  <optgroup label="Drama & Conflict">
+                    <option value="drama_conflict_extend.csv">Drama: Conflict & Emotions</option>
+                  </optgroup>
+                  <optgroup label="Business & Work">
+                    <option value="business_work_extend.csv">Business: Work & Innovation</option>
+                  </optgroup>
+                  <optgroup label="Adventure & Travel">
+                    <option value="adventure_travel_extend.csv">Adventure: Travel & Outdoors</option>
+                  </optgroup>
+                  <optgroup label="Beliefs & Ghosts">
+                    <option value="thai_beliefs_ghosts_extend.csv">Thai Beliefs: Rituals & Night</option>
+                  </optgroup>
+                  <optgroup label="15-Set Libraries">
+                    <option value="food_dining_15.csv">Food & Dining (15)</option>
+                    <option value="culture_traditions_15.csv">Culture & Traditions (15)</option>
+                    <option value="urban_life_15.csv">Urban Life (15)</option>
+                    <option value="nature_environment_15.csv">Nature & Environment (15)</option>
+                    <option value="love_family_15.csv">Love & Family (15)</option>
+                    <option value="sports_activities_15.csv">Sports & Activities (15)</option>
+                    <option value="business_economy_15.csv">Business & Economy (15)</option>
+                    <option value="technology_future_15.csv">Technology & Future (15)</option>
+                    <option value="arts_entertainment_15.csv">Arts & Entertainment (15)</option>
+                  </optgroup>
+                  <optgroup label="Product-specific Thai Speech">
+                    <option value="product_skincare_speech_15.csv">Skincare (Thai Speech, 15)</option>
+                    <option value="product_it_speech_15.csv">IT Devices & Accessories (Thai Speech, 15)</option>
+                    <option value="product_home_speech_15.csv">Home Goods (Thai Speech, 15)</option>
+                  </optgroup>
+                  <optgroup label="Product Thai Speech (50 categories)">
+                    <option value="product_skincare_facial_speech_15.csv">Skincare: Facial (Thai Speech, 15)</option>
+                    <option value="product_skincare_sunscreen_speech_15.csv">Skincare: Sunscreen (Thai Speech, 15)
+                    </option>
+                    <option value="product_skincare_serum_speech_15.csv">Skincare: Serum (Thai Speech, 15)</option>
+                    <option value="product_skincare_moisturizer_speech_15.csv">Skincare: Moisturizer (Thai Speech, 15)
+                    </option>
+                    <option value="product_makeup_foundation_speech_15.csv">Makeup: Foundation (Thai Speech, 15)
+                    </option>
+                    <option value="product_makeup_lipstick_speech_15.csv">Makeup: Lipstick (Thai Speech, 15)</option>
+                    <option value="product_makeup_eyeliner_speech_15.csv">Makeup: Eyeliner (Thai Speech, 15)</option>
+                    <option value="product_hair_shampoo_speech_15.csv">Hair: Shampoo (Thai Speech, 15)</option>
+                    <option value="product_hair_treatment_speech_15.csv">Hair: Treatment (Thai Speech, 15)</option>
+                    <option value="product_fragrance_perfume_speech_15.csv">Fragrance: Perfume (Thai Speech, 15)
+                    </option>
+                    <option value="product_men_grooming_speech_15.csv">Men: Grooming (Thai Speech, 15)</option>
+                    <option value="product_fitness_wear_speech_15.csv">Fitness: Wear (Thai Speech, 15)</option>
+                    <option value="product_supplements_vitamins_speech_15.csv">Supplements: Vitamins (Thai Speech, 15)
+                    </option>
+                    <option value="product_kitchen_blender_speech_15.csv">Kitchen: Blender (Thai Speech, 15)</option>
+                    <option value="product_kitchen_airfryer_speech_15.csv">Kitchen: Air Fryer (Thai Speech, 15)</option>
+                    <option value="product_cookware_pan_speech_15.csv">Cookware: Nonstick Pan (Thai Speech, 15)</option>
+                    <option value="product_storage_organizer_speech_15.csv">Home: Storage Organizer (Thai Speech, 15)
+                    </option>
+                    <option value="product_cleaning_spray_speech_15.csv">Cleaning: Spray (Thai Speech, 15)</option>
+                    <option value="product_home_decor_speech_15.csv">Home: Decor (Thai Speech, 15)</option>
+                    <option value="product_bedding_set_speech_15.csv">Home: Bedding Set (Thai Speech, 15)</option>
+                    <option value="product_furniture_desk_speech_15.csv">Furniture: Desk (Thai Speech, 15)</option>
+                    <option value="product_lighting_led_speech_15.csv">Lighting: LED Lamp (Thai Speech, 15)</option>
+                    <option value="product_air_purifier_speech_15.csv">Home: Air Purifier (Thai Speech, 15)</option>
+                    <option value="product_pet_supplies_speech_15.csv">Pet: Supplies (Thai Speech, 15)</option>
+                    <option value="product_baby_diapers_speech_15.csv">Baby: Diapers (Thai Speech, 15)</option>
+                    <option value="product_toys_educational_speech_15.csv">Toys: Educational (Thai Speech, 15)</option>
+                    <option value="product_stationery_notebook_speech_15.csv">Stationery: Notebook (Thai Speech, 15)
+                    </option>
+                    <option value="product_smartphone_speech_15.csv">Electronics: Smartphone (Thai Speech, 15)</option>
+                    <option value="product_laptop_speech_15.csv">Electronics: Laptop (Thai Speech, 15)</option>
+                    <option value="product_tablet_speech_15.csv">Electronics: Tablet (Thai Speech, 15)</option>
+                    <option value="product_smartwatch_speech_15.csv">Electronics: Smartwatch (Thai Speech, 15)</option>
+                    <option value="product_earbuds_speech_15.csv">Electronics: Earbuds (Thai Speech, 15)</option>
+                    <option value="product_speaker_speech_15.csv">Electronics: Speaker (Thai Speech, 15)</option>
+                    <option value="product_gaming_mouse_speech_15.csv">Gaming: Mouse (Thai Speech, 15)</option>
+                    <option value="product_camera_action_speech_15.csv">Camera: Action Cam (Thai Speech, 15)</option>
+                    <option value="product_accessories_powerbank_speech_15.csv">Accessories: Powerbank (Thai Speech, 15)
+                    </option>
+                    <option value="product_accessories_charger_speech_15.csv">Accessories: Charger (Thai Speech, 15)
+                    </option>
+                    <option value="product_accessories_cable_speech_15.csv">Accessories: Cable (Thai Speech, 15)
+                    </option>
+                    <option value="product_accessories_case_speech_15.csv">Accessories: Case (Thai Speech, 15)</option>
+                    <option value="product_accessories_screen_speech_15.csv">Accessories: Screen Protector (Thai Speech,
+                      15)</option>
+                    <option value="product_womens_dress_speech_15.csv">Fashion: Women Dress (Thai Speech, 15)</option>
+                    <option value="product_womens_top_speech_15.csv">Fashion: Women Top (Thai Speech, 15)</option>
+                    <option value="product_mens_shirt_speech_15.csv">Fashion: Men Shirt (Thai Speech, 15)</option>
+                    <option value="product_shoes_sneakers_speech_15.csv">Fashion: Sneakers (Thai Speech, 15)</option>
+                    <option value="product_bags_backpack_speech_15.csv">Fashion: Backpack (Thai Speech, 15)</option>
+                    <option value="product_jewelry_necklace_speech_15.csv">Jewelry: Necklace (Thai Speech, 15)</option>
+                    <option value="product_watch_fashion_speech_15.csv">Watch: Fashion (Thai Speech, 15)</option>
+                    <option value="product_outdoor_camping_speech_15.csv">Outdoor: Camping (Thai Speech, 15)</option>
+                    <option value="product_auto_accessories_speech_15.csv">Automotive: Accessories (Thai Speech, 15)
+                    </option>
+                    <option value="product_tools_hand_speech_15.csv">Tools: Hand Tools (Thai Speech, 15)</option>
+                  </optgroup>
+                  <option value="tiktok_basket_th_a.csv">TikTok Basket TH (A)</option>
+                  <option value="tiktok_basket_th_b.csv">TikTok Basket TH (B)</option>
+                  <option value="books_review_extend.csv">Books: Review Extend</option>
+                  <option value="books_story_extend.csv">Books: Story Extend</option>
+                  <option value="it_smartphone_demo_extend.csv">IT: Smartphone Demo</option>
+                  <option value="it_laptop_productivity_extend.csv">IT: Laptop Productivity</option>
+                  <option value="it_accessory_cta_extend.csv">IT: Accessory CTA</option>
+                </select>
+                <button id="storyLoadTemplateBtn"
+                  style="padding: 8px 14px; background: #0ea5e9; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">ดึง
+                  Prompt</button>
+              </div>
+              <p style="margin-top: 6px; font-size: 0.85rem; color: var(--text-secondary);">เลือกเทมเพลต CSV จาก Extend
+                Scene แล้วดึงมาใช้เป็น AI Story Prompt ได้ทันที</p>
+            </div>
           </div>
         </section>
 
@@ -1324,6 +1446,70 @@
                     <option value="product_it_speech_15.csv">IT Devices & Accessories (Thai Speech, 15)</option>
                     <option value="product_home_speech_15.csv">Home Goods (Thai Speech, 15)</option>
                   </optgroup>
+                  <optgroup label="Product Thai Speech (50 categories)">
+                    <option value="product_skincare_facial_speech_15.csv">Skincare: Facial (Thai Speech, 15)</option>
+                    <option value="product_skincare_sunscreen_speech_15.csv">Skincare: Sunscreen (Thai Speech, 15)
+                    </option>
+                    <option value="product_skincare_serum_speech_15.csv">Skincare: Serum (Thai Speech, 15)</option>
+                    <option value="product_skincare_moisturizer_speech_15.csv">Skincare: Moisturizer (Thai Speech, 15)
+                    </option>
+                    <option value="product_makeup_foundation_speech_15.csv">Makeup: Foundation (Thai Speech, 15)
+                    </option>
+                    <option value="product_makeup_lipstick_speech_15.csv">Makeup: Lipstick (Thai Speech, 15)</option>
+                    <option value="product_makeup_eyeliner_speech_15.csv">Makeup: Eyeliner (Thai Speech, 15)</option>
+                    <option value="product_hair_shampoo_speech_15.csv">Hair: Shampoo (Thai Speech, 15)</option>
+                    <option value="product_hair_treatment_speech_15.csv">Hair: Treatment (Thai Speech, 15)</option>
+                    <option value="product_fragrance_perfume_speech_15.csv">Fragrance: Perfume (Thai Speech, 15)
+                    </option>
+                    <option value="product_men_grooming_speech_15.csv">Men: Grooming (Thai Speech, 15)</option>
+                    <option value="product_fitness_wear_speech_15.csv">Fitness: Wear (Thai Speech, 15)</option>
+                    <option value="product_supplements_vitamins_speech_15.csv">Supplements: Vitamins (Thai Speech, 15)
+                    </option>
+                    <option value="product_kitchen_blender_speech_15.csv">Kitchen: Blender (Thai Speech, 15)</option>
+                    <option value="product_kitchen_airfryer_speech_15.csv">Kitchen: Air Fryer (Thai Speech, 15)</option>
+                    <option value="product_cookware_pan_speech_15.csv">Cookware: Nonstick Pan (Thai Speech, 15)</option>
+                    <option value="product_storage_organizer_speech_15.csv">Home: Storage Organizer (Thai Speech, 15)
+                    </option>
+                    <option value="product_cleaning_spray_speech_15.csv">Cleaning: Spray (Thai Speech, 15)</option>
+                    <option value="product_home_decor_speech_15.csv">Home: Decor (Thai Speech, 15)</option>
+                    <option value="product_bedding_set_speech_15.csv">Home: Bedding Set (Thai Speech, 15)</option>
+                    <option value="product_furniture_desk_speech_15.csv">Furniture: Desk (Thai Speech, 15)</option>
+                    <option value="product_lighting_led_speech_15.csv">Lighting: LED Lamp (Thai Speech, 15)</option>
+                    <option value="product_air_purifier_speech_15.csv">Home: Air Purifier (Thai Speech, 15)</option>
+                    <option value="product_pet_supplies_speech_15.csv">Pet: Supplies (Thai Speech, 15)</option>
+                    <option value="product_baby_diapers_speech_15.csv">Baby: Diapers (Thai Speech, 15)</option>
+                    <option value="product_toys_educational_speech_15.csv">Toys: Educational (Thai Speech, 15)</option>
+                    <option value="product_stationery_notebook_speech_15.csv">Stationery: Notebook (Thai Speech, 15)
+                    </option>
+                    <option value="product_smartphone_speech_15.csv">Electronics: Smartphone (Thai Speech, 15)</option>
+                    <option value="product_laptop_speech_15.csv">Electronics: Laptop (Thai Speech, 15)</option>
+                    <option value="product_tablet_speech_15.csv">Electronics: Tablet (Thai Speech, 15)</option>
+                    <option value="product_smartwatch_speech_15.csv">Electronics: Smartwatch (Thai Speech, 15)</option>
+                    <option value="product_earbuds_speech_15.csv">Electronics: Earbuds (Thai Speech, 15)</option>
+                    <option value="product_speaker_speech_15.csv">Electronics: Speaker (Thai Speech, 15)</option>
+                    <option value="product_gaming_mouse_speech_15.csv">Gaming: Mouse (Thai Speech, 15)</option>
+                    <option value="product_camera_action_speech_15.csv">Camera: Action Cam (Thai Speech, 15)</option>
+                    <option value="product_accessories_powerbank_speech_15.csv">Accessories: Powerbank (Thai Speech, 15)
+                    </option>
+                    <option value="product_accessories_charger_speech_15.csv">Accessories: Charger (Thai Speech, 15)
+                    </option>
+                    <option value="product_accessories_cable_speech_15.csv">Accessories: Cable (Thai Speech, 15)
+                    </option>
+                    <option value="product_accessories_case_speech_15.csv">Accessories: Case (Thai Speech, 15)</option>
+                    <option value="product_accessories_screen_speech_15.csv">Accessories: Screen Protector (Thai Speech,
+                      15)</option>
+                    <option value="product_womens_dress_speech_15.csv">Fashion: Women Dress (Thai Speech, 15)</option>
+                    <option value="product_womens_top_speech_15.csv">Fashion: Women Top (Thai Speech, 15)</option>
+                    <option value="product_mens_shirt_speech_15.csv">Fashion: Men Shirt (Thai Speech, 15)</option>
+                    <option value="product_shoes_sneakers_speech_15.csv">Fashion: Sneakers (Thai Speech, 15)</option>
+                    <option value="product_bags_backpack_speech_15.csv">Fashion: Backpack (Thai Speech, 15)</option>
+                    <option value="product_jewelry_necklace_speech_15.csv">Jewelry: Necklace (Thai Speech, 15)</option>
+                    <option value="product_watch_fashion_speech_15.csv">Watch: Fashion (Thai Speech, 15)</option>
+                    <option value="product_outdoor_camping_speech_15.csv">Outdoor: Camping (Thai Speech, 15)</option>
+                    <option value="product_auto_accessories_speech_15.csv">Automotive: Accessories (Thai Speech, 15)
+                    </option>
+                    <option value="product_tools_hand_speech_15.csv">Tools: Hand Tools (Thai Speech, 15)</option>
+                  </optgroup>
                   <option value="tiktok_basket_th_a.csv">TikTok Basket TH (A)</option>
                   <option value="tiktok_basket_th_b.csv">TikTok Basket TH (B)</option>
                   <option value="books_review_extend.csv">Books: Review Extend</option>
@@ -1334,6 +1520,9 @@
                 </select>
                 <button id="loadExtendTemplateBtn"
                   style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Load</button>
+                <button id="pullTemplatePromptsBtn"
+                  style="padding: 8px 14px; background: #0ea5e9; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">ดึง
+                  Prompt</button>
               </div>
               <div style="margin-top: 6px; font-size: 0.825rem; color: var(--text-secondary);">
                 คุณสามารถเลือกเทมเพลตเพื่อโหลด prompts โดยไม่ต้องอัปโหลด CSV</div>

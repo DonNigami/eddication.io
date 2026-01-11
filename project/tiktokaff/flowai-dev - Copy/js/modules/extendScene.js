@@ -53,6 +53,7 @@ class ExtendScene {
         // Template library
         this.templateSelect = document.getElementById('extendTemplateSelect');
         this.loadTemplateBtn = document.getElementById('loadExtendTemplateBtn');
+        this.pullTemplateBtn = document.getElementById('pullTemplatePromptsBtn');
 
         // Progress
         this.progress = document.getElementById('extendProgress');
@@ -94,6 +95,10 @@ class ExtendScene {
 
         if (this.loadTemplateBtn) {
             this.loadTemplateBtn.addEventListener('click', () => this.handleLoadTemplate());
+        }
+
+        if (this.pullTemplateBtn) {
+            this.pullTemplateBtn.addEventListener('click', () => this.handleLoadTemplate());
         }
 
         if (this.templateSelect) {
@@ -380,6 +385,9 @@ class ExtendScene {
         const waitPercent = parseInt(this.waitPercentInput?.value || '80');
         const timeout = parseInt(this.timeoutInput?.value || '120');
 
+        // Ensure content script is present before messaging
+        await this.ensureFlowContentScript(tabs[0].id);
+
         // Send to content script with detailed error handling
         try {
             const response = await chrome.tabs.sendMessage(tabs[0].id, {
@@ -422,6 +430,18 @@ class ExtendScene {
                 errorMessage: error.message
             });
             this.resetUI();
+        }
+    }
+
+    async ensureFlowContentScript(tabId) {
+        if (!tabId || !chrome.scripting?.executeScript) return;
+        try {
+            await chrome.scripting.executeScript({
+                target: { tabId },
+                files: ['content/platforms/googleFlow.js']
+            });
+        } catch (err) {
+            console.warn('[ExtendScene] Failed to inject googleFlow content script:', err?.message || err);
         }
     }
 

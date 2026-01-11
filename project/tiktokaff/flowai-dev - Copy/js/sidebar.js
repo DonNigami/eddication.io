@@ -309,6 +309,11 @@ class FlowAIUnlocked {
       videoPromptBtn.addEventListener('click', () => this.generateStoryPrompts('video'));
     }
 
+    const storyLoadTemplateBtn = document.getElementById('storyLoadTemplateBtn');
+    if (storyLoadTemplateBtn) {
+      storyLoadTemplateBtn.addEventListener('click', () => this.loadStoryTemplatePrompts());
+    }
+
     // Setup copy prompt button
     const copyBtn = document.getElementById('storyCopyPromptBtn');
     if (copyBtn) {
@@ -1903,18 +1908,22 @@ ${styleDescription}
       // Add copy all button at the end
       const listEl = document.getElementById('storyPromptsListLive');
       if (listEl) {
-        const actionsHtml = `
-          <div class="story-prompts-actions">
-            <button class="btn btn-secondary" onclick="window.flowAIUnlocked.copyAllScenePrompts()">
+        const actions = document.createElement('div');
+        actions.className = 'story-prompts-actions';
+        actions.innerHTML = `
+            <button class="btn btn-secondary btn-copy-all-scenes-live">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
               คัดลอกทั้งหมด
-            </button>
-          </div>
-        `;
-        listEl.insertAdjacentHTML('afterend', actionsHtml);
+            </button>`;
+        listEl.insertAdjacentElement('afterend', actions);
+
+        const copyAllLiveBtn = actions.querySelector('.btn-copy-all-scenes-live');
+        if (copyAllLiveBtn) {
+          copyAllLiveBtn.addEventListener('click', () => this.copyAllScenePrompts());
+        }
       }
 
     } catch (error) {
@@ -1934,6 +1943,44 @@ ${styleDescription}
           Prompt ${type === 'image' ? 'ภาพ' : 'วิดีโอ'}
         `;
       }
+    }
+  }
+
+  /**
+   * Load prompts from Extend Scene template for AI Story
+   */
+  async loadStoryTemplatePrompts(autoApply = false) {
+    const select = document.getElementById('storyTemplateSelect');
+    if (!select || !select.value) {
+      if (!autoApply) showToast('เลือกเทมเพลตก่อน', 'warning');
+      return null;
+    }
+
+    try {
+      const url = chrome.runtime.getURL(`examples/extend-prompts/${select.value}`);
+      const res = await fetch(url);
+      const text = await res.text();
+      const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+      if (lines.length === 0) {
+        if (!autoApply) showToast('ไม่พบ prompt ในเทมเพลต', 'warning');
+        return null;
+      }
+
+      const prompts = lines.map((p, idx) => ({ sceneNumber: idx + 1, prompt: p }));
+
+      // Store template prompts for use in automation
+      this.storyTemplatePrompts = prompts;
+
+      if (!autoApply) {
+        this.displayStoryPrompts(prompts, 'video');
+        showToast(`โหลด ${prompts.length} prompt จากเทมเพลตแล้ว`, 'success');
+      }
+
+      return prompts;
+    } catch (error) {
+      console.error('Load story template error:', error);
+      showToast('โหลดเทมเพลตไม่สำเร็จ', 'error');
     }
   }
 
@@ -2149,21 +2196,28 @@ ${lyrics}
     const listEl = document.getElementById('storyPromptsListLive');
     if (!listEl) return;
 
-    const html = `
-      <div class="story-prompt-item" data-index="${index}">
-        <div class="story-prompt-header">
-          <span class="scene-label">Prompt ${promptData.sceneNumber}</span>
-          <button class="btn-copy-scene" onclick="window.flowAIUnlocked.copyScenePrompt(${index})" title="คัดลอก">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-          </button>
-        </div>
-        <textarea class="scene-prompt-text" readonly>${promptData.prompt}</textarea>
+    const wrapper = document.createElement('div');
+    wrapper.className = 'story-prompt-item';
+    wrapper.dataset.index = String(index);
+    wrapper.innerHTML = `
+      <div class="story-prompt-header">
+        <span class="scene-label">Prompt ${promptData.sceneNumber}</span>
+        <button class="btn-copy-scene" data-index="${index}" title="คัดลอก">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
       </div>
+      <textarea class="scene-prompt-text" readonly>${promptData.prompt}</textarea>
     `;
-    listEl.insertAdjacentHTML('beforeend', html);
+
+    const copyBtn = wrapper.querySelector('.btn-copy-scene');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => this.copyScenePrompt(index));
+    }
+
+    listEl.appendChild(wrapper);
 
     // Auto-scroll to newest prompt
     const newItem = listEl.lastElementChild;
@@ -2189,7 +2243,7 @@ ${lyrics}
         <div class="story-prompt-item" data-index="${index}">
           <div class="story-prompt-header">
             <span class="scene-label">Prompt ${p.sceneNumber}</span>
-            <button class="btn-copy-scene" onclick="window.flowAIUnlocked.copyScenePrompt(${index})" title="คัดลอก">
+            <button class="btn-copy-scene" data-index="${index}" title="คัดลอก">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -2204,7 +2258,7 @@ ${lyrics}
     html += '</div>';
     html += `
       <div class="story-prompts-actions">
-        <button class="btn btn-secondary" onclick="window.flowAIUnlocked.copyAllScenePrompts()">
+        <button class="btn btn-secondary btn-copy-all-scenes">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -2219,6 +2273,20 @@ ${lyrics}
 
     // Store prompts for copy functions
     this.generatedPrompts = prompts;
+
+    // Attach non-inline handlers to satisfy CSP
+    const sceneButtons = outputSection.querySelectorAll('.btn-copy-scene');
+    sceneButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'), 10);
+        this.copyScenePrompt(idx);
+      });
+    });
+
+    const copyAllBtn = outputSection.querySelector('.btn-copy-all-scenes');
+    if (copyAllBtn) {
+      copyAllBtn.addEventListener('click', () => this.copyAllScenePrompts());
+    }
   }
 
   /**
@@ -2347,6 +2415,17 @@ ${lyrics}
       console.log(`Using ${this.generatedPrompts.length} pre-generated prompts`);
     }
 
+    // Load template prompts if available (for auto-populating video/story prompts)
+    let templatePrompts = null;
+    const select = document.getElementById('storyTemplateSelect');
+    if (select && select.value) {
+      const loaded = await this.loadStoryTemplatePrompts(true);
+      if (loaded && loaded.length > 0) {
+        templatePrompts = loaded;
+        console.log(`Using ${templatePrompts.length} template prompts for video/story`);
+      }
+    }
+
     // Start automation
     this.isStoryAutomationRunning = true;
     this.storyCurrentScene = 0;
@@ -2439,8 +2518,16 @@ ${lyrics}
 
         // Step 7: Generate Video Prompt (always generate new prompt each iteration)
         if (!this.isStoryAutomationRunning) break;
-        this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
-        const videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn);
+        let videoPrompt;
+        if (templatePrompts && templatePrompts.length > 0) {
+          // Use template prompts cyclically
+          const promptIndex = i % templatePrompts.length;
+          videoPrompt = templatePrompts[promptIndex].prompt;
+          this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template ${promptIndex + 1}/${templatePrompts.length}...`);
+        } else {
+          this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: สร้าง Prompt วิดีโอ...');
+          videoPrompt = await this.generateScenePrompt('video', scene, character, genderText, genderTextEn);
+        }
         if (!this.isStoryAutomationRunning) break;
         await this.delay(1000);
 
