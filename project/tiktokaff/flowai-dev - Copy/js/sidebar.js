@@ -1875,6 +1875,25 @@ ${styleDescription}
           `;
         }
 
+        // Apply viral hook to first scene BEFORE prompt generation
+        let sceneDescription = scene.description;
+        if (this.viralHooks && this.viralHooks.isEnabled() && scene.number === 1) {
+          const detailsTextarea = document.getElementById('storyDetails');
+          const storyDetails = detailsTextarea?.value?.trim() || '';
+          const context = this.viralHooks.extractContextFromStory(storyDetails);
+          sceneDescription = this.viralHooks.applyHookToScene(sceneDescription, context);
+          console.log('[Story] Applied viral hook to scene 1 (before prompt generation)');
+        }
+
+        // Apply CTA to last scene BEFORE prompt generation
+        if (this.viralHooks && scene.number === scenes.length) {
+          const detailsTextarea = document.getElementById('storyDetails');
+          const storyDetails = detailsTextarea?.value?.trim() || '';
+          const context = this.viralHooks.extractContextFromStory(storyDetails);
+          sceneDescription = this.viralHooks.applyCTAToScene(sceneDescription, context);
+          console.log(`[Story] Applied CTA to scene ${scenes.length} (last scene, before prompt generation)`);
+        }
+
         let finalPrompt;
 
         if (useTemplatePrompts) {
@@ -1883,10 +1902,10 @@ ${styleDescription}
           finalPrompt = templatePrompts[promptIndex].prompt;
           console.log(`Using template prompt ${promptIndex + 1}/${templatePrompts.length} for scene ${scene.number} (array index ${promptIndex})`);
         } else {
-          // Build user message with scene for AI generation
+          // Build user message with scene for AI generation (with Hook/CTA already applied)
           let userMessage = (template.userMessageTemplate || '')
             .replace(/\{\{characterName\}\}/g, characterName)
-            .replace(/\{\{sceneDescription\}\}/g, scene.description);
+            .replace(/\{\{sceneDescription\}\}/g, sceneDescription);
 
           if (hasCharacter) {
             userMessage = userMessage
@@ -1916,24 +1935,6 @@ ${styleDescription}
             // Already in English, just add aspect ratio
             finalPrompt = `Aspect Ratio: 9:16 (Vertical Portrait)\n\n${finalPrompt}`;
           }
-        }
-
-        // Apply viral hook to first scene if enabled
-        if (this.viralHooks && this.viralHooks.isEnabled() && scene.number === 1) {
-          const detailsTextarea = document.getElementById('storyDetails');
-          const storyDetails = detailsTextarea?.value?.trim() || '';
-          const context = this.viralHooks.extractContextFromStory(storyDetails);
-          finalPrompt = this.viralHooks.applyHookToScene(finalPrompt, context);
-          console.log('[Story] Applied viral hook to scene 1 in prompt generation');
-        }
-
-        // Apply CTA to last scene if enabled
-        if (this.viralHooks && scene.number === scenes.length) {
-          const detailsTextarea = document.getElementById('storyDetails');
-          const storyDetails = detailsTextarea?.value?.trim() || '';
-          const context = this.viralHooks.extractContextFromStory(storyDetails);
-          finalPrompt = this.viralHooks.applyCTAToScene(finalPrompt, context);
-          console.log(`[Story] Applied CTA to scene ${scenes.length} (last scene) in prompt generation`);
         }
 
         const promptData = {
