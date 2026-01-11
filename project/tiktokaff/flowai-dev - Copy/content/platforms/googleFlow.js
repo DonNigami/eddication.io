@@ -119,9 +119,14 @@ class GoogleFlowExtendHandler {
         }
         await this.delay(2000);
 
-        // Step 5: Wait for completion
+        // Step 5: Wait for completion (with timeout)
         const targetPercent = this.settings.waitForPercent || 80;
-        await this.waitForExtendCompletion(targetPercent);
+        const timeout = this.settings.timeout || 120;
+        const completed = await this.waitForExtendCompletion(targetPercent, timeout);
+        
+        if (!completed) {
+            console.warn(`[Flow Extend] ⚠️ Task ${this.currentTaskIndex + 1} timed out, continuing...`);
+        }
     }
 
     /**
@@ -289,10 +294,10 @@ class GoogleFlowExtendHandler {
         for (const btn of buttons) {
             const svg = btn.querySelector('svg');
             const innerHTML = btn.innerHTML.toLowerCase();
-            
+
             // Check for checkmark, arrow, or play icons
-            if ((innerHTML.includes('check') || innerHTML.includes('arrow') || 
-                 innerHTML.includes('play') || btn.textContent?.trim() === '✓') &&
+            if ((innerHTML.includes('check') || innerHTML.includes('arrow') ||
+                innerHTML.includes('play') || btn.textContent?.trim() === '✓') &&
                 btn.offsetParent !== null && !btn.disabled) {
                 this.simulateClick(btn);
                 console.log('[Flow Extend] Clicked Send button (icon match)');
@@ -301,15 +306,15 @@ class GoogleFlowExtendHandler {
         }
 
         // Strategy 3: Look for the last visible button in the dialog
-        const visibleButtons = Array.from(buttons).filter(btn => 
+        const visibleButtons = Array.from(buttons).filter(btn =>
             btn.offsetParent !== null && !btn.disabled
         );
-        
+
         if (visibleButtons.length > 0) {
             // The rightmost/last button is usually the action button
             const lastBtn = visibleButtons[visibleButtons.length - 1];
             const btnText = lastBtn.textContent?.trim() || '';
-            
+
             // Make sure it's not a cancel button
             if (!btnText.toLowerCase().includes('cancel') && !btnText.toLowerCase().includes('close')) {
                 this.simulateClick(lastBtn);
@@ -325,12 +330,12 @@ class GoogleFlowExtendHandler {
     /**
      * Wait for extend completion (progress reaches target %)
      */
-    async waitForExtendCompletion(targetPercent = 80) {
-        console.log(`[Flow Extend] Waiting for ${targetPercent}% completion...`);
+    async waitForExtendCompletion(targetPercent = 80, timeoutSeconds = 120) {
+        console.log(`[Flow Extend] Waiting for ${targetPercent}% completion (timeout: ${timeoutSeconds}s)...`);
 
         return new Promise((resolve) => {
             let attempts = 0;
-            const maxAttempts = 600; // 10 minutes max
+            const maxAttempts = timeoutSeconds; // Convert to seconds (1 attempt per second)
 
             const interval = setInterval(() => {
                 attempts++;
@@ -339,13 +344,13 @@ class GoogleFlowExtendHandler {
                 const elements = document.querySelectorAll('[aria-label]');
                 for (const el of elements) {
                     const label = el.getAttribute('aria-label');
-                    const match = label.match(/(\d+)%/);
+                    const match = label?.match(/(\d+)%/);
 
                     if (match) {
                         const percent = parseInt(match[1]);
                         if (percent >= targetPercent) {
                             clearInterval(interval);
-                            console.log(`[Flow Extend] Reached ${percent}%!`);
+                            console.log(`[Flow Extend] ✅ Reached ${percent}%!`);
                             resolve(true);
                             return;
                         } else if (attempts % 10 === 0) {
@@ -361,17 +366,17 @@ class GoogleFlowExtendHandler {
                     for (const el of textElements) {
                         if (el.textContent.includes('100%') && el.offsetParent !== null) {
                             clearInterval(interval);
-                            console.log('[Flow Extend] Found 100% completion');
+                            console.log('[Flow Extend] ✅ Found 100% completion');
                             resolve(true);
                             return;
                         }
                     }
                 }
 
-                // Timeout check
+                // Timeout check - skip to next task
                 if (attempts >= maxAttempts) {
                     clearInterval(interval);
-                    console.warn('[Flow Extend] Timeout waiting for completion');
+                    console.warn(`[Flow Extend] ⏱️ Timeout (${timeoutSeconds}s) - skipping to next task`);
                     resolve(false);
                 }
             }, 1000);

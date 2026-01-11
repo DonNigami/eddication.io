@@ -30,6 +30,10 @@ class ExtendScene {
         this.csvInput = document.getElementById('extendCsvInput');
         this.csvStatus = document.getElementById('extendCsvStatus');
 
+        // Settings
+        this.waitPercentInput = document.getElementById('extendWaitPercent');
+        this.timeoutInput = document.getElementById('extendTimeout');
+
         // Preview
         this.preview = document.getElementById('extendPromptsPreview');
         this.promptsCount = document.getElementById('extendPromptsCount');
@@ -213,6 +217,10 @@ class ExtendScene {
             type: 'extend_scene'
         }));
 
+        // Get settings from UI
+        const waitPercent = parseInt(this.waitPercentInput?.value || '80');
+        const timeout = parseInt(this.timeoutInput?.value || '120');
+
         // Send to content script with detailed error handling
         try {
             const response = await chrome.tabs.sendMessage(tabs[0].id, {
@@ -220,7 +228,8 @@ class ExtendScene {
                 tasks: tasks,
                 settings: {
                     mode: 'extend',
-                    waitForPercent: 80,
+                    waitForPercent: waitPercent,
+                    timeout: timeout,
                     delayBetweenTasks: 3000
                 }
             });

@@ -1293,6 +1293,38 @@
               </div>
             </div>
 
+            <!-- Settings -->
+            <div class="form-group" style="margin-top: 16px;">
+              <label
+                style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span>⚙️</span> ตั้งค่าการทำงาน
+              </label>
+
+              <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <!-- Wait Percentage -->
+                <div>
+                  <label style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">
+                    รอจน Progress %
+                  </label>
+                  <input type="number" id="extendWaitPercent" min="50" max="100" value="80"
+                    style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                </div>
+
+                <!-- Timeout -->
+                <div>
+                  <label style="display: block; font-size: 0.875rem; color: var(--text-secondary); margin-bottom: 4px;">
+                    Timeout (วินาที)
+                  </label>
+                  <input type="number" id="extendTimeout" min="30" max="600" value="120"
+                    style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                </div>
+              </div>
+
+              <div style="margin-top: 8px; font-size: 0.875rem; color: var(--text-secondary);">
+                ⏱️ ถ้ารอนานเกิน Timeout จะข้ามไปทำ prompt ถัดไปอัตโนมัติ
+              </div>
+            </div>
+
             <!-- Preview Prompts (Hidden until CSV loaded) -->
             <div id="extendPromptsPreview" class="hidden" style="margin-top: 16px;">
               <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
@@ -1349,6 +1381,7 @@
                     <li>สร้างโปรเจกต์และเข้าไปที่หน้า <b>SceneBuilder</b></li>
                     <li>กลับมาที่ Extension นี้</li>
                     <li>เปิด Extend Scene Mode</li>
+                    <li>ตั้งค่า <b>Progress %</b> และ <b>Timeout</b> (ถ้าต้องการ)</li>
                     <li>อัปโหลด CSV ที่มี prompts (หนึ่ง prompt ต่อบรรทัด)</li>
                     <li>คลิก <b>Start Extend</b> เพื่อเริ่มต่อฉากอัตโนมัติ</li>
                     <li>Extension จะทำงานอัตโนมัติจนเสร็จทุก prompt</li>
