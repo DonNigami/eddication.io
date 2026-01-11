@@ -1282,11 +1282,13 @@
           <div id="extendSceneControls" class="hidden">
             <!-- Template Library -->
             <div class="form-group">
-              <label style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+              <label
+                style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
                 <span>📚</span> Template Library
               </label>
               <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <select id="extendTemplateSelect" style="flex: 1; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                <select id="extendTemplateSelect"
+                  style="flex: 1; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
                   <option value="">เลือกเทมเพลต...</option>
                   <option value="tiktok_basket_th_a.csv">TikTok Basket TH (A)</option>
                   <option value="tiktok_basket_th_b.csv">TikTok Basket TH (B)</option>
@@ -1296,9 +1298,15 @@
                   <option value="it_laptop_productivity_extend.csv">IT: Laptop Productivity</option>
                   <option value="it_accessory_cta_extend.csv">IT: Accessory CTA</option>
                 </select>
-                <button id="loadExtendTemplateBtn" style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Load</button>
+                <button id="loadExtendTemplateBtn"
+                  style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Load</button>
               </div>
-              <div style="margin-top: 6px; font-size: 0.825rem; color: var(--text-secondary);">คุณสามารถเลือกเทมเพลตเพื่อโหลด prompts โดยไม่ต้องอัปโหลด CSV</div>
+              <div style="margin-top: 6px; font-size: 0.825rem; color: var(--text-secondary);">
+                คุณสามารถเลือกเทมเพลตเพื่อโหลด prompts โดยไม่ต้องอัปโหลด CSV</div>
+              <!-- Template first prompt preview -->
+              <div id="extendTemplatePreview"
+                style="margin-top: 8px; padding: 10px; background: var(--bg-secondary); border-left: 3px solid var(--accent-color); border-radius: 6px; color: var(--text-primary); font-size: 0.9rem; display: none;">
+              </div>
             </div>
             <!-- CSV Upload -->
             <div class="form-group">
@@ -1385,6 +1393,10 @@
                 style="margin-top: 12px; padding: 12px; background: var(--bg-secondary); border-left: 3px solid var(--accent-color); border-radius: 4px; color: var(--text-secondary); font-size: 0.875rem;">
                 พร้อมเริ่มต้น...
               </div>
+              <!-- Status Bar -->
+              <div id="extendStatusBar"
+                style="margin-top: 8px; padding: 10px; background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6; border-radius: 6px; color: var(--text-primary); font-size: 0.875rem; display: none;">
+              </div>
             </div>
 
             <!-- Instructions -->
@@ -1415,6 +1427,17 @@ Cinematic slow-motion reveal</pre>
                   </div>
                 </div>
               </details>
+            </div>
+
+            <!-- Live Log -->
+            <div class="form-group" style="margin-top: 16px;">
+              <label
+                style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span>📝</span> Live Log
+              </label>
+              <div id="extendLogList"
+                style="margin-top: 8px; background: var(--bg-secondary); border-radius: 6px; padding: 10px; max-height: 220px; overflow-y: auto; font-size: 0.85rem; color: var(--text-secondary);">
+              </div>
             </div>
           </div>
         </div>

@@ -38,6 +38,7 @@ class ExtendScene {
         this.preview = document.getElementById('extendPromptsPreview');
         this.promptsCount = document.getElementById('extendPromptsCount');
         this.promptsContent = document.getElementById('extendPromptsContent');
+        this.templatePreview = document.getElementById('extendTemplatePreview');
 
         // Buttons
         this.startBtn = document.getElementById('startExtendBtn');
@@ -76,6 +77,10 @@ class ExtendScene {
             this.loadTemplateBtn.addEventListener('click', () => this.handleLoadTemplate());
         }
 
+        if (this.templateSelect) {
+            this.templateSelect.addEventListener('change', () => this.handleTemplateChange());
+        }
+
         // Listen for updates from content script
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.action === 'extendProgress') {
@@ -84,8 +89,33 @@ class ExtendScene {
                 this.onComplete();
             } else if (request.action === 'extendError') {
                 this.onError(request.error);
+            } else if (request.action === 'extendLog') {
+                this.addLog(request.message);
+            } else if (request.action === 'extendStatus') {
+                this.updateStatus(request.status);
             }
         });
+    }
+
+    updateStatus(text) {
+        const bar = document.getElementById('extendStatusBar');
+        if (!bar) return;
+        if (text) {
+            bar.textContent = text;
+            bar.style.display = '';
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    addLog(message) {
+        const list = document.getElementById('extendLogList');
+        if (!list) return;
+        const ts = new Date().toLocaleTimeString();
+        const item = document.createElement('div');
+        item.textContent = `[${ts}] ${message}`;
+        list.appendChild(item);
+        list.scrollTop = list.scrollHeight;
     }
 
     async handleLoadTemplate() {
@@ -111,9 +141,36 @@ class ExtendScene {
             this.updateCsvStatus(`✅ โหลดเทมเพลต ${this.totalPrompts} prompts แล้ว`, 'success');
             this.showPreview();
             this.saveState({ extendPrompts: this.prompts });
+            this.updateStatus('Template loaded. Ready to start.');
         } catch (error) {
             console.error('Error loading template:', error);
             this.showError('⚠️ โหลดเทมเพลตไม่สำเร็จ');
+        }
+    }
+
+    async handleTemplateChange() {
+        const file = this.templateSelect?.value;
+        if (!file) {
+            if (this.templatePreview) {
+                this.templatePreview.style.display = 'none';
+                this.templatePreview.textContent = '';
+            }
+            return;
+        }
+        try {
+            const url = chrome.runtime.getURL(`examples/extend-prompts/${file}`);
+            const res = await fetch(url);
+            const text = await res.text();
+            const firstLine = (text.split(/\r?\n/).map(l => l.trim()).filter(Boolean))[0] || '';
+            if (this.templatePreview) {
+                this.templatePreview.style.display = '';
+                this.templatePreview.textContent = `ตัวอย่าง prompt: ${firstLine}`;
+            }
+        } catch (err) {
+            if (this.templatePreview) {
+                this.templatePreview.style.display = '';
+                this.templatePreview.textContent = 'ไม่สามารถโหลดตัวอย่างได้';
+            }
         }
     }
 

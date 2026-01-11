@@ -28,6 +28,15 @@ class GoogleFlowExtendHandler {
         this.settings = {};
     }
 
+    // Messaging helpers
+    sendLog(message) {
+        try { chrome.runtime.sendMessage({ action: 'extendLog', message }); } catch (_) {}
+    }
+
+    sendStatus(status) {
+        try { chrome.runtime.sendMessage({ action: 'extendStatus', status }); } catch (_) {}
+    }
+
     /**
      * Start batch extend process
      */
@@ -43,6 +52,8 @@ class GoogleFlowExtendHandler {
         this.currentTaskIndex = 0;
 
         console.log(`[Flow Extend] Starting batch of ${tasks.length} extends`);
+        this.sendLog(`Starting batch of ${tasks.length} extends`);
+        this.sendStatus('Starting...');
 
         // Process tasks sequentially
         await this.processNextTask();
@@ -61,6 +72,7 @@ class GoogleFlowExtendHandler {
 
         const task = this.tasks[this.currentTaskIndex];
         console.log(`[Flow Extend] Processing task ${this.currentTaskIndex + 1}/${this.tasks.length}`);
+        this.sendLog(`Processing task ${this.currentTaskIndex + 1}/${this.tasks.length}`);
 
         // Send progress update
         this.sendProgress(this.currentTaskIndex, this.tasks.length);
@@ -92,6 +104,7 @@ class GoogleFlowExtendHandler {
         console.log('[Flow Extend] Extending scene:', task.prompt.substring(0, 50));
 
         // Step 1: Click (+) button
+        this.sendStatus('Looking for (+) button...');
         const plusClicked = await this.clickPlusButton();
         if (!plusClicked) {
             throw new Error('Failed to click (+) button');
@@ -99,6 +112,7 @@ class GoogleFlowExtendHandler {
         await this.delay(1500);
 
         // Step 2: Click Extend option
+        this.sendStatus('Looking for Extend option...');
         const extendClicked = await this.clickExtendButton();
         if (!extendClicked) {
             throw new Error('Failed to click Extend option');
@@ -106,6 +120,7 @@ class GoogleFlowExtendHandler {
         await this.delay(2000);
 
         // Step 3: Fill prompt
+        this.sendStatus('Filling prompt...');
         const promptFilled = this.fillScriptField(task.prompt);
         if (!promptFilled) {
             throw new Error('Failed to fill prompt');
@@ -113,6 +128,7 @@ class GoogleFlowExtendHandler {
         await this.delay(2000);
 
         // Step 4: Click Send
+        this.sendStatus('Looking for Send button...');
         const sendClicked = this.clickSendButton();
         if (!sendClicked) {
             throw new Error('Failed to click Send button');
@@ -122,10 +138,13 @@ class GoogleFlowExtendHandler {
         // Step 5: Wait for completion (with timeout)
         const targetPercent = this.settings.waitForPercent || 80;
         const timeout = this.settings.timeout || 120;
+        this.sendStatus(`Waiting for ${targetPercent}%...`);
         const completed = await this.waitForExtendCompletion(targetPercent, timeout);
 
         if (!completed) {
             console.warn(`[Flow Extend] ⚠️ Task ${this.currentTaskIndex + 1} timed out, continuing...`);
+            this.sendLog(`⚠️ Task ${this.currentTaskIndex + 1} timed out (> ${timeout}s)`);
+            this.sendStatus('Timeout - skipping');
         }
     }
 
@@ -351,11 +370,14 @@ class GoogleFlowExtendHandler {
                         if (percent >= targetPercent) {
                             clearInterval(interval);
                             console.log(`[Flow Extend] ✅ Reached ${percent}%!`);
+                            try { chrome.runtime.sendMessage({ action: 'extendProgress', current: percent, total: 100 }); } catch (_) {}
+                            this.sendStatus(`Reached ${percent}%`);
                             resolve(true);
                             return;
                         } else if (attempts % 10 === 0) {
                             // Log progress every 10 seconds
                             console.log(`[Flow Extend] Progress: ${percent}%`);
+                            this.sendStatus(`Progress: ${percent}%`);
                         }
                     }
                 }
@@ -367,6 +389,8 @@ class GoogleFlowExtendHandler {
                         if (el.textContent.includes('100%') && el.offsetParent !== null) {
                             clearInterval(interval);
                             console.log('[Flow Extend] ✅ Found 100% completion');
+                            try { chrome.runtime.sendMessage({ action: 'extendProgress', current: 100, total: 100 }); } catch (_) {}
+                            this.sendStatus('Reached 100%');
                             resolve(true);
                             return;
                         }
@@ -377,6 +401,7 @@ class GoogleFlowExtendHandler {
                 if (attempts >= maxAttempts) {
                     clearInterval(interval);
                     console.warn(`[Flow Extend] ⏱️ Timeout (${timeoutSeconds}s) - skipping to next task`);
+                    this.sendStatus(`Timeout after ${timeoutSeconds}s`);
                     resolve(false);
                 }
             }, 1000);
