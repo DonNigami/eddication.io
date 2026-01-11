@@ -1280,6 +1280,26 @@
 
           <!-- Controls (Hidden by default) -->
           <div id="extendSceneControls" class="hidden">
+            <!-- Template Library -->
+            <div class="form-group">
+              <label style="color: var(--text-primary); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <span>📚</span> Template Library
+              </label>
+              <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <select id="extendTemplateSelect" style="flex: 1; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                  <option value="">เลือกเทมเพลต...</option>
+                  <option value="tiktok_basket_th_a.csv">TikTok Basket TH (A)</option>
+                  <option value="tiktok_basket_th_b.csv">TikTok Basket TH (B)</option>
+                  <option value="books_review_extend.csv">Books: Review Extend</option>
+                  <option value="books_story_extend.csv">Books: Story Extend</option>
+                  <option value="it_smartphone_demo_extend.csv">IT: Smartphone Demo</option>
+                  <option value="it_laptop_productivity_extend.csv">IT: Laptop Productivity</option>
+                  <option value="it_accessory_cta_extend.csv">IT: Accessory CTA</option>
+                </select>
+                <button id="loadExtendTemplateBtn" style="padding: 8px 16px; background: var(--accent-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Load</button>
+              </div>
+              <div style="margin-top: 6px; font-size: 0.825rem; color: var(--text-secondary);">คุณสามารถเลือกเทมเพลตเพื่อโหลด prompts โดยไม่ต้องอัปโหลด CSV</div>
+            </div>
             <!-- CSV Upload -->
             <div class="form-group">
               <label

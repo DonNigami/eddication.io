@@ -43,6 +43,10 @@ class ExtendScene {
         this.startBtn = document.getElementById('startExtendBtn');
         this.stopBtn = document.getElementById('stopExtendBtn');
 
+        // Template library
+        this.templateSelect = document.getElementById('extendTemplateSelect');
+        this.loadTemplateBtn = document.getElementById('loadExtendTemplateBtn');
+
         // Progress
         this.progress = document.getElementById('extendProgress');
         this.progressText = document.getElementById('extendProgressText');
@@ -68,6 +72,10 @@ class ExtendScene {
             this.stopBtn.addEventListener('click', () => this.stopExtending());
         }
 
+        if (this.loadTemplateBtn) {
+            this.loadTemplateBtn.addEventListener('click', () => this.handleLoadTemplate());
+        }
+
         // Listen for updates from content script
         chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             if (request.action === 'extendProgress') {
@@ -78,6 +86,35 @@ class ExtendScene {
                 this.onError(request.error);
             }
         });
+    }
+
+    async handleLoadTemplate() {
+        const file = this.templateSelect?.value;
+        if (!file) {
+            this.showNotification('⚠️ กรุณาเลือกเทมเพลตก่อน', 'warning');
+            return;
+        }
+
+        try {
+            this.updateCsvStatus('⏳ กำลังโหลดเทมเพลต...', 'info');
+            const url = chrome.runtime.getURL(`examples/extend-prompts/${file}`);
+            const res = await fetch(url);
+            const text = await res.text();
+            this.prompts = this.parseCsv(text);
+
+            if (!this.prompts || this.prompts.length === 0) {
+                this.showError('⚠️ ไม่พบ prompts ในเทมเพลต');
+                return;
+            }
+
+            this.totalPrompts = this.prompts.length;
+            this.updateCsvStatus(`✅ โหลดเทมเพลต ${this.totalPrompts} prompts แล้ว`, 'success');
+            this.showPreview();
+            this.saveState({ extendPrompts: this.prompts });
+        } catch (error) {
+            console.error('Error loading template:', error);
+            this.showError('⚠️ โหลดเทมเพลตไม่สำเร็จ');
+        }
     }
 
     handleToggle(event) {

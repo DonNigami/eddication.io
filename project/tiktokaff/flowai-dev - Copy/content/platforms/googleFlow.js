@@ -123,7 +123,7 @@ class GoogleFlowExtendHandler {
         const targetPercent = this.settings.waitForPercent || 80;
         const timeout = this.settings.timeout || 120;
         const completed = await this.waitForExtendCompletion(targetPercent, timeout);
-        
+
         if (!completed) {
             console.warn(`[Flow Extend] ⚠️ Task ${this.currentTaskIndex + 1} timed out, continuing...`);
         }
