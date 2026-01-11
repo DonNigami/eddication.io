@@ -197,26 +197,66 @@ class GoogleFlowExtendHandler {
     fillScriptField(prompt) {
         console.log('[Flow Extend] Filling prompt...');
 
-        // Find visible textarea
+        // Strategy 1: Find visible textarea
         const textareas = document.querySelectorAll('textarea');
         for (const textarea of textareas) {
-            if (textarea.offsetParent !== null) {
+            if (textarea.offsetParent !== null && !textarea.disabled) {
+                textarea.focus();
                 textarea.value = prompt;
                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
                 textarea.dispatchEvent(new Event('change', { bubbles: true }));
-                console.log('[Flow Extend] Prompt filled');
+                textarea.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true }));
+                console.log('[Flow Extend] Prompt filled (textarea)');
                 return true;
             }
         }
 
-        // Try contenteditable
+        // Strategy 2: Try input[type=text]
+        const textInputs = document.querySelectorAll('input[type="text"]');
+        for (const input of textInputs) {
+            if (input.offsetParent !== null && !input.disabled && input.placeholder?.toLowerCase().includes('prompt')) {
+                input.focus();
+                input.value = prompt;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                console.log('[Flow Extend] Prompt filled (text input)');
+                return true;
+            }
+        }
+
+        // Strategy 3: Try contenteditable
         const editables = document.querySelectorAll('[contenteditable="true"]');
         for (const editable of editables) {
             if (editable.offsetParent !== null) {
+                editable.focus();
                 editable.textContent = prompt;
+                editable.innerHTML = prompt;
                 editable.dispatchEvent(new Event('input', { bubbles: true }));
+                editable.dispatchEvent(new Event('change', { bubbles: true }));
                 console.log('[Flow Extend] Prompt filled (contenteditable)');
                 return true;
+            }
+        }
+
+        // Strategy 4: Find any visible input field
+        const allInputs = document.querySelectorAll('input, textarea, [contenteditable]');
+        for (const input of allInputs) {
+            if (input.offsetParent !== null && !input.disabled) {
+                try {
+                    input.focus();
+                    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+                        input.value = prompt;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    } else {
+                        input.textContent = prompt;
+                        input.innerHTML = prompt;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    console.log('[Flow Extend] Prompt filled (any input)');
+                    return true;
+                } catch (e) {
+                    continue;
+                }
             }
         }
 
@@ -230,16 +270,50 @@ class GoogleFlowExtendHandler {
     clickSendButton() {
         console.log('[Flow Extend] Looking for Send button...');
 
+        // Strategy 1: Look for button with Send, Generate, or Confirm text
         const buttons = document.querySelectorAll('button');
         for (const btn of buttons) {
             const text = btn.textContent?.trim().toLowerCase() || '';
             const ariaLabel = (btn.getAttribute('aria-label') || '').toLowerCase();
 
-            if ((text.includes('send') || text.includes('generate') ||
-                ariaLabel.includes('send') || ariaLabel.includes('generate')) &&
+            if ((text.includes('send') || text.includes('generate') || text.includes('confirm') ||
+                ariaLabel.includes('send') || ariaLabel.includes('generate') || ariaLabel.includes('confirm')) &&
                 btn.offsetParent !== null && !btn.disabled) {
                 this.simulateClick(btn);
-                console.log('[Flow Extend] Clicked Send button');
+                console.log('[Flow Extend] Clicked Send button (text/label match)');
+                return true;
+            }
+        }
+
+        // Strategy 2: Look for button with checkmark icon or svg
+        for (const btn of buttons) {
+            const svg = btn.querySelector('svg');
+            const innerHTML = btn.innerHTML.toLowerCase();
+            
+            // Check for checkmark, arrow, or play icons
+            if ((innerHTML.includes('check') || innerHTML.includes('arrow') || 
+                 innerHTML.includes('play') || btn.textContent?.trim() === '✓') &&
+                btn.offsetParent !== null && !btn.disabled) {
+                this.simulateClick(btn);
+                console.log('[Flow Extend] Clicked Send button (icon match)');
+                return true;
+            }
+        }
+
+        // Strategy 3: Look for the last visible button in the dialog
+        const visibleButtons = Array.from(buttons).filter(btn => 
+            btn.offsetParent !== null && !btn.disabled
+        );
+        
+        if (visibleButtons.length > 0) {
+            // The rightmost/last button is usually the action button
+            const lastBtn = visibleButtons[visibleButtons.length - 1];
+            const btnText = lastBtn.textContent?.trim() || '';
+            
+            // Make sure it's not a cancel button
+            if (!btnText.toLowerCase().includes('cancel') && !btnText.toLowerCase().includes('close')) {
+                this.simulateClick(lastBtn);
+                console.log(`[Flow Extend] Clicked Send button (last button: "${btnText}")`);
                 return true;
             }
         }
@@ -380,7 +454,7 @@ try {
     // Listen for messages from sidebar
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         console.log('[Flow Extend] Received message:', request.action);
-        
+
         try {
             if (request.action === 'startBatch' && request.settings?.mode === 'extend') {
                 extendHandler.startBatch(request.tasks, request.settings);

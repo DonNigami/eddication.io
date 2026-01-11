@@ -233,10 +233,10 @@ class ExtendScene {
 
         } catch (error) {
             console.error('Error starting extend:', error);
-            
+
             // Better error messages
             let errorMsg = '⚠️ ไม่สามารถเชื่อมต่อกับหน้า Flow ได้';
-            
+
             if (error.message.includes('Could not establish connection')) {
                 errorMsg = '⚠️ Content script ไม่โหลด - รีเฟรชหน้า Google Flow';
             } else if (error.message.includes('Extension context invalidated')) {
@@ -244,7 +244,7 @@ class ExtendScene {
             } else if (error.message.includes('Receiving end does not exist')) {
                 errorMsg = '⚠️ ไม่พบ content script - รีเฟรชหน้า Google Flow';
             }
-            
+
             this.showError(errorMsg);
             console.log('[ExtendScene] Debugging info:', {
                 tabFound: tabs.length > 0,
