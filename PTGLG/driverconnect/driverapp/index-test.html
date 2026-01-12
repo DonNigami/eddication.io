@@ -764,9 +764,13 @@
       }
 
       btn.disabled = true;
+
+      // บันทึกเวลาเริ่มต้นสำหรับคำนวณ delay
+      let startTime;
       if (!silent) {
         console.log('🔍 เริ่มค้นหา - แสดง SweetAlert Loading...');
         showLoading('กำลังค้นหา...โปรดรอสักครู่');
+        startTime = Date.now(); // เก็บเวลาที่เริ่มแสดง loader
       }
 
       try {
@@ -780,10 +784,14 @@
         const res = await fetch(url);
         const json = await res.json();
 
-        // เพิ่ม delay เล็กน้อยให้ loader มองเห็นชัดเจน (min 800ms)
+        // รอให้ loader แสดงอย่างน้อย 800ms นับจากเวลาที่เริ่มแสดง
         if (!silent) {
-          console.log('⏳ รอ 800ms เพื่อให้ loader แสดงผล...');
-          await new Promise(resolve => setTimeout(resolve, 800));
+          const elapsed = Date.now() - startTime;
+          const remainingTime = Math.max(0, 800 - elapsed);
+          console.log(`⏳ เวลาผ่านไป ${elapsed}ms, รออีก ${remainingTime}ms เพื่อให้ loader แสดงผล...`);
+          if (remainingTime > 0) {
+            await new Promise(resolve => setTimeout(resolve, remainingTime));
+          }
           console.log('✅ ปิด SweetAlert Loading...');
           closeLoading();
         }
