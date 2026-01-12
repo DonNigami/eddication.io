@@ -829,40 +829,40 @@
       }
     }
 
-      function clearResult() {
-        document.getElementById('summary').classList.add('hidden');
-        document.getElementById('timelineContainer').classList.add('hidden');
-        document.getElementById('summary').innerHTML = '';
-        document.getElementById('timeline').innerHTML = '';
-        document.getElementById('closeJobContainer').classList.add('hidden');
-        document.getElementById('alcoholContainer').classList.add('hidden');
-        document.getElementById('alcoholContainer').innerHTML = '';
-        lastStops = [];
-        currentDrivers = [];
-        currentCheckedDrivers = [];
-        alcoholAllDone = false;
-        jobClosed = false;
-        tripEnded = false;
+    function clearResult() {
+      document.getElementById('summary').classList.add('hidden');
+      document.getElementById('timelineContainer').classList.add('hidden');
+      document.getElementById('summary').innerHTML = '';
+      document.getElementById('timeline').innerHTML = '';
+      document.getElementById('closeJobContainer').classList.add('hidden');
+      document.getElementById('alcoholContainer').classList.add('hidden');
+      document.getElementById('alcoholContainer').innerHTML = '';
+      lastStops = [];
+      currentDrivers = [];
+      currentCheckedDrivers = [];
+      alcoholAllDone = false;
+      jobClosed = false;
+      tripEnded = false;
+    }
+
+    function renderSummary(d) {
+      const summaryEl = document.getElementById('summary');
+      const stops = d.stops || [];
+      const shipmentNos = d.shipmentNos || [];
+
+      let shipmentSummary = '-';
+      if (shipmentNos.length === 1) {
+        shipmentSummary = shipmentNos[0];
+      } else if (shipmentNos.length > 1) {
+        shipmentSummary = shipmentNos.join(', ');
       }
 
-      function renderSummary(d) {
-        const summaryEl = document.getElementById('summary');
-        const stops = d.stops || [];
-        const shipmentNos = d.shipmentNos || [];
+      const totalQtyAll = stops.reduce(function (acc, s) {
+        if (typeof s.totalQty === 'number') return acc + s.totalQty;
+        return acc;
+      }, 0);
 
-        let shipmentSummary = '-';
-        if (shipmentNos.length === 1) {
-          shipmentSummary = shipmentNos[0];
-        } else if (shipmentNos.length > 1) {
-          shipmentSummary = shipmentNos.join(', ');
-        }
-
-        const totalQtyAll = stops.reduce(function (acc, s) {
-          if (typeof s.totalQty === 'number') return acc + s.totalQty;
-          return acc;
-        }, 0);
-
-        summaryEl.innerHTML = `
+      summaryEl.innerHTML = `
           <div class="summary-row">
             <span class="summary-label">Reference</span>
             <span class="summary-value">${d.referenceNo || '-'}</span>
@@ -885,38 +885,38 @@
           </div>
         `;
 
-        summaryEl.classList.remove('hidden');
+      summaryEl.classList.remove('hidden');
+    }
+
+    function renderAlcoholSection() {
+      const container = document.getElementById('alcoholContainer');
+      if (!container) return;
+
+      if (!currentDrivers || currentDrivers.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
       }
 
-      function renderAlcoholSection() {
-        const container = document.getElementById('alcoholContainer');
-        if (!container) return;
-
-        if (!currentDrivers || currentDrivers.length === 0) {
-          container.classList.add('hidden');
-          container.innerHTML = '';
-          return;
-        }
-
-        let html = `
+      let html = `
           <div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
           <div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:6px;">
             บันทึกผลแอลกอฮอล์ (ตัวเลข) พร้อมถ่ายรูปหลักฐาน ระบบจะบันทึกพิกัดและเวลาปัจจุบันให้
           </div>
         `;
 
-        currentDrivers.forEach((name) => {
-          const checked = currentCheckedDrivers.includes(name);
-          if (checked) {
-            html += `
+      currentDrivers.forEach((name) => {
+        const checked = currentCheckedDrivers.includes(name);
+        if (checked) {
+          html += `
               <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${name}</span>
                 <button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>
               </div>
             `;
-          } else {
-            const safeName = name.replace(/'/g, "\\'");
-            html += `
+        } else {
+          const safeName = name.replace(/'/g, "\\'");
+          html += `
               <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
                 <span>${name}</span>
                 <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
@@ -924,53 +924,53 @@
                 </button>
               </div>
             `;
-          }
-        });
+        }
+      });
 
-        alcoholAllDone =
-          currentDrivers.length > 0 &&
-          currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+      alcoholAllDone =
+        currentDrivers.length > 0 &&
+        currentDrivers.every((n) => currentCheckedDrivers.includes(n));
 
-        if (alcoholAllDone) {
-          html += `
+      if (alcoholAllDone) {
+        html += `
             <div style="margin-top:4px;font-size:0.78rem;color:var(--primary-dark);">
               ✅ ตรวจแอลกอฮอล์ครบทุกคนแล้ว สามารถเริ่มงานได้
             </div>
           `;
-        } else {
-          html += `
+      } else {
+        html += `
             <div style="margin-top:4px;font-size:0.78rem;color:#c0392b;">
               ⚠️ ยังตรวจแอลกอฮอล์ไม่ครบทุกคน
             </div>
           `;
-        }
-
-        container.innerHTML = html;
-        container.classList.remove('hidden');
       }
 
-      function fileToBase64(file) {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result || '';
-            const base64 = result.toString().split(',')[1] || '';
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+      container.innerHTML = html;
+      container.classList.remove('hidden');
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result || '';
+          const base64 = result.toString().split(',')[1] || '';
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function doAlcoholCheck(driverName) {
+      if (!currentReference) {
+        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+        return;
       }
 
-      async function doAlcoholCheck(driverName) {
-        if (!currentReference) {
-          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
-          return;
-        }
-
-        const { value: formValues } = await Swal.fire({
-          title: 'บันทึกผลแอลกอฮอล์',
-          html: `
+      const { value: formValues } = await Swal.fire({
+        title: 'บันทึกผลแอลกอฮอล์',
+        html: `
             <div style="text-align:left;">
               <label style="font-size:0.8rem;color:#555;">ชื่อคนขับ</label>
               <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${driverName}</div>
@@ -985,370 +985,370 @@
                 style="margin-top:4px;font-size:0.8rem;">
             </div>
           `,
-          focusConfirm: false,
-          showCancelButton: true,
-          confirmButtonText: 'บันทึกผล',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-          preConfirm: () => {
-            const val = document
-              .getElementById('swalAlcoholValue')
-              .value.trim();
-            const file = document.getElementById('swalAlcoholImage').files[0];
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกผล',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          const val = document
+            .getElementById('swalAlcoholValue')
+            .value.trim();
+          const file = document.getElementById('swalAlcoholImage').files[0];
 
-            if (!val) {
-              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
-              return false;
-            }
-            if (isNaN(parseFloat(val))) {
-              Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
-              return false;
-            }
-            if (!file) {
-              Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
-              return false;
-            }
+          if (!val) {
+            Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
+            return false;
+          }
+          if (isNaN(parseFloat(val))) {
+            Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
+            return false;
+          }
+          if (!file) {
+            Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
+            return false;
+          }
 
-            return { alcoholValue: val, file: file };
-          },
-        });
+          return { alcoholValue: val, file: file };
+        },
+      });
 
-        if (!formValues) {
-          return;
-        }
+      if (!formValues) {
+        return;
+      }
 
-        const { alcoholValue, file } = formValues;
+      const { alcoholValue, file } = formValues;
 
+      try {
+        showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
+
+        let pos;
         try {
-          showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
-
-          let pos;
-          try {
-            pos = await getCurrentPositionAsync();
-          } catch (err) {
-            console.error(err);
-            closeLoading();
-            showError(
-              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-            );
-            return;
-          }
-
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          const base64 = await fileToBase64(file);
-
-          showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
-
-          const formData = new URLSearchParams();
-          formData.append('action', 'uploadalcohol');
-          formData.append('reference', currentReference);
-          formData.append('driverName', driverName);
-          formData.append('userId', currentUserId);
-          formData.append('alcoholValue', alcoholValue);
-          formData.append('lat', String(lat));
-          formData.append('lng', String(lng));
-          formData.append('imageBase64', base64);
-
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-            body: formData,
-          });
-
-          const json = await res.json();
-
-          closeLoading();
-
-          if (!json.success) {
-            showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
-            return;
-          }
-
-          if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
-            currentCheckedDrivers = [...new Set(json.checkedDrivers)];
-          } else {
-            currentCheckedDrivers = [
-              ...new Set(currentCheckedDrivers.concat([driverName])),
-            ];
-          }
-
-          renderAlcoholSection();
-          showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+          pos = await getCurrentPositionAsync();
         } catch (err) {
           console.error(err);
           closeLoading();
-          showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
-        }
-      }
-
-      function renderTimeline(stops) {
-        const container = document.getElementById('timelineContainer');
-        const ul = document.getElementById('timeline');
-        const closeJobContainer = document.getElementById('closeJobContainer');
-        const btnCloseJob = document.getElementById('btnCloseJob');
-        const btnEndTrip = document.getElementById('btnEndTrip');
-
-        ul.innerHTML = '';
-
-        // reset ปุ่มด้านล่าง
-        closeJobContainer.classList.add('hidden');
-        if (btnCloseJob) {
-          btnCloseJob.style.display = 'none';
-          btnCloseJob.disabled = true;
-        }
-        if (btnEndTrip) {
-          btnEndTrip.style.display = 'none';
-          btnEndTrip.disabled = true;
-        }
-
-        if (!stops || stops.length === 0) {
-          container.classList.add('hidden');
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
           return;
         }
 
-        let allCheckout = true;
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
 
-        stops.forEach(function (stop) {
-          const hasCheckIn = !!stop.checkInTime;
-          const hasFuel = !!stop.fuelingTime;
-          const hasUnloadDone = !!stop.unloadDoneTime;
-          const hasCheckOut = !!stop.checkOutTime;
-          const isOrigin = !!stop.isOriginStop;
+        const base64 = await fileToBase64(file);
 
-          if (!hasCheckOut) {
-            allCheckout = false;
-          }
+        showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
 
-          const statusLabel = stop.status || '-';
+        const formData = new URLSearchParams();
+        formData.append('action', 'uploadalcohol');
+        formData.append('reference', currentReference);
+        formData.append('driverName', driverName);
+        formData.append('userId', currentUserId);
+        formData.append('alcoholValue', alcoholValue);
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+        formData.append('imageBase64', base64);
 
-          let btnHtml = '';
-
-          if (isOrigin) {
-            if (!hasCheckIn) {
-              btnHtml +=
-                '<button class="btn-small btn-outline" ' +
-                'onclick="startCheckin(' +
-                stop.rowIndex +
-                ', ' +
-                stop.seq +
-                ')">Check-in</button>';
-            } else if (!hasCheckOut) {
-              btnHtml +=
-                '<button class="btn-small" ' +
-                'onclick="updateStopStatus(' +
-                stop.rowIndex +
-                ", 'CHECKOUT', 'checkout', " +
-                stop.seq +
-                ')">Check-out</button>';
-            }
-          } else {
-            if (!hasCheckIn) {
-              btnHtml +=
-                '<button class="btn-small btn-outline" ' +
-                'onclick="startCheckin(' +
-                stop.rowIndex +
-                ', ' +
-                stop.seq +
-                ')">Check-in</button>';
-            } else if (!hasFuel) {
-              btnHtml +=
-                '<button class="btn-small btn-warning" ' +
-                'onclick="updateStopStatus(' +
-                stop.rowIndex +
-                ", 'FUELING', 'fuel', " +
-                stop.seq +
-                ')">ลงน้ำมัน</button>';
-            } else if (!hasUnloadDone) {
-              btnHtml +=
-                '<button class="btn-small btn-outline" ' +
-                'onclick="updateStopStatus(' +
-                stop.rowIndex +
-                ", 'UNLOAD_DONE', 'unload', " +
-                stop.seq +
-                ')">ลงเสร็จ</button>';
-            } else if (!hasCheckOut) {
-              btnHtml +=
-                '<button class="btn-small" ' +
-                'onclick="updateStopStatus(' +
-                stop.rowIndex +
-                ", 'CHECKOUT', 'checkout', " +
-                stop.seq +
-                ')">Check-out</button>';
-            }
-          }
-
-          let materialsBlock = '';
-          if (stop.materials && stop.materials.length > 0) {
-            const parts = stop.materials.map(function (m) {
-              const name = m.materialDesc || m.material || 'สินค้า';
-              const qty = m.totalQty || 0;
-              return '- ' + name + ' ' + qty;
-            });
-            materialsBlock =
-              '<div class="materials-text"><b>สินค้า:</b><br>' +
-              parts.join('<br>') +
-              '</div>';
-          }
-
-          const distanceText =
-            stop.distanceKm !== undefined &&
-              stop.distanceKm !== null &&
-              stop.distanceKm !== ''
-              ? stop.distanceKm
-              : '-';
-
-          const odoText =
-            stop.checkInOdo !== undefined &&
-              stop.checkInOdo !== null &&
-              stop.checkInOdo !== ''
-              ? stop.checkInOdo
-              : '-';
-
-          let navBtnHtml = '';
-          if (
-            stop.destLat !== undefined &&
-            stop.destLat !== '' &&
-            stop.destLng !== undefined &&
-            stop.destLng !== ''
-          ) {
-            navBtnHtml =
-              '<button class="btn-nav" onclick="navigateToStop(' +
-              stop.rowIndex +
-              ')">นำทาง</button>';
-          }
-
-          const li = document.createElement('li');
-          li.className = 'timeline-item';
-          li.innerHTML =
-            '<span class="timeline-marker"></span>' +
-            '<div class="timeline-content">' +
-            '<div class="timeline-header-row">' +
-            '<div class="timeline-stop-label">' +
-            'Stop ' +
-            stop.seq +
-            ' • ' +
-            (stop.destination2 || '-') +
-            '</div>' +
-            '<div class="timeline-status">' +
-            statusLabel +
-            '</div>' +
-            '</div>' +
-            '<div class="timeline-sub">รหัสสถานี: ' +
-            (stop.destination1 || '-') +
-            '</div>' +
-            '<div class="timeline-sub"><b>Shipment:</b> ' +
-            (stop.shipmentNo || '-') +
-            '</div>' +
-            '<div class="timeline-sub"><b>Distance (ระบบ):</b> ' +
-            distanceText +
-            '</div>' +
-            '<div class="timeline-sub"><b>Check-in:</b> ' +
-            (stop.checkInTime || '-') +
-            '</div>' +
-            '<div class="timeline-sub"><b>เลขไมล์ Check-in:</b> ' +
-            odoText +
-            '</div>' +
-            '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
-            (stop.fuelingTime || '-') +
-            '</div>' +
-            '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
-            (stop.unloadDoneTime || '-') +
-            '</div>' +
-            '<div class="timeline-sub"><b>Check-out:</b> ' +
-            (stop.checkOutTime || '-') +
-            '</div>' +
-            materialsBlock +
-            '<div class="action-row">' +
-            btnHtml +
-            navBtnHtml +
-            '</div>' +
-            '</div>';
-          ul.appendChild(li);
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData,
         });
 
-        // ✅ Logic แสดง/ซ่อนปุ่มปิดงาน / จบทริป
-        if (stops.length > 0) {
-          if (tripEnded) {
-            // จบทริปแล้ว → ซ่อนปุ่มทั้งหมด
-            closeJobContainer.classList.add('hidden');
-            if (btnCloseJob) {
-              btnCloseJob.style.display = 'none';
-              btnCloseJob.disabled = true;
-            }
-            if (btnEndTrip) {
-              btnEndTrip.style.display = 'none';
-              btnEndTrip.disabled = true;
-            }
-          } else if (jobClosed) {
-            // ปิดงานแล้ว → แสดงเฉพาะปุ่ม "บันทึกจบทริป"
-            closeJobContainer.classList.remove('hidden');
-            if (btnCloseJob) {
-              btnCloseJob.style.display = 'none';
-              btnCloseJob.disabled = true;
-            }
-            if (btnEndTrip) {
-              btnEndTrip.style.display = 'block';
-              btnEndTrip.disabled = false;
-            }
-          } else if (allCheckout) {
-            // Checkout ครบ แต่ยังไม่ปิดงาน → แสดงปุ่ม "ปิดงาน"
-            closeJobContainer.classList.remove('hidden');
-            if (btnCloseJob) {
-              btnCloseJob.style.display = 'block';
-              btnCloseJob.disabled = false;
-            }
-            if (btnEndTrip) {
-              btnEndTrip.style.display = 'none';
-              btnEndTrip.disabled = true;
-            }
-          } else {
-            closeJobContainer.classList.add('hidden');
+        const json = await res.json();
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
+          return;
+        }
+
+        if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
+          currentCheckedDrivers = [...new Set(json.checkedDrivers)];
+        } else {
+          currentCheckedDrivers = [
+            ...new Set(currentCheckedDrivers.concat([driverName])),
+          ];
+        }
+
+        renderAlcoholSection();
+        showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+      } catch (err) {
+        console.error(err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
+      }
+    }
+
+    function renderTimeline(stops) {
+      const container = document.getElementById('timelineContainer');
+      const ul = document.getElementById('timeline');
+      const closeJobContainer = document.getElementById('closeJobContainer');
+      const btnCloseJob = document.getElementById('btnCloseJob');
+      const btnEndTrip = document.getElementById('btnEndTrip');
+
+      ul.innerHTML = '';
+
+      // reset ปุ่มด้านล่าง
+      closeJobContainer.classList.add('hidden');
+      if (btnCloseJob) {
+        btnCloseJob.style.display = 'none';
+        btnCloseJob.disabled = true;
+      }
+      if (btnEndTrip) {
+        btnEndTrip.style.display = 'none';
+        btnEndTrip.disabled = true;
+      }
+
+      if (!stops || stops.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      let allCheckout = true;
+
+      stops.forEach(function (stop) {
+        const hasCheckIn = !!stop.checkInTime;
+        const hasFuel = !!stop.fuelingTime;
+        const hasUnloadDone = !!stop.unloadDoneTime;
+        const hasCheckOut = !!stop.checkOutTime;
+        const isOrigin = !!stop.isOriginStop;
+
+        if (!hasCheckOut) {
+          allCheckout = false;
+        }
+
+        const statusLabel = stop.status || '-';
+
+        let btnHtml = '';
+
+        if (isOrigin) {
+          if (!hasCheckIn) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="startCheckin(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-in</button>';
+          } else if (!hasCheckOut) {
+            btnHtml +=
+              '<button class="btn-small" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'CHECKOUT', 'checkout', " +
+              stop.seq +
+              ')">Check-out</button>';
+          }
+        } else {
+          if (!hasCheckIn) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="startCheckin(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-in</button>';
+          } else if (!hasFuel) {
+            btnHtml +=
+              '<button class="btn-small btn-warning" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'FUELING', 'fuel', " +
+              stop.seq +
+              ')">ลงน้ำมัน</button>';
+          } else if (!hasUnloadDone) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'UNLOAD_DONE', 'unload', " +
+              stop.seq +
+              ')">ลงเสร็จ</button>';
+          } else if (!hasCheckOut) {
+            btnHtml +=
+              '<button class="btn-small" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'CHECKOUT', 'checkout', " +
+              stop.seq +
+              ')">Check-out</button>';
+          }
+        }
+
+        let materialsBlock = '';
+        if (stop.materials && stop.materials.length > 0) {
+          const parts = stop.materials.map(function (m) {
+            const name = m.materialDesc || m.material || 'สินค้า';
+            const qty = m.totalQty || 0;
+            return '- ' + name + ' ' + qty;
+          });
+          materialsBlock =
+            '<div class="materials-text"><b>สินค้า:</b><br>' +
+            parts.join('<br>') +
+            '</div>';
+        }
+
+        const distanceText =
+          stop.distanceKm !== undefined &&
+            stop.distanceKm !== null &&
+            stop.distanceKm !== ''
+            ? stop.distanceKm
+            : '-';
+
+        const odoText =
+          stop.checkInOdo !== undefined &&
+            stop.checkInOdo !== null &&
+            stop.checkInOdo !== ''
+            ? stop.checkInOdo
+            : '-';
+
+        let navBtnHtml = '';
+        if (
+          stop.destLat !== undefined &&
+          stop.destLat !== '' &&
+          stop.destLng !== undefined &&
+          stop.destLng !== ''
+        ) {
+          navBtnHtml =
+            '<button class="btn-nav" onclick="navigateToStop(' +
+            stop.rowIndex +
+            ')">นำทาง</button>';
+        }
+
+        const li = document.createElement('li');
+        li.className = 'timeline-item';
+        li.innerHTML =
+          '<span class="timeline-marker"></span>' +
+          '<div class="timeline-content">' +
+          '<div class="timeline-header-row">' +
+          '<div class="timeline-stop-label">' +
+          'Stop ' +
+          stop.seq +
+          ' • ' +
+          (stop.destination2 || '-') +
+          '</div>' +
+          '<div class="timeline-status">' +
+          statusLabel +
+          '</div>' +
+          '</div>' +
+          '<div class="timeline-sub">รหัสสถานี: ' +
+          (stop.destination1 || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>Shipment:</b> ' +
+          (stop.shipmentNo || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>Distance (ระบบ):</b> ' +
+          distanceText +
+          '</div>' +
+          '<div class="timeline-sub"><b>Check-in:</b> ' +
+          (stop.checkInTime || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>เลขไมล์ Check-in:</b> ' +
+          odoText +
+          '</div>' +
+          '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
+          (stop.fuelingTime || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
+          (stop.unloadDoneTime || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>Check-out:</b> ' +
+          (stop.checkOutTime || '-') +
+          '</div>' +
+          materialsBlock +
+          '<div class="action-row">' +
+          btnHtml +
+          navBtnHtml +
+          '</div>' +
+          '</div>';
+        ul.appendChild(li);
+      });
+
+      // ✅ Logic แสดง/ซ่อนปุ่มปิดงาน / จบทริป
+      if (stops.length > 0) {
+        if (tripEnded) {
+          // จบทริปแล้ว → ซ่อนปุ่มทั้งหมด
+          closeJobContainer.classList.add('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'none';
+            btnCloseJob.disabled = true;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'none';
+            btnEndTrip.disabled = true;
+          }
+        } else if (jobClosed) {
+          // ปิดงานแล้ว → แสดงเฉพาะปุ่ม "บันทึกจบทริป"
+          closeJobContainer.classList.remove('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'none';
+            btnCloseJob.disabled = true;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'block';
+            btnEndTrip.disabled = false;
+          }
+        } else if (allCheckout) {
+          // Checkout ครบ แต่ยังไม่ปิดงาน → แสดงปุ่ม "ปิดงาน"
+          closeJobContainer.classList.remove('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'block';
+            btnCloseJob.disabled = false;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'none';
+            btnEndTrip.disabled = true;
           }
         } else {
           closeJobContainer.classList.add('hidden');
         }
-
-        container.classList.remove('hidden');
+      } else {
+        closeJobContainer.classList.add('hidden');
       }
 
-      function getCurrentPositionAsync() {
-        return new Promise(function (resolve, reject) {
-          if (!navigator.geolocation) {
-            reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
-            return;
-          }
-          navigator.geolocation.getCurrentPosition(
-            function (pos) {
-              resolve(pos);
-            },
-            function (err) {
-              reject(err);
-            },
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-          );
-        });
-      }
+      container.classList.remove('hidden');
+    }
 
-      async function startCheckin(rowIndex, seq) {
-        if (currentDrivers.length > 0 && currentCheckedDrivers.length === 0) {
-          showInfo(
-            'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
-            'ต้องตรวจแอลกอฮอล์อย่างน้อย 1 คนก่อนทำการ Check-in จุดส่งแรก'
-          );
+    function getCurrentPositionAsync() {
+      return new Promise(function (resolve, reject) {
+        if (!navigator.geolocation) {
+          reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
           return;
         }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            resolve(pos);
+          },
+          function (err) {
+            reject(err);
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      });
+    }
 
-        const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
-        const isOrigin = stop && !!stop.isOriginStop;
+    async function startCheckin(rowIndex, seq) {
+      if (currentDrivers.length > 0 && currentCheckedDrivers.length === 0) {
+        showInfo(
+          'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
+          'ต้องตรวจแอลกอฮอล์อย่างน้อย 1 คนก่อนทำการ Check-in จุดส่งแรก'
+        );
+        return;
+      }
 
-        if (isOrigin) {
-          // Origin Stop: เก็บเพียงเลขไมล์
-          const { value: formValues } = await Swal.fire({
-            icon: 'question',
-            title: 'กรอกเลขไมล์รถ',
-            html: `
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      const isOrigin = stop && !!stop.isOriginStop;
+
+      if (isOrigin) {
+        // Origin Stop: เก็บเพียงเลขไมล์
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'กรอกเลขไมล์รถ',
+          html: `
               <div style="text-align:left;">
                 <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
                 <input id="swalOdoInput" type="number" inputmode="numeric"
@@ -1357,33 +1357,33 @@
                   style="width:100%;margin:6px 0 4px;">
               </div>
             `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'ยืนยัน Check-in',
-            cancelButtonText: 'ยกเลิก',
-            confirmButtonColor: '#1abc9c',
-            preConfirm: () => {
-              const val = document.getElementById('swalOdoInput').value.trim();
-              if (!val) {
-                Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
-                return false;
-              }
-              return { odo: val };
-            },
-          });
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const val = document.getElementById('swalOdoInput').value.trim();
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
+            }
+            return { odo: val };
+          },
+        });
 
-          if (!formValues) {
-            return;
-          }
+        if (!formValues) {
+          return;
+        }
 
-          const { odo } = formValues;
-          await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
-        } else {
-          // Non-Origin Stop: เก็บเลขไมล์ + ชื่อผู้รับน้ำมัน + ประเภทผู้รับ
-          const { value: formValues } = await Swal.fire({
-            icon: 'question',
-            title: 'Check-in พร้อมบันทึกข้อมูล',
-            html: `
+        const { odo } = formValues;
+        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+      } else {
+        // Non-Origin Stop: เก็บเลขไมล์ + ชื่อผู้รับน้ำมัน + ประเภทผู้รับ
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'Check-in พร้อมบันทึกข้อมูล',
+          html: `
               <div style="text-align:left;">
                 <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
                 <input id="swalOdoInput" type="number" inputmode="numeric"
@@ -1411,144 +1411,144 @@
                 </div>
               </div>
             `,
-            focusConfirm: false,
-            showCancelButton: true,
-            confirmButtonText: 'ยืนยัน Check-in',
-            cancelButtonText: 'ยกเลิก',
-            confirmButtonColor: '#1abc9c',
-            preConfirm: () => {
-              const odo = document.getElementById('swalOdoInput').value.trim();
-              const receiverName = document.getElementById('swalReceiverName').value.trim();
-              const typeRadio = document.querySelector('input[name="receiverType"]:checked');
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const odo = document.getElementById('swalOdoInput').value.trim();
+            const receiverName = document.getElementById('swalReceiverName').value.trim();
+            const typeRadio = document.querySelector('input[name="receiverType"]:checked');
 
-              if (!odo) {
-                Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
-                return false;
-              }
-              if (!receiverName) {
-                Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
-                return false;
-              }
-              if (!typeRadio) {
-                Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
-                return false;
-              }
-
-              return {
-                odo: odo,
-                receiverName: receiverName,
-                receiverType: typeRadio.value,
-              };
-            },
-          });
-
-          if (!formValues) {
-            return;
-          }
-
-          const { odo, receiverName, receiverType } = formValues;
-          await updateStopStatus(
-            rowIndex,
-            'CHECKIN',
-            'checkin',
-            seq,
-            odo,
-            receiverName,
-            receiverType
-          );
-        }
-      }
-
-      async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType) {
-        try {
-          showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
-
-          let pos;
-          try {
-            pos = await getCurrentPositionAsync();
-          } catch (err) {
-            console.error(err);
-            closeLoading();
-            showError(
-              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-            );
-            return;
-          }
-
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          showLoading('กำลังอัปเดตสถานะจุดส่ง...');
-
-          let url =
-            WEB_APP_URL +
-            '?action=updatestop' +
-            '&rowIndex=' +
-            encodeURIComponent(rowIndex) +
-            '&status=' +
-            encodeURIComponent(newStatus) +
-            '&type=' +
-            encodeURIComponent(type) +
-            '&userId=' +
-            encodeURIComponent(currentUserId) +
-            '&lat=' +
-            encodeURIComponent(lat) +
-            '&lng=' +
-            encodeURIComponent(lng);
-
-          if (type === 'checkin') {
-            url += '&odo=' + encodeURIComponent(odo || '');
-            // เพิ่มข้อมูลผู้รับน้ำมัน ถ้ามี
-            if (receiverName) {
-              url += '&receiverName=' + encodeURIComponent(receiverName);
+            if (!odo) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
             }
-            if (receiverType) {
-              url += '&receiverType=' + encodeURIComponent(receiverType);
+            if (!receiverName) {
+              Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
+              return false;
             }
-          }
+            if (!typeRadio) {
+              Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
+              return false;
+            }
 
-          const res = await fetch(url);
-          const json = await res.json();
+            return {
+              odo: odo,
+              receiverName: receiverName,
+              receiverType: typeRadio.value,
+            };
+          },
+        });
 
-          closeLoading();
-
-          if (!json.success) {
-            showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
-            return;
-          }
-
-          await showSuccess(
-            'อัปเดตสำเร็จ',
-            json.message || 'อัปเดตสถานะเรียบร้อย'
-          );
-
-          const stopInfo = json.stop || null;
-          if (stopInfo) {
-            showInlineFlex(type, stopInfo);
-            sendFlexCheckInOut(type, stopInfo);
-          }
-
-          if (currentReference) {
-            document.getElementById('keyword').value = currentReference;
-            await search(true);
-          }
-        } catch (err) {
-          console.error(err);
-          closeLoading();
-          showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-        }
-      }
-
-      // ฟอร์ม "จบทริป"
-      async function openEndTripDialog() {
-        if (!currentReference) {
-          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+        if (!formValues) {
           return;
         }
 
-        const { value: formValues } = await Swal.fire({
-          title: 'สรุปจบทริป',
-          html: `
+        const { odo, receiverName, receiverType } = formValues;
+        await updateStopStatus(
+          rowIndex,
+          'CHECKIN',
+          'checkin',
+          seq,
+          odo,
+          receiverName,
+          receiverType
+        );
+      }
+    }
+
+    async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType) {
+      try {
+        showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
+          return;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        showLoading('กำลังอัปเดตสถานะจุดส่ง...');
+
+        let url =
+          WEB_APP_URL +
+          '?action=updatestop' +
+          '&rowIndex=' +
+          encodeURIComponent(rowIndex) +
+          '&status=' +
+          encodeURIComponent(newStatus) +
+          '&type=' +
+          encodeURIComponent(type) +
+          '&userId=' +
+          encodeURIComponent(currentUserId) +
+          '&lat=' +
+          encodeURIComponent(lat) +
+          '&lng=' +
+          encodeURIComponent(lng);
+
+        if (type === 'checkin') {
+          url += '&odo=' + encodeURIComponent(odo || '');
+          // เพิ่มข้อมูลผู้รับน้ำมัน ถ้ามี
+          if (receiverName) {
+            url += '&receiverName=' + encodeURIComponent(receiverName);
+          }
+          if (receiverType) {
+            url += '&receiverType=' + encodeURIComponent(receiverType);
+          }
+        }
+
+        const res = await fetch(url);
+        const json = await res.json();
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
+          return;
+        }
+
+        await showSuccess(
+          'อัปเดตสำเร็จ',
+          json.message || 'อัปเดตสถานะเรียบร้อย'
+        );
+
+        const stopInfo = json.stop || null;
+        if (stopInfo) {
+          showInlineFlex(type, stopInfo);
+          sendFlexCheckInOut(type, stopInfo);
+        }
+
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          await search(true);
+        }
+      } catch (err) {
+        console.error(err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+      }
+    }
+
+    // ฟอร์ม "จบทริป"
+    async function openEndTripDialog() {
+      if (!currentReference) {
+        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+        return;
+      }
+
+      const { value: formValues } = await Swal.fire({
+        title: 'สรุปจบทริป',
+        html: `
             <div style="text-align:left;">
               <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
                 Reference: <b>${currentReference}</b>
@@ -1571,167 +1571,167 @@
               </div>
             </div>
           `,
-          focusConfirm: false,
-          showCancelButton: true,
-          confirmButtonText: 'บันทึกจบทริป',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-          cancelButtonColor: '#95a5a6',
-          preConfirm: () => {
-            const odoVal = document
-              .getElementById('swalEndOdo')
-              .value.trim();
-            const pointVal = document
-              .getElementById('swalEndPoint')
-              .value.trim();
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกจบทริป',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        cancelButtonColor: '#95a5a6',
+        preConfirm: () => {
+          const odoVal = document
+            .getElementById('swalEndOdo')
+            .value.trim();
+          const pointVal = document
+            .getElementById('swalEndPoint')
+            .value.trim();
 
-            if (!odoVal) {
-              Swal.showValidationMessage('กรุณากรอกเลขไมล์จบทริป');
-              return false;
-            }
-            const odoNum = parseFloat(odoVal);
-            if (isNaN(odoNum) || odoNum < 0) {
-              Swal.showValidationMessage(
-                'กรุณากรอกเลขไมล์จบทริปให้ถูกต้อง (0 ขึ้นไป)'
-              );
-              return false;
-            }
-            if (!pointVal) {
-              Swal.showValidationMessage('กรุณากรอกชื่อจุดจบทริป');
-              return false;
-            }
+          if (!odoVal) {
+            Swal.showValidationMessage('กรุณากรอกเลขไมล์จบทริป');
+            return false;
+          }
+          const odoNum = parseFloat(odoVal);
+          if (isNaN(odoNum) || odoNum < 0) {
+            Swal.showValidationMessage(
+              'กรุณากรอกเลขไมล์จบทริปให้ถูกต้อง (0 ขึ้นไป)'
+            );
+            return false;
+          }
+          if (!pointVal) {
+            Swal.showValidationMessage('กรุณากรอกชื่อจุดจบทริป');
+            return false;
+          }
 
-            return {
-              endOdo: odoVal,
-              endPointName: pointVal,
-            };
-          },
+          return {
+            endOdo: odoVal,
+            endPointName: pointVal,
+          };
+        },
+      });
+
+      if (!formValues) {
+        return;
+      }
+
+      await saveEndTripSummary(formValues);
+    }
+
+    // ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) + ซ่อนปุ่มทันที
+    async function saveEndTripSummary(values) {
+      try {
+        showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error('Geolocation error in endTrip:', err);
+          closeLoading();
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
+          return;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        showLoading('กำลังบันทึกข้อมูลจบทริป...');
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'endtrip'); // ต้องตรงกับ backend
+        formData.append('reference', currentReference);
+        formData.append('userId', currentUserId);
+        formData.append('endOdo', values.endOdo || '');
+        formData.append('endPointName', values.endPointName || '');
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: formData,
         });
 
-        if (!formValues) {
-          return;
-        }
-
-        await saveEndTripSummary(formValues);
-      }
-
-      // ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) + ซ่อนปุ่มทันที
-      async function saveEndTripSummary(values) {
-        try {
-          showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
-
-          let pos;
-          try {
-            pos = await getCurrentPositionAsync();
-          } catch (err) {
-            console.error('Geolocation error in endTrip:', err);
-            closeLoading();
-            showError(
-              'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-            );
-            return;
-          }
-
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-
-          showLoading('กำลังบันทึกข้อมูลจบทริป...');
-
-          const formData = new URLSearchParams();
-          formData.append('action', 'endtrip'); // ต้องตรงกับ backend
-          formData.append('reference', currentReference);
-          formData.append('userId', currentUserId);
-          formData.append('endOdo', values.endOdo || '');
-          formData.append('endPointName', values.endPointName || '');
-          formData.append('lat', String(lat));
-          formData.append('lng', String(lng));
-
-          const res = await fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (!res.ok) {
-            const rawErr = await res.text().catch(() => '');
-            console.error('HTTP error endtrip:', res.status, rawErr);
-            closeLoading();
-            showError(
-              'ไม่สามารถบันทึกข้อมูลจบทริปได้ (HTTP ' +
-              res.status +
-              ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
-            );
-            return;
-          }
-
-          const raw = await res.text();
-          let json;
-          try {
-            json = JSON.parse(raw);
-          } catch (e) {
-            console.error('Response from endtrip is not valid JSON:', raw);
-            closeLoading();
-            showError(
-              'เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป (รูปแบบข้อมูลไม่ถูกต้อง): ' +
-              (raw || 'NO_RESPONSE')
-            );
-            return;
-          }
-
+        if (!res.ok) {
+          const rawErr = await res.text().catch(() => '');
+          console.error('HTTP error endtrip:', res.status, rawErr);
           closeLoading();
-
-          if (!json.success) {
-            showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
-            return;
-          }
-
-          // ✅ mark ว่าจบทริปแล้ว
-          tripEnded = true;
-
-          await showSuccess(
-            'จบทริปสำเร็จ',
-            'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
+          showError(
+            'ไม่สามารถบันทึกข้อมูลจบทริปได้ (HTTP ' +
+            res.status +
+            ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
           );
-
-          // ✅ ซ่อนปุ่มด้านล่างทันที
-          const closeJobContainer = document.getElementById('closeJobContainer');
-          const btnCloseJob = document.getElementById('btnCloseJob');
-          const btnEndTrip = document.getElementById('btnEndTrip');
-          if (closeJobContainer) closeJobContainer.classList.add('hidden');
-          if (btnCloseJob) {
-            btnCloseJob.style.display = 'none';
-            btnCloseJob.disabled = true;
-          }
-          if (btnEndTrip) {
-            btnEndTrip.style.display = 'none';
-            btnEndTrip.disabled = true;
-          }
-
-          // refresh ข้อมูลอีกรอบ (จะได้ d.tripEnded = true ด้วยถ้า backend ส่งมา)
-          if (currentReference) {
-            document.getElementById('keyword').value = currentReference;
-            await search(true);
-          }
-        } catch (err) {
-          console.error('saveEndTripSummary fatal error:', err);
-          closeLoading();
-          showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
-        }
-      }
-
-      async function closeJob() {
-        if (!currentReference) {
-          showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
           return;
         }
 
-        const { value: selectedStatus } = await Swal.fire({
-          icon: 'question',
-          title: 'สถานะรถเมื่อปิดงาน',
-          text: 'เลือกสถานะของรถหลังจากจบการส่งสินค้า',
-          showCancelButton: true,
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-          html: `
+        const raw = await res.text();
+        let json;
+        try {
+          json = JSON.parse(raw);
+        } catch (e) {
+          console.error('Response from endtrip is not valid JSON:', raw);
+          closeLoading();
+          showError(
+            'เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป (รูปแบบข้อมูลไม่ถูกต้อง): ' +
+            (raw || 'NO_RESPONSE')
+          );
+          return;
+        }
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
+          return;
+        }
+
+        // ✅ mark ว่าจบทริปแล้ว
+        tripEnded = true;
+
+        await showSuccess(
+          'จบทริปสำเร็จ',
+          'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
+        );
+
+        // ✅ ซ่อนปุ่มด้านล่างทันที
+        const closeJobContainer = document.getElementById('closeJobContainer');
+        const btnCloseJob = document.getElementById('btnCloseJob');
+        const btnEndTrip = document.getElementById('btnEndTrip');
+        if (closeJobContainer) closeJobContainer.classList.add('hidden');
+        if (btnCloseJob) {
+          btnCloseJob.style.display = 'none';
+          btnCloseJob.disabled = true;
+        }
+        if (btnEndTrip) {
+          btnEndTrip.style.display = 'none';
+          btnEndTrip.disabled = true;
+        }
+
+        // refresh ข้อมูลอีกรอบ (จะได้ d.tripEnded = true ด้วยถ้า backend ส่งมา)
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          await search(true);
+        }
+      } catch (err) {
+        console.error('saveEndTripSummary fatal error:', err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
+      }
+    }
+
+    async function closeJob() {
+      if (!currentReference) {
+        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
+        return;
+      }
+
+      const { value: selectedStatus } = await Swal.fire({
+        icon: 'question',
+        title: 'สถานะรถเมื่อปิดงาน',
+        text: 'เลือกสถานะของรถหลังจากจบการส่งสินค้า',
+        showCancelButton: true,
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        html: `
           <div style="text-align:center;">
             <p style="margin-bottom:16px;font-size:0.9rem;">เลือกสถานะของรถหลังจากจบการส่งสินค้า</p>
             <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
@@ -1746,31 +1746,31 @@
             </div>
           </div>
         `,
-          didOpen: () => {
-            const handler = (e) => {
-              const status = e.detail;
-              document.body.removeEventListener('closeJobStatus', handler);
-              Swal.clickConfirm();
-              return status;
-            };
-            document.body.addEventListener('closeJobStatus', handler);
-          },
-          preConfirm: () => {
-            let selectedValue = 'ready';
-            const handler = (e) => {
-              selectedValue = e.detail;
-              document.body.removeEventListener('closeJobStatus', handler);
-            };
-            const listener = document.body.addEventListener('closeJobStatus', handler);
-            return selectedValue;
-          },
-        });
+        didOpen: () => {
+          const handler = (e) => {
+            const status = e.detail;
+            document.body.removeEventListener('closeJobStatus', handler);
+            Swal.clickConfirm();
+            return status;
+          };
+          document.body.addEventListener('closeJobStatus', handler);
+        },
+        preConfirm: () => {
+          let selectedValue = 'ready';
+          const handler = (e) => {
+            selectedValue = e.detail;
+            document.body.removeEventListener('closeJobStatus', handler);
+          };
+          const listener = document.body.addEventListener('closeJobStatus', handler);
+          return selectedValue;
+        },
+      });
 
-        // Alternative: ใช้ radio button approach ที่ง่ายกว่า
-        const { value: vehicleStatus } = await Swal.fire({
-          icon: 'question',
-          title: 'เลือกสถานะของรถ',
-          html: `
+      // Alternative: ใช้ radio button approach ที่ง่ายกว่า
+      const { value: vehicleStatus } = await Swal.fire({
+        icon: 'question',
+        title: 'เลือกสถานะของรถ',
+        html: `
           <div style="text-align:left;margin:16px 0;">
             <label style="display:flex;align-items:center;margin-bottom:12px;cursor:pointer;padding:12px;border-radius:8px;background:#f7faf9;">
               <input type="radio" name="vehicleStatus" value="ready" checked style="margin-right:12px;width:18px;height:18px;cursor:pointer;">
@@ -1788,137 +1788,137 @@
             </label>
           </div>
         `,
-          focusConfirm: false,
-          showCancelButton: true,
-          confirmButtonText: 'ยืนยันปิดงาน',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#1abc9c',
-          preConfirm: () => {
-            const selected = document.querySelector('input[name="vehicleStatus"]:checked');
-            return selected ? selected.value : 'ready';
-          },
-        });
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันปิดงาน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          const selected = document.querySelector('input[name="vehicleStatus"]:checked');
+          return selected ? selected.value : 'ready';
+        },
+      });
 
-        if (!vehicleStatus) return;
+      if (!vehicleStatus) return;
 
-        try {
-          showLoading('กำลังปิดงาน...');
+      try {
+        showLoading('กำลังปิดงาน...');
 
-          const url =
-            WEB_APP_URL +
-            '?action=closejob' +
-            '&reference=' +
-            encodeURIComponent(currentReference) +
-            '&userId=' +
-            encodeURIComponent(currentUserId) +
-            '&vehicleStatus=' +
-            encodeURIComponent(vehicleStatus) +
-            '&vehicleDesc=' +
-            encodeURIComponent(currentVehicleDesc);
+        const url =
+          WEB_APP_URL +
+          '?action=closejob' +
+          '&reference=' +
+          encodeURIComponent(currentReference) +
+          '&userId=' +
+          encodeURIComponent(currentUserId) +
+          '&vehicleStatus=' +
+          encodeURIComponent(vehicleStatus) +
+          '&vehicleDesc=' +
+          encodeURIComponent(currentVehicleDesc);
 
-          const res = await fetch(url);
-          const json = await res.json();
+        const res = await fetch(url);
+        const json = await res.json();
 
-          closeLoading();
+        closeLoading();
 
-          if (!json.success) {
-            showError(json.message || 'ไม่สามารถปิดงานได้');
-            return;
-          }
-
-          jobClosed = true;
-
-          if (json.stop) {
-            showInlineFlex('closejob', json.stop);
-          }
-
-          const statusMessage =
-            vehicleStatus === 'maintenance'
-              ? 'บันทึกสถานะรถเข้าซ่อมบำรุงแล้ว'
-              : 'รถพร้อมใช้งานและรับงานใหม่ได้';
-
-          await showSuccess('ปิดงานสำเร็จ', statusMessage);
-
-          // Reload data เพื่อให้ d.jobClosed = true แล้ว renderTimeline จะโชว์ปุ่ม "บันทึกจบทริป"
-          if (currentReference) {
-            document.getElementById('keyword').value = currentReference;
-            await search(true);
-          }
-        } catch (err) {
-          console.error(err);
-          closeLoading();
-          showError('เกิดข้อผิดพลาดในการปิดงาน');
-        }
-      }
-
-      function navigateToStop(rowIndex) {
-        const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
-        if (!stop) return;
-
-        const lat =
-          stop.destLat ||
-          stop.destinationLat ||
-          stop.dest_lat ||
-          stop.lat ||
-          '';
-        const lng =
-          stop.destLng ||
-          stop.destinationLng ||
-          stop.dest_lng ||
-          stop.lng ||
-          '';
-
-        if (!lat || !lng) {
-          Swal.fire({
-            icon: 'warning',
-            title: 'ไม่พบพิกัดปลายทาง',
-            text: 'ปลายทางนี้ยังไม่มีพิกัดในระบบ',
-            confirmButtonColor: '#1abc9c',
-          });
+        if (!json.success) {
+          showError(json.message || 'ไม่สามารถปิดงานได้');
           return;
         }
 
-        const url =
-          'https://www.google.com/maps?q=' +
-          encodeURIComponent(lat) +
-          ',' +
-          encodeURIComponent(lng);
-        window.open(url, '_blank');
+        jobClosed = true;
+
+        if (json.stop) {
+          showInlineFlex('closejob', json.stop);
+        }
+
+        const statusMessage =
+          vehicleStatus === 'maintenance'
+            ? 'บันทึกสถานะรถเข้าซ่อมบำรุงแล้ว'
+            : 'รถพร้อมใช้งานและรับงานใหม่ได้';
+
+        await showSuccess('ปิดงานสำเร็จ', statusMessage);
+
+        // Reload data เพื่อให้ d.jobClosed = true แล้ว renderTimeline จะโชว์ปุ่ม "บันทึกจบทริป"
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          await search(true);
+        }
+      } catch (err) {
+        console.error(err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการปิดงาน');
+      }
+    }
+
+    function navigateToStop(rowIndex) {
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      if (!stop) return;
+
+      const lat =
+        stop.destLat ||
+        stop.destinationLat ||
+        stop.dest_lat ||
+        stop.lat ||
+        '';
+      const lng =
+        stop.destLng ||
+        stop.destinationLng ||
+        stop.dest_lng ||
+        stop.lng ||
+        '';
+
+      if (!lat || !lng) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบพิกัดปลายทาง',
+          text: 'ปลายทางนี้ยังไม่มีพิกัดในระบบ',
+          confirmButtonColor: '#1abc9c',
+        });
+        return;
       }
 
-      document.addEventListener('DOMContentLoaded', function () {
-        initLiff();
+      const url =
+        'https://www.google.com/maps?q=' +
+        encodeURIComponent(lat) +
+        ',' +
+        encodeURIComponent(lng);
+      window.open(url, '_blank');
+    }
 
-        document
-          .getElementById('btnSearch')
-          .addEventListener('click', search);
+    document.addEventListener('DOMContentLoaded', function () {
+      initLiff();
 
-        document
-          .getElementById('keyword')
-          .addEventListener('keyup', function (e) {
-            if (e.key === 'Enter') {
-              search();
-            }
-          });
+      document
+        .getElementById('btnSearch')
+        .addEventListener('click', search);
 
-        document
-          .getElementById('btnCloseJob')
-          .addEventListener('click', closeJob);
+      document
+        .getElementById('keyword')
+        .addEventListener('keyup', function (e) {
+          if (e.key === 'Enter') {
+            search();
+          }
+        });
 
-        document
-          .getElementById('btnEndTrip')
-          .addEventListener('click', openEndTripDialog);
-      });
+      document
+        .getElementById('btnCloseJob')
+        .addEventListener('click', closeJob);
 
-      window.updateStopStatus = updateStopStatus;
-      window.search = search;
-      window.closeJob = closeJob;
-      window.startCheckin = startCheckin;
-      window.doAlcoholCheck = doAlcoholCheck;
-      window.getCurrentPositionAsync = getCurrentPositionAsync;
-      window.navigateToStop = navigateToStop;
-      window.openEndTripDialog = openEndTripDialog;
-      window.saveEndTripSummary = saveEndTripSummary;
+      document
+        .getElementById('btnEndTrip')
+        .addEventListener('click', openEndTripDialog);
+    });
+
+    window.updateStopStatus = updateStopStatus;
+    window.search = search;
+    window.closeJob = closeJob;
+    window.startCheckin = startCheckin;
+    window.doAlcoholCheck = doAlcoholCheck;
+    window.getCurrentPositionAsync = getCurrentPositionAsync;
+    window.navigateToStop = navigateToStop;
+    window.openEndTripDialog = openEndTripDialog;
+    window.saveEndTripSummary = saveEndTripSummary;
   </script>
 </body>
 
