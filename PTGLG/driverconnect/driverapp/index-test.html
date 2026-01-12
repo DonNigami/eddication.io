@@ -765,6 +765,7 @@
 
       btn.disabled = true;
       if (!silent) {
+        console.log('🔍 เริ่มค้นหา - แสดง SweetAlert Loading...');
         showLoading('กำลังค้นหา...โปรดรอสักครู่');
       }
 
@@ -781,9 +782,11 @@
 
         // เพิ่ม delay เล็กน้อยให้ loader มองเห็นชัดเจน (min 800ms)
         if (!silent) {
+          console.log('⏳ รอ 800ms เพื่อให้ loader แสดงผล...');
           await new Promise(resolve => setTimeout(resolve, 800));
         }
 
+        console.log('✅ ปิด SweetAlert Loading...');
         closeLoading();
 
         if (!json.success) {
