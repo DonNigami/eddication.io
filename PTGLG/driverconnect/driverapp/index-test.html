@@ -806,7 +806,19 @@
         }
 
         const d = json.data;
-        const stops = d.stops || [];
+        let stops = d.stops || [];
+
+        // รักษาพิกัดเดิมไว้ ถ้า backend ไม่ส่งมา (ปุ่มนำทางจะไม่หาย)
+        if (lastStops && Array.isArray(lastStops) && lastStops.length > 0) {
+          const prevMap = new Map(lastStops.map((s) => [s.rowIndex, s]));
+          stops = stops.map((s) => {
+            const prev = prevMap.get(s.rowIndex);
+            if (!prev) return s;
+            if (!s.destLat) s.destLat = prev.destLat;
+            if (!s.destLng) s.destLng = prev.destLng;
+            return s;
+          });
+        }
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
