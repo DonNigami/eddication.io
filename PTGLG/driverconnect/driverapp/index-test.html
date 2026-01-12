@@ -596,6 +596,9 @@
     }
 
     function sendFlexCheckInOut(type, stop) {
+      // ปิดการส่ง Flex message ลงแชท LINE
+      return;
+
       try {
         if (!liff.isInClient()) {
           return;
