@@ -20,6 +20,8 @@ window.addEventListener('error', (event) => {
 class FlowAIUnlocked {
   constructor() {
     this.currentTab = 'ai-generator';
+    this.storyDetailsSource = 'manual'; // Track whether details came from manual input or template
+    this.lastStoryDetailsSnapshot = '';
     this.init();
   }
 
@@ -1671,6 +1673,13 @@ ${styleDescription}
       return;
     }
 
+    const detailsChangedFromSnapshot = this.lastStoryDetailsSnapshot !== storyDetails;
+    if (detailsChangedFromSnapshot) {
+      this.storyDetailsSource = 'manual';
+      this.generatedPrompts = [];
+    }
+    this.lastStoryDetailsSnapshot = storyDetails;
+
     // Get requested count from dropdown
     const requestedCount = loopSelect?.value === 'custom'
       ? parseInt(customInput?.value) || 1
@@ -1835,8 +1844,8 @@ ${styleDescription}
         `;
       }
 
-      // Check if template prompts from Extend Scene are loaded
-      let templatePrompts = this.storyTemplatePrompts;
+      // Check if template prompts from Extend Scene are loaded (only when details came from template)
+      let templatePrompts = this.storyDetailsSource === 'template' ? this.storyTemplatePrompts : null;
       const useTemplatePrompts = templatePrompts && templatePrompts.length > 0;
 
       // Generate prompts for each scene - display each one immediately
@@ -1845,6 +1854,7 @@ ${styleDescription}
       const BATCH_DELAY_MS = useTemplatePrompts ? 500 : 3000;
 
       const prompts = [];
+      const promptByScene = new Map();
       for (let i = 0; i < scenes.length; i++) {
         const scene = scenes[i];
 
@@ -1943,8 +1953,9 @@ ${styleDescription}
           prompt: finalPrompt
         };
         prompts.push(promptData);
+        promptByScene.set(scene.number, finalPrompt);
 
-        console.log(`[generateStoryPrompts] Scene ${scene.number}: Generated prompt (first 100 chars): ${finalPrompt.substring(0, 100)}...`);
+        console.log(`[generateStoryPrompts] Scene ${scene.number} (display index ${i + 1}): Generated prompt (first 100 chars): ${finalPrompt.substring(0, 100)}...`);
 
         // Display this prompt immediately
         this.appendStoryPrompt(promptData, i);
@@ -1957,18 +1968,25 @@ ${styleDescription}
         }
       }
 
-      // Store prompts for copy all function (indexed by scene.number - 1)
-      this.generatedPrompts = [];
-      for (let i = 0; i < scenes.length; i++) {
-        const sceneIndex = scenes[i].number - 1; // Convert 1-based to 0-based
-        this.generatedPrompts[sceneIndex] = {
-          sceneNumber: scenes[i].number,
-          sceneName: scenes[i].name,
-          prompt: prompts[i]?.prompt || ''
-        };
-        console.log(`[Storage] Stored prompt for scene ${scenes[i].number} at index ${sceneIndex}`);
-      }
+      // Store prompts for copy all function (keep display order as i+1 for UI consistency)
+      this.generatedPrompts = prompts;
+
+      // ALSO store in Map for direct lookup by scene.number (to handle non-sequential scene numbers in automation)
+      this.generatedPromptsByScene = new Map();
+      scenes.forEach((scene, idx) => {
+        const prompt = promptByScene.get(scene.number) || '';
+        this.generatedPromptsByScene.set(scene.number, {
+          sceneNumber: idx + 1,
+          sceneName: scene.name,
+          prompt
+        });
+      });
+
+      this.generatedPrompts.forEach((p, idx) => {
+        console.log(`[Storage] Stored prompt at display index ${idx}: sceneNumber=${p.sceneNumber}`);
+      });
       console.log(`[Storage] Total prompts stored: ${this.generatedPrompts.length}`);
+      console.log(`[Storage] Scene lookup map ready with ${this.generatedPromptsByScene.size} scenes`);
 
       // Add copy all button at the end
       const listEl = document.getElementById('storyPromptsListLive');
@@ -2094,6 +2112,10 @@ ${styleDescription}
 
       const detailsText = details.join('\n\n');
       detailsTextarea.value = detailsText;
+
+      this.storyDetailsSource = 'template';
+      this.lastStoryDetailsSnapshot = detailsText;
+      this.generatedPrompts = [];
 
       showToast(`สร้างรายละเอียด ${loopCount} ฉากจากเทมเพลตแล้ว`, 'success');
     } catch (error) {
@@ -2472,6 +2494,17 @@ ${lyrics}
       return;
     }
 
+    const detailsChanged = this.lastStoryDetailsSnapshot !== storyDetails;
+    if (detailsChanged) {
+      console.log('[Story] Story details changed; clearing cached prompts/template prompts');
+      this.generatedPrompts = [];
+      this.storyTemplatePrompts = null;
+    }
+    this.lastStoryDetailsSnapshot = storyDetails;
+    if (detailsChanged || !this.storyDetailsSource) {
+      this.storyDetailsSource = 'manual';
+    }
+
     // Parse scenes
     const scenes = this.parseStoryScenes(storyDetails);
     if (scenes.length === 0) {
@@ -2527,21 +2560,21 @@ ${lyrics}
     const storyMode = modeRadio?.value || 'content';
     const isRepeatMode = storyMode === 'repeat';
 
-    // Check if we have pre-generated prompts (from "Prompt ภาพ" button)
-    const hasPreGeneratedPrompts = this.generatedPrompts && this.generatedPrompts.length > 0;
-    if (hasPreGeneratedPrompts) {
-      console.log(`Using ${this.generatedPrompts.length} pre-generated prompts`);
-    }
+    // Initialize - will check again inside loop per scene
+    console.log(`[Automation] Starting with storyDetailsSource: ${this.storyDetailsSource}, generatedPrompts: ${this.generatedPrompts?.length || 0}, generatedPromptsByScene: ${this.generatedPromptsByScene?.size || 0}`);
 
     // Load template prompts if available (for auto-populating video/story prompts)
     let templatePrompts = null;
     const select = document.getElementById('storyTemplateSelect');
-    if (select && select.value) {
+    const shouldUseTemplatePrompts = this.storyDetailsSource === 'template' && select && select.value;
+    if (shouldUseTemplatePrompts) {
       const loaded = await this.loadStoryTemplatePrompts(true);
       if (loaded && loaded.length > 0) {
         templatePrompts = loaded;
         console.log(`Using ${templatePrompts.length} template prompts for video/story`);
       }
+    } else {
+      console.log('[Story] Skipping template prompts because details came from textarea/manual edits');
     }
 
     // Start automation
@@ -2574,9 +2607,16 @@ ${lyrics}
         const sceneIndex = isRepeatMode ? 0 : (i % scenes.length);
         const scene = scenes[sceneIndex];
 
-        const loopPrefix = isRepeatMode
-          ? `[${i + 1}/${totalLoops}] `
-          : `[${i + 1}/${totalLoops}] [ฉาก ${scene.number}] `;
+        // Display loop and scene info clearly
+        let loopPrefix;
+        if (isRepeatMode) {
+          loopPrefix = `[รอบ ${i + 1}/${totalLoops}] [ฉากเดิม] `;
+        } else {
+          // In content mode, show which scene of total scenes and which loop overall
+          const loopNumber = Math.floor(i / scenes.length) + 1;
+          const sceneInLoop = (i % scenes.length) + 1;
+          loopPrefix = `[รอบ ${loopNumber}] [ฉาก ${scene.number}/${scenes.length}] [รวม ${i + 1}/${totalLoops}] `;
+        }
 
         // Step 1: Upload character image (skip if no character)
         if (hasCharacterImage) {
@@ -2592,13 +2632,18 @@ ${lyrics}
         // Step 3: Get Image Prompt (use pre-generated if available, otherwise use template or generate new)
         if (!this.isStoryAutomationRunning) break;
         let imagePrompt;
-        // Use scene.number for prompt index (1-based, convert to 0-based)
-        const promptIndex = (scene.number - 1) % (this.generatedPrompts?.length || templatePrompts?.length || scenes.length);
 
-        if (hasPreGeneratedPrompts && this.generatedPrompts && this.generatedPrompts.length > promptIndex) {
+        // Look up pre-generated prompt by actual scene.number (check fresh each loop, not cached flag)
+        const hasGeneratedMap = this.generatedPromptsByScene && this.generatedPromptsByScene.size > 0;
+        const preGenEntry = hasGeneratedMap ? this.generatedPromptsByScene.get(scene.number) : null;
+        const hasValidPreGen = preGenEntry && preGenEntry.prompt && preGenEntry.prompt.trim().length > 0;
+
+        console.log(`[Story Loop ${i + 1}] Scene ${scene.number}: hasGeneratedMap=${hasGeneratedMap}, preGenEntry=${preGenEntry ? 'found' : 'null'}, hasValidPreGen=${hasValidPreGen}`);
+
+        if (hasValidPreGen) {
           this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 2/12: ใช้ Prompt ภาพที่สร้างไว้...');
-          imagePrompt = this.generatedPrompts[promptIndex].prompt;
-          console.log(`[Story] Using pre-generated image prompt for scene ${scene.number} (index ${promptIndex})`);
+          imagePrompt = preGenEntry.prompt;
+          console.log(`[Story] Using pre-generated image prompt for scene ${scene.number}, length: ${imagePrompt.length}`);
         } else if (templatePrompts && templatePrompts.length > 0) {
           // Use template prompts sequentially by scene number (not loop index)
           const templateIndex = (scene.number - 1) % templatePrompts.length;
@@ -2646,14 +2691,26 @@ ${lyrics}
         if (!this.isStoryAutomationRunning) break;
         await this.delay(2000);
 
-        // Step 7: Generate Video Prompt (use template or generate new)
+        // Step 7: Generate Video Prompt (use pre-generated if available, template, or generate new)
         if (!this.isStoryAutomationRunning) break;
         let videoPrompt;
-        if (templatePrompts && templatePrompts.length > 0) {
+
+        // Try pre-generated video prompt (reuse same as image or had separate video generation)
+        const videoPreGenEntry = hasGeneratedMap ? this.generatedPromptsByScene.get(scene.number) : null;
+        const videoHasValidPreGen = videoPreGenEntry && videoPreGenEntry.prompt && videoPreGenEntry.prompt.trim().length > 0;
+
+        if (videoHasValidPreGen) {
+          this.updateStoryAutomationStatus(loopPrefix + 'ขั้นตอน 7/12: ใช้ Prompt วิดีโอที่สร้างไว้...');
+          videoPrompt = videoPreGenEntry.prompt;
+          videoPrompt = this.applyHookAndCTAForPrompt(videoPrompt, scene, scenes.length);
+          videoPrompt = this.applyCameraAngleToPrompt(videoPrompt, 'storyCameraAngle');
+          console.log(`[Story] Using pre-generated video prompt for scene ${scene.number}`);
+        } else if (templatePrompts && templatePrompts.length > 0) {
           // Use template prompts sequentially by scene number (not loop index)
           const templateIndex = (scene.number - 1) % templatePrompts.length;
           videoPrompt = templatePrompts[templateIndex].prompt;
-          // Apply camera angle to template prompt
+          // Inject viral hook/CTA to video prompt when applicable, then apply camera angle
+          videoPrompt = this.applyHookAndCTAForPrompt(videoPrompt, scene, scenes.length);
           videoPrompt = this.applyCameraAngleToPrompt(videoPrompt, 'storyCameraAngle');
           this.updateStoryAutomationStatus(loopPrefix + `ขั้นตอน 7/12: ใช้ Prompt Template วิดีโอ ${templateIndex + 1}/${templatePrompts.length} (ฉาก ${scene.number})...`);
           console.log(`[Story] Using template prompt index ${templateIndex} for scene ${scene.number} video`);
@@ -2853,6 +2910,34 @@ ${lyrics}
   }
 
   /**
+   * Apply viral hook (first scene) and CTA (last scene) to an existing prompt for video flow
+   * Used when we already have a prompt (e.g., from template) and still need hook/CTA
+   */
+  applyHookAndCTAForPrompt(prompt, scene, totalScenes) {
+    let updatedPrompt = prompt;
+
+    if (!this.viralHooks) return updatedPrompt;
+
+    const detailsTextarea = document.getElementById('storyDetails');
+    const storyDetails = detailsTextarea?.value?.trim() || '';
+    const context = this.viralHooks.extractContextFromStory(storyDetails);
+
+    // Hook for first scene
+    if (this.viralHooks.isEnabled() && scene.number === 1) {
+      updatedPrompt = this.viralHooks.applyHookToScene(updatedPrompt, context);
+      console.log('[Story] Applied viral hook to video prompt (template path)');
+    }
+
+    // CTA for last scene
+    if (totalScenes && scene.number === totalScenes) {
+      updatedPrompt = this.viralHooks.applyCTAToScene(updatedPrompt, context);
+      console.log('[Story] Applied CTA to video prompt (template path)');
+    }
+
+    return updatedPrompt;
+  }
+
+  /**
    * Upload character image to the web page
    */
   async uploadCharacterImage(character) {
@@ -2950,13 +3035,32 @@ ${lyrics}
   }
 
   /**
-   * Update story automation status display
+   * Update story automation status display with history
    */
   updateStoryAutomationStatus(text) {
     const statusDiv = document.getElementById('storyAutomationStatus');
     const statusText = document.getElementById('storyAutomationStatusText');
+    const statusHistory = document.getElementById('storyAutomationStatusHistory');
+
     if (statusDiv) statusDiv.hidden = false;
     if (statusText) statusText.textContent = text;
+
+    // Add to history
+    if (statusHistory) {
+      const historyItem = document.createElement('div');
+      historyItem.className = 'status-history-item';
+      const timestamp = new Date().toLocaleTimeString('th-TH');
+      historyItem.textContent = `[${timestamp}] ${text}`;
+      statusHistory.appendChild(historyItem);
+
+      // Auto-scroll to bottom
+      statusHistory.scrollTop = statusHistory.scrollHeight;
+
+      // Keep only last 15 items
+      while (statusHistory.children.length > 15) {
+        statusHistory.removeChild(statusHistory.firstChild);
+      }
+    }
   }
 
   /**

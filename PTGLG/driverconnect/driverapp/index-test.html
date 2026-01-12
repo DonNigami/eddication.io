@@ -498,13 +498,8 @@
     let currentDrivers = [];
     let currentCheckedDrivers = [];
     let alcoholAllDone = false;
-    let jobClosed = false; // จาก backend: d.jobClosed
-    let tripEnded = false; // ✅ เพิ่ม: จาก backend: d.tripEnded หรือหลัง endtrip สำเร็จ
-    let processDataFields = {}; // เก็บข้อมูล processdata
-
-    // เก็บข้อมูลสาขาสำหรับ processdata
-    let currentBranchName = '';
-    let currentBranchCode = '';
+    let jobClosed = false;
+    let tripEnded = false;
 
     function showLoading(message) {
       Swal.fire({
@@ -794,8 +789,6 @@
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
-        currentBranchName = d.branchName || d.branch || '';
-        currentBranchCode = d.branchCode || d.branchId || '';
 
         currentDrivers =
           (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
@@ -810,11 +803,8 @@
           currentDrivers.length > 0 &&
           currentDrivers.every((n) => currentCheckedDrivers.includes(n));
 
-        jobClosed = !!d.jobClosed;     // จาก backend
-        tripEnded = !!d.tripEnded;     // ✅ รับ flag จบทริปจาก backend (ถ้ามี)
-
-        // รีเซต processdata fields
-        processDataFields = {};
+        jobClosed = !!d.jobClosed;
+        tripEnded = !!d.tripEnded;
 
         renderSummary(d);
         renderAlcoholSection();
@@ -841,8 +831,7 @@
       currentCheckedDrivers = [];
       alcoholAllDone = false;
       jobClosed = false;
-      tripEnded = false; // ✅ reset state จบทริป
-      processDataFields = {}; // reset processdata
+      tripEnded = false;
     }
 
     function renderSummary(d) {
@@ -1083,214 +1072,6 @@
       }
     }
 
-    async function recordProcessData(rowIndex, seq) {
-      if (!currentReference) {
-        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
-        return;
-      }
-
-      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
-      const destName =
-        (stop && (stop.destination2 || stop.destination1)) || 'จุดส่ง';
-
-      const { value: formValues } = await Swal.fire({
-        title: 'บันทึกข้อมูลผู้รับน้ำมัน',
-        html: `
-            <div style="text-align:left;">
-              <div style="font-size:0.85rem;color:#555;margin-bottom:8px;padding:8px;background:#f0f0f0;border-radius:6px;">
-                <div><b>เลขงาน:</b> ${currentReference}</div>
-                <div><b>ชื่อสาขา:</b> ${currentBranchName || '-'}</div>
-                <div><b>รหัสสาขา:</b> ${currentBranchCode || '-'}</div>
-              </div>
-
-              <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน *</label>
-              <input id="swalReceiverName" type="text"
-                class="swal2-input"
-                placeholder="เช่น นายสมิทร ใจดี"
-                style="width:100%;margin:4px 0 8px;">
-
-              <label style="font-size:0.8rem;color:#555;">ตำแหน่งผู้รับน้ำมัน *</label>
-              <input id="swalReceiverPosition" type="text"
-                class="swal2-input"
-                placeholder="เช่น หัวหน้าลาน, ผู้จัดการสาขา"
-                style="width:100%;margin:4px 0 8px;">
-
-              <label style="font-size:0.8rem;color:#555;margin-top:6px;"><b>ประเภทผู้รับน้ำมัน</b></label>
-              <div style="margin:4px 0 10px;font-size:0.85rem;">
-                <label style="display:block;margin-bottom:4px;">
-                  <input type="radio" name="receiverType" value="manager"> ผู้จัดการสาขา
-                </label>
-                <label style="display:block;margin-bottom:4px;">
-                  <input type="radio" name="receiverType" value="frontHasCard"> หน้าลานมีบัตร
-                </label>
-                <label style="display:block;">
-                  <input type="radio" name="receiverType" value="frontNoCard"> หน้าลานไม่มีบัตร
-                </label>
-              </div>
-
-              <label style="font-size:0.8rem;color:#555;margin-top:6px;"><b>สถานะการขึ้นหลังถัง</b></label>
-              <div style="margin:4px 0 10px;font-size:0.85rem;">
-                <label style="display:block;margin-bottom:4px;">
-                  <input type="radio" name="fuelTankStatus" value="yes"> ขึ้นหลังถัง
-                </label>
-                <label style="display:block;">
-                  <input type="radio" name="fuelTankStatus" value="no"> ไม่ขึ้นหลังถัง
-                </label>
-              </div>
-            </div>
-          `,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: 'บันทึกข้อมูล',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#1abc9c',
-        preConfirm: () => {
-          const name = document.getElementById('swalReceiverName').value.trim();
-          const position = document.getElementById('swalReceiverPosition').value.trim();
-          const typeRadio = document.querySelector('input[name="receiverType"]:checked');
-          const tankRadio = document.querySelector('input[name="fuelTankStatus"]:checked');
-
-          if (!name) {
-            Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
-            return false;
-          }
-          if (!position) {
-            Swal.showValidationMessage('กรุณากรอกตำแหน่งผู้รับน้ำมัน');
-            return false;
-          }
-          if (!typeRadio) {
-            Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
-            return false;
-          }
-          if (!tankRadio) {
-            Swal.showValidationMessage('กรุณาเลือกสถานะการขึ้นหลังถัง');
-            return false;
-          }
-
-          return {
-            receiverName: name,
-            receiverPosition: position,
-            receiverType: typeRadio.value,
-            fuelTankStatus: tankRadio.value,
-          };
-        },
-      });
-
-      if (!formValues) {
-        return;
-      }
-
-      const { receiverName, receiverPosition, receiverType, fuelTankStatus } = formValues;
-
-      try {
-        showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
-
-        let pos;
-        try {
-          pos = await getCurrentPositionAsync();
-        } catch (err) {
-          console.error(err);
-          closeLoading();
-          showError(
-            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
-          );
-          return;
-        }
-
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-
-        showLoading('กำลังบันทึกข้อมูลผู้รับน้ำมัน...');
-
-        const formData = new URLSearchParams();
-        formData.append('action', 'processdata');
-        formData.append('reference', currentReference);
-        formData.append('branchName', currentBranchName);
-        formData.append('branchCode', currentBranchCode);
-        formData.append('rowIndex', String(rowIndex));
-        formData.append('userId', currentUserId);
-        formData.append('receiverName', receiverName);
-        formData.append('receiverPosition', receiverPosition);
-        formData.append('receiverType', receiverType);
-        formData.append('fuelTankStatus', fuelTankStatus);
-        formData.append('lat', String(lat));
-        formData.append('lng', String(lng));
-
-        const res = await fetch(WEB_APP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-          body: formData,
-        });
-
-        if (!res.ok) {
-          const rawErr = await res.text().catch(() => '');
-          console.error('HTTP error processdata:', res.status, rawErr);
-          closeLoading();
-          showError(
-            'ไม่สามารถบันทึกข้อมูลได้ (HTTP ' +
-            res.status +
-            ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
-          );
-          return;
-        }
-
-        const raw = await res.text();
-        let json;
-        try {
-          json = JSON.parse(raw);
-        } catch (e) {
-          // Attempt GET fallback if POST returns non-JSON (e.g., NO_EVENT)
-          try {
-            const getUrl = WEB_APP_URL + '?' + formData.toString();
-            const getRes = await fetch(getUrl);
-            if (!getRes.ok) {
-              const getErr = await getRes.text().catch(() => '');
-              console.error('HTTP error GET processdata:', getRes.status, getErr);
-              closeLoading();
-              showError('ไม่สามารถบันทึกข้อมูลได้ (GET ' + getRes.status + ')');
-              return;
-            }
-            const getRaw = await getRes.text();
-            try {
-              json = JSON.parse(getRaw);
-            } catch (e2) {
-              console.error('Response from processdata (GET) is not valid JSON:', getRaw);
-              closeLoading();
-              showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล (รูปแบบข้อมูลไม่ถูกต้อง): ' + (raw || 'NO_RESPONSE'));
-              return;
-            }
-          } catch (fallbackErr) {
-            console.error('GET fallback error for processdata:', fallbackErr);
-            closeLoading();
-            showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล (ลองใช้ช่องทาง GET ไม่สำเร็จ)');
-            return;
-          }
-        }
-
-        closeLoading();
-
-        if (!json.success) {
-          showError(json.message || 'บันทึกข้อมูลไม่สำเร็จ');
-          return;
-        }
-
-        await showSuccess('บันทึกสำเร็จ', 'บันทึกข้อมูลผู้รับน้ำมันเรียบร้อยแล้ว');
-
-        if (json.stop) {
-          showInlineFlex('processdata', json.stop);
-        }
-
-        if (currentReference) {
-          document.getElementById('keyword').value = currentReference;
-          await search();
-        }
-      } catch (err) {
-        console.error(err);
-        closeLoading();
-        showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-      }
-    }
-
     function renderTimeline(stops) {
       const container = document.getElementById('timelineContainer');
       const ul = document.getElementById('timeline');
@@ -1322,7 +1103,6 @@
         const hasCheckIn = !!stop.checkInTime;
         const hasFuel = !!stop.fuelingTime;
         const hasUnloadDone = !!stop.unloadDoneTime;
-        const hasProcessData = !!stop.processdataTime;
         const hasCheckOut = !!stop.checkOutTime;
         const isOrigin = !!stop.isOriginStop;
 
@@ -1377,14 +1157,6 @@
               ", 'UNLOAD_DONE', 'unload', " +
               stop.seq +
               ')">ลงเสร็จ</button>';
-          } else if (!hasProcessData) {
-            btnHtml +=
-              '<button class="btn-small btn-warning" ' +
-              'onclick="recordProcessData(' +
-              stop.rowIndex +
-              ', ' +
-              stop.seq +
-              ')">บันทึกข้อมูล</button>';
           } else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
@@ -1473,9 +1245,6 @@
           '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
           (stop.unloadDoneTime || '-') +
           '</div>' +
-          '<div class="timeline-sub"><b>บันทึกข้อมูล:</b> ' +
-          (stop.processdataTime || '-') +
-          '</div>' +
           '<div class="timeline-sub"><b>Check-out:</b> ' +
           (stop.checkOutTime || '-') +
           '</div>' +
@@ -1560,42 +1329,126 @@
         return;
       }
 
-      const { value: formValues } = await Swal.fire({
-        icon: 'question',
-        title: 'กรอกเลขไมล์รถ',
-        html: `
-            <div style="text-align:left;">
-              <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
-              <input id="swalOdoInput" type="number" inputmode="numeric"
-                class="swal2-input"
-                placeholder="เช่น 123456"
-                style="width:100%;margin:6px 0 4px;">
-            </div>
-          `,
-        focusConfirm: false,
-        showCancelButton: true,
-        confirmButtonText: 'ยืนยัน Check-in',
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#1abc9c',
-        preConfirm: () => {
-          const val = document.getElementById('swalOdoInput').value.trim();
-          if (!val) {
-            Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
-            return false;
-          }
-          return { odo: val };
-        },
-      });
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      const isOrigin = stop && !!stop.isOriginStop;
 
-      if (!formValues) {
-        return;
+      if (isOrigin) {
+        // Origin Stop: เก็บเพียงเลขไมล์
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'กรอกเลขไมล์รถ',
+          html: `
+              <div style="text-align:left;">
+                <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+                <input id="swalOdoInput" type="number" inputmode="numeric"
+                  class="swal2-input"
+                  placeholder="เช่น 123456"
+                  style="width:100%;margin:6px 0 4px;">
+              </div>
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const val = document.getElementById('swalOdoInput').value.trim();
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
+            }
+            return { odo: val };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { odo } = formValues;
+        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+      } else {
+        // Non-Origin Stop: เก็บเลขไมล์ + ชื่อผู้รับน้ำมัน + ประเภทผู้รับ
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'Check-in พร้อมบันทึกข้อมูล',
+          html: `
+              <div style="text-align:left;">
+                <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+                <input id="swalOdoInput" type="number" inputmode="numeric"
+                  class="swal2-input"
+                  placeholder="เช่น 123456"
+                  style="width:100%;margin:4px 0 8px;">
+
+                <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน *</label>
+                <input id="swalReceiverName" type="text"
+                  class="swal2-input"
+                  placeholder="เช่น นายสมิทร ใจดี"
+                  style="width:100%;margin:4px 0 8px;">
+
+                <label style="font-size:0.8rem;color:#555;"><b>ประเภทผู้รับน้ำมัน</b></label>
+                <div style="margin:4px 0 10px;font-size:0.85rem;">
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="receiverType" value="manager"> ผู้จัดการสาขา
+                  </label>
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="receiverType" value="frontHasCard"> หน้าลานมีบัตร
+                  </label>
+                  <label style="display:block;">
+                    <input type="radio" name="receiverType" value="frontNoCard"> หน้าลานไม่มีบัตร
+                  </label>
+                </div>
+              </div>
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const odo = document.getElementById('swalOdoInput').value.trim();
+            const receiverName = document.getElementById('swalReceiverName').value.trim();
+            const typeRadio = document.querySelector('input[name="receiverType"]:checked');
+
+            if (!odo) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
+            }
+            if (!receiverName) {
+              Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
+              return false;
+            }
+            if (!typeRadio) {
+              Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
+              return false;
+            }
+
+            return {
+              odo: odo,
+              receiverName: receiverName,
+              receiverType: typeRadio.value,
+            };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { odo, receiverName, receiverType } = formValues;
+        await updateStopStatus(
+          rowIndex,
+          'CHECKIN',
+          'checkin',
+          seq,
+          odo,
+          receiverName,
+          receiverType
+        );
       }
-
-      const { odo } = formValues;
-      await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
     }
 
-    async function updateStopStatus(rowIndex, newStatus, type, seq, odo) {
+    async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType) {
       try {
         showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
 
@@ -1634,6 +1487,13 @@
 
         if (type === 'checkin') {
           url += '&odo=' + encodeURIComponent(odo || '');
+          // เพิ่มข้อมูลผู้รับน้ำมัน ถ้ามี
+          if (receiverName) {
+            url += '&receiverName=' + encodeURIComponent(receiverName);
+          }
+          if (receiverType) {
+            url += '&receiverType=' + encodeURIComponent(receiverType);
+          }
         }
 
         const res = await fetch(url);
@@ -1971,7 +1831,6 @@
     window.startCheckin = startCheckin;
     window.doAlcoholCheck = doAlcoholCheck;
     window.getCurrentPositionAsync = getCurrentPositionAsync;
-    window.recordProcessData = recordProcessData;
     window.navigateToStop = navigateToStop;
     window.openEndTripDialog = openEndTripDialog;
     window.saveEndTripSummary = saveEndTripSummary;
