@@ -784,10 +784,9 @@
         if (!silent) {
           console.log('⏳ รอ 800ms เพื่อให้ loader แสดงผล...');
           await new Promise(resolve => setTimeout(resolve, 800));
+          console.log('✅ ปิด SweetAlert Loading...');
+          closeLoading();
         }
-
-        console.log('✅ ปิด SweetAlert Loading...');
-        closeLoading();
 
         if (!json.success) {
           clearResult();
