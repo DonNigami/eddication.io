@@ -1542,9 +1542,14 @@
         // อัปเดตสถานะบน UI ทันทีจากข้อมูลที่ backend ส่งกลับ
         const stopInfo = json.stop || null;
         if (stopInfo) {
-          lastStops = (lastStops || []).map((s) =>
-            s.rowIndex === stopInfo.rowIndex ? { ...s, ...stopInfo } : s
-          );
+          lastStops = (lastStops || []).map((s) => {
+            if (s.rowIndex !== stopInfo.rowIndex) return s;
+            const merged = { ...s, ...stopInfo };
+            // รักษาพิกัดปลายทางเดิมไว้ ถ้า backend ไม่ส่งมา (ปุ่มนำทางจะไม่หาย)
+            if (!merged.destLat) merged.destLat = s.destLat;
+            if (!merged.destLng) merged.destLng = s.destLng;
+            return merged;
+          });
           renderTimeline(lastStops);
         }
 
