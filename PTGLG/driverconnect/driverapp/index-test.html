@@ -1473,6 +1473,15 @@
     }
 
     async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType) {
+      // ป้องกันการกดซ้ำระหว่างรอผล
+      const actionButtons = Array.from(
+        document.querySelectorAll('.timeline .action-row button')
+      );
+      const buttonsToReenable = actionButtons.filter((btn) => !btn.disabled);
+      buttonsToReenable.forEach((btn) => {
+        btn.disabled = true;
+      });
+
       try {
         showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
 
@@ -1558,6 +1567,10 @@
         console.error(err);
         closeLoading();
         showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
+      } finally {
+        buttonsToReenable.forEach((btn) => {
+          btn.disabled = false;
+        });
       }
     }
 
