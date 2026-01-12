@@ -1530,12 +1530,20 @@
           return;
         }
 
+        // อัปเดตสถานะบน UI ทันทีจากข้อมูลที่ backend ส่งกลับ
+        const stopInfo = json.stop || null;
+        if (stopInfo) {
+          lastStops = (lastStops || []).map((s) =>
+            s.rowIndex === stopInfo.rowIndex ? { ...s, ...stopInfo } : s
+          );
+          renderTimeline(lastStops);
+        }
+
         await showSuccess(
           'อัปเดตสำเร็จ',
           json.message || 'อัปเดตสถานะเรียบร้อย'
         );
 
-        const stopInfo = json.stop || null;
         if (stopInfo) {
           showInlineFlex(type, stopInfo);
           sendFlexCheckInOut(type, stopInfo);
@@ -1543,7 +1551,8 @@
 
         if (currentReference) {
           document.getElementById('keyword').value = currentReference;
-          await search(true);
+          // refresh แบบเบื้องหลัง ไม่ต้องรอ เพื่อไม่ให้ UI หน่วง
+          search(true);
         }
       } catch (err) {
         console.error(err);
