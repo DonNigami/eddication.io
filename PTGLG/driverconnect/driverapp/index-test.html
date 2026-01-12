@@ -779,6 +779,11 @@
         const res = await fetch(url);
         const json = await res.json();
 
+        // เพิ่ม delay เล็กน้อยให้ loader มองเห็นชัดเจน (min 800ms)
+        if (!silent) {
+          await new Promise(resolve => setTimeout(resolve, 800));
+        }
+
         closeLoading();
 
         if (!json.success) {
