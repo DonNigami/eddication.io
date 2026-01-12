@@ -492,6 +492,7 @@
 
     let currentUserId = '';
     let currentReference = '';
+    let currentVehicleDesc = '';
     let lastStops = [];
     let inlineFlexTimer = null;
 
@@ -791,6 +792,7 @@
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
+        currentVehicleDesc = d.vehicleDesc || '';
 
         currentDrivers =
           (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
@@ -1805,7 +1807,9 @@
           '&userId=' +
           encodeURIComponent(currentUserId) +
           '&vehicleStatus=' +
-          encodeURIComponent(vehicleStatus);
+          encodeURIComponent(vehicleStatus) +
+          '&vehicleDesc=' +
+          encodeURIComponent(currentVehicleDesc);
 
         const res = await fetch(url);
         const json = await res.json();
