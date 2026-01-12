@@ -752,7 +752,7 @@
       }
     }
 
-    async function search() {
+    async function search(silent = false) {
       const keywordInput = document.getElementById('keyword');
       const keyword = keywordInput.value.trim();
       const btn = document.getElementById('btnSearch');
@@ -763,7 +763,9 @@
       }
 
       btn.disabled = true;
-      showLoading('กำลังค้นหางานจากระบบ...');
+      if (!silent) {
+        showLoading('กำลังค้นหางานจากระบบ...');
+      }
 
       try {
         const url =
@@ -811,7 +813,9 @@
         renderTimeline(stops);
       } catch (err) {
         console.error(err);
-        closeLoading();
+        if (!silent) {
+          closeLoading();
+        }
         showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
       } finally {
         btn.disabled = false;
@@ -1519,7 +1523,7 @@
 
         if (currentReference) {
           document.getElementById('keyword').value = currentReference;
-          await search();
+          await search(true);
         }
       } catch (err) {
         console.error(err);
@@ -1698,7 +1702,7 @@
         // refresh ข้อมูลอีกรอบ (จะได้ d.tripEnded = true ด้วยถ้า backend ส่งมา)
         if (currentReference) {
           document.getElementById('keyword').value = currentReference;
-          await search();
+          await search(true);
         }
       } catch (err) {
         console.error('saveEndTripSummary fatal error:', err);
@@ -1713,17 +1717,82 @@
         return;
       }
 
-      const confirmResult = await Swal.fire({
+      const { value: selectedStatus } = await Swal.fire({
         icon: 'question',
-        title: 'ยืนยันปิดงาน?',
-        text: 'เมื่อปิดงานแล้ว ระบบจะอัพเดตสถานะว่ารถพร้อมใช้งาน',
+        title: 'สถานะรถเมื่อปิดงาน',
+        text: 'เลือกสถานะของรถหลังจากจบการส่งสินค้า',
         showCancelButton: true,
-        confirmButtonText: 'ปิดงาน',
         cancelButtonText: 'ยกเลิก',
         confirmButtonColor: '#1abc9c',
+        html: `
+          <div style="text-align:center;">
+            <p style="margin-bottom:16px;font-size:0.9rem;">เลือกสถานะของรถหลังจากจบการส่งสินค้า</p>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+              <button class="swal2-styled" style="background:#1abc9c;width:auto;padding:12px 24px;border-radius:8px;color:#fff;border:none;cursor:pointer;font-weight:600;"
+                onclick="document.body.dispatchEvent(new CustomEvent('closeJobStatus', {detail:'ready'}))">
+                ✅ พร้อมรับงาน
+              </button>
+              <button class="swal2-styled" style="background:#f39c12;width:auto;padding:12px 24px;border-radius:8px;color:#fff;border:none;cursor:pointer;font-weight:600;"
+                onclick="document.body.dispatchEvent(new CustomEvent('closeJobStatus', {detail:'maintenance'}))">
+                🔧 เข้าซ่อมบำรุง
+              </button>
+            </div>
+          </div>
+        `,
+        didOpen: () => {
+          const handler = (e) => {
+            const status = e.detail;
+            document.body.removeEventListener('closeJobStatus', handler);
+            Swal.clickConfirm();
+            return status;
+          };
+          document.body.addEventListener('closeJobStatus', handler);
+        },
+        preConfirm: () => {
+          let selectedValue = 'ready';
+          const handler = (e) => {
+            selectedValue = e.detail;
+            document.body.removeEventListener('closeJobStatus', handler);
+          };
+          const listener = document.body.addEventListener('closeJobStatus', handler);
+          return selectedValue;
+        },
       });
 
-      if (!confirmResult.isConfirmed) return;
+      // Alternative: ใช้ radio button approach ที่ง่ายกว่า
+      const { value: vehicleStatus } = await Swal.fire({
+        icon: 'question',
+        title: 'เลือกสถานะของรถ',
+        html: `
+          <div style="text-align:left;margin:16px 0;">
+            <label style="display:flex;align-items:center;margin-bottom:12px;cursor:pointer;padding:12px;border-radius:8px;background:#f7faf9;">
+              <input type="radio" name="vehicleStatus" value="ready" checked style="margin-right:12px;width:18px;height:18px;cursor:pointer;">
+              <span style="flex:1;">
+                <div style="font-weight:600;color:#1abc9c;">✅ พร้อมรับงาน</div>
+                <div style="font-size:0.8rem;color:#666;">รถสามารถรับงานส่งสินค้าต่อได้</div>
+              </span>
+            </label>
+            <label style="display:flex;align-items:center;cursor:pointer;padding:12px;border-radius:8px;background:#fff3cd;">
+              <input type="radio" name="vehicleStatus" value="maintenance" style="margin-right:12px;width:18px;height:18px;cursor:pointer;">
+              <span style="flex:1;">
+                <div style="font-weight:600;color:#f39c12;">🔧 เข้าซ่อมบำรุง</div>
+                <div style="font-size:0.8rem;color:#666;">รถต้องเข้าซ่อม ไม่สามารถรับงานได้</div>
+              </span>
+            </label>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันปิดงาน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          const selected = document.querySelector('input[name="vehicleStatus"]:checked');
+          return selected ? selected.value : 'ready';
+        },
+      });
+
+      if (!vehicleStatus) return;
 
       try {
         showLoading('กำลังปิดงาน...');
@@ -1734,7 +1803,9 @@
           '&reference=' +
           encodeURIComponent(currentReference) +
           '&userId=' +
-          encodeURIComponent(currentUserId);
+          encodeURIComponent(currentUserId) +
+          '&vehicleStatus=' +
+          encodeURIComponent(vehicleStatus);
 
         const res = await fetch(url);
         const json = await res.json();
@@ -1752,12 +1823,17 @@
           showInlineFlex('closejob', json.stop);
         }
 
-        await showSuccess('ปิดงานสำเร็จ', 'รถพร้อมใช้งานแล้ว');
+        const statusMessage =
+          vehicleStatus === 'maintenance'
+            ? 'บันทึกสถานะรถเข้าซ่อมบำรุงแล้ว'
+            : 'รถพร้อมใช้งานและรับงานใหม่ได้';
+
+        await showSuccess('ปิดงานสำเร็จ', statusMessage);
 
         // Reload data เพื่อให้ d.jobClosed = true แล้ว renderTimeline จะโชว์ปุ่ม "บันทึกจบทริป"
         if (currentReference) {
           document.getElementById('keyword').value = currentReference;
-          await search();
+          await search(true);
         }
       } catch (err) {
         console.error(err);
