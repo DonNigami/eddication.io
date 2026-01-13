@@ -488,7 +488,7 @@
   <script>
     const LIFF_ID = '2007705394-y4mV76Gv';
     const WEB_APP_URL =
-      'https://script.google.com/macros/s/AKfycbz2wmX2Nix3C09KDRVDqfldqYBYscy2k_z4bS6u55guRDgUwQFZNTkNTuloVVOiBc1dRw/exec';
+      'https://script.google.com/macros/s/AKfycbwUsEd4lcJ6DD_eYitJ3QCO_nO6Io86IytuSe27bTzQLfVk_Z16wJE6Pn2X1a40yU8J/exec';
 
     let currentUserId = '';
     let currentReference = '';
@@ -1165,9 +1165,9 @@
           } else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
-              'onclick="updateStopStatus(' +
+              'onclick="startCheckout(' +
               stop.rowIndex +
-              ", 'CHECKOUT', 'checkout', " +
+              ', ' +
               stop.seq +
               ')">Check-out</button>';
           }
@@ -1199,9 +1199,9 @@
           } else if (!hasCheckOut) {
             btnHtml +=
               '<button class="btn-small" ' +
-              'onclick="updateStopStatus(' +
+              'onclick="startCheckout(' +
               stop.rowIndex +
-              ", 'CHECKOUT', 'checkout', " +
+              ', ' +
               stop.seq +
               ')">Check-out</button>';
           }
@@ -1487,7 +1487,77 @@
       }
     }
 
-    async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType) {
+    async function startCheckout(rowIndex, seq) {
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      const isOrigin = stop && !!stop.isOriginStop;
+
+      if (isOrigin) {
+        // Origin Stop: checkout ธรรมดา ไม่ต้องถามอะไร
+        await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq);
+      } else {
+        // Non-Origin Stop: ถามเรื่องปั่นน้ำมันและโยกน้ำมัน
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'Check-out พร้อมบันทึกข้อมูล',
+          html: `
+              <div style="text-align:left;">
+                <label style="font-size:0.8rem;color:#555;"><b>จุดนี้มีปั่นน้ำมันหรือไม่?</b></label>
+                <div style="margin:4px 0 10px;font-size:0.85rem;">
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="hasPumping" value="no" checked> ไม่ได้ปั่นน้ำมัน
+                  </label>
+                  <label style="display:block;">
+                    <input type="radio" name="hasPumping" value="yes"> มีปั่นน้ำมัน
+                  </label>
+                </div>
+
+                <label style="font-size:0.8rem;color:#555;"><b>จุดนี้มีการโยกน้ำมันหรือไม่?</b></label>
+                <div style="margin:4px 0 10px;font-size:0.85rem;">
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="hasTransfer" value="no" checked> ไม่มีโยกน้ำมัน
+                  </label>
+                  <label style="display:block;">
+                    <input type="radio" name="hasTransfer" value="yes"> มีโยกน้ำมัน
+                  </label>
+                </div>
+              </div>
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-out',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const pumpingRadio = document.querySelector('input[name="hasPumping"]:checked');
+            const transferRadio = document.querySelector('input[name="hasTransfer"]:checked');
+
+            return {
+              hasPumping: pumpingRadio ? pumpingRadio.value : 'no',
+              hasTransfer: transferRadio ? transferRadio.value : 'no',
+            };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { hasPumping, hasTransfer } = formValues;
+        await updateStopStatus(
+          rowIndex,
+          'CHECKOUT',
+          'checkout',
+          seq,
+          null,
+          null,
+          null,
+          hasPumping,
+          hasTransfer
+        );
+      }
+    }
+
+    async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType, hasPumping, hasTransfer) {
       // ป้องกันการกดซ้ำระหว่างรอผล
       const actionButtons = Array.from(
         document.querySelectorAll('.timeline .action-row button')
@@ -1541,6 +1611,14 @@
           }
           if (receiverType) {
             url += '&receiverType=' + encodeURIComponent(receiverType);
+          }
+        } else if (type === 'checkout') {
+          // เพิ่มข้อมูลปั่นน้ำมันและโยกน้ำมัน ถ้ามี
+          if (hasPumping) {
+            url += '&hasPumping=' + encodeURIComponent(hasPumping);
+          }
+          if (hasTransfer) {
+            url += '&hasTransfer=' + encodeURIComponent(hasTransfer);
           }
         }
 
@@ -1969,6 +2047,7 @@
     window.search = search;
     window.closeJob = closeJob;
     window.startCheckin = startCheckin;
+    window.startCheckout = startCheckout;
     window.doAlcoholCheck = doAlcoholCheck;
     window.getCurrentPositionAsync = getCurrentPositionAsync;
     window.navigateToStop = navigateToStop;
