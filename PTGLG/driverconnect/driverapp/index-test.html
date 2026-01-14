@@ -1247,7 +1247,11 @@
       }
 
       const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
-      const isOrigin = stop && !!stop.isOriginStop;
+      if (!stop) {
+        showError('ไม่พบข้อมูลจุดส่ง กรุณาค้นหางานใหม่อีกครั้ง');
+        return;
+      }
+      const isOrigin = !!stop.isOriginStop;
 
       if (isOrigin) {
         // Origin Stop: เก็บเพียงเลขไมล์
@@ -1367,7 +1371,11 @@
 
     async function startCheckout(rowIndex, seq) {
       const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
-      const isOrigin = stop && !!stop.isOriginStop;
+      if (!stop) {
+        showError('ไม่พบข้อมูลจุดส่ง กรุณาค้นหางานใหม่อีกครั้ง');
+        return;
+      }
+      const isOrigin = !!stop.isOriginStop;
 
       if (isOrigin) {
         // Origin Stop: checkout ธรรมดา ไม่ต้องถามอะไร
@@ -1465,42 +1473,39 @@
 
         showLoading('กำลังอัปเดตสถานะจุดส่ง...');
 
-        let url =
-          WEB_APP_URL +
-          '?action=updatestop' +
-          '&rowIndex=' +
-          encodeURIComponent(rowIndex) +
-          '&status=' +
-          encodeURIComponent(newStatus) +
-          '&type=' +
-          encodeURIComponent(type) +
-          '&userId=' +
-          encodeURIComponent(currentUserId) +
-          '&lat=' +
-          encodeURIComponent(lat) +
-          '&lng=' +
-          encodeURIComponent(lng);
+        const formData = new URLSearchParams();
+        formData.append('action', 'updatestop');
+        formData.append('rowIndex', rowIndex);
+        formData.append('status', newStatus);
+        formData.append('type', type);
+        formData.append('userId', currentUserId);
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
 
         if (type === 'checkin') {
-          url += '&odo=' + encodeURIComponent(odo || '');
+          formData.append('odo', odo || '');
           // เพิ่มข้อมูลผู้รับน้ำมัน ถ้ามี
           if (receiverName) {
-            url += '&receiverName=' + encodeURIComponent(receiverName);
+            formData.append('receiverName', receiverName);
           }
           if (receiverType) {
-            url += '&receiverType=' + encodeURIComponent(receiverType);
+            formData.append('receiverType', receiverType);
           }
         } else if (type === 'checkout') {
           // เพิ่มข้อมูลปั่นน้ำมันและโยกน้ำมัน ถ้ามี
           if (hasPumping) {
-            url += '&hasPumping=' + encodeURIComponent(hasPumping);
+            formData.append('hasPumping', hasPumping);
           }
           if (hasTransfer) {
-            url += '&hasTransfer=' + encodeURIComponent(hasTransfer);
+            formData.append('hasTransfer', hasTransfer);
           }
         }
 
-        const res = await fetch(url);
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData,
+        });
         const json = await res.json();
 
         closeLoading();
