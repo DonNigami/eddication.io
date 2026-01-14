@@ -502,6 +502,17 @@
     let jobClosed = false;
     let tripEnded = false;
 
+    // ฟังก์ชันป้องกัน XSS โดย escape HTML special characters
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     function showLoading(message) {
       Swal.fire({
         title: message || 'กำลังประมวลผล...',
@@ -595,144 +606,9 @@
       }, 4000);
     }
 
+    // ปิดการส่ง Flex message ลงแชท LINE (disabled)
     function sendFlexCheckInOut(type, stop) {
-      // ปิดการส่ง Flex message ลงแชท LINE
-      return;
-
-      try {
-        if (!liff.isInClient()) {
-          return;
-        }
-
-        if (type !== 'checkin' && type !== 'checkout') {
-          return;
-        }
-
-        const labelMap = {
-          checkin: 'Check-in สำเร็จ',
-          checkout: 'Check-out สำเร็จ',
-        };
-
-        const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
-        const colorBar = type === 'checkout' ? '#16a085' : '#1abc9c';
-
-        // ไม่ส่ง Flex สำหรับ processdata
-        if (type === 'processdata') {
-          return;
-        }
-
-        let timeText = '';
-        if (type === 'checkin') timeText = stop.checkInTime || '';
-        else if (type === 'checkout') timeText = stop.checkOutTime || '';
-
-        const bubble = {
-          type: 'bubble',
-          size: 'mega',
-          body: {
-            type: 'box',
-            layout: 'vertical',
-            paddingAll: '16px',
-            contents: [
-              {
-                type: 'box',
-                layout: 'baseline',
-                contents: [
-                  { type: 'filler' },
-                  {
-                    type: 'box',
-                    layout: 'vertical',
-                    contents: [],
-                    width: '8px',
-                    backgroundColor: colorBar,
-                    cornerRadius: '999px',
-                    height: '40px',
-                  },
-                ],
-              },
-              {
-                type: 'text',
-                text: title,
-                weight: 'bold',
-                size: 'lg',
-                color: '#16a085',
-                margin: 'md',
-              },
-              {
-                type: 'text',
-                text: 'Reference: ' + (stop.referenceNo || '-'),
-                size: 'sm',
-                color: '#555555',
-                wrap: true,
-                margin: 'sm',
-              },
-              {
-                type: 'text',
-                text: 'Shipment: ' + (stop.shipmentNo || '-'),
-                size: 'sm',
-                color: '#555555',
-                wrap: true,
-                margin: 'xs',
-              },
-              {
-                type: 'separator',
-                margin: 'md',
-              },
-              {
-                type: 'box',
-                layout: 'vertical',
-                margin: 'md',
-                spacing: 'sm',
-                contents: [
-                  {
-                    type: 'text',
-                    text:
-                      stop.destination2 ||
-                      stop.destination1 ||
-                      'ปลายทาง',
-                    size: 'md',
-                    weight: 'bold',
-                    wrap: true,
-                  },
-                  {
-                    type: 'text',
-                    text: timeText ? 'เวลา: ' + timeText : '',
-                    size: 'sm',
-                    color: '#555555',
-                    wrap: true,
-                  },
-                  {
-                    type: 'text',
-                    text: 'สถานะล่าสุด: ' + (stop.status || '-'),
-                    size: 'sm',
-                    color: '#555555',
-                    wrap: true,
-                    margin: 'xs',
-                  },
-                ],
-              },
-            ],
-          },
-          styles: {
-            body: {
-              backgroundColor: '#ffffff',
-            },
-          },
-        };
-
-        liff
-          .sendMessages([
-            {
-              type: 'flex',
-              altText: title,
-              contents: bubble,
-            },
-          ])
-          .catch(function (err) {
-            console.error('sendMessages error', err);
-          });
-      } catch (err) {
-        console.error('sendFlexCheckInOut error', err);
-      }
+      // no-op
     }
 
     async function initLiff() {
@@ -893,23 +769,23 @@
       summaryEl.innerHTML = `
           <div class="summary-row">
             <span class="summary-label">Reference</span>
-            <span class="summary-value">${d.referenceNo || '-'}</span>
+            <span class="summary-value">${escapeHtml(d.referenceNo) || '-'}</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">ชื่อรถ</span>
-            <span class="summary-value">${d.vehicleDesc || '-'}</span>
+            <span class="summary-value">${escapeHtml(d.vehicleDesc) || '-'}</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">Shipment</span>
-            <span class="summary-value">${shipmentSummary}</span>
+            <span class="summary-value">${escapeHtml(shipmentSummary)}</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">จำนวนจุดส่ง</span>
-            <span class="summary-value">${d.totalStops || stops.length} จุด</span>
+            <span class="summary-value">${escapeHtml(d.totalStops || stops.length)} จุด</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">ปริมาณรวมโดยประมาณ</span>
-            <span class="summary-value">${totalQtyAll || 0}</span>
+            <span class="summary-value">${escapeHtml(totalQtyAll || 0)}</span>
           </div>
         `;
 
@@ -935,19 +811,21 @@
 
       currentDrivers.forEach((name) => {
         const checked = currentCheckedDrivers.includes(name);
+        const displayName = escapeHtml(name);
+        // สำหรับ onclick ต้อง escape ทั้ง HTML และ JS string
+        const jsName = escapeHtml(name.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
         if (checked) {
           html += `
               <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-                <span>${name}</span>
+                <span>${displayName}</span>
                 <button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>
               </div>
             `;
         } else {
-          const safeName = name.replace(/'/g, "\\'");
           html += `
               <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-                <span>${name}</span>
-                <button class="btn-small btn-outline" onclick="doAlcoholCheck('${safeName}')">
+                <span>${displayName}</span>
+                <button class="btn-small btn-outline" onclick="doAlcoholCheck('${jsName}')">
                   บันทึกผลแอลกอฮอล์
                 </button>
               </div>
@@ -1001,7 +879,7 @@
         html: `
             <div style="text-align:left;">
               <label style="font-size:0.8rem;color:#555;">ชื่อคนขับ</label>
-              <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${driverName}</div>
+              <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${escapeHtml(driverName)}</div>
 
               <label style="font-size:0.8rem;color:#555;">ปริมาณแอลกอฮอล์ (มก./ลิตรลมหายใจ)</label>
               <input id="swalAlcoholValue" type="number" min="0" step="0.01"
@@ -1210,8 +1088,8 @@
         let materialsBlock = '';
         if (stop.materials && stop.materials.length > 0) {
           const parts = stop.materials.map(function (m) {
-            const name = m.materialDesc || m.material || 'สินค้า';
-            const qty = m.totalQty || 0;
+            const name = escapeHtml(m.materialDesc || m.material || 'สินค้า');
+            const qty = escapeHtml(m.totalQty || 0);
             return '- ' + name + ' ' + qty;
           });
           materialsBlock =
@@ -1255,37 +1133,37 @@
           '<div class="timeline-header-row">' +
           '<div class="timeline-stop-label">' +
           'Stop ' +
-          stop.seq +
+          escapeHtml(stop.seq) +
           ' • ' +
-          (stop.destination2 || '-') +
+          escapeHtml(stop.destination2 || '-') +
           '</div>' +
           '<div class="timeline-status">' +
-          statusLabel +
+          escapeHtml(statusLabel) +
           '</div>' +
           '</div>' +
           '<div class="timeline-sub">รหัสสถานี: ' +
-          (stop.destination1 || '-') +
+          escapeHtml(stop.destination1 || '-') +
           '</div>' +
           '<div class="timeline-sub"><b>Shipment:</b> ' +
-          (stop.shipmentNo || '-') +
+          escapeHtml(stop.shipmentNo || '-') +
           '</div>' +
           '<div class="timeline-sub"><b>Distance (ระบบ):</b> ' +
-          distanceText +
+          escapeHtml(distanceText) +
           '</div>' +
           '<div class="timeline-sub"><b>Check-in:</b> ' +
-          (stop.checkInTime || '-') +
+          escapeHtml(stop.checkInTime || '-') +
           '</div>' +
           '<div class="timeline-sub"><b>เลขไมล์ Check-in:</b> ' +
-          odoText +
+          escapeHtml(odoText) +
           '</div>' +
           '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
-          (stop.fuelingTime || '-') +
+          escapeHtml(stop.fuelingTime || '-') +
           '</div>' +
           '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
-          (stop.unloadDoneTime || '-') +
+          escapeHtml(stop.unloadDoneTime || '-') +
           '</div>' +
           '<div class="timeline-sub"><b>Check-out:</b> ' +
-          (stop.checkOutTime || '-') +
+          escapeHtml(stop.checkOutTime || '-') +
           '</div>' +
           materialsBlock +
           '<div class="action-row">' +
@@ -1684,7 +1562,7 @@
         html: `
             <div style="text-align:left;">
               <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
-                Reference: <b>${currentReference}</b>
+                Reference: <b>${escapeHtml(currentReference)}</b>
               </div>
 
               <label style="font-size:0.8rem;color:#555;">เลขไมล์จบทริป</label>
@@ -1857,49 +1735,6 @@
         return;
       }
 
-      const { value: selectedStatus } = await Swal.fire({
-        icon: 'question',
-        title: 'สถานะรถเมื่อปิดงาน',
-        text: 'เลือกสถานะของรถหลังจากจบการส่งสินค้า',
-        showCancelButton: true,
-        cancelButtonText: 'ยกเลิก',
-        confirmButtonColor: '#1abc9c',
-        html: `
-          <div style="text-align:center;">
-            <p style="margin-bottom:16px;font-size:0.9rem;">เลือกสถานะของรถหลังจากจบการส่งสินค้า</p>
-            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
-              <button class="swal2-styled" style="background:#1abc9c;width:auto;padding:12px 24px;border-radius:8px;color:#fff;border:none;cursor:pointer;font-weight:600;"
-                onclick="document.body.dispatchEvent(new CustomEvent('closeJobStatus', {detail:'ready'}))">
-                ✅ พร้อมรับงาน
-              </button>
-              <button class="swal2-styled" style="background:#f39c12;width:auto;padding:12px 24px;border-radius:8px;color:#fff;border:none;cursor:pointer;font-weight:600;"
-                onclick="document.body.dispatchEvent(new CustomEvent('closeJobStatus', {detail:'maintenance'}))">
-                🔧 เข้าซ่อมบำรุง
-              </button>
-            </div>
-          </div>
-        `,
-        didOpen: () => {
-          const handler = (e) => {
-            const status = e.detail;
-            document.body.removeEventListener('closeJobStatus', handler);
-            Swal.clickConfirm();
-            return status;
-          };
-          document.body.addEventListener('closeJobStatus', handler);
-        },
-        preConfirm: () => {
-          let selectedValue = 'ready';
-          const handler = (e) => {
-            selectedValue = e.detail;
-            document.body.removeEventListener('closeJobStatus', handler);
-          };
-          const listener = document.body.addEventListener('closeJobStatus', handler);
-          return selectedValue;
-        },
-      });
-
-      // ถามเพิ่มเติม: สถานะรถ + ค่าใช้จ่าย
       const { value: formValues } = await Swal.fire({
         icon: 'question',
         title: 'ปิดงาน - บันทึกข้อมูลเพิ่มเติม',
@@ -1979,25 +1814,21 @@
       try {
         showLoading('กำลังปิดงาน...');
 
-        const url =
-          WEB_APP_URL +
-          '?action=closejob' +
-          '&reference=' +
-          encodeURIComponent(currentReference) +
-          '&userId=' +
-          encodeURIComponent(currentUserId) +
-          '&vehicleStatus=' +
-          encodeURIComponent(vehicleStatus) +
-          '&vehicleDesc=' +
-          encodeURIComponent(currentVehicleDesc) +
-          '&hillFee=' +
-          encodeURIComponent(hillFee) +
-          '&bkkFee=' +
-          encodeURIComponent(bkkFee) +
-          '&repairFee=' +
-          encodeURIComponent(repairFee);
+        const formData = new URLSearchParams();
+        formData.append('action', 'closejob');
+        formData.append('reference', currentReference);
+        formData.append('userId', currentUserId);
+        formData.append('vehicleStatus', vehicleStatus);
+        formData.append('vehicleDesc', currentVehicleDesc);
+        formData.append('hillFee', hillFee);
+        formData.append('bkkFee', bkkFee);
+        formData.append('repairFee', repairFee);
 
-        const res = await fetch(url);
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData,
+        });
         const json = await res.json();
 
         closeLoading();
