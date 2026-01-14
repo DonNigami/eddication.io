@@ -1547,6 +1547,11 @@
           if (hasPumping) {
             formData.append('hasPumping', hasPumping);
           }
+          if (hasTransfer) {
+            formData.append('hasTransfer', hasTransfer);
+          }
+        }
+
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
