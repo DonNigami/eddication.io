@@ -1616,51 +1616,6 @@
       }
     }
 
-        if (!json.success) {
-          showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
-          return;
-        }
-
-        // อัปเดตสถานะบน UI ทันทีจากข้อมูลที่ backend ส่งกลับ
-        const stopInfo = json.stop || null;
-        if (stopInfo) {
-          lastStops = (lastStops || []).map((s) => {
-            if (s.rowIndex !== stopInfo.rowIndex) return s;
-            const merged = { ...s, ...stopInfo };
-            // รักษาพิกัดปลายทางเดิมไว้ ถ้า backend ไม่ส่งมา (ปุ่มนำทางจะไม่หาย)
-            if (!merged.destLat) merged.destLat = s.destLat;
-            if (!merged.destLng) merged.destLng = s.destLng;
-            return merged;
-          });
-          renderTimeline(lastStops);
-        }
-
-        await showSuccess(
-          'อัปเดตสำเร็จ',
-          json.message || 'อัปเดตสถานะเรียบร้อย'
-        );
-
-        if (stopInfo) {
-          showInlineFlex(type, stopInfo);
-          sendFlexCheckInOut(type, stopInfo);
-        }
-
-        if (currentReference) {
-          document.getElementById('keyword').value = currentReference;
-          // refresh แบบเบื้องหลัง ไม่ต้องรอ เพื่อไม่ให้ UI หน่วง
-          search(true);
-        }
-      } catch (err) {
-        console.error(err);
-        closeLoading();
-        showError('เกิดข้อผิดพลาดในการอัปเดตสถานะ');
-      } finally {
-        buttonsToReenable.forEach((btn) => {
-          btn.disabled = false;
-        });
-      }
-    }
-
     // ฟอร์ม "จบทริป"
     async function openEndTripDialog() {
       if (!currentReference) {
