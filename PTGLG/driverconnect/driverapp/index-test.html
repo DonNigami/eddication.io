@@ -1534,7 +1534,7 @@
         showLoading('กำลังอัปเดตสถานะจุดส่ง...');
 
         const formData = new URLSearchParams();
-        formData.append('action', 'updateStop');
+        formData.append('action', 'updatestop'); // ใช้ตัวเล็กตาม Backend
         formData.append('rowIndex', rowIndex);
         formData.append('status', newStatus);
         formData.append('type', type);
@@ -1551,8 +1551,7 @@
           if (hasTransfer) formData.append('hasTransfer', hasTransfer);
         }
 
-        // Debug: Log payload
-        console.log('Sending payload:', Array.from(formData.entries()));
+        console.log('Attempting POST:', Array.from(formData.entries()));
 
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
@@ -1560,51 +1559,62 @@
           body: formData,
         });
 
-        const text = await res.text();
+        let text = await res.text();
         let json;
-        try {
+
+        // ✅ ตรวจสอบว่าผลลัพธ์เป็น JSON หรือไม่
+        if (text.trim().startsWith('{')) {
           json = JSON.parse(text);
-        } catch (e) {
-          console.warn('POST request failed or invalid JSON:', text);
-          
-          // ✅ Auto Fallback: ถ้าส่ง POST ไม่ผ่าน (NO_EVENT) ให้ลองส่ง GET แทนทันที
-          if (text.includes('NO_EVENT')) {
-            console.log('Switching to GET method...');
-            const params = new URLSearchParams();
-            params.append('action', 'updatestop'); // ใช้ 'updatestop' ตามที่ GET รองรับ
-            params.append('rowIndex', rowIndex);
-            params.append('status', newStatus);
-            params.append('type', type);
-            params.append('userId', currentUserId);
-            params.append('lat', String(lat));
-            params.append('lng', String(lng));
-
-            if (type === 'checkin') {
-              params.append('odo', odo || '');
-              if (receiverName) params.append('receiverName', receiverName);
-              if (receiverType) params.append('receiverType', receiverType);
-            } else if (type === 'checkout') {
-              if (hasPumping) params.append('hasPumping', hasPumping);
-              if (hasTransfer) params.append('hasTransfer', hasTransfer);
-            }
-
-            const url = WEB_APP_URL + '?' + params.toString();
-            const resGet = await fetch(url);
-            const textGet = await resGet.text();
-            
-            try {
-              json = JSON.parse(textGet);
-            } catch (ex) {
-              showError('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (GET Retry): ' + textGet.substring(0, 50));
-              return;
-            }
+        } else {
+          // ถ้าไม่ใช่ JSON (เช่น NO_EVENT หรือ Error อื่น) ให้ลอง GET ทันที
+          console.warn('POST failed, retrying with GET...', text);
+          const resGet = await fetch(WEB_APP_URL + '?' + formData.toString());
+          text = await resGet.text();
+          if (text.trim().startsWith('{')) {
+            json = JSON.parse(text);
           } else {
-            showError('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: ' + text.substring(0, 50));
-            return;
+            throw new Error(text || 'Unknown Server Response');
           }
         }
 
         closeLoading();
+
+        if (!json.success) {
+          // แสดง Error จริงจาก Server เช่น "อยู่นอกรัศมี" หรือ "ไม่ได้เป่าแอลกอฮอล์"
+          showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
+          return;
+        }
+
+        // อัปเดตสถานะบน UI ทันที
+        const stopInfo = json.stop || null;
+        if (stopInfo) {
+          lastStops = (lastStops || []).map((s) => {
+            if (s.rowIndex !== stopInfo.rowIndex) return s;
+            const merged = { ...s, ...stopInfo };
+            if (!merged.destLat) merged.destLat = s.destLat;
+            if (!merged.destLng) merged.destLng = s.destLng;
+            return merged;
+          });
+          renderTimeline(lastStops);
+          showInlineFlex(type, stopInfo);
+        }
+
+        await showSuccess('อัปเดตสำเร็จ', json.message || 'อัปเดตสถานะเรียบร้อย');
+
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          search(true);
+        }
+      } catch (err) {
+        console.error('UpdateStatus Error:', err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาด: ' + err.message);
+      } finally {
+        buttonsToReenable.forEach((btn) => {
+          btn.disabled = false;
+        });
+      }
+    }
 
         if (!json.success) {
           showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
