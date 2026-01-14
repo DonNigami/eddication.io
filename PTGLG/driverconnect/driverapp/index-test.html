@@ -201,6 +201,553 @@
       transform: scale(0.95);
     }
 
+    /* Offline Mode Indicator */
+    .offline-bar {
+      display: none;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    }
+
+    .offline-bar.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .offline-bar .offline-icon {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .queue-badge {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      margin-left: 4px;
+    }
+
+    .syncing-bar {
+      display: none;
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .syncing-bar.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .syncing-bar .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    [data-theme="dark"] .offline-bar {
+      background: linear-gradient(135deg, #c0392b, #962d22);
+    }
+
+    [data-theme="dark"] .syncing-bar {
+      background: linear-gradient(135deg, #2980b9, #1f6391);
+    }
+
+    /* Quick Actions Floating Bar */
+    .quick-actions {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      z-index: 900;
+      max-width: calc(100% - 32px);
+      width: auto;
+      min-width: 280px;
+    }
+
+    .quick-actions.show {
+      display: block;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .quick-actions-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--timeline-border);
+    }
+
+    .quick-actions-title {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .quick-actions-stop {
+      font-size: 0.85rem;
+      color: var(--text-main);
+      font-weight: 700;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quick-actions-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .quick-actions-buttons button {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      border-radius: 10px;
+      min-width: 0;
+    }
+
+    .quick-actions-buttons .btn-checkin {
+      background: linear-gradient(135deg, #27ae60, #219a52);
+    }
+
+    .quick-actions-buttons .btn-checkout {
+      background: linear-gradient(135deg, #e67e22, #d35400);
+    }
+
+    .quick-actions-close {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--text-sub);
+      color: white;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .quick-actions-close:hover {
+      background: #e74c3c;
+    }
+
+    [data-theme="dark"] .quick-actions {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Notification Settings Button */
+    .notification-btn {
+      background: none;
+      border: none;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: background 0.2s, transform 0.2s;
+      position: relative;
+    }
+
+    .notification-btn:hover {
+      background: rgba(26, 188, 156, 0.1);
+      transform: scale(1.1);
+    }
+
+    .notification-btn .notif-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 10px;
+      height: 10px;
+      background: #e74c3c;
+      border-radius: 50%;
+      border: 2px solid var(--card-bg);
+    }
+
+    /* In-App Toast Notification */
+    .toast-container {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: calc(100% - 32px);
+      width: 350px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: toastIn 0.3s ease-out;
+      pointer-events: auto;
+      border-left: 4px solid var(--primary);
+    }
+
+    .toast.toast-warning {
+      border-left-color: #f39c12;
+    }
+
+    .toast.toast-error {
+      border-left-color: #e74c3c;
+    }
+
+    .toast.toast-out {
+      animation: toastOut 0.3s ease-in forwards;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .toast-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toast-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .toast-message {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      padding: 0;
+      font-size: 1rem;
+      line-height: 1;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    /* Notification Settings Modal Content */
+    .notif-settings {
+      text-align: left;
+    }
+
+    .notif-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--timeline-border);
+    }
+
+    .notif-option:last-child {
+      border-bottom: none;
+    }
+
+    .notif-option-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .notif-option-icon {
+      font-size: 1.3rem;
+    }
+
+    .notif-option-text {
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .notif-option-desc {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 28px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(22px);
+    }
+
+    [data-theme="dark"] .toggle-slider {
+      background-color: #444;
+    }
+
+    /* Trip Dashboard */
+    .trip-dashboard {
+      display: none;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: var(--border-radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      color: white;
+    }
+
+    .trip-dashboard.show {
+      display: block;
+    }
+
+    .trip-dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .trip-dashboard-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .trip-dashboard-ref {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .trip-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .trip-stat {
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .trip-stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .trip-stat-label {
+      font-size: 0.7rem;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .trip-progress {
+      margin-bottom: 12px;
+    }
+
+    .trip-progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+
+    .trip-progress-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .trip-progress-fill {
+      height: 100%;
+      background: white;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .trip-stops-mini {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .trip-stop-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: rgba(255,255,255,0.25);
+      border: 2px solid transparent;
+    }
+
+    .trip-stop-dot.completed {
+      background: white;
+      color: var(--primary);
+    }
+
+    .trip-stop-dot.in-progress {
+      background: rgba(255,255,255,0.4);
+      border-color: white;
+      animation: dotPulse 1.5s infinite;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .trip-stop-dot.pending {
+      opacity: 0.6;
+    }
+
+    .trip-extra-info {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      font-size: 0.75rem;
+    }
+
+    .trip-extra-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.15);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
     button {
       width: 100%;
       padding: 11px 12px;
@@ -679,6 +1226,34 @@
 </head>
 
 <body>
+  <!-- Offline Mode Bar -->
+  <div id="offlineBar" class="offline-bar">
+    <span class="offline-icon">📵</span>
+    <span>ไม่มีสัญญาณอินเทอร์เน็ต</span>
+    <span id="queueBadge" class="queue-badge" style="display:none;">0 รายการรอส่ง</span>
+  </div>
+
+  <!-- Syncing Bar -->
+  <div id="syncingBar" class="syncing-bar">
+    <span class="spin">🔄</span>
+    <span id="syncingText">กำลังส่งข้อมูลที่ค้างไว้...</span>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Quick Actions Floating Bar -->
+  <div id="quickActions" class="quick-actions">
+    <button class="quick-actions-close" onclick="hideQuickActions()" title="ปิด">✕</button>
+    <div class="quick-actions-header">
+      <span class="quick-actions-title">⚡ จุดถัดไป</span>
+      <span id="quickActionsStop" class="quick-actions-stop"></span>
+    </div>
+    <div id="quickActionsButtons" class="quick-actions-buttons">
+      <!-- Buttons will be inserted here -->
+    </div>
+  </div>
+
   <!-- Inline Flex Notification -->
   <div id="inlineFlex" class="inline-flex hidden">
     <div class="inline-flex-bar"></div>
@@ -700,9 +1275,14 @@
             🚚 Driver Tracking
             <span class="badge">Online</span>
           </div>
-          <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="สลับโหมดกลางคืน">
-            🌙
-          </button>
+          <div style="display:flex;gap:4px;">
+            <button id="notificationBtn" class="notification-btn" onclick="openNotificationSettings()" title="ตั้งค่าการแจ้งเตือน">
+              🔔
+            </button>
+            <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="สลับโหมดกลางคืน">
+              🌙
+            </button>
+          </div>
         </div>
 
         <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
@@ -732,6 +1312,45 @@
         <div id="summary" class="summary-card hidden"></div>
 
         <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
+
+        <!-- Trip Dashboard -->
+        <div id="tripDashboard" class="trip-dashboard">
+          <div class="trip-dashboard-header">
+            <div class="trip-dashboard-title">
+              📊 สรุปเที่ยว
+            </div>
+            <div id="tripRef" class="trip-dashboard-ref"></div>
+          </div>
+
+          <div class="trip-stats">
+            <div class="trip-stat">
+              <div id="tripCompleted" class="trip-stat-value">0/0</div>
+              <div class="trip-stat-label">จุดที่เสร็จ</div>
+            </div>
+            <div class="trip-stat">
+              <div id="tripDuration" class="trip-stat-value">-</div>
+              <div class="trip-stat-label">เวลาทำงาน</div>
+            </div>
+          </div>
+
+          <div class="trip-progress">
+            <div class="trip-progress-header">
+              <span>ความคืบหน้า</span>
+              <span id="tripProgressPercent">0%</span>
+            </div>
+            <div class="trip-progress-bar">
+              <div id="tripProgressFill" class="trip-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div id="tripStopsMini" class="trip-stops-mini">
+            <!-- Stop dots will be inserted here -->
+          </div>
+
+          <div id="tripExtraInfo" class="trip-extra-info" style="display:none;">
+            <!-- Extra info like fees will be shown here -->
+          </div>
+        </div>
 
         <div id="timelineContainer" class="timeline-container hidden">
           <div class="timeline-title">
@@ -1889,6 +2508,15 @@
       }
 
       container.classList.remove('hidden');
+
+      // อัพเดท Trip Dashboard
+      updateTripDashboard(stops);
+
+      // ตรวจสอบการเปลี่ยนแปลงและแจ้งเตือน
+      checkForChanges(stops);
+
+      // อัพเดท Quick Actions
+      updateQuickActions();
     }
 
     function getCurrentPositionAsync() {
@@ -2192,6 +2820,25 @@
 
         console.log('Attempting POST:', Array.from(formData.entries()));
 
+        // ถ้า Offline ให้เก็บลง Queue แทน
+        if (!isOnline) {
+          closeLoading();
+          const queueData = {
+            action: 'updatestop',
+            data: Object.fromEntries(formData.entries()),
+            description: type === 'checkin' ? 'เช็คอิน จุดที่ ' + seq : 'เช็คเอาท์ จุดที่ ' + seq,
+          };
+          addToOfflineQueue(queueData);
+
+          await Swal.fire({
+            icon: 'info',
+            title: 'บันทึกไว้ในคิว',
+            html: '<b>ไม่มีสัญญาณอินเทอร์เน็ต</b><br>ระบบจะส่งข้อมูลอัตโนมัติเมื่อกลับมาออนไลน์',
+            confirmButtonColor: '#1abc9c',
+          });
+          return;
+        }
+
         const res = await fetch(WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
@@ -2247,6 +2894,28 @@
       } catch (err) {
         console.error('UpdateStatus Error:', err);
         closeLoading();
+
+        // ถ้า Network Error และ Offline ให้เก็บลง Queue
+        if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          isOnline = false;
+          showOfflineBar(true);
+
+          const queueData = {
+            action: 'updatestop',
+            data: Object.fromEntries(formData.entries()),
+            description: type === 'checkin' ? 'เช็คอิน จุดที่ ' + seq : 'เช็คเอาท์ จุดที่ ' + seq,
+          };
+          addToOfflineQueue(queueData);
+
+          await Swal.fire({
+            icon: 'info',
+            title: 'บันทึกไว้ในคิว',
+            html: '<b>การเชื่อมต่อขัดข้อง</b><br>ระบบจะส่งข้อมูลอัตโนมัติเมื่อกลับมาออนไลน์',
+            confirmButtonColor: '#1abc9c',
+          });
+          return;
+        }
+
         showError('เกิดข้อผิดพลาด: ' + err.message);
       } finally {
         buttonsToReenable.forEach((btn) => {
@@ -2638,11 +3307,700 @@
       }
     }
 
+    // ==================== Offline Mode ====================
+    const OFFLINE_QUEUE_KEY = 'driverapp_offline_queue';
+    let isOnline = navigator.onLine;
+    let isSyncing = false;
+
+    function getOfflineQueue() {
+      try {
+        const data = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        console.error('Error reading offline queue:', e);
+        return [];
+      }
+    }
+
+    function saveOfflineQueue(queue) {
+      try {
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        updateQueueBadge();
+      } catch (e) {
+        console.error('Error saving offline queue:', e);
+      }
+    }
+
+    function addToOfflineQueue(item) {
+      const queue = getOfflineQueue();
+      queue.push({
+        ...item,
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+      });
+      saveOfflineQueue(queue);
+      console.log('📥 Added to offline queue:', item.action);
+    }
+
+    function removeFromOfflineQueue(id) {
+      const queue = getOfflineQueue();
+      const newQueue = queue.filter(item => item.id !== id);
+      saveOfflineQueue(newQueue);
+    }
+
+    function updateQueueBadge() {
+      const queue = getOfflineQueue();
+      const badge = document.getElementById('queueBadge');
+      if (badge) {
+        if (queue.length > 0) {
+          badge.textContent = queue.length + ' รายการรอส่ง';
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+
+    function showOfflineBar(show) {
+      const bar = document.getElementById('offlineBar');
+      if (bar) {
+        if (show) {
+          bar.classList.add('show');
+          updateQueueBadge();
+        } else {
+          bar.classList.remove('show');
+        }
+      }
+    }
+
+    function showSyncingBar(show, text) {
+      const bar = document.getElementById('syncingBar');
+      const textEl = document.getElementById('syncingText');
+      if (bar) {
+        if (show) {
+          bar.classList.add('show');
+          if (textEl && text) textEl.textContent = text;
+        } else {
+          bar.classList.remove('show');
+        }
+      }
+    }
+
+    async function syncOfflineQueue() {
+      if (isSyncing || !isOnline) return;
+
+      const queue = getOfflineQueue();
+      if (queue.length === 0) return;
+
+      isSyncing = true;
+      showSyncingBar(true, 'กำลังส่งข้อมูลที่ค้างไว้... (0/' + queue.length + ')');
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+        showSyncingBar(true, 'กำลังส่งข้อมูล... (' + (i + 1) + '/' + queue.length + ')');
+
+        try {
+          const formData = new URLSearchParams();
+          Object.keys(item.data).forEach(key => {
+            formData.append(key, item.data[key]);
+          });
+
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: formData,
+          });
+          const json = await res.json();
+
+          if (json.success) {
+            removeFromOfflineQueue(item.id);
+            successCount++;
+            console.log('✅ Synced:', item.action);
+          } else {
+            failCount++;
+            console.error('❌ Sync failed:', item.action, json.message);
+          }
+        } catch (err) {
+          failCount++;
+          console.error('❌ Sync error:', item.action, err);
+          // หยุด sync ถ้า network error (น่าจะ offline อีกแล้ว)
+          if (!navigator.onLine) {
+            break;
+          }
+        }
+      }
+
+      isSyncing = false;
+      showSyncingBar(false);
+
+      if (successCount > 0) {
+        Swal.fire({
+          icon: 'success',
+          title: 'ส่งข้อมูลสำเร็จ',
+          text: 'ส่งข้อมูลที่ค้างไว้แล้ว ' + successCount + ' รายการ' + (failCount > 0 ? ' (ล้มเหลว ' + failCount + ' รายการ)' : ''),
+          confirmButtonColor: '#1abc9c',
+          timer: 3000,
+          timerProgressBar: true,
+        });
+
+        // Refresh data if we have a current reference
+        if (currentReference) {
+          search(true);
+        }
+      }
+
+      updateQueueBadge();
+    }
+
+    function handleOnline() {
+      console.log('🟢 Online');
+      isOnline = true;
+      showOfflineBar(false);
+
+      // Auto-sync เมื่อกลับมา online
+      setTimeout(() => {
+        syncOfflineQueue();
+      }, 1000);
+    }
+
+    function handleOffline() {
+      console.log('🔴 Offline');
+      isOnline = false;
+      showOfflineBar(true);
+    }
+
+    function initOfflineMode() {
+      isOnline = navigator.onLine;
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // เช็คสถานะตอนเริ่มต้น
+      if (!isOnline) {
+        showOfflineBar(true);
+      }
+
+      // อัพเดท badge
+      updateQueueBadge();
+
+      // ถ้า online และมี queue ค้างอยู่ ให้ sync
+      if (isOnline) {
+        setTimeout(() => {
+          syncOfflineQueue();
+        }, 2000);
+      }
+
+      console.log('📶 Offline mode initialized. Online:', isOnline);
+    }
+
+    // ==================== Quick Actions ====================
+    let quickActionsHidden = false;
+
+    function getNextPendingStop() {
+      if (!lastStops || lastStops.length === 0) return null;
+
+      // หา stop ที่ยังไม่เสร็จ (ไม่มี checkinTime หรือไม่มี checkoutTime)
+      for (const stop of lastStops) {
+        // ถ้ายังไม่ checkin
+        if (!stop.checkinTime) {
+          return { stop, action: 'checkin' };
+        }
+        // ถ้า checkin แล้วแต่ยังไม่ checkout
+        if (stop.checkinTime && !stop.checkoutTime) {
+          return { stop, action: 'checkout' };
+        }
+      }
+      return null;
+    }
+
+    function updateQuickActions() {
+      const container = document.getElementById('quickActions');
+      const stopLabel = document.getElementById('quickActionsStop');
+      const buttonsDiv = document.getElementById('quickActionsButtons');
+
+      if (!container || !stopLabel || !buttonsDiv) return;
+
+      // ถ้า user ซ่อนไว้ หรือยังไม่ได้ค้นหางาน
+      if (quickActionsHidden || !currentReference || !lastStops || lastStops.length === 0) {
+        container.classList.remove('show');
+        return;
+      }
+
+      const next = getNextPendingStop();
+
+      if (!next) {
+        // ทุกจุดเสร็จหมดแล้ว
+        container.classList.remove('show');
+        return;
+      }
+
+      const { stop, action } = next;
+      const seq = stop.seq || stop.sequence || '?';
+      const destination = stop.destination || stop.destName || 'ไม่ทราบ';
+
+      stopLabel.textContent = 'จุดที่ ' + seq + ': ' + destination;
+
+      // สร้างปุ่ม
+      if (action === 'checkin') {
+        buttonsDiv.innerHTML = `
+          <button class="btn-checkin" onclick="quickCheckin(${stop.rowIndex}, ${seq})">
+            📍 เช็คอิน
+          </button>
+        `;
+      } else {
+        buttonsDiv.innerHTML = `
+          <button class="btn-checkout" onclick="quickCheckout(${stop.rowIndex}, ${seq})">
+            ✅ เช็คเอาท์
+          </button>
+        `;
+      }
+
+      container.classList.add('show');
+    }
+
+    function quickCheckin(rowIndex, seq) {
+      // เรียก startCheckin โดยตรง
+      startCheckin(rowIndex, seq);
+    }
+
+    function quickCheckout(rowIndex, seq) {
+      // เรียก startCheckout โดยตรง
+      startCheckout(rowIndex, seq);
+    }
+
+    function hideQuickActions() {
+      const container = document.getElementById('quickActions');
+      if (container) {
+        container.classList.remove('show');
+        quickActionsHidden = true;
+      }
+    }
+
+    function showQuickActions() {
+      quickActionsHidden = false;
+      updateQuickActions();
+    }
+
+    // ==================== Notification System ====================
+    const NOTIF_SETTINGS_KEY = 'driverapp_notification_settings';
+    let previousStops = null; // เก็บสถานะก่อนหน้าเพื่อเปรียบเทียบ
+
+    const defaultNotifSettings = {
+      statusChange: true,      // แจ้งเตือนเมื่อสถานะเปลี่ยน
+      newJob: true,            // แจ้งเตือนเมื่อมีงานใหม่
+      lineMessage: true,       // ส่ง LINE Message (ต้องใช้ร่วมกับ Backend)
+      sound: true,             // เสียงแจ้งเตือน
+    };
+
+    function getNotifSettings() {
+      try {
+        const data = localStorage.getItem(NOTIF_SETTINGS_KEY);
+        return data ? { ...defaultNotifSettings, ...JSON.parse(data) } : defaultNotifSettings;
+      } catch (e) {
+        return defaultNotifSettings;
+      }
+    }
+
+    function saveNotifSettings(settings) {
+      try {
+        localStorage.setItem(NOTIF_SETTINGS_KEY, JSON.stringify(settings));
+      } catch (e) {
+        console.error('Error saving notification settings:', e);
+      }
+    }
+
+    function openNotificationSettings() {
+      const settings = getNotifSettings();
+
+      Swal.fire({
+        title: '🔔 ตั้งค่าการแจ้งเตือน',
+        html: `
+          <div class="notif-settings">
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">📊</span>
+                <div>
+                  <div class="notif-option-text">สถานะเปลี่ยนแปลง</div>
+                  <div class="notif-option-desc">แจ้งเมื่อจุดส่งมีการอัพเดท</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifStatusChange" ${settings.statusChange ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">🆕</span>
+                <div>
+                  <div class="notif-option-text">งานใหม่</div>
+                  <div class="notif-option-desc">แจ้งเมื่อมีจุดส่งเพิ่มขึ้น</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifNewJob" ${settings.newJob ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">💬</span>
+                <div>
+                  <div class="notif-option-text">LINE Message</div>
+                  <div class="notif-option-desc">ส่งแจ้งเตือนไปยัง LINE Chat</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifLineMessage" ${settings.lineMessage ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">🔊</span>
+                <div>
+                  <div class="notif-option-text">เสียงแจ้งเตือน</div>
+                  <div class="notif-option-desc">เปิดเสียงเมื่อมีการแจ้งเตือน</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifSound" ${settings.sound ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          return {
+            statusChange: document.getElementById('notifStatusChange').checked,
+            newJob: document.getElementById('notifNewJob').checked,
+            lineMessage: document.getElementById('notifLineMessage').checked,
+            sound: document.getElementById('notifSound').checked,
+          };
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          saveNotifSettings(result.value);
+          showToast('success', 'บันทึกแล้ว', 'ตั้งค่าการแจ้งเตือนเรียบร้อย');
+        }
+      });
+    }
+
+    // Toast Notification
+    let toastId = 0;
+
+    function showToast(type, title, message, duration = 5000) {
+      const settings = getNotifSettings();
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const id = ++toastId;
+      const iconMap = {
+        success: '✅',
+        warning: '⚠️',
+        error: '❌',
+        info: 'ℹ️',
+        newjob: '🆕',
+        status: '📊',
+      };
+
+      const toast = document.createElement('div');
+      toast.className = 'toast' + (type === 'warning' ? ' toast-warning' : '') + (type === 'error' ? ' toast-error' : '');
+      toast.id = 'toast-' + id;
+      toast.innerHTML = `
+        <span class="toast-icon">${iconMap[type] || '🔔'}</span>
+        <div class="toast-content">
+          <div class="toast-title">${escapeHtml(title)}</div>
+          <div class="toast-message">${escapeHtml(message)}</div>
+        </div>
+        <button class="toast-close" onclick="closeToast(${id})">✕</button>
+      `;
+
+      container.appendChild(toast);
+
+      // เล่นเสียง (ถ้าเปิด)
+      if (settings.sound && (type === 'newjob' || type === 'status')) {
+        playNotificationSound();
+      }
+
+      // Auto-dismiss
+      if (duration > 0) {
+        setTimeout(() => closeToast(id), duration);
+      }
+
+      return id;
+    }
+
+    function closeToast(id) {
+      const toast = document.getElementById('toast-' + id);
+      if (toast) {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 300);
+      }
+    }
+
+    function playNotificationSound() {
+      try {
+        // สร้างเสียง beep ง่ายๆ ด้วย Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.3;
+
+        oscillator.start();
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (e) {
+        console.log('Cannot play notification sound');
+      }
+    }
+
+    // ตรวจสอบการเปลี่ยนแปลงของงาน
+    function checkForChanges(newStops) {
+      const settings = getNotifSettings();
+
+      if (!previousStops || previousStops.length === 0) {
+        previousStops = newStops ? [...newStops] : [];
+        return;
+      }
+
+      if (!newStops || newStops.length === 0) return;
+
+      // ตรวจสอบงานใหม่
+      if (settings.newJob && newStops.length > previousStops.length) {
+        const newCount = newStops.length - previousStops.length;
+        showToast('newjob', 'มีจุดส่งใหม่!', 'เพิ่มขึ้น ' + newCount + ' จุด');
+
+        // ส่ง LINE Message ถ้าเปิดไว้
+        if (settings.lineMessage) {
+          sendLineNotification('มีจุดส่งใหม่ ' + newCount + ' จุด');
+        }
+      }
+
+      // ตรวจสอบสถานะเปลี่ยน
+      if (settings.statusChange) {
+        for (const newStop of newStops) {
+          const oldStop = previousStops.find(s => s.rowIndex === newStop.rowIndex);
+          if (oldStop) {
+            // เช็คว่ามีการ checkin/checkout ใหม่หรือไม่
+            if (!oldStop.checkInTime && newStop.checkInTime) {
+              showToast('status', 'Check-in สำเร็จ', 'จุดที่ ' + newStop.seq + ': ' + (newStop.destination || 'ไม่ทราบ'));
+            }
+            if (!oldStop.checkOutTime && newStop.checkOutTime) {
+              showToast('status', 'Check-out สำเร็จ', 'จุดที่ ' + newStop.seq + ': ' + (newStop.destination || 'ไม่ทราบ'));
+            }
+          }
+        }
+      }
+
+      // อัพเดท previousStops
+      previousStops = newStops ? [...newStops] : [];
+    }
+
+    // ส่ง LINE Message (ต้องใช้ร่วมกับ liff.sendMessages)
+    async function sendLineNotification(message) {
+      try {
+        if (!liff.isInClient()) {
+          console.log('Not in LINE app, skipping LINE notification');
+          return;
+        }
+
+        await liff.sendMessages([
+          {
+            type: 'text',
+            text: '🔔 ' + message,
+          },
+        ]);
+        console.log('LINE notification sent:', message);
+      } catch (err) {
+        console.error('Failed to send LINE notification:', err);
+      }
+    }
+
+    // ==================== Trip Dashboard ====================
+    let tripStartTime = null;
+
+    function updateTripDashboard(stops) {
+      const dashboard = document.getElementById('tripDashboard');
+      const refEl = document.getElementById('tripRef');
+      const completedEl = document.getElementById('tripCompleted');
+      const durationEl = document.getElementById('tripDuration');
+      const progressPercentEl = document.getElementById('tripProgressPercent');
+      const progressFillEl = document.getElementById('tripProgressFill');
+      const stopsMiniEl = document.getElementById('tripStopsMini');
+      const extraInfoEl = document.getElementById('tripExtraInfo');
+
+      if (!dashboard) return;
+
+      // ซ่อนถ้าไม่มี stops
+      if (!stops || stops.length === 0 || !currentReference) {
+        dashboard.classList.remove('show');
+        return;
+      }
+
+      dashboard.classList.add('show');
+
+      // Reference
+      if (refEl) {
+        refEl.textContent = currentReference;
+      }
+
+      // นับจุดที่เสร็จ (checkout แล้ว)
+      let completedCount = 0;
+      let inProgressCount = 0;
+      let firstCheckinTime = null;
+      let lastCheckoutTime = null;
+
+      stops.forEach(stop => {
+        if (stop.checkOutTime) {
+          completedCount++;
+          // หาเวลา checkout ล่าสุด
+          const coTime = parseThaiDateTime(stop.checkOutTime);
+          if (coTime && (!lastCheckoutTime || coTime > lastCheckoutTime)) {
+            lastCheckoutTime = coTime;
+          }
+        } else if (stop.checkInTime) {
+          inProgressCount++;
+        }
+
+        // หาเวลา checkin แรก
+        if (stop.checkInTime) {
+          const ciTime = parseThaiDateTime(stop.checkInTime);
+          if (ciTime && (!firstCheckinTime || ciTime < firstCheckinTime)) {
+            firstCheckinTime = ciTime;
+          }
+        }
+      });
+
+      const totalStops = stops.length;
+
+      // จุดที่เสร็จ
+      if (completedEl) {
+        completedEl.textContent = completedCount + '/' + totalStops;
+      }
+
+      // เวลาทำงาน
+      if (durationEl) {
+        if (firstCheckinTime) {
+          tripStartTime = firstCheckinTime;
+          const endTime = lastCheckoutTime || new Date();
+          const durationMs = endTime - firstCheckinTime;
+          durationEl.textContent = formatDuration(durationMs);
+        } else {
+          durationEl.textContent = '-';
+        }
+      }
+
+      // Progress
+      const progressPercent = totalStops > 0 ? Math.round((completedCount / totalStops) * 100) : 0;
+      if (progressPercentEl) {
+        progressPercentEl.textContent = progressPercent + '%';
+      }
+      if (progressFillEl) {
+        progressFillEl.style.width = progressPercent + '%';
+      }
+
+      // Mini stop dots
+      if (stopsMiniEl) {
+        let dotsHtml = '';
+        stops.forEach(stop => {
+          const seq = stop.seq || '?';
+          let dotClass = 'trip-stop-dot';
+
+          if (stop.checkOutTime) {
+            dotClass += ' completed';
+          } else if (stop.checkInTime) {
+            dotClass += ' in-progress';
+          } else {
+            dotClass += ' pending';
+          }
+
+          dotsHtml += '<div class="' + dotClass + '" title="จุดที่ ' + seq + '">' + seq + '</div>';
+        });
+        stopsMiniEl.innerHTML = dotsHtml;
+      }
+
+      // Extra info (แสดงเมื่อปิดงานแล้ว)
+      if (extraInfoEl) {
+        if (jobClosed) {
+          let extraHtml = '';
+          // อาจเพิ่มข้อมูลค่าเขา ค่า กทม ถ้ามีใน data
+          extraHtml += '<div class="trip-extra-item">✅ ปิดงานแล้ว</div>';
+          if (tripEnded) {
+            extraHtml += '<div class="trip-extra-item">🏁 จบทริปแล้ว</div>';
+          }
+          extraInfoEl.innerHTML = extraHtml;
+          extraInfoEl.style.display = 'flex';
+        } else {
+          extraInfoEl.style.display = 'none';
+        }
+      }
+    }
+
+    function parseThaiDateTime(str) {
+      if (!str) return null;
+      try {
+        // รูปแบบ: "14/01/2026 10:30:45" หรือ "2026-01-14T10:30:45"
+        if (str.includes('T')) {
+          return new Date(str);
+        }
+
+        // รูปแบบ DD/MM/YYYY HH:mm:ss
+        const parts = str.split(' ');
+        if (parts.length >= 2) {
+          const dateParts = parts[0].split('/');
+          if (dateParts.length === 3) {
+            const day = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1;
+            const year = parseInt(dateParts[2], 10);
+            const timeParts = parts[1].split(':');
+            const hour = parseInt(timeParts[0] || 0, 10);
+            const minute = parseInt(timeParts[1] || 0, 10);
+            const second = parseInt(timeParts[2] || 0, 10);
+            return new Date(year, month, day, hour, minute, second);
+          }
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function formatDuration(ms) {
+      if (!ms || ms < 0) return '-';
+
+      const totalMinutes = Math.floor(ms / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0) {
+        return hours + ' ชม. ' + minutes + ' น.';
+      }
+      return minutes + ' นาที';
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
       loadSavedTheme();
       initLiff();
       initPullToRefresh();
       initGpsMonitor();
+      initOfflineMode();
 
       document
         .getElementById('btnSearch')
@@ -2697,6 +4055,17 @@
     window.stopAutoRefresh = stopAutoRefresh;
     window.checkGpsStatus = checkGpsStatus;
     window.toggleTheme = toggleTheme;
+    window.syncOfflineQueue = syncOfflineQueue;
+    window.getOfflineQueue = getOfflineQueue;
+    window.quickCheckin = quickCheckin;
+    window.quickCheckout = quickCheckout;
+    window.hideQuickActions = hideQuickActions;
+    window.showQuickActions = showQuickActions;
+    window.openNotificationSettings = openNotificationSettings;
+    window.showToast = showToast;
+    window.closeToast = closeToast;
+    window.sendLineNotification = sendLineNotification;
+    window.updateTripDashboard = updateTripDashboard;
   </script>
 </body>
 
