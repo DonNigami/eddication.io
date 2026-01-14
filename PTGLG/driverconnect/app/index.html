@@ -1,0 +1,4120 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <base target="_top" />
+  <meta charset="UTF-8" />
+  <title>Driver Tracking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --primary: #1abc9c;
+      --primary-dark: #16a085;
+      --bg: #f4f8f7;
+      --text-main: #222;
+      --text-sub: #666;
+      --card-bg: #ffffff;
+      --border-radius: 14px;
+      --input-bg: #f7faf9;
+      --input-border: #dce2e0;
+      --shadow-color: rgba(0, 0, 0, 0.06);
+      --timeline-border: #e4ece9;
+      --timeline-bg: #f7faf9;
+    }
+
+    /* Dark Mode */
+    [data-theme="dark"] {
+      --bg: #1a1a2e;
+      --text-main: #eaeaea;
+      --text-sub: #a0a0a0;
+      --card-bg: #16213e;
+      --input-bg: #1a1a2e;
+      --input-border: #2a2a4a;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --timeline-border: #2a2a4a;
+      --timeline-bg: #1a1a2e;
+    }
+
+    [data-theme="dark"] .badge {
+      background: rgba(26, 188, 156, 0.2);
+    }
+
+    [data-theme="dark"] .summary-card {
+      background: var(--timeline-bg);
+      border-color: var(--timeline-border);
+    }
+
+    [data-theme="dark"] .timeline-content {
+      background: var(--card-bg);
+      border-color: var(--timeline-border);
+    }
+
+    [data-theme="dark"] .gps-status.checking {
+      background: rgba(52, 152, 219, 0.15);
+    }
+
+    [data-theme="dark"] .gps-status.good {
+      background: rgba(26, 188, 156, 0.15);
+    }
+
+    [data-theme="dark"] .gps-status.weak {
+      background: rgba(243, 156, 18, 0.15);
+    }
+
+    [data-theme="dark"] .gps-status.error {
+      background: rgba(231, 76, 60, 0.15);
+    }
+
+    [data-theme="dark"] .last-updated {
+      background: rgba(26, 188, 156, 0.12);
+    }
+
+    [data-theme="dark"] .ptr-indicator {
+      background: var(--card-bg);
+    }
+
+    [data-theme="dark"] .inline-flex {
+      background: var(--card-bg);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 520px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px 18px 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(26, 188, 156, 0.1);
+      color: var(--primary-dark);
+    }
+
+    .status-text {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      margin-bottom: 10px;
+    }
+
+    .field-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+
+    input[type='text'],
+    input[type='number'] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--input-border);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s, background 0.2s;
+      background: var(--input-bg);
+      color: var(--text-main);
+    }
+
+    input[type='text']:focus,
+    input[type='number']:focus {
+      border-color: var(--primary);
+      background: var(--card-bg);
+      box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.18);
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      background: none;
+      border: none;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(26, 188, 156, 0.1);
+      transform: scale(1.1);
+    }
+
+    .theme-toggle:active {
+      transform: scale(0.95);
+    }
+
+    /* Offline Mode Indicator */
+    .offline-bar {
+      display: none;
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3);
+    }
+
+    .offline-bar.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .offline-bar .offline-icon {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .queue-badge {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      margin-left: 4px;
+    }
+
+    .syncing-bar {
+      display: none;
+      background: linear-gradient(135deg, #3498db, #2980b9);
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .syncing-bar.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .syncing-bar .spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    [data-theme="dark"] .offline-bar {
+      background: linear-gradient(135deg, #c0392b, #962d22);
+    }
+
+    [data-theme="dark"] .syncing-bar {
+      background: linear-gradient(135deg, #2980b9, #1f6391);
+    }
+
+    /* Quick Actions Floating Bar */
+    .quick-actions {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+      z-index: 900;
+      max-width: calc(100% - 32px);
+      width: auto;
+      min-width: 280px;
+    }
+
+    .quick-actions.show {
+      display: block;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    .quick-actions-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--timeline-border);
+    }
+
+    .quick-actions-title {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      font-weight: 600;
+    }
+
+    .quick-actions-stop {
+      font-size: 0.85rem;
+      color: var(--text-main);
+      font-weight: 700;
+      max-width: 180px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .quick-actions-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .quick-actions-buttons button {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      border-radius: 10px;
+      min-width: 0;
+    }
+
+    .quick-actions-buttons .btn-checkin {
+      background: linear-gradient(135deg, #27ae60, #219a52);
+    }
+
+    .quick-actions-buttons .btn-checkout {
+      background: linear-gradient(135deg, #e67e22, #d35400);
+    }
+
+    .quick-actions-close {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--text-sub);
+      color: white;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .quick-actions-close:hover {
+      background: #e74c3c;
+    }
+
+    [data-theme="dark"] .quick-actions {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Notification Settings Button */
+    .notification-btn {
+      background: none;
+      border: none;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: background 0.2s, transform 0.2s;
+      position: relative;
+    }
+
+    .notification-btn:hover {
+      background: rgba(26, 188, 156, 0.1);
+      transform: scale(1.1);
+    }
+
+    .notification-btn .notif-badge {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 10px;
+      height: 10px;
+      background: #e74c3c;
+      border-radius: 50%;
+      border: 2px solid var(--card-bg);
+    }
+
+    /* In-App Toast Notification */
+    .toast-container {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: calc(100% - 32px);
+      width: 350px;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: toastIn 0.3s ease-out;
+      pointer-events: auto;
+      border-left: 4px solid var(--primary);
+    }
+
+    .toast.toast-warning {
+      border-left-color: #f39c12;
+    }
+
+    .toast.toast-error {
+      border-left-color: #e74c3c;
+    }
+
+    .toast.toast-out {
+      animation: toastOut 0.3s ease-in forwards;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes toastOut {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+    }
+
+    .toast-icon {
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .toast-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .toast-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .toast-message {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      padding: 0;
+      font-size: 1rem;
+      line-height: 1;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+    }
+
+    .toast-close:hover {
+      opacity: 1;
+    }
+
+    /* Notification Settings Modal Content */
+    .notif-settings {
+      text-align: left;
+    }
+
+    .notif-option {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--timeline-border);
+    }
+
+    .notif-option:last-child {
+      border-bottom: none;
+    }
+
+    .notif-option-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .notif-option-icon {
+      font-size: 1.3rem;
+    }
+
+    .notif-option-text {
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .notif-option-desc {
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: 0.3s;
+      border-radius: 28px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background-color: var(--primary);
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(22px);
+    }
+
+    [data-theme="dark"] .toggle-slider {
+      background-color: #444;
+    }
+
+    /* Trip Dashboard */
+    .trip-dashboard {
+      display: none;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-radius: var(--border-radius);
+      padding: 16px;
+      margin-bottom: 16px;
+      color: white;
+    }
+
+    .trip-dashboard.show {
+      display: block;
+    }
+
+    .trip-dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .trip-dashboard-title {
+      font-size: 1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .trip-dashboard-ref {
+      font-size: 0.8rem;
+      opacity: 0.9;
+      background: rgba(255,255,255,0.2);
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+
+    .trip-stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .trip-stat {
+      background: rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+    }
+
+    .trip-stat-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .trip-stat-label {
+      font-size: 0.7rem;
+      opacity: 0.85;
+      margin-top: 2px;
+    }
+
+    .trip-progress {
+      margin-bottom: 12px;
+    }
+
+    .trip-progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      margin-bottom: 6px;
+      opacity: 0.9;
+    }
+
+    .trip-progress-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .trip-progress-fill {
+      height: 100%;
+      background: white;
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+
+    .trip-stops-mini {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .trip-stop-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: rgba(255,255,255,0.25);
+      border: 2px solid transparent;
+    }
+
+    .trip-stop-dot.completed {
+      background: white;
+      color: var(--primary);
+    }
+
+    .trip-stop-dot.in-progress {
+      background: rgba(255,255,255,0.4);
+      border-color: white;
+      animation: dotPulse 1.5s infinite;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .trip-stop-dot.pending {
+      opacity: 0.6;
+    }
+
+    .trip-extra-info {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      font-size: 0.75rem;
+    }
+
+    .trip-extra-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255,255,255,0.15);
+      padding: 4px 8px;
+      border-radius: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 11px 12px;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.12s ease-out, box-shadow 0.12s ease-out,
+        opacity 0.15s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(22, 160, 133, 0.28);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+      opacity: 0.9;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .btn-small {
+      width: auto;
+      padding: 10px 16px;
+      font-size: 0.95rem;
+      border-radius: 999px;
+      margin: 4px 6px 0 0;
+    }
+
+    .btn-outline {
+      background: #ffffff;
+      color: var(--primary-dark);
+      border: 1px solid rgba(26, 188, 156, 0.35);
+      box-shadow: none;
+    }
+
+    .btn-outline:hover {
+      background: rgba(26, 188, 156, 0.06);
+    }
+
+    .btn-warning {
+      background: #f39c12;
+      background: linear-gradient(135deg, #f39c12, #d35400);
+    }
+
+    .btn-secondary {
+      background: #95a5a6;
+      background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    }
+
+    .summary-card {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #f7faf9;
+      border: 1px solid #e3ebe8;
+      font-size: 0.88rem;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .summary-label {
+      color: var(--text-sub);
+    }
+
+    .summary-value {
+      font-weight: 600;
+    }
+
+    .timeline-container {
+      margin-top: 14px;
+    }
+
+    .timeline-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .timeline {
+      position: relative;
+      margin: 0;
+      padding: 4px 0 0 20px;
+      list-style: none;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 9px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom,
+          rgba(26, 188, 156, 0.6),
+          rgba(26, 188, 156, 0.1));
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      left: -1px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.15);
+    }
+
+    .timeline-content {
+      margin-left: 14px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 8px 10px;
+      border: 1px solid #e4ece9;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .timeline-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 4px;
+    }
+
+    .timeline-stop-label {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--primary-dark);
+    }
+
+    .timeline-status {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(22, 160, 133, 0.06);
+      color: var(--primary-dark);
+    }
+
+    .timeline-sub {
+      font-size: 0.82rem;
+      color: var(--text-sub);
+      margin-bottom: 2px;
+    }
+
+    .materials-text {
+      font-size: 0.8rem;
+      color: #444;
+      margin-top: 4px;
+    }
+
+    .action-row {
+      margin-top: 6px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+
+    .action-row button {
+      flex: 1;
+    }
+
+    .btn-nav {
+      flex: 0 0 25%;
+      background: #0d6efd;
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 6px;
+      text-align: center;
+      font-size: 0.8rem;
+      border: none;
+      width: auto;
+    }
+
+    .btn-nav:hover {
+      opacity: 0.9;
+    }
+
+    .footer-note {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--text-sub);
+      text-align: center;
+    }
+
+    .last-updated {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(26, 188, 156, 0.08);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .last-updated-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .auto-refresh-badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .auto-refresh-badge.paused {
+      background: #95a5a6;
+    }
+
+    /* Pull-to-Refresh Styles */
+    .ptr-container {
+      position: relative;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ptr-indicator {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      opacity: 0;
+      z-index: 100;
+    }
+
+    .ptr-indicator.visible {
+      opacity: 1;
+    }
+
+    .ptr-indicator.refreshing {
+      top: 10px;
+      opacity: 1;
+    }
+
+    .ptr-arrow {
+      font-size: 1.2rem;
+      transition: transform 0.2s ease;
+      color: var(--primary);
+    }
+
+    .ptr-arrow.flipped {
+      transform: rotate(180deg);
+    }
+
+    .ptr-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(26, 188, 156, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: ptr-spin 0.8s linear infinite;
+    }
+
+    @keyframes ptr-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* GPS Status Indicator */
+    .gps-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-bottom: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .gps-status.checking {
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+    }
+
+    .gps-status.good {
+      background: rgba(26, 188, 156, 0.1);
+      color: var(--primary-dark);
+    }
+
+    .gps-status.weak {
+      background: rgba(243, 156, 18, 0.1);
+      color: #d68910;
+    }
+
+    .gps-status.error {
+      background: rgba(231, 76, 60, 0.1);
+      color: #c0392b;
+    }
+
+    .gps-icon {
+      font-size: 1rem;
+    }
+
+    .gps-accuracy {
+      margin-left: auto;
+      font-size: 0.7rem;
+      opacity: 0.8;
+    }
+
+    .gps-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+
+    .gps-bar {
+      width: 4px;
+      background: currentColor;
+      border-radius: 1px;
+      opacity: 0.3;
+      transition: opacity 0.2s ease;
+    }
+
+    .gps-bar.active {
+      opacity: 1;
+    }
+
+    .gps-bar:nth-child(1) { height: 4px; }
+    .gps-bar:nth-child(2) { height: 7px; }
+    .gps-bar:nth-child(3) { height: 10px; }
+    .gps-bar:nth-child(4) { height: 14px; }
+
+    @keyframes gps-pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .gps-status.checking .gps-bar {
+      animation: gps-pulse 1s ease-in-out infinite;
+    }
+
+    .gps-status.checking .gps-bar:nth-child(2) { animation-delay: 0.1s; }
+    .gps-status.checking .gps-bar:nth-child(3) { animation-delay: 0.2s; }
+    .gps-status.checking .gps-bar:nth-child(4) { animation-delay: 0.3s; }
+
+    .hidden {
+      display: none;
+    }
+
+    .inline-flex {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      width: calc(100% - 24px);
+      max-width: 520px;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+      border-left: 4px solid var(--primary);
+      padding: 10px 12px 11px;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .inline-flex-bar {
+      width: 42px;
+      height: 4px;
+      border-radius: 99px;
+      background: rgba(26, 188, 156, 0.2);
+      margin: 0 auto 6px;
+    }
+
+    .inline-flex-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 2px;
+      text-align: left;
+    }
+
+    .inline-flex-text {
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      margin-bottom: 2px;
+    }
+
+    .inline-flex-sub {
+      font-size: 0.76rem;
+      color: #555;
+    }
+
+    .inline-flex.show {
+      animation: dropIn 0.35s ease-out forwards;
+    }
+
+    .inline-flex.hide {
+      animation: fadeOutUp 0.25s ease-in forwards;
+    }
+
+    @keyframes dropIn {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    @keyframes fadeOutUp {
+      from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-15px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 14px 14px 18px;
+      }
+
+      .title {
+        font-size: 1.05rem;
+      }
+
+      button {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Offline Mode Bar -->
+  <div id="offlineBar" class="offline-bar">
+    <span class="offline-icon">📵</span>
+    <span>ไม่มีสัญญาณอินเทอร์เน็ต</span>
+    <span id="queueBadge" class="queue-badge" style="display:none;">0 รายการรอส่ง</span>
+  </div>
+
+  <!-- Syncing Bar -->
+  <div id="syncingBar" class="syncing-bar">
+    <span class="spin">🔄</span>
+    <span id="syncingText">กำลังส่งข้อมูลที่ค้างไว้...</span>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Quick Actions Floating Bar -->
+  <div id="quickActions" class="quick-actions">
+    <button class="quick-actions-close" onclick="hideQuickActions()" title="ปิด">✕</button>
+    <div class="quick-actions-header">
+      <span class="quick-actions-title">⚡ จุดถัดไป</span>
+      <span id="quickActionsStop" class="quick-actions-stop"></span>
+    </div>
+    <div id="quickActionsButtons" class="quick-actions-buttons">
+      <!-- Buttons will be inserted here -->
+    </div>
+  </div>
+
+  <!-- Inline Flex Notification -->
+  <div id="inlineFlex" class="inline-flex hidden">
+    <div class="inline-flex-bar"></div>
+    <div class="inline-flex-title" id="inlineFlexTitle"></div>
+    <div class="inline-flex-text" id="inlineFlexMain"></div>
+    <div class="inline-flex-sub" id="inlineFlexSub"></div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <!-- Pull-to-Refresh Indicator -->
+    <div id="ptrIndicator" class="ptr-indicator">
+      <span id="ptrIcon" class="ptr-arrow">↓</span>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <div class="title">
+            🚚 Driver Tracking
+            <span class="badge">Online</span>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button id="notificationBtn" class="notification-btn" onclick="openNotificationSettings()" title="ตั้งค่าการแจ้งเตือน">
+              🔔
+            </button>
+            <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="สลับโหมดกลางคืน">
+              🌙
+            </button>
+          </div>
+        </div>
+
+        <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
+
+        <!-- GPS Status Indicator (คลิกเพื่อ refresh) -->
+        <div id="gpsStatus" class="gps-status checking" onclick="checkGpsStatus()" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
+          <span class="gps-icon">📍</span>
+          <span id="gpsText">กำลังตรวจสอบ GPS...</span>
+          <div class="gps-bars">
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+          </div>
+          <span id="gpsAccuracy" class="gps-accuracy"></span>
+        </div>
+
+        <div class="field-group">
+          <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
+          <input id="keyword" type="text" placeholder="กรอกเลข Reference เช่น 2511S15403" />
+        </div>
+
+        <button id="btnSearch">
+          <span>ค้นหา / ดึงงาน</span>
+        </button>
+
+        <div id="summary" class="summary-card hidden"></div>
+
+        <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
+
+        <!-- Trip Dashboard (ปิดชั่วคราว)
+        <div id="tripDashboard" class="trip-dashboard">
+          <div class="trip-dashboard-header">
+            <div class="trip-dashboard-title">
+              📊 สรุปเที่ยว
+            </div>
+            <div id="tripRef" class="trip-dashboard-ref"></div>
+          </div>
+
+          <div class="trip-stats">
+            <div class="trip-stat">
+              <div id="tripCompleted" class="trip-stat-value">0/0</div>
+              <div class="trip-stat-label">จุดที่เสร็จ</div>
+            </div>
+            <div class="trip-stat">
+              <div id="tripDuration" class="trip-stat-value">-</div>
+              <div class="trip-stat-label">เวลาทำงาน</div>
+            </div>
+          </div>
+
+          <div class="trip-progress">
+            <div class="trip-progress-header">
+              <span>ความคืบหน้า</span>
+              <span id="tripProgressPercent">0%</span>
+            </div>
+            <div class="trip-progress-bar">
+              <div id="tripProgressFill" class="trip-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div id="tripStopsMini" class="trip-stops-mini">
+          </div>
+
+          <div id="tripExtraInfo" class="trip-extra-info" style="display:none;">
+          </div>
+        </div>
+        -->
+
+        <div id="timelineContainer" class="timeline-container hidden">
+          <div class="timeline-title">
+            เส้นทางส่งสินค้า
+            <span style="font-size:0.8rem;color:var(--text-sub);">
+              (เรียงตามลำดับจุดส่ง)
+            </span>
+          </div>
+          <ul id="timeline" class="timeline"></ul>
+
+          <!-- ปุ่มปิดงาน + ปุ่มจบทริป -->
+          <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+            <button id="btnCloseJob" class="btn-secondary" style="width:100%;margin-bottom:6px;">
+              ปิดงาน (รถพร้อมใช้งาน)
+            </button>
+            <button id="btnEndTrip" class="btn-secondary" style="width:100%;display:none;">
+              บันทึกจบทริป (เลขไมล์ + จุดจบทริป)
+            </button>
+          </div>
+        </div>
+
+        <!-- Last Updated & Auto-refresh Status -->
+        <div id="lastUpdatedContainer" class="last-updated hidden">
+          <div class="last-updated-text">
+            <span>🔄</span>
+            <span id="lastUpdatedText">อัปเดตล่าสุด: -</span>
+          </div>
+          <span id="autoRefreshBadge" class="auto-refresh-badge">Auto</span>
+        </div>
+
+        <div class="footer-note">
+          เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const LIFF_ID = '2007705394-y4mV76Gv';
+    const WEB_APP_URL =
+      'https://script.google.com/macros/s/AKfycbwUsEd4lcJ6DD_eYitJ3QCO_nO6Io86IytuSe27bTzQLfVk_Z16wJE6Pn2X1a40yU8J/exec';
+
+    // === Supabase Configuration ===
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // ใส่ URL จาก Supabase Dashboard
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // ใส่ Anon Key จาก Supabase Dashboard
+    const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    // ==============================
+
+    let currentUserId = '';
+    let currentReference = '';
+    let currentVehicleDesc = '';
+    let lastStops = [];
+    let inlineFlexTimer = null;
+
+    let currentDrivers = [];
+    let currentCheckedDrivers = [];
+    let alcoholAllDone = false;
+    let jobClosed = false;
+    let tripEnded = false;
+
+    // Auto-refresh variables
+    const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 นาที
+    let autoRefreshTimer = null;
+    let lastUpdatedTime = null;
+    let lastUpdatedDisplayTimer = null;
+
+    // Pull-to-Refresh variables
+    const PTR_THRESHOLD = 80; // ระยะดึงขั้นต่ำ (px) เพื่อ trigger refresh
+    const PTR_MAX_PULL = 120; // ระยะดึงสูงสุด (px)
+    let ptrStartY = 0;
+    let ptrCurrentY = 0;
+    let ptrIsPulling = false;
+    let ptrIsRefreshing = false;
+
+    // GPS Status variables
+    const GPS_CHECK_INTERVAL = 30000; // ตรวจสอบทุก 30 วินาที
+    let gpsWatchId = null;
+    let gpsCheckTimer = null;
+    let lastGpsStatus = 'checking';
+
+    // ฟังก์ชันป้องกัน XSS โดย escape HTML special characters
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ===== Auto-refresh Functions =====
+    function formatTimeAgo(date) {
+      if (!date) return '-';
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+
+      if (diffSec < 10) return 'เมื่อสักครู่';
+      if (diffSec < 60) return `${diffSec} วินาทีที่แล้ว`;
+      if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+
+      // แสดงเวลาจริงถ้าเกิน 1 ชั่วโมง
+      return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function updateLastUpdatedDisplay() {
+      const textEl = document.getElementById('lastUpdatedText');
+      if (textEl && lastUpdatedTime) {
+        textEl.textContent = `อัปเดตล่าสุด: ${formatTimeAgo(lastUpdatedTime)}`;
+      }
+    }
+
+    function showLastUpdatedContainer() {
+      const container = document.getElementById('lastUpdatedContainer');
+      if (container) {
+        container.classList.remove('hidden');
+      }
+    }
+
+    function hideLastUpdatedContainer() {
+      const container = document.getElementById('lastUpdatedContainer');
+      if (container) {
+        container.classList.add('hidden');
+      }
+    }
+
+    function startAutoRefresh() {
+      // หยุด timer เดิมก่อน (ถ้ามี)
+      stopAutoRefresh();
+
+      // อัปเดต badge
+      const badge = document.getElementById('autoRefreshBadge');
+      if (badge) {
+        badge.textContent = 'Auto';
+        badge.classList.remove('paused');
+      }
+
+      // เริ่ม auto-refresh ทุก 5 นาที
+      autoRefreshTimer = setInterval(() => {
+        if (currentReference) {
+          console.log('🔄 Auto-refresh triggered');
+          search(true); // silent refresh
+        }
+      }, AUTO_REFRESH_INTERVAL);
+
+      // อัปเดต display ทุก 30 วินาที
+      lastUpdatedDisplayTimer = setInterval(updateLastUpdatedDisplay, 30000);
+
+      console.log('✅ Auto-refresh started (every 5 minutes)');
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+      if (lastUpdatedDisplayTimer) {
+        clearInterval(lastUpdatedDisplayTimer);
+        lastUpdatedDisplayTimer = null;
+      }
+
+      // อัปเดต badge
+      const badge = document.getElementById('autoRefreshBadge');
+      if (badge) {
+        badge.textContent = 'Paused';
+        badge.classList.add('paused');
+      }
+
+      console.log('⏸️ Auto-refresh stopped');
+    }
+
+    function recordLastUpdated() {
+      lastUpdatedTime = new Date();
+      updateLastUpdatedDisplay();
+      showLastUpdatedContainer();
+    }
+
+    // ===== Pull-to-Refresh Functions =====
+    function initPullToRefresh() {
+      const appShell = document.getElementById('appShell');
+      if (!appShell) return;
+
+      appShell.addEventListener('touchstart', handlePtrTouchStart, { passive: true });
+      appShell.addEventListener('touchmove', handlePtrTouchMove, { passive: false });
+      appShell.addEventListener('touchend', handlePtrTouchEnd, { passive: true });
+    }
+
+    function handlePtrTouchStart(e) {
+      // เริ่ม pull เมื่อ scroll อยู่บนสุดเท่านั้น
+      if (window.scrollY === 0 && !ptrIsRefreshing) {
+        ptrStartY = e.touches[0].clientY;
+        ptrIsPulling = true;
+      }
+    }
+
+    function handlePtrTouchMove(e) {
+      if (!ptrIsPulling || ptrIsRefreshing) return;
+
+      ptrCurrentY = e.touches[0].clientY;
+      const pullDistance = ptrCurrentY - ptrStartY;
+
+      // ดึงลงเท่านั้น (pullDistance > 0) และ scroll อยู่บนสุด
+      if (pullDistance > 0 && window.scrollY === 0) {
+        // ป้องกัน scroll ปกติขณะ pull
+        e.preventDefault();
+
+        const indicator = document.getElementById('ptrIndicator');
+        const icon = document.getElementById('ptrIcon');
+
+        // คำนวณระยะ pull (จำกัดไม่เกิน PTR_MAX_PULL)
+        const actualPull = Math.min(pullDistance, PTR_MAX_PULL);
+        const progress = actualPull / PTR_THRESHOLD;
+
+        // แสดง indicator
+        indicator.classList.add('visible');
+        indicator.style.transform = `translateX(-50%) translateY(${actualPull}px)`;
+
+        // เปลี่ยน icon เมื่อถึง threshold
+        if (pullDistance >= PTR_THRESHOLD) {
+          icon.classList.add('flipped');
+          icon.textContent = '↑';
+        } else {
+          icon.classList.remove('flipped');
+          icon.textContent = '↓';
+        }
+      }
+    }
+
+    function handlePtrTouchEnd(e) {
+      if (!ptrIsPulling || ptrIsRefreshing) return;
+
+      const pullDistance = ptrCurrentY - ptrStartY;
+      const indicator = document.getElementById('ptrIndicator');
+      const icon = document.getElementById('ptrIcon');
+
+      if (pullDistance >= PTR_THRESHOLD && currentReference) {
+        // ถึง threshold และมีงานโหลดอยู่ - ทำ refresh
+        ptrIsRefreshing = true;
+
+        // แสดง spinner
+        icon.outerHTML = '<div id="ptrIcon" class="ptr-spinner"></div>';
+        indicator.classList.add('refreshing');
+        indicator.style.transform = 'translateX(-50%) translateY(60px)';
+
+        // ทำ refresh
+        search(true).finally(() => {
+          // รีเซ็ต indicator หลัง refresh เสร็จ
+          setTimeout(() => {
+            resetPtrIndicator();
+          }, 300);
+        });
+      } else {
+        // ไม่ถึง threshold - รีเซ็ต
+        resetPtrIndicator();
+      }
+
+      ptrIsPulling = false;
+      ptrStartY = 0;
+      ptrCurrentY = 0;
+    }
+
+    function resetPtrIndicator() {
+      const indicator = document.getElementById('ptrIndicator');
+      const iconEl = document.getElementById('ptrIcon');
+
+      // แทนที่ spinner ด้วย arrow ใหม่
+      if (iconEl && iconEl.classList.contains('ptr-spinner')) {
+        iconEl.outerHTML = '<span id="ptrIcon" class="ptr-arrow">↓</span>';
+      }
+
+      indicator.classList.remove('visible', 'refreshing');
+      indicator.style.transform = 'translateX(-50%) translateY(0)';
+
+      const icon = document.getElementById('ptrIcon');
+      if (icon) {
+        icon.classList.remove('flipped');
+        icon.textContent = '↓';
+      }
+
+      ptrIsRefreshing = false;
+    }
+
+    // ===== GPS Status Functions =====
+    function initGpsMonitor() {
+      if (!navigator.geolocation) {
+        updateGpsStatus('error', 'อุปกรณ์ไม่รองรับ GPS', null);
+        return;
+      }
+
+      // เช็ค GPS ครั้งแรก
+      checkGpsStatus();
+
+      // เช็คเป็นระยะ
+      gpsCheckTimer = setInterval(checkGpsStatus, GPS_CHECK_INTERVAL);
+    }
+
+    function checkGpsStatus() {
+      updateGpsStatus('checking', 'กำลังตรวจสอบ GPS...', null);
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const accuracy = pos.coords.accuracy;
+          handleGpsSuccess(accuracy);
+        },
+        (err) => {
+          handleGpsError(err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function handleGpsSuccess(accuracy) {
+      let status, text, bars;
+
+      if (accuracy <= 20) {
+        // ความแม่นยำดีมาก (≤20 เมตร)
+        status = 'good';
+        text = 'GPS พร้อมใช้งาน';
+        bars = 4;
+      } else if (accuracy <= 50) {
+        // ความแม่นยำดี (≤50 เมตร)
+        status = 'good';
+        text = 'GPS พร้อมใช้งาน';
+        bars = 3;
+      } else if (accuracy <= 100) {
+        // ความแม่นยำปานกลาง (≤100 เมตร)
+        status = 'weak';
+        text = 'สัญญาณ GPS อ่อน';
+        bars = 2;
+      } else {
+        // ความแม่นยำต่ำ (>100 เมตร)
+        status = 'weak';
+        text = 'สัญญาณ GPS อ่อนมาก';
+        bars = 1;
+      }
+
+      const accuracyText = accuracy < 1000
+        ? `±${Math.round(accuracy)}m`
+        : `±${(accuracy / 1000).toFixed(1)}km`;
+
+      updateGpsStatus(status, text, accuracyText, bars);
+    }
+
+    function handleGpsError(err) {
+      let text;
+      switch (err.code) {
+        case err.PERMISSION_DENIED:
+          text = 'ไม่ได้รับอนุญาตเข้าถึง GPS';
+          break;
+        case err.POSITION_UNAVAILABLE:
+          text = 'ไม่พบสัญญาณ GPS';
+          break;
+        case err.TIMEOUT:
+          text = 'หมดเวลาค้นหา GPS';
+          break;
+        default:
+          text = 'เกิดข้อผิดพลาด GPS';
+      }
+      updateGpsStatus('error', text, null, 0);
+    }
+
+    function updateGpsStatus(status, text, accuracy, activeBars = 0) {
+      const container = document.getElementById('gpsStatus');
+      const textEl = document.getElementById('gpsText');
+      const accuracyEl = document.getElementById('gpsAccuracy');
+      const bars = container.querySelectorAll('.gps-bar');
+
+      if (!container) return;
+
+      // อัปเดต class
+      container.classList.remove('checking', 'good', 'weak', 'error');
+      container.classList.add(status);
+
+      // อัปเดต icon
+      const iconEl = container.querySelector('.gps-icon');
+      if (iconEl) {
+        if (status === 'good') iconEl.textContent = '📍';
+        else if (status === 'weak') iconEl.textContent = '📡';
+        else if (status === 'error') iconEl.textContent = '⚠️';
+        else iconEl.textContent = '📍';
+      }
+
+      // อัปเดต text
+      if (textEl) textEl.textContent = text;
+
+      // อัปเดต accuracy
+      if (accuracyEl) {
+        accuracyEl.textContent = accuracy || '';
+      }
+
+      // อัปเดต bars
+      bars.forEach((bar, index) => {
+        if (index < activeBars) {
+          bar.classList.add('active');
+        } else {
+          bar.classList.remove('active');
+        }
+      });
+
+      lastGpsStatus = status;
+    }
+
+    function stopGpsMonitor() {
+      if (gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+      if (gpsCheckTimer) {
+        clearInterval(gpsCheckTimer);
+        gpsCheckTimer = null;
+      }
+    }
+
+    function showLoading(message) {
+      Swal.fire({
+        title: message || 'กำลังประมวลผล...',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+    }
+
+    function closeLoading() {
+      Swal.close();
+    }
+
+    function showError(message) {
+      Swal.fire({
+        icon: 'error',
+        title: 'เกิดข้อผิดพลาด',
+        text: message || 'โปรดลองใหม่อีกครั้ง',
+        confirmButtonColor: '#1abc9c',
+      });
+    }
+
+    function showSuccess(title, text) {
+      return Swal.fire({
+        icon: 'success',
+        title: title || 'สำเร็จ',
+        text: text || '',
+        confirmButtonColor: '#1abc9c',
+      });
+    }
+
+    function showInfo(title, text) {
+      Swal.fire({
+        icon: 'info',
+        title: title || 'แจ้งเตือน',
+        text: text || '',
+        confirmButtonColor: '#1abc9c',
+      });
+    }
+
+    function showInlineFlex(type, stop) {
+      const container = document.getElementById('inlineFlex');
+      const titleEl = document.getElementById('inlineFlexTitle');
+      const mainEl = document.getElementById('inlineFlexMain');
+      const subEl = document.getElementById('inlineFlexSub');
+
+      const labelMap = {
+        checkin: 'Check-in สำเร็จ',
+        fuel: 'ลงน้ำมันสำเร็จ',
+        unload: 'ลงเสร็จสำเร็จ',
+        processdata: 'บันทึกข้อมูลผู้รับน้ำมันสำเร็จ',
+        checkout: 'Check-out สำเร็จ',
+        closejob: 'ปิดงานสำเร็จ',
+        endtrip: 'จบทริปสำเร็จ', // เผื่อใช้ทีหลัง
+      };
+
+      const title = labelMap[type] || 'อัปเดตสถานะสำเร็จ';
+
+      let timeText = '';
+      if (type === 'checkin') timeText = stop.checkInTime || '';
+      else if (type === 'fuel') timeText = stop.fuelingTime || '';
+      else if (type === 'unload') timeText = stop.unloadDoneTime || '';
+      else if (type === 'processdata') timeText = stop.processdataTime || '';
+      else if (type === 'checkout') timeText = stop.checkOutTime || '';
+
+      const odoText =
+        type === 'checkin' && stop.checkInOdo
+          ? ` • เลขไมล์: ${stop.checkInOdo}`
+          : '';
+
+      titleEl.textContent = title;
+      mainEl.textContent = `Reference: ${stop.referenceNo || '-'} | Shipment: ${stop.shipmentNo || '-'
+        }`;
+      subEl.textContent = `${stop.destination2 || stop.destination1 || 'ปลายทาง'
+        }${timeText ? ' • เวลา: ' + timeText : ''}${odoText}`;
+
+      container.classList.remove('hide', 'hidden');
+      void container.offsetWidth;
+      container.classList.add('show');
+
+      if (inlineFlexTimer) {
+        clearTimeout(inlineFlexTimer);
+      }
+      inlineFlexTimer = setTimeout(() => {
+        container.classList.remove('show');
+        container.classList.add('hide');
+        setTimeout(() => {
+          container.classList.add('hidden');
+        }, 250);
+      }, 4000);
+    }
+
+    // ปิดการส่ง Flex message ลงแชท LINE (disabled)
+    function sendFlexCheckInOut(type, stop) {
+      // no-op
+    }
+
+    async function initLiff() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        currentUserId = profile.userId;
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = `สวัสดีคุณ ${profile.displayName} 👋`;
+      } catch (err) {
+        console.error(err);
+        document.getElementById('status').innerText =
+          'เกิดข้อผิดพลาดในการโหลด LIFF';
+        showError('ไม่สามารถโหลดข้อมูลจาก LIFF ได้');
+      }
+    }
+
+    async function search(silent = false) {
+      // ป้องกันกรณี silent ได้รับ event object จาก addEventListener
+      const isSilent = silent === true;
+
+      const keywordInput = document.getElementById('keyword');
+      const keyword = keywordInput.value.trim();
+      const btn = document.getElementById('btnSearch');
+
+      if (!keyword) {
+        showInfo('กรุณากรอกเลข Reference', 'กรุณาใส่เลขอ้างอิงงานก่อนค้นหา');
+        return;
+      }
+
+      btn.disabled = true;
+
+      // บันทึกเวลาเริ่มต้นสำหรับคำนวณ delay
+      let startTime;
+      if (!isSilent) {
+        showLoading('กำลังค้นหางานจากระบบ...โปรดรอสักครู่');
+        // รอให้ SweetAlert render เสร็จก่อนเริ่ม fetch
+        await new Promise(resolve => setTimeout(resolve, 100));
+        startTime = Date.now();
+      }
+
+      try {
+        const url =
+          WEB_APP_URL +
+          '?action=search&keyword=' +
+          encodeURIComponent(keyword) +
+          '&userId=' +
+          encodeURIComponent(currentUserId);
+
+        const res = await fetch(url);
+        const json = await res.json();
+
+        // รอให้ loader แสดงอย่างน้อย 800ms นับจากเวลาที่เริ่มแสดง
+        if (!isSilent) {
+          const elapsed = Date.now() - startTime;
+          const remainingTime = Math.max(0, 800 - elapsed);
+          if (remainingTime > 0) {
+            await new Promise(resolve => setTimeout(resolve, remainingTime));
+          }
+          closeLoading();
+        }
+
+        if (!json.success) {
+          clearResult();
+          showError(json.message || 'ไม่พบข้อมูลงาน');
+          return;
+        }
+
+        const d = json.data;
+        let stops = d.stops || [];
+
+        // รักษาพิกัดเดิมไว้ ถ้า backend ไม่ส่งมา (ปุ่มนำทางจะไม่หาย)
+        if (lastStops && Array.isArray(lastStops) && lastStops.length > 0) {
+          const prevMap = new Map(lastStops.map((s) => [s.rowIndex, s]));
+          stops = stops.map((s) => {
+            const prev = prevMap.get(s.rowIndex);
+            if (!prev) return s;
+            if (!s.destLat) s.destLat = prev.destLat;
+            if (!s.destLng) s.destLng = prev.destLng;
+            return s;
+          });
+        }
+
+        lastStops = stops;
+        currentReference = d.referenceNo || keyword;
+        
+        // บันทึก reference ล่าสุดลง localStorage
+        if (currentReference) {
+          localStorage.setItem('last_reference', currentReference);
+        }
+
+        currentVehicleDesc = d.vehicleDesc || '';
+
+        currentDrivers =
+          (d.alcohol && Array.isArray(d.alcohol.drivers) && d.alcohol.drivers) ||
+          [];
+        currentCheckedDrivers =
+          (d.alcohol &&
+            Array.isArray(d.alcohol.checkedDrivers) &&
+            d.alcohol.checkedDrivers) ||
+          [];
+        currentCheckedDrivers = [...new Set(currentCheckedDrivers)];
+        alcoholAllDone =
+          currentDrivers.length > 0 &&
+          currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+
+        jobClosed = !!d.jobClosed;
+        tripEnded = !!d.tripEnded;
+
+        renderSummary(d);
+        renderAlcoholSection();
+        renderTimeline(stops);
+
+        // บันทึกเวลาอัปเดตและเริ่ม auto-refresh
+        recordLastUpdated();
+        if (!autoRefreshTimer) {
+          startAutoRefresh();
+        }
+      } catch (err) {
+        console.error(err);
+        if (!isSilent) {
+          closeLoading();
+        }
+        showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function clearResult() {
+      document.getElementById('summary').classList.add('hidden');
+      document.getElementById('timelineContainer').classList.add('hidden');
+      document.getElementById('summary').innerHTML = '';
+      document.getElementById('timeline').innerHTML = '';
+      document.getElementById('closeJobContainer').classList.add('hidden');
+      document.getElementById('alcoholContainer').classList.add('hidden');
+      document.getElementById('alcoholContainer').innerHTML = '';
+      lastStops = [];
+      currentDrivers = [];
+      currentCheckedDrivers = [];
+      alcoholAllDone = false;
+      jobClosed = false;
+      tripEnded = false;
+
+      // หยุด auto-refresh และซ่อน last updated
+      stopAutoRefresh();
+      hideLastUpdatedContainer();
+      lastUpdatedTime = null;
+    }
+
+    function renderSummary(d) {
+      const summaryEl = document.getElementById('summary');
+      const stops = d.stops || [];
+      const shipmentNos = d.shipmentNos || [];
+
+      let shipmentSummary = '-';
+      if (shipmentNos.length === 1) {
+        shipmentSummary = shipmentNos[0];
+      } else if (shipmentNos.length > 1) {
+        shipmentSummary = shipmentNos.join(', ');
+      }
+
+      const totalQtyAll = stops.reduce(function (acc, s) {
+        if (typeof s.totalQty === 'number') return acc + s.totalQty;
+        return acc;
+      }, 0);
+
+      summaryEl.innerHTML = `
+          <div class="summary-row">
+            <span class="summary-label">Reference</span>
+            <span class="summary-value">${escapeHtml(d.referenceNo) || '-'}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">ชื่อรถ</span>
+            <span class="summary-value">${escapeHtml(d.vehicleDesc) || '-'}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Shipment</span>
+            <span class="summary-value">${escapeHtml(shipmentSummary)}</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">จำนวนจุดส่ง</span>
+            <span class="summary-value">${escapeHtml(d.totalStops || stops.length)} จุด</span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">ปริมาณรวมโดยประมาณ</span>
+            <span class="summary-value">${escapeHtml(totalQtyAll || 0)}</span>
+          </div>
+        `;
+
+      summaryEl.classList.remove('hidden');
+    }
+
+    function renderAlcoholSection() {
+      const container = document.getElementById('alcoholContainer');
+      if (!container) return;
+
+      if (!currentDrivers || currentDrivers.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = `
+          <div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>
+          <div style="font-size:0.8rem;color:var(--text-sub);margin-bottom:6px;">
+            บันทึกผลแอลกอฮอล์ (ตัวเลข) พร้อมถ่ายรูปหลักฐาน ระบบจะบันทึกพิกัดและเวลาปัจจุบันให้
+          </div>
+        `;
+
+      currentDrivers.forEach((name) => {
+        const checked = currentCheckedDrivers.includes(name);
+        const displayName = escapeHtml(name);
+        // สำหรับ onclick ต้อง escape ทั้ง HTML และ JS string
+        const jsName = escapeHtml(name.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+        if (checked) {
+          html += `
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${displayName}</span>
+                <button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>
+              </div>
+            `;
+        } else {
+          html += `
+              <div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+                <span>${displayName}</span>
+                <button class="btn-small btn-outline" onclick="doAlcoholCheck('${jsName}')">
+                  บันทึกผลแอลกอฮอล์
+                </button>
+              </div>
+            `;
+        }
+      });
+
+      alcoholAllDone =
+        currentDrivers.length > 0 &&
+        currentDrivers.every((n) => currentCheckedDrivers.includes(n));
+
+      if (alcoholAllDone) {
+        html += `
+            <div style="margin-top:4px;font-size:0.78rem;color:var(--primary-dark);">
+              ✅ ตรวจแอลกอฮอล์ครบทุกคนแล้ว สามารถเริ่มงานได้
+            </div>
+          `;
+      } else {
+        html += `
+            <div style="margin-top:4px;font-size:0.78rem;color:#c0392b;">
+              ⚠️ ยังตรวจแอลกอฮอล์ไม่ครบทุกคน
+            </div>
+          `;
+      }
+
+      container.innerHTML = html;
+      container.classList.remove('hidden');
+    }
+
+    function resizeAndCompressImage(file, maxWidth, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // quality: 0.0 - 1.0 (e.g., 0.7 = 70%)
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            const base64 = dataUrl.split(',')[1];
+            resolve(base64);
+          };
+          img.onerror = (err) => reject(new Error('รูปแบบไฟล์รูปภาพไม่ถูกต้อง'));
+        };
+        reader.onerror = (err) => reject(new Error('ไม่สามารถอ่านไฟล์ได้'));
+      });
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result || '';
+          const base64 = result.toString().split(',')[1] || '';
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function doAlcoholCheck(driverName) {
+      if (!currentReference) {
+        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+        return;
+      }
+
+      const { value: formValues } = await Swal.fire({
+        title: 'บันทึกผลแอลกอฮอล์',
+        html: `
+            <div style="text-align:left;">
+              <label style="font-size:0.8rem;color:#555;">ชื่อคนขับ</label>
+              <div style="font-size:0.9rem;font-weight:600;margin-bottom:6px;">${escapeHtml(driverName)}</div>
+
+              <label style="font-size:0.8rem;color:#555;">ปริมาณแอลกอฮอล์ (มก./ลิตรลมหายใจ)</label>
+              <input id="swalAlcoholValue" type="number" min="0" step="0.01"
+                class="swal2-input" placeholder="เช่น 0.00"
+                style="width:100%;margin:4px 0 10px;">
+
+              <label style="font-size:0.8rem;color:#555;">ถ่ายรูปหลักฐาน</label>
+              <input id="swalAlcoholImage" type="file" accept="image/*" capture="environment"
+                style="margin-top:4px;font-size:0.8rem;">
+            </div>
+          `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกผล',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          const val = document
+            .getElementById('swalAlcoholValue')
+            .value.trim();
+          const file = document.getElementById('swalAlcoholImage').files[0];
+
+          if (!val) {
+            Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์');
+            return false;
+          }
+          if (isNaN(parseFloat(val))) {
+            Swal.showValidationMessage('กรุณากรอกปริมาณแอลกอฮอล์เป็นตัวเลข');
+            return false;
+          }
+          if (!file) {
+            Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน');
+            return false;
+          }
+
+          return { alcoholValue: val, file: file };
+        },
+      });
+
+      if (!formValues) {
+        return;
+      }
+
+      const { alcoholValue, file } = formValues;
+
+      try {
+        showLoading('กำลังดึงพิกัดจากอุปกรณ์...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
+          return;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // บีบอัดรูปภาพก่อนส่ง (Max width 800px, Quality 70%)
+        const base64 = await resizeAndCompressImage(file, 800, 0.7);
+
+        showLoading('กำลังบันทึกการตรวจแอลกอฮอล์...');
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'uploadalcohol');
+        formData.append('reference', currentReference);
+        formData.append('driverName', driverName);
+        formData.append('userId', currentUserId);
+        formData.append('alcoholValue', alcoholValue);
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+        formData.append('imageBase64', base64);
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData,
+        });
+
+        const json = await res.json();
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ');
+          return;
+        }
+
+        if (json.checkedDrivers && Array.isArray(json.checkedDrivers)) {
+          currentCheckedDrivers = [...new Set(json.checkedDrivers)];
+        } else {
+          currentCheckedDrivers = [
+            ...new Set(currentCheckedDrivers.concat([driverName])),
+          ];
+        }
+
+        renderAlcoholSection();
+        showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อยแล้ว');
+      } catch (err) {
+        console.error(err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึกการตรวจแอลกอฮอล์');
+      }
+    }
+
+    function renderTimeline(stops) {
+      const container = document.getElementById('timelineContainer');
+      const ul = document.getElementById('timeline');
+      const closeJobContainer = document.getElementById('closeJobContainer');
+      const btnCloseJob = document.getElementById('btnCloseJob');
+      const btnEndTrip = document.getElementById('btnEndTrip');
+
+      ul.innerHTML = '';
+
+      // reset ปุ่มด้านล่าง
+      closeJobContainer.classList.add('hidden');
+      if (btnCloseJob) {
+        btnCloseJob.style.display = 'none';
+        btnCloseJob.disabled = true;
+      }
+      if (btnEndTrip) {
+        btnEndTrip.style.display = 'none';
+        btnEndTrip.disabled = true;
+      }
+
+      if (!stops || stops.length === 0) {
+        container.classList.add('hidden');
+        return;
+      }
+
+      let allCheckout = true;
+
+      stops.forEach(function (stop) {
+        const hasCheckIn = !!stop.checkInTime;
+        const hasFuel = !!stop.fuelingTime;
+        const hasUnloadDone = !!stop.unloadDoneTime;
+        const hasCheckOut = !!stop.checkOutTime;
+        const isOrigin = !!stop.isOriginStop;
+
+        if (!hasCheckOut) {
+          allCheckout = false;
+        }
+
+        const statusLabel = stop.status || '-';
+
+        let btnHtml = '';
+
+        if (isOrigin) {
+          if (!hasCheckIn) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="startCheckin(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-in</button>';
+          } else if (!hasCheckOut) {
+            btnHtml +=
+              '<button class="btn-small" ' +
+              'onclick="startCheckout(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-out</button>';
+          }
+        } else {
+          if (!hasCheckIn) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="startCheckin(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-in</button>';
+          } else if (!hasFuel) {
+            btnHtml +=
+              '<button class="btn-small btn-warning" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'FUELING', 'fuel', " +
+              stop.seq +
+              ')">ลงน้ำมัน</button>';
+          } else if (!hasUnloadDone) {
+            btnHtml +=
+              '<button class="btn-small btn-outline" ' +
+              'onclick="updateStopStatus(' +
+              stop.rowIndex +
+              ", 'UNLOAD_DONE', 'unload', " +
+              stop.seq +
+              ')">ลงเสร็จ</button>';
+          } else if (!hasCheckOut) {
+            btnHtml +=
+              '<button class="btn-small" ' +
+              'onclick="startCheckout(' +
+              stop.rowIndex +
+              ', ' +
+              stop.seq +
+              ')">Check-out</button>';
+          }
+        }
+
+        let materialsBlock = '';
+        if (stop.materials && stop.materials.length > 0) {
+          const parts = stop.materials.map(function (m) {
+            const name = escapeHtml(m.materialDesc || m.material || 'สินค้า');
+            const qty = escapeHtml(m.totalQty || 0);
+            return '- ' + name + ' ' + qty;
+          });
+          materialsBlock =
+            '<div class="materials-text"><b>สินค้า:</b><br>' +
+            parts.join('<br>') +
+            '</div>';
+        }
+
+        const distanceText =
+          stop.distanceKm !== undefined &&
+            stop.distanceKm !== null &&
+            stop.distanceKm !== ''
+            ? stop.distanceKm
+            : '-';
+
+        const odoText =
+          stop.checkInOdo !== undefined &&
+            stop.checkInOdo !== null &&
+            stop.checkInOdo !== ''
+            ? stop.checkInOdo
+            : '-';
+
+        let navBtnHtml = '';
+        if (
+          stop.destLat !== undefined &&
+          stop.destLat !== '' &&
+          stop.destLng !== undefined &&
+          stop.destLng !== ''
+        ) {
+          navBtnHtml =
+            '<button class="btn-nav" onclick="navigateToStop(' +
+            stop.rowIndex +
+            ')">นำทาง</button>';
+        }
+
+        const li = document.createElement('li');
+        li.className = 'timeline-item';
+        li.innerHTML =
+          '<span class="timeline-marker"></span>' +
+          '<div class="timeline-content">' +
+          '<div class="timeline-header-row">' +
+          '<div class="timeline-stop-label">' +
+          'Stop ' +
+          escapeHtml(stop.seq) +
+          ' • ' +
+          escapeHtml(stop.destination2 || '-') +
+          '</div>' +
+          '<div class="timeline-status">' +
+          escapeHtml(statusLabel) +
+          '</div>' +
+          '</div>' +
+          '<div class="timeline-sub">รหัสสถานี: ' +
+          escapeHtml(stop.destination1 || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>Shipment:</b> ' +
+          escapeHtml(stop.shipmentNo || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>Distance (ระบบ):</b> ' +
+          escapeHtml(distanceText) +
+          '</div>' +
+          '<div class="timeline-sub"><b>Check-in:</b> ' +
+          escapeHtml(stop.checkInTime || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>เลขไมล์ Check-in:</b> ' +
+          escapeHtml(odoText) +
+          '</div>' +
+          '<div class="timeline-sub"><b>ลงน้ำมัน:</b> ' +
+          escapeHtml(stop.fuelingTime || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>ลงเสร็จ:</b> ' +
+          escapeHtml(stop.unloadDoneTime || '-') +
+          '</div>' +
+          '<div class="timeline-sub"><b>Check-out:</b> ' +
+          escapeHtml(stop.checkOutTime || '-') +
+          '</div>' +
+          materialsBlock +
+          '<div class="action-row">' +
+          btnHtml +
+          navBtnHtml +
+          '</div>' +
+          '</div>';
+        ul.appendChild(li);
+      });
+
+      // ✅ Logic แสดง/ซ่อนปุ่มปิดงาน / จบทริป
+      if (stops.length > 0) {
+        if (tripEnded) {
+          // จบทริปแล้ว → ซ่อนปุ่มทั้งหมด
+          closeJobContainer.classList.add('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'none';
+            btnCloseJob.disabled = true;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'none';
+            btnEndTrip.disabled = true;
+          }
+        } else if (jobClosed) {
+          // ปิดงานแล้ว → แสดงเฉพาะปุ่ม "บันทึกจบทริป"
+          closeJobContainer.classList.remove('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'none';
+            btnCloseJob.disabled = true;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'block';
+            btnEndTrip.disabled = false;
+          }
+        } else if (allCheckout) {
+          // Checkout ครบ แต่ยังไม่ปิดงาน → แสดงปุ่ม "ปิดงาน"
+          closeJobContainer.classList.remove('hidden');
+          if (btnCloseJob) {
+            btnCloseJob.style.display = 'block';
+            btnCloseJob.disabled = false;
+          }
+          if (btnEndTrip) {
+            btnEndTrip.style.display = 'none';
+            btnEndTrip.disabled = true;
+          }
+        } else {
+          closeJobContainer.classList.add('hidden');
+        }
+      } else {
+        closeJobContainer.classList.add('hidden');
+      }
+
+      container.classList.remove('hidden');
+
+      // อัพเดท Trip Dashboard
+      // updateTripDashboard(stops);
+
+      // ตรวจสอบการเปลี่ยนแปลงและแจ้งเตือน
+      checkForChanges(stops);
+
+      // อัพเดท Quick Actions
+      updateQuickActions();
+    }
+
+    function getCurrentPositionAsync() {
+      return new Promise(function (resolve, reject) {
+        if (!navigator.geolocation) {
+          reject(new Error('อุปกรณ์ไม่รองรับการระบุตำแหน่ง'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          function (pos) {
+            // เช็คกรณีได้พิกัด 0,0 ซึ่งอาจเกิดจาก error บางอย่างของเครื่อง
+            if (pos.coords.latitude === 0 && pos.coords.longitude === 0) {
+              reject(new Error('ได้รับพิกัดไม่ถูกต้อง (0,0) กรุณาลองใหม่'));
+              return;
+            }
+            resolve(pos);
+          },
+          function (err) {
+            let msg = 'ไม่สามารถระบุตำแหน่งได้ (' + err.code + ')';
+            switch (err.code) {
+              case err.PERMISSION_DENIED:
+                msg = 'ผู้ใช้ปฏิเสธการเข้าถึงตำแหน่ง กรุณาเปิดสิทธิ์ GPS';
+                break;
+              case err.POSITION_UNAVAILABLE:
+                msg = 'สัญญาณ GPS ไม่เพียงพอ กรุณายืนในที่โล่งแจ้ง';
+                break;
+              case err.TIMEOUT:
+                msg = 'หมดเวลาค้นหาพิกัด (Timeout) กรุณาลองใหม่อีกครั้ง';
+                break;
+            }
+            reject(new Error(msg));
+          },
+          // ลด Timeout เหลือ 10 วินาที เพื่อให้แจ้งเตือนผู้ใช้เร็วขึ้น
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      });
+    }
+
+    async function startCheckin(rowIndex, seq) {
+      if (currentDrivers.length > 0 && currentCheckedDrivers.length === 0) {
+        showInfo(
+          'กรุณาตรวจแอลกอฮอล์ก่อนเริ่มงาน',
+          'ต้องตรวจแอลกอฮอล์อย่างน้อย 1 คนก่อนทำการ Check-in จุดส่งแรก'
+        );
+        return;
+      }
+
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      if (!stop) {
+        showError('ไม่พบข้อมูลจุดส่ง กรุณาค้นหางานใหม่อีกครั้ง');
+        return;
+      }
+      const isOrigin = !!stop.isOriginStop;
+
+      if (isOrigin) {
+        // Origin Stop: เก็บเพียงเลขไมล์
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'กรอกเลขไมล์รถ',
+          html: `
+              <div style="text-align:left;">
+                <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+                <input id="swalOdoInput" type="number" inputmode="numeric"
+                  class="swal2-input"
+                  placeholder="เช่น 123456"
+                  style="width:100%;margin:6px 0 4px;">
+              </div>
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const val = document.getElementById('swalOdoInput').value.trim();
+            if (!val) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
+            }
+            return { odo: val };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { odo } = formValues;
+        await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, odo);
+      } else {
+        // Non-Origin Stop: เก็บเลขไมล์ + ชื่อผู้รับน้ำมัน + ประเภทผู้รับ
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'Check-in พร้อมบันทึกข้อมูล',
+          html: `
+              <div style="text-align:left;">
+                <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ ณ เวลาที่ Check-in</label>
+                <input id="swalOdoInput" type="number" inputmode="numeric"
+                  class="swal2-input"
+                  placeholder="เช่น 123456"
+                  style="width:100%;margin:4px 0 8px;">
+
+                <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน *</label>
+                <input id="swalReceiverName" type="text"
+                  class="swal2-input"
+                  placeholder="เช่น นายสมิทร ใจดี"
+                  style="width:100%;margin:4px 0 8px;">
+
+                <label style="font-size:0.8rem;color:#555;"><b>ประเภทผู้รับน้ำมัน</b></label>
+                <div style="margin:4px 0 10px;font-size:0.85rem;">
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="receiverType" value="manager"> ผู้จัดการสาขา
+                  </label>
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="receiverType" value="frontHasCard"> หน้าลานมีบัตร
+                  </label>
+                  <label style="display:block;">
+                    <input type="radio" name="receiverType" value="frontNoCard"> หน้าลานไม่มีบัตร
+                  </label>
+                </div>
+              </div>
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-in',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const odo = document.getElementById('swalOdoInput').value.trim();
+            const receiverName = document.getElementById('swalReceiverName').value.trim();
+            const typeRadio = document.querySelector('input[name="receiverType"]:checked');
+
+            if (!odo) {
+              Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+              return false;
+            }
+            if (!receiverName) {
+              Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
+              return false;
+            }
+            if (!typeRadio) {
+              Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
+              return false;
+            }
+
+            return {
+              odo: odo,
+              receiverName: receiverName,
+              receiverType: typeRadio.value,
+            };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { odo, receiverName, receiverType } = formValues;
+        await updateStopStatus(
+          rowIndex,
+          'CHECKIN',
+          'checkin',
+          seq,
+          odo,
+          receiverName,
+          receiverType
+        );
+      }
+    }
+
+    async function startCheckout(rowIndex, seq) {
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      if (!stop) {
+        showError('ไม่พบข้อมูลจุดส่ง กรุณาค้นหางานใหม่อีกครั้ง');
+        return;
+      }
+      const isOrigin = !!stop.isOriginStop;
+
+      if (isOrigin) {
+        // Origin Stop: checkout ธรรมดา ไม่ต้องถามอะไร
+        await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq);
+      } else {
+        // Non-Origin Stop: ถามเรื่องปั่นน้ำมันและโยกน้ำมัน
+        const { value: formValues } = await Swal.fire({
+          icon: 'question',
+          title: 'Check-out พร้อมบันทึกข้อมูล',
+          html: `
+              <div style="text-align:left;">
+                <label style="font-size:0.8rem;color:#555;"><b>จุดนี้มีปั่นน้ำมันหรือไม่?</b></label>
+                <div style="margin:4px 0 10px;font-size:0.85rem;">
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="hasPumping" value="no" checked> ไม่ได้ปั่นน้ำมัน
+                  </label>
+                  <label style="display:block;">
+                    <input type="radio" name="hasPumping" value="yes"> มีปั่นน้ำมัน
+                  </label>
+                </div>
+
+                <label style="font-size:0.8rem;color:#555;"><b>จุดนี้มีการโยกน้ำมันหรือไม่?</b></label>
+                <div style="margin:4px 0 10px;font-size:0.85rem;">
+                  <label style="display:block;margin-bottom:4px;">
+                    <input type="radio" name="hasTransfer" value="no" checked> ไม่มีโยกน้ำมัน
+                  </label>
+                  <label style="display:block;">
+                    <input type="radio" name="hasTransfer" value="yes"> มีโยกน้ำมัน
+                  </label>
+                </div>
+              </div>
+            `,
+          focusConfirm: false,
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยัน Check-out',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#1abc9c',
+          preConfirm: () => {
+            const pumpingRadio = document.querySelector('input[name="hasPumping"]:checked');
+            const transferRadio = document.querySelector('input[name="hasTransfer"]:checked');
+
+            return {
+              hasPumping: pumpingRadio ? pumpingRadio.value : 'no',
+              hasTransfer: transferRadio ? transferRadio.value : 'no',
+            };
+          },
+        });
+
+        if (!formValues) {
+          return;
+        }
+
+        const { hasPumping, hasTransfer } = formValues;
+        await updateStopStatus(
+          rowIndex,
+          'CHECKOUT',
+          'checkout',
+          seq,
+          null,
+          null,
+          null,
+          hasPumping,
+          hasTransfer
+        );
+      }
+    }
+
+    async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType, hasPumping, hasTransfer) {
+      if (!currentUserId) {
+        showError('ไม่พบข้อมูลผู้ใช้ (User ID) กรุณาลองรีเฟรชหน้าจอ');
+        return;
+      }
+      if (rowIndex === undefined || rowIndex === null) {
+        showError('ไม่พบข้อมูลแถว (Row Index) ของงานนี้');
+        return;
+      }
+
+      // ป้องกันการกดซ้ำระหว่างรอผล
+      const actionButtons = Array.from(
+        document.querySelectorAll('.timeline .action-row button')
+      );
+      const buttonsToReenable = actionButtons.filter((btn) => !btn.disabled);
+      buttonsToReenable.forEach((btn) => {
+        btn.disabled = true;
+      });
+
+      try {
+        showLoading('กำลังอ่านพิกัดจากอุปกรณ์...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error(err);
+          closeLoading();
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
+          return;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        showLoading('กำลังอัปเดตสถานะจุดส่ง...');
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'updatestop'); // ใช้ตัวเล็กตาม Backend
+        formData.append('rowIndex', rowIndex);
+        formData.append('status', newStatus);
+        formData.append('type', type);
+        formData.append('userId', currentUserId);
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+
+        if (type === 'checkin') {
+          formData.append('odo', odo || '');
+          if (receiverName) formData.append('receiverName', receiverName);
+          if (receiverType) formData.append('receiverType', receiverType);
+        } else if (type === 'checkout') {
+          if (hasPumping) formData.append('hasPumping', hasPumping);
+          if (hasTransfer) formData.append('hasTransfer', hasTransfer);
+        }
+
+        console.log('Attempting POST:', Array.from(formData.entries()));
+
+        // ถ้า Offline ให้เก็บลง Queue แทน
+        if (!isOnline) {
+          closeLoading();
+          const queueData = {
+            action: 'updatestop',
+            data: Object.fromEntries(formData.entries()),
+            description: type === 'checkin' ? 'เช็คอิน จุดที่ ' + seq : 'เช็คเอาท์ จุดที่ ' + seq,
+          };
+          addToOfflineQueue(queueData);
+
+          await Swal.fire({
+            icon: 'info',
+            title: 'บันทึกไว้ในคิว',
+            html: '<b>ไม่มีสัญญาณอินเทอร์เน็ต</b><br>ระบบจะส่งข้อมูลอัตโนมัติเมื่อกลับมาออนไลน์',
+            confirmButtonColor: '#1abc9c',
+          });
+          return;
+        }
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData,
+        });
+
+        let text = await res.text();
+        let json;
+
+        // ✅ ตรวจสอบว่าผลลัพธ์เป็น JSON หรือไม่
+        if (text.trim().startsWith('{')) {
+          json = JSON.parse(text);
+        } else {
+          // ถ้าไม่ใช่ JSON (เช่น NO_EVENT หรือ Error อื่น) ให้ลอง GET ทันที
+          console.warn('POST failed, retrying with GET...', text);
+          const resGet = await fetch(WEB_APP_URL + '?' + formData.toString());
+          text = await resGet.text();
+          if (text.trim().startsWith('{')) {
+            json = JSON.parse(text);
+          } else {
+            throw new Error(text || 'Unknown Server Response');
+          }
+        }
+
+        closeLoading();
+
+        if (!json.success) {
+          // แสดง Error จริงจาก Server เช่น "อยู่นอกรัศมี" หรือ "ไม่ได้เป่าแอลกอฮอล์"
+          showError(json.message || 'อัปเดตสถานะไม่สำเร็จ');
+          return;
+        }
+
+        // อัปเดตสถานะบน UI ทันที
+        const stopInfo = json.stop || null;
+        if (stopInfo) {
+          lastStops = (lastStops || []).map((s) => {
+            if (s.rowIndex !== stopInfo.rowIndex) return s;
+            const merged = { ...s, ...stopInfo };
+            if (!merged.destLat) merged.destLat = s.destLat;
+            if (!merged.destLng) merged.destLng = s.destLng;
+            return merged;
+          });
+          renderTimeline(lastStops);
+          showInlineFlex(type, stopInfo);
+        }
+
+        await showSuccess('อัปเดตสำเร็จ', json.message || 'อัปเดตสถานะเรียบร้อย');
+
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          search(true);
+        }
+      } catch (err) {
+        console.error('UpdateStatus Error:', err);
+        closeLoading();
+
+        // ถ้า Network Error และ Offline ให้เก็บลง Queue
+        if (!navigator.onLine || err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+          isOnline = false;
+          showOfflineBar(true);
+
+          const queueData = {
+            action: 'updatestop',
+            data: Object.fromEntries(formData.entries()),
+            description: type === 'checkin' ? 'เช็คอิน จุดที่ ' + seq : 'เช็คเอาท์ จุดที่ ' + seq,
+          };
+          addToOfflineQueue(queueData);
+
+          await Swal.fire({
+            icon: 'info',
+            title: 'บันทึกไว้ในคิว',
+            html: '<b>การเชื่อมต่อขัดข้อง</b><br>ระบบจะส่งข้อมูลอัตโนมัติเมื่อกลับมาออนไลน์',
+            confirmButtonColor: '#1abc9c',
+          });
+          return;
+        }
+
+        showError('เกิดข้อผิดพลาด: ' + err.message);
+      } finally {
+        buttonsToReenable.forEach((btn) => {
+          btn.disabled = false;
+        });
+      }
+    }
+
+    // ฟอร์ม "จบทริป"
+    async function openEndTripDialog() {
+      if (!currentReference) {
+        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+        return;
+      }
+
+      const { value: formValues } = await Swal.fire({
+        title: 'สรุปจบทริป',
+        html: `
+            <div style="text-align:left;">
+              <div style="font-size:0.85rem;color:#555;margin-bottom:6px;">
+                Reference: <b>${escapeHtml(currentReference)}</b>
+              </div>
+
+              <label style="font-size:0.8rem;color:#555;">เลขไมล์จบทริป</label>
+              <input id="swalEndOdo" type="number" min="0" step="1"
+                class="swal2-input"
+                placeholder="เช่น 234567"
+                style="width:100%;margin:4px 0 8px;">
+
+              <label style="font-size:0.8rem;color:#555;">ชื่อจุดจบทริป</label>
+              <input id="swalEndPoint" type="text"
+                class="swal2-input"
+                placeholder="เช่น ศูนย์กระจายสินค้าบางนา / ลานจอดคลังหลัก"
+                style="width:100%;margin:4px 0 6px;">
+
+              <div style="margin-top:6px;font-size:0.78rem;color:#888;">
+                * ระบบจะบันทึกเลขไมล์ จุดจบทริป พร้อมพิกัด GPS (Lat/Long) ณ เวลาบันทึก
+              </div>
+            </div>
+          `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึกจบทริป',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        cancelButtonColor: '#95a5a6',
+        preConfirm: () => {
+          const odoVal = document
+            .getElementById('swalEndOdo')
+            .value.trim();
+          const pointVal = document
+            .getElementById('swalEndPoint')
+            .value.trim();
+
+          if (!odoVal) {
+            Swal.showValidationMessage('กรุณากรอกเลขไมล์จบทริป');
+            return false;
+          }
+          const odoNum = parseFloat(odoVal);
+          if (isNaN(odoNum) || odoNum < 0) {
+            Swal.showValidationMessage(
+              'กรุณากรอกเลขไมล์จบทริปให้ถูกต้อง (0 ขึ้นไป)'
+            );
+            return false;
+          }
+          if (!pointVal) {
+            Swal.showValidationMessage('กรุณากรอกชื่อจุดจบทริป');
+            return false;
+          }
+
+          return {
+            endOdo: odoVal,
+            endPointName: pointVal,
+          };
+        },
+      });
+
+      if (!formValues) {
+        return;
+      }
+
+      await saveEndTripSummary(formValues);
+    }
+
+    // ส่งข้อมูลจบทริปไป backend (รวมพิกัด Lat/Long) + ซ่อนปุ่มทันที
+    async function saveEndTripSummary(values) {
+      try {
+        showLoading('กำลังอ่านพิกัดสำหรับจบทริป...');
+
+        let pos;
+        try {
+          pos = await getCurrentPositionAsync();
+        } catch (err) {
+          console.error('Geolocation error in endTrip:', err);
+          closeLoading();
+          showError(
+            'ไม่สามารถดึงพิกัดจากอุปกรณ์ได้ กรุณาเปิด GPS และอนุญาตการเข้าถึงตำแหน่ง'
+          );
+          return;
+        }
+
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        showLoading('กำลังบันทึกข้อมูลจบทริป...');
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'endtrip'); // ต้องตรงกับ backend
+        formData.append('reference', currentReference);
+        formData.append('userId', currentUserId);
+        formData.append('endOdo', values.endOdo || '');
+        formData.append('endPointName', values.endPointName || '');
+        formData.append('lat', String(lat));
+        formData.append('lng', String(lng));
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const rawErr = await res.text().catch(() => '');
+          console.error('HTTP error endtrip:', res.status, rawErr);
+          closeLoading();
+          showError(
+            'ไม่สามารถบันทึกข้อมูลจบทริปได้ (HTTP ' +
+            res.status +
+            ') โปรดลองอีกครั้ง หรือแจ้งแอดมิน'
+          );
+          return;
+        }
+
+        const raw = await res.text();
+        let json;
+        try {
+          json = JSON.parse(raw);
+        } catch (e) {
+          console.error('Response from endtrip is not valid JSON:', raw);
+          closeLoading();
+          showError(
+            'เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป (รูปแบบข้อมูลไม่ถูกต้อง): ' +
+            (raw || 'NO_RESPONSE')
+          );
+          return;
+        }
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'บันทึกข้อมูลจบทริปไม่สำเร็จ');
+          return;
+        }
+
+        // ✅ mark ว่าจบทริปแล้ว
+        tripEnded = true;
+
+        await showSuccess(
+          'จบทริปสำเร็จ',
+          'บันทึกข้อมูลจบทริปเรียบร้อยแล้ว\nกรณีรายละเอียดไม่ถูกต้องกรุณาแจ้งภายใน 1 วัน'
+        );
+
+        // ✅ ซ่อนปุ่มด้านล่างทันที
+        const closeJobContainer = document.getElementById('closeJobContainer');
+        const btnCloseJob = document.getElementById('btnCloseJob');
+        const btnEndTrip = document.getElementById('btnEndTrip');
+        if (closeJobContainer) closeJobContainer.classList.add('hidden');
+        if (btnCloseJob) {
+          btnCloseJob.style.display = 'none';
+          btnCloseJob.disabled = true;
+        }
+        if (btnEndTrip) {
+          btnEndTrip.style.display = 'none';
+          btnEndTrip.disabled = true;
+        }
+
+        // refresh ข้อมูลอีกรอบ (จะได้ d.tripEnded = true ด้วยถ้า backend ส่งมา)
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          await search(true);
+        }
+      } catch (err) {
+        console.error('saveEndTripSummary fatal error:', err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการบันทึกข้อมูลจบทริป');
+      }
+    }
+
+    async function closeJob() {
+      if (!currentReference) {
+        showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อนปิดงาน');
+        return;
+      }
+
+      const { value: formValues } = await Swal.fire({
+        icon: 'question',
+        title: 'ปิดงาน - บันทึกข้อมูลเพิ่มเติม',
+        html: `
+          <div style="text-align:left;margin:8px 0;">
+            <label style="font-size:0.8rem;color:#555;margin-bottom:4px;display:block;"><b>สถานะรถหลังปิดงาน</b></label>
+            <label style="display:flex;align-items:center;margin-bottom:8px;cursor:pointer;padding:10px;border-radius:8px;background:#f7faf9;">
+              <input type="radio" name="vehicleStatus" value="ready" checked style="margin-right:10px;width:16px;height:16px;cursor:pointer;">
+              <span style="flex:1;">
+                <div style="font-weight:600;color:#1abc9c;font-size:0.85rem;">✅ พร้อมรับงาน</div>
+                <div style="font-size:0.75rem;color:#666;">รถสามารถรับงานส่งสินค้าต่อได้</div>
+              </span>
+            </label>
+            <label style="display:flex;align-items:center;margin-bottom:12px;cursor:pointer;padding:10px;border-radius:8px;background:#fff3cd;">
+              <input type="radio" name="vehicleStatus" value="maintenance" style="margin-right:10px;width:16px;height:16px;cursor:pointer;">
+              <span style="flex:1;">
+                <div style="font-weight:600;color:#f39c12;font-size:0.85rem;">🔧 เข้าซ่อมบำรุง</div>
+                <div style="font-size:0.75rem;color:#666;">รถต้องเข้าซ่อม ไม่สามารถรับงานได้</div>
+              </span>
+            </label>
+
+            <label style="font-size:0.8rem;color:#555;"><b>ค่าขึ้นเขา</b></label>
+            <div style="margin:4px 0 10px;font-size:0.85rem;">
+              <label style="display:block;margin-bottom:4px;">
+                <input type="radio" name="hillFee" value="no" checked> ไม่มี
+              </label>
+              <label style="display:block;">
+                <input type="radio" name="hillFee" value="yes"> มีค่าขึ้นเขา
+              </label>
+            </div>
+
+            <label style="font-size:0.8rem;color:#555;"><b>ค่าเข้า กทม</b></label>
+            <div style="margin:4px 0 10px;font-size:0.85rem;">
+              <label style="display:block;margin-bottom:4px;">
+                <input type="radio" name="bkkFee" value="no" checked> ไม่มี
+              </label>
+              <label style="display:block;">
+                <input type="radio" name="bkkFee" value="yes"> มีค่าเข้า กทม
+              </label>
+            </div>
+
+            <label style="font-size:0.8rem;color:#555;"><b>นำรถเข้าซ่อม</b></label>
+            <div style="margin:4px 0 10px;font-size:0.85rem;">
+              <label style="display:block;margin-bottom:4px;">
+                <input type="radio" name="repairFee" value="no" checked> ไม่เข้าซ่อม
+              </label>
+              <label style="display:block;">
+                <input type="radio" name="repairFee" value="yes"> เข้าซ่อม
+              </label>
+            </div>
+          </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'ยืนยันปิดงาน',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          const vehicleStatusRadio = document.querySelector('input[name="vehicleStatus"]:checked');
+          const hillFeeRadio = document.querySelector('input[name="hillFee"]:checked');
+          const bkkFeeRadio = document.querySelector('input[name="bkkFee"]:checked');
+          const repairFeeRadio = document.querySelector('input[name="repairFee"]:checked');
+
+          return {
+            vehicleStatus: vehicleStatusRadio ? vehicleStatusRadio.value : 'ready',
+            hillFee: hillFeeRadio ? hillFeeRadio.value : 'no',
+            bkkFee: bkkFeeRadio ? bkkFeeRadio.value : 'no',
+            repairFee: repairFeeRadio ? repairFeeRadio.value : 'no',
+          };
+        },
+      });
+
+      if (!formValues) return;
+
+      const { vehicleStatus, hillFee, bkkFee, repairFee } = formValues;
+
+      try {
+        showLoading('กำลังปิดงาน...');
+
+        const formData = new URLSearchParams();
+        formData.append('action', 'closejob');
+        formData.append('reference', currentReference);
+        formData.append('userId', currentUserId);
+        formData.append('vehicleStatus', vehicleStatus);
+        formData.append('vehicleDesc', currentVehicleDesc);
+        formData.append('hillFee', hillFee);
+        formData.append('bkkFee', bkkFee);
+        formData.append('repairFee', repairFee);
+
+        const res = await fetch(WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: formData,
+        });
+        const json = await res.json();
+
+        closeLoading();
+
+        if (!json.success) {
+          showError(json.message || 'ไม่สามารถปิดงานได้');
+          return;
+        }
+
+        jobClosed = true;
+
+        if (json.stop) {
+          showInlineFlex('closejob', json.stop);
+        }
+
+        const statusMessage =
+          vehicleStatus === 'maintenance'
+            ? 'บันทึกสถานะรถเข้าซ่อมบำรุงแล้ว'
+            : 'รถพร้อมใช้งานและรับงานใหม่ได้';
+
+        await showSuccess('ปิดงานสำเร็จ', statusMessage);
+
+        // Reload data เพื่อให้ d.jobClosed = true แล้ว renderTimeline จะโชว์ปุ่ม "บันทึกจบทริป"
+        if (currentReference) {
+          document.getElementById('keyword').value = currentReference;
+          await search(true);
+        }
+      } catch (err) {
+        console.error(err);
+        closeLoading();
+        showError('เกิดข้อผิดพลาดในการปิดงาน');
+      }
+    }
+
+    function navigateToStop(rowIndex) {
+      const stop = (lastStops || []).find((s) => s.rowIndex === rowIndex);
+      if (!stop) return;
+
+      const lat =
+        stop.destLat ||
+        stop.destinationLat ||
+        stop.dest_lat ||
+        stop.lat ||
+        '';
+      const lng =
+        stop.destLng ||
+        stop.destinationLng ||
+        stop.dest_lng ||
+        stop.lng ||
+        '';
+
+      if (!lat || !lng) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'ไม่พบพิกัดปลายทาง',
+          text: 'ปลายทางนี้ยังไม่มีพิกัดในระบบ',
+          confirmButtonColor: '#1abc9c',
+        });
+        return;
+      }
+
+      const url =
+        'https://www.google.com/maps?q=' +
+        encodeURIComponent(lat) +
+        ',' +
+        encodeURIComponent(lng);
+      window.open(url, '_blank');
+    }
+
+    // ==================== Dark Mode ====================
+    const THEME_KEY = 'driverapp_theme';
+
+    function loadSavedTheme() {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        updateThemeIcon(true);
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        updateThemeIcon(false);
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem(THEME_KEY, 'light');
+        updateThemeIcon(false);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem(THEME_KEY, 'dark');
+        updateThemeIcon(true);
+      }
+    }
+
+    function updateThemeIcon(isDark) {
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.textContent = isDark ? '☀️' : '🌙';
+        btn.title = isDark ? 'สลับโหมดกลางวัน' : 'สลับโหมดกลางคืน';
+      }
+    }
+
+    // ==================== Offline Mode ====================
+    const OFFLINE_QUEUE_KEY = 'driverapp_offline_queue';
+    let isOnline = navigator.onLine;
+    let isSyncing = false;
+
+    function getOfflineQueue() {
+      try {
+        const data = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        console.error('Error reading offline queue:', e);
+        return [];
+      }
+    }
+
+    function saveOfflineQueue(queue) {
+      try {
+        localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        updateQueueBadge();
+      } catch (e) {
+        console.error('Error saving offline queue:', e);
+      }
+    }
+
+    function addToOfflineQueue(item) {
+      const queue = getOfflineQueue();
+      queue.push({
+        ...item,
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        timestamp: new Date().toISOString(),
+      });
+      saveOfflineQueue(queue);
+      console.log('📥 Added to offline queue:', item.action);
+    }
+
+    function removeFromOfflineQueue(id) {
+      const queue = getOfflineQueue();
+      const newQueue = queue.filter(item => item.id !== id);
+      saveOfflineQueue(newQueue);
+    }
+
+    function updateQueueBadge() {
+      const queue = getOfflineQueue();
+      const badge = document.getElementById('queueBadge');
+      if (badge) {
+        if (queue.length > 0) {
+          badge.textContent = queue.length + ' รายการรอส่ง';
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+
+    function showOfflineBar(show) {
+      const bar = document.getElementById('offlineBar');
+      if (bar) {
+        if (show) {
+          bar.classList.add('show');
+          updateQueueBadge();
+        } else {
+          bar.classList.remove('show');
+        }
+      }
+    }
+
+    function showSyncingBar(show, text) {
+      const bar = document.getElementById('syncingBar');
+      const textEl = document.getElementById('syncingText');
+      if (bar) {
+        if (show) {
+          bar.classList.add('show');
+          if (textEl && text) textEl.textContent = text;
+        } else {
+          bar.classList.remove('show');
+        }
+      }
+    }
+
+    async function syncOfflineQueue() {
+      if (isSyncing || !isOnline) return;
+
+      const queue = getOfflineQueue();
+      if (queue.length === 0) return;
+
+      isSyncing = true;
+      showSyncingBar(true, 'กำลังส่งข้อมูลที่ค้างไว้... (0/' + queue.length + ')');
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < queue.length; i++) {
+        const item = queue[i];
+        showSyncingBar(true, 'กำลังส่งข้อมูล... (' + (i + 1) + '/' + queue.length + ')');
+
+        try {
+          const formData = new URLSearchParams();
+          Object.keys(item.data).forEach(key => {
+            formData.append(key, item.data[key]);
+          });
+
+          const res = await fetch(WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: formData,
+          });
+          const json = await res.json();
+
+          if (json.success) {
+            removeFromOfflineQueue(item.id);
+            successCount++;
+            console.log('✅ Synced:', item.action);
+          } else {
+            failCount++;
+            console.error('❌ Sync failed:', item.action, json.message);
+          }
+        } catch (err) {
+          failCount++;
+          console.error('❌ Sync error:', item.action, err);
+          // หยุด sync ถ้า network error (น่าจะ offline อีกแล้ว)
+          if (!navigator.onLine) {
+            break;
+          }
+        }
+      }
+
+      isSyncing = false;
+      showSyncingBar(false);
+
+      if (successCount > 0) {
+        Swal.fire({
+          icon: 'success',
+          title: 'ส่งข้อมูลสำเร็จ',
+          text: 'ส่งข้อมูลที่ค้างไว้แล้ว ' + successCount + ' รายการ' + (failCount > 0 ? ' (ล้มเหลว ' + failCount + ' รายการ)' : ''),
+          confirmButtonColor: '#1abc9c',
+          timer: 3000,
+          timerProgressBar: true,
+        });
+
+        // Refresh data if we have a current reference
+        if (currentReference) {
+          search(true);
+        }
+      }
+
+      updateQueueBadge();
+    }
+
+    function handleOnline() {
+      console.log('🟢 Online');
+      isOnline = true;
+      showOfflineBar(false);
+
+      // Auto-sync เมื่อกลับมา online
+      setTimeout(() => {
+        syncOfflineQueue();
+      }, 1000);
+    }
+
+    function handleOffline() {
+      console.log('🔴 Offline');
+      isOnline = false;
+      showOfflineBar(true);
+    }
+
+    function initOfflineMode() {
+      isOnline = navigator.onLine;
+
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+
+      // เช็คสถานะตอนเริ่มต้น
+      if (!isOnline) {
+        showOfflineBar(true);
+      }
+
+      // อัพเดท badge
+      updateQueueBadge();
+
+      // ถ้า online และมี queue ค้างอยู่ ให้ sync
+      if (isOnline) {
+        setTimeout(() => {
+          syncOfflineQueue();
+        }, 2000);
+      }
+
+      console.log('📶 Offline mode initialized. Online:', isOnline);
+    }
+
+    // ==================== Quick Actions ====================
+    let quickActionsHidden = false;
+
+    function getNextPendingStop() {
+      if (!lastStops || lastStops.length === 0) return null;
+
+      // หา stop ที่ยังไม่เสร็จ (เรียงลำดับ Check-in -> Fuel -> Unload -> Check-out)
+      for (const stop of lastStops) {
+        const isOrigin = !!stop.isOriginStop;
+
+        // 1. Check-in
+        if (!stop.checkInTime) {
+          return { stop, action: 'checkin' };
+        }
+
+        // 2. Intermediate steps (Non-Origin only)
+        if (!isOrigin) {
+          if (!stop.fuelingTime) {
+            return { stop, action: 'fuel' };
+          }
+          if (!stop.unloadDoneTime) {
+            return { stop, action: 'unload' };
+          }
+        }
+
+        // 3. Check-out
+        if (!stop.checkOutTime) {
+          return { stop, action: 'checkout' };
+        }
+      }
+      return null;
+    }
+
+    function updateQuickActions() {
+      const container = document.getElementById('quickActions');
+      const stopLabel = document.getElementById('quickActionsStop');
+      const buttonsDiv = document.getElementById('quickActionsButtons');
+
+      if (!container || !stopLabel || !buttonsDiv) return;
+
+      // ถ้า user ซ่อนไว้ หรือยังไม่ได้ค้นหางาน
+      if (quickActionsHidden || !currentReference || !lastStops || lastStops.length === 0) {
+        container.classList.remove('show');
+        return;
+      }
+
+      const next = getNextPendingStop();
+
+      if (!next) {
+        // ทุกจุดเสร็จหมดแล้ว
+        container.classList.remove('show');
+        return;
+      }
+
+      const { stop, action } = next;
+      const seq = stop.seq || stop.sequence || '?';
+      // ใช้ destination2 เป็นชื่อหลัก ถ้าไม่มีใช้ destination1
+      const destination = stop.destination2 || stop.destination1 || stop.destination || 'ไม่ทราบ';
+
+      stopLabel.textContent = 'จุดที่ ' + seq + ': ' + destination;
+
+      // สร้างปุ่มตาม Action
+      let btnHtml = '';
+      if (action === 'checkin') {
+        btnHtml = `
+          <button class="btn-checkin" onclick="quickCheckin(${stop.rowIndex}, ${seq})">
+            📍 เช็คอิน
+          </button>
+        `;
+      } else if (action === 'fuel') {
+        btnHtml = `
+          <button class="btn-warning" onclick="updateStopStatus(${stop.rowIndex}, 'FUELING', 'fuel', ${seq})">
+            ⛽ ลงน้ำมัน
+          </button>
+        `;
+      } else if (action === 'unload') {
+        btnHtml = `
+          <button class="btn-outline" style="border:1px solid #ccc;" onclick="updateStopStatus(${stop.rowIndex}, 'UNLOAD_DONE', 'unload', ${seq})">
+            📦 ลงเสร็จ
+          </button>
+        `;
+      } else { // checkout
+        btnHtml = `
+          <button class="btn-checkout" onclick="quickCheckout(${stop.rowIndex}, ${seq})">
+            ✅ เช็คเอาท์
+          </button>
+        `;
+      }
+
+      buttonsDiv.innerHTML = btnHtml;
+      container.classList.add('show');
+    }
+
+    function quickCheckin(rowIndex, seq) {
+      // เรียก startCheckin โดยตรง
+      startCheckin(rowIndex, seq);
+    }
+
+    function quickCheckout(rowIndex, seq) {
+      // เรียก startCheckout โดยตรง
+      startCheckout(rowIndex, seq);
+    }
+
+    function hideQuickActions() {
+      const container = document.getElementById('quickActions');
+      if (container) {
+        container.classList.remove('show');
+        quickActionsHidden = true;
+      }
+    }
+
+    function showQuickActions() {
+      quickActionsHidden = false;
+      updateQuickActions();
+    }
+
+    // ==================== Notification System ====================
+    const NOTIF_SETTINGS_KEY = 'driverapp_notification_settings';
+    let previousStops = null; // เก็บสถานะก่อนหน้าเพื่อเปรียบเทียบ
+
+    const defaultNotifSettings = {
+      statusChange: true,      // แจ้งเตือนเมื่อสถานะเปลี่ยน
+      newJob: true,            // แจ้งเตือนเมื่อมีงานใหม่
+      lineMessage: true,       // ส่ง LINE Message (ต้องใช้ร่วมกับ Backend)
+      sound: true,             // เสียงแจ้งเตือน
+    };
+
+    function getNotifSettings() {
+      try {
+        const data = localStorage.getItem(NOTIF_SETTINGS_KEY);
+        return data ? { ...defaultNotifSettings, ...JSON.parse(data) } : defaultNotifSettings;
+      } catch (e) {
+        return defaultNotifSettings;
+      }
+    }
+
+    function saveNotifSettings(settings) {
+      try {
+        localStorage.setItem(NOTIF_SETTINGS_KEY, JSON.stringify(settings));
+      } catch (e) {
+        console.error('Error saving notification settings:', e);
+      }
+    }
+
+    function openNotificationSettings() {
+      const settings = getNotifSettings();
+
+      Swal.fire({
+        title: '🔔 ตั้งค่าการแจ้งเตือน',
+        html: `
+          <div class="notif-settings">
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">📊</span>
+                <div>
+                  <div class="notif-option-text">สถานะเปลี่ยนแปลง</div>
+                  <div class="notif-option-desc">แจ้งเมื่อจุดส่งมีการอัพเดท</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifStatusChange" ${settings.statusChange ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">🆕</span>
+                <div>
+                  <div class="notif-option-text">งานใหม่</div>
+                  <div class="notif-option-desc">แจ้งเมื่อมีจุดส่งเพิ่มขึ้น</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifNewJob" ${settings.newJob ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">💬</span>
+                <div>
+                  <div class="notif-option-text">LINE Message</div>
+                  <div class="notif-option-desc">ส่งแจ้งเตือนไปยัง LINE Chat</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifLineMessage" ${settings.lineMessage ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="notif-option">
+              <div class="notif-option-label">
+                <span class="notif-option-icon">🔊</span>
+                <div>
+                  <div class="notif-option-text">เสียงแจ้งเตือน</div>
+                  <div class="notif-option-desc">เปิดเสียงเมื่อมีการแจ้งเตือน</div>
+                </div>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="notifSound" ${settings.sound ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'บันทึก',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#1abc9c',
+        preConfirm: () => {
+          return {
+            statusChange: document.getElementById('notifStatusChange').checked,
+            newJob: document.getElementById('notifNewJob').checked,
+            lineMessage: document.getElementById('notifLineMessage').checked,
+            sound: document.getElementById('notifSound').checked,
+          };
+        },
+      }).then((result) => {
+        if (result.isConfirmed) {
+          saveNotifSettings(result.value);
+          showToast('success', 'บันทึกแล้ว', 'ตั้งค่าการแจ้งเตือนเรียบร้อย');
+        }
+      });
+    }
+
+    // Toast Notification
+    let toastId = 0;
+
+    function showToast(type, title, message, duration = 5000) {
+      const settings = getNotifSettings();
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const id = ++toastId;
+      const iconMap = {
+        success: '✅',
+        warning: '⚠️',
+        error: '❌',
+        info: 'ℹ️',
+        newjob: '🆕',
+        status: '📊',
+      };
+
+      const toast = document.createElement('div');
+      toast.className = 'toast' + (type === 'warning' ? ' toast-warning' : '') + (type === 'error' ? ' toast-error' : '');
+      toast.id = 'toast-' + id;
+      toast.innerHTML = `
+        <span class="toast-icon">${iconMap[type] || '🔔'}</span>
+        <div class="toast-content">
+          <div class="toast-title">${escapeHtml(title)}</div>
+          <div class="toast-message">${escapeHtml(message)}</div>
+        </div>
+        <button class="toast-close" onclick="closeToast(${id})">✕</button>
+      `;
+
+      container.appendChild(toast);
+
+      // เล่นเสียง (ถ้าเปิด)
+      if (settings.sound && (type === 'newjob' || type === 'status')) {
+        playNotificationSound();
+      }
+
+      // Auto-dismiss
+      if (duration > 0) {
+        setTimeout(() => closeToast(id), duration);
+      }
+
+      return id;
+    }
+
+    function closeToast(id) {
+      const toast = document.getElementById('toast-' + id);
+      if (toast) {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.remove(), 300);
+      }
+    }
+
+    function playNotificationSound() {
+      try {
+        // สร้างเสียง beep ง่ายๆ ด้วย Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        gainNode.gain.value = 0.3;
+
+        oscillator.start();
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        oscillator.stop(audioContext.currentTime + 0.3);
+      } catch (e) {
+        console.log('Cannot play notification sound');
+      }
+    }
+
+    // ตรวจสอบการเปลี่ยนแปลงของงาน
+    function checkForChanges(newStops) {
+      const settings = getNotifSettings();
+
+      if (!previousStops || previousStops.length === 0) {
+        previousStops = newStops ? [...newStops] : [];
+        return;
+      }
+
+      if (!newStops || newStops.length === 0) return;
+
+      // ตรวจสอบงานใหม่
+      if (settings.newJob && newStops.length > previousStops.length) {
+        const newCount = newStops.length - previousStops.length;
+        showToast('newjob', 'มีจุดส่งใหม่!', 'เพิ่มขึ้น ' + newCount + ' จุด');
+
+        // ส่ง LINE Message ถ้าเปิดไว้
+        if (settings.lineMessage) {
+          sendLineNotification('มีจุดส่งใหม่ ' + newCount + ' จุด');
+        }
+      }
+
+      // ตรวจสอบสถานะเปลี่ยน
+      if (settings.statusChange) {
+        for (const newStop of newStops) {
+          const oldStop = previousStops.find(s => s.rowIndex === newStop.rowIndex);
+          if (oldStop) {
+            // เช็คว่ามีการ checkin/checkout ใหม่หรือไม่
+            if (!oldStop.checkInTime && newStop.checkInTime) {
+              showToast('status', 'Check-in สำเร็จ', 'จุดที่ ' + newStop.seq + ': ' + (newStop.destination || 'ไม่ทราบ'));
+            }
+            if (!oldStop.checkOutTime && newStop.checkOutTime) {
+              showToast('status', 'Check-out สำเร็จ', 'จุดที่ ' + newStop.seq + ': ' + (newStop.destination || 'ไม่ทราบ'));
+            }
+          }
+        }
+      }
+
+      // อัพเดท previousStops
+      previousStops = newStops ? [...newStops] : [];
+    }
+
+    // ส่ง LINE Message (ต้องใช้ร่วมกับ liff.sendMessages)
+    async function sendLineNotification(message) {
+      try {
+        if (!liff.isInClient()) {
+          console.log('Not in LINE app, skipping LINE notification');
+          return;
+        }
+
+        await liff.sendMessages([
+          {
+            type: 'text',
+            text: '🔔 ' + message,
+          },
+        ]);
+        console.log('LINE notification sent:', message);
+      } catch (err) {
+        console.error('Failed to send LINE notification:', err);
+      }
+    }
+
+    // ==================== Trip Dashboard ====================
+    let tripStartTime = null;
+
+    function updateTripDashboard(stops) {
+      const dashboard = document.getElementById('tripDashboard');
+      const refEl = document.getElementById('tripRef');
+      const completedEl = document.getElementById('tripCompleted');
+      const durationEl = document.getElementById('tripDuration');
+      const progressPercentEl = document.getElementById('tripProgressPercent');
+      const progressFillEl = document.getElementById('tripProgressFill');
+      const stopsMiniEl = document.getElementById('tripStopsMini');
+      const extraInfoEl = document.getElementById('tripExtraInfo');
+
+      if (!dashboard) return;
+
+      // ซ่อนถ้าไม่มี stops
+      if (!stops || stops.length === 0 || !currentReference) {
+        dashboard.classList.remove('show');
+        return;
+      }
+
+      dashboard.classList.add('show');
+
+      // Reference
+      if (refEl) {
+        refEl.textContent = currentReference;
+      }
+
+      // นับจุดที่เสร็จ (checkout แล้ว)
+      let completedCount = 0;
+      let inProgressCount = 0;
+      let firstCheckinTime = null;
+      let lastCheckoutTime = null;
+
+      stops.forEach(stop => {
+        if (stop.checkOutTime) {
+          completedCount++;
+          // หาเวลา checkout ล่าสุด
+          const coTime = parseThaiDateTime(stop.checkOutTime);
+          if (coTime && (!lastCheckoutTime || coTime > lastCheckoutTime)) {
+            lastCheckoutTime = coTime;
+          }
+        } else if (stop.checkInTime) {
+          inProgressCount++;
+        }
+
+        // หาเวลา checkin แรก
+        if (stop.checkInTime) {
+          const ciTime = parseThaiDateTime(stop.checkInTime);
+          if (ciTime && (!firstCheckinTime || ciTime < firstCheckinTime)) {
+            firstCheckinTime = ciTime;
+          }
+        }
+      });
+
+      const totalStops = stops.length;
+
+      // จุดที่เสร็จ
+      if (completedEl) {
+        completedEl.textContent = completedCount + '/' + totalStops;
+      }
+
+      // เวลาทำงาน
+      if (durationEl) {
+        if (firstCheckinTime) {
+          tripStartTime = firstCheckinTime;
+          const endTime = lastCheckoutTime || new Date();
+          const durationMs = endTime - firstCheckinTime;
+          durationEl.textContent = formatDuration(durationMs);
+        } else {
+          durationEl.textContent = '-';
+        }
+      }
+
+      // Progress
+      const progressPercent = totalStops > 0 ? Math.round((completedCount / totalStops) * 100) : 0;
+      if (progressPercentEl) {
+        progressPercentEl.textContent = progressPercent + '%';
+      }
+      if (progressFillEl) {
+        progressFillEl.style.width = progressPercent + '%';
+      }
+
+      // Mini stop dots
+      if (stopsMiniEl) {
+        let dotsHtml = '';
+        stops.forEach(stop => {
+          const seq = stop.seq || '?';
+          let dotClass = 'trip-stop-dot';
+
+          if (stop.checkOutTime) {
+            dotClass += ' completed';
+          } else if (stop.checkInTime) {
+            dotClass += ' in-progress';
+          } else {
+            dotClass += ' pending';
+          }
+
+          dotsHtml += '<div class="' + dotClass + '" title="จุดที่ ' + seq + '">' + seq + '</div>';
+        });
+        stopsMiniEl.innerHTML = dotsHtml;
+      }
+
+      // Extra info (แสดงเมื่อปิดงานแล้ว)
+      if (extraInfoEl) {
+        if (jobClosed) {
+          let extraHtml = '';
+          // อาจเพิ่มข้อมูลค่าเขา ค่า กทม ถ้ามีใน data
+          extraHtml += '<div class="trip-extra-item">✅ ปิดงานแล้ว</div>';
+          if (tripEnded) {
+            extraHtml += '<div class="trip-extra-item">🏁 จบทริปแล้ว</div>';
+          }
+          extraInfoEl.innerHTML = extraHtml;
+          extraInfoEl.style.display = 'flex';
+        } else {
+          extraInfoEl.style.display = 'none';
+        }
+      }
+    }
+
+    function parseThaiDateTime(str) {
+      if (!str) return null;
+      try {
+        // รูปแบบ: "14/01/2026 10:30:45" หรือ "2026-01-14T10:30:45"
+        if (str.includes('T')) {
+          return new Date(str);
+        }
+
+        // รูปแบบ DD/MM/YYYY HH:mm:ss
+        const parts = str.split(' ');
+        if (parts.length >= 2) {
+          const dateParts = parts[0].split('/');
+          if (dateParts.length === 3) {
+            const day = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1;
+            const year = parseInt(dateParts[2], 10);
+            const timeParts = parts[1].split(':');
+            const hour = parseInt(timeParts[0] || 0, 10);
+            const minute = parseInt(timeParts[1] || 0, 10);
+            const second = parseInt(timeParts[2] || 0, 10);
+            return new Date(year, month, day, hour, minute, second);
+          }
+        }
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function formatDuration(ms) {
+      if (!ms || ms < 0) return '-';
+
+      const totalMinutes = Math.floor(ms / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0) {
+        return hours + ' ชม. ' + minutes + ' น.';
+      }
+      return minutes + ' นาที';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      loadSavedTheme();
+      initLiff();
+      initPullToRefresh();
+      initGpsMonitor();
+      initOfflineMode();
+
+      // โหลด Reference ล่าสุด
+      const lastRef = localStorage.getItem('last_reference');
+      if (lastRef) {
+        document.getElementById('keyword').value = lastRef;
+      }
+
+      document
+        .getElementById('btnSearch')
+        .addEventListener('click', search);
+
+      document
+        .getElementById('keyword')
+        .addEventListener('keyup', function (e) {
+          if (e.key === 'Enter') {
+            search();
+          }
+        });
+
+      document
+        .getElementById('btnCloseJob')
+        .addEventListener('click', closeJob);
+
+      document
+        .getElementById('btnEndTrip')
+        .addEventListener('click', openEndTripDialog);
+
+      // Pause/Resume auto-refresh เมื่อ user ออก/กลับมาที่หน้าจอ
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          // User ออกจากหน้าจอ - หยุด auto-refresh ชั่วคราว
+          if (autoRefreshTimer && currentReference) {
+            stopAutoRefresh();
+            console.log('🔕 Page hidden - auto-refresh paused');
+          }
+        } else {
+          // User กลับมาที่หน้าจอ - refresh ทันทีและเริ่ม auto-refresh ใหม่
+          if (currentReference) {
+            console.log('👁️ Page visible - refreshing and resuming auto-refresh');
+            search(true); // silent refresh
+            startAutoRefresh();
+          }
+        }
+      });
+    });
+
+    window.updateStopStatus = updateStopStatus;
+    window.search = search;
+    window.closeJob = closeJob;
+    window.startCheckin = startCheckin;
+    window.startCheckout = startCheckout;
+    window.doAlcoholCheck = doAlcoholCheck;
+    window.getCurrentPositionAsync = getCurrentPositionAsync;
+    window.navigateToStop = navigateToStop;
+    window.openEndTripDialog = openEndTripDialog;
+    window.saveEndTripSummary = saveEndTripSummary;
+    window.startAutoRefresh = startAutoRefresh;
+    window.stopAutoRefresh = stopAutoRefresh;
+    window.checkGpsStatus = checkGpsStatus;
+    window.toggleTheme = toggleTheme;
+    window.syncOfflineQueue = syncOfflineQueue;
+    window.getOfflineQueue = getOfflineQueue;
+    window.quickCheckin = quickCheckin;
+    window.quickCheckout = quickCheckout;
+    window.hideQuickActions = hideQuickActions;
+    window.showQuickActions = showQuickActions;
+    window.openNotificationSettings = openNotificationSettings;
+    window.showToast = showToast;
+    window.closeToast = closeToast;
+    window.sendLineNotification = sendLineNotification;
+    window.updateTripDashboard = updateTripDashboard;
+  </script>
+</body>
+
+</html>
