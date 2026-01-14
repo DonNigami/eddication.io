@@ -1946,6 +1946,12 @@
 
         lastStops = stops;
         currentReference = d.referenceNo || keyword;
+        
+        // บันทึก reference ล่าสุดลง localStorage
+        if (currentReference) {
+          localStorage.setItem('last_reference', currentReference);
+        }
+
         currentVehicleDesc = d.vehicleDesc || '';
 
         currentDrivers =
@@ -4028,6 +4034,12 @@
       initPullToRefresh();
       initGpsMonitor();
       initOfflineMode();
+
+      // โหลด Reference ล่าสุด
+      const lastRef = localStorage.getItem('last_reference');
+      if (lastRef) {
+        document.getElementById('keyword').value = lastRef;
+      }
 
       document
         .getElementById('btnSearch')
