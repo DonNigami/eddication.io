@@ -1534,7 +1534,7 @@
         showLoading('กำลังอัปเดตสถานะจุดส่ง...');
 
         const formData = new URLSearchParams();
-        formData.append('action', 'updatestop');
+        formData.append('action', 'updateStop');
         formData.append('rowIndex', rowIndex);
         formData.append('status', newStatus);
         formData.append('type', type);
@@ -1544,21 +1544,11 @@
 
         if (type === 'checkin') {
           formData.append('odo', odo || '');
-          // เพิ่มข้อมูลผู้รับน้ำมัน ถ้ามี
-          if (receiverName) {
-            formData.append('receiverName', receiverName);
-          }
-          if (receiverType) {
-            formData.append('receiverType', receiverType);
-          }
+          if (receiverName) formData.append('receiverName', receiverName);
+          if (receiverType) formData.append('receiverType', receiverType);
         } else if (type === 'checkout') {
-          // เพิ่มข้อมูลปั่นน้ำมันและโยกน้ำมัน ถ้ามี
-          if (hasPumping) {
-            formData.append('hasPumping', hasPumping);
-          }
-          if (hasTransfer) {
-            formData.append('hasTransfer', hasTransfer);
-          }
+          if (hasPumping) formData.append('hasPumping', hasPumping);
+          if (hasTransfer) formData.append('hasTransfer', hasTransfer);
         }
 
         // Debug: Log payload
