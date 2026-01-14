@@ -22,6 +22,66 @@
       --text-sub: #666;
       --card-bg: #ffffff;
       --border-radius: 14px;
+      --input-bg: #f7faf9;
+      --input-border: #dce2e0;
+      --shadow-color: rgba(0, 0, 0, 0.06);
+      --timeline-border: #e4ece9;
+      --timeline-bg: #f7faf9;
+    }
+
+    /* Dark Mode */
+    [data-theme="dark"] {
+      --bg: #1a1a2e;
+      --text-main: #eaeaea;
+      --text-sub: #a0a0a0;
+      --card-bg: #16213e;
+      --input-bg: #1a1a2e;
+      --input-border: #2a2a4a;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --timeline-border: #2a2a4a;
+      --timeline-bg: #1a1a2e;
+    }
+
+    [data-theme="dark"] .badge {
+      background: rgba(26, 188, 156, 0.2);
+    }
+
+    [data-theme="dark"] .summary-card {
+      background: var(--timeline-bg);
+      border-color: var(--timeline-border);
+    }
+
+    [data-theme="dark"] .timeline-content {
+      background: var(--card-bg);
+      border-color: var(--timeline-border);
+    }
+
+    [data-theme="dark"] .gps-status.checking {
+      background: rgba(52, 152, 219, 0.15);
+    }
+
+    [data-theme="dark"] .gps-status.good {
+      background: rgba(26, 188, 156, 0.15);
+    }
+
+    [data-theme="dark"] .gps-status.weak {
+      background: rgba(243, 156, 18, 0.15);
+    }
+
+    [data-theme="dark"] .gps-status.error {
+      background: rgba(231, 76, 60, 0.15);
+    }
+
+    [data-theme="dark"] .last-updated {
+      background: rgba(26, 188, 156, 0.12);
+    }
+
+    [data-theme="dark"] .ptr-indicator {
+      background: var(--card-bg);
+    }
+
+    [data-theme="dark"] .inline-flex {
+      background: var(--card-bg);
     }
 
     * {
@@ -96,21 +156,49 @@
       margin-bottom: 4px;
     }
 
-    input[type='text'] {
+    input[type='text'],
+    input[type='number'] {
       width: 100%;
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid #dce2e0;
+      border: 1px solid var(--input-border);
       font-size: 0.95rem;
       outline: none;
       transition: border 0.2s, box-shadow 0.2s, background 0.2s;
-      background: #f7faf9;
+      background: var(--input-bg);
+      color: var(--text-main);
     }
 
-    input[type='text']:focus {
+    input[type='text']:focus,
+    input[type='number']:focus {
       border-color: var(--primary);
-      background: #ffffff;
+      background: var(--card-bg);
       box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.18);
+    }
+
+    /* Theme Toggle Button */
+    .theme-toggle {
+      background: none;
+      border: none;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .theme-toggle:hover {
+      background: rgba(26, 188, 156, 0.1);
+      transform: scale(1.1);
+    }
+
+    .theme-toggle:active {
+      transform: scale(0.95);
     }
 
     button {
@@ -327,6 +415,173 @@
       text-align: center;
     }
 
+    .last-updated {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(26, 188, 156, 0.08);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .last-updated-text {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .auto-refresh-badge {
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .auto-refresh-badge.paused {
+      background: #95a5a6;
+    }
+
+    /* Pull-to-Refresh Styles */
+    .ptr-container {
+      position: relative;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ptr-indicator {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      opacity: 0;
+      z-index: 100;
+    }
+
+    .ptr-indicator.visible {
+      opacity: 1;
+    }
+
+    .ptr-indicator.refreshing {
+      top: 10px;
+      opacity: 1;
+    }
+
+    .ptr-arrow {
+      font-size: 1.2rem;
+      transition: transform 0.2s ease;
+      color: var(--primary);
+    }
+
+    .ptr-arrow.flipped {
+      transform: rotate(180deg);
+    }
+
+    .ptr-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(26, 188, 156, 0.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: ptr-spin 0.8s linear infinite;
+    }
+
+    @keyframes ptr-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* GPS Status Indicator */
+    .gps-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-bottom: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .gps-status.checking {
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+    }
+
+    .gps-status.good {
+      background: rgba(26, 188, 156, 0.1);
+      color: var(--primary-dark);
+    }
+
+    .gps-status.weak {
+      background: rgba(243, 156, 18, 0.1);
+      color: #d68910;
+    }
+
+    .gps-status.error {
+      background: rgba(231, 76, 60, 0.1);
+      color: #c0392b;
+    }
+
+    .gps-icon {
+      font-size: 1rem;
+    }
+
+    .gps-accuracy {
+      margin-left: auto;
+      font-size: 0.7rem;
+      opacity: 0.8;
+    }
+
+    .gps-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 14px;
+    }
+
+    .gps-bar {
+      width: 4px;
+      background: currentColor;
+      border-radius: 1px;
+      opacity: 0.3;
+      transition: opacity 0.2s ease;
+    }
+
+    .gps-bar.active {
+      opacity: 1;
+    }
+
+    .gps-bar:nth-child(1) { height: 4px; }
+    .gps-bar:nth-child(2) { height: 7px; }
+    .gps-bar:nth-child(3) { height: 10px; }
+    .gps-bar:nth-child(4) { height: 14px; }
+
+    @keyframes gps-pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    .gps-status.checking .gps-bar {
+      animation: gps-pulse 1s ease-in-out infinite;
+    }
+
+    .gps-status.checking .gps-bar:nth-child(2) { animation-delay: 0.1s; }
+    .gps-status.checking .gps-bar:nth-child(3) { animation-delay: 0.2s; }
+    .gps-status.checking .gps-bar:nth-child(4) { animation-delay: 0.3s; }
+
     .hidden {
       display: none;
     }
@@ -432,7 +687,12 @@
     <div class="inline-flex-sub" id="inlineFlexSub"></div>
   </div>
 
-  <div class="app-shell">
+  <div class="app-shell" id="appShell">
+    <!-- Pull-to-Refresh Indicator -->
+    <div id="ptrIndicator" class="ptr-indicator">
+      <span id="ptrIcon" class="ptr-arrow">↓</span>
+    </div>
+
     <div class="container">
       <div class="card">
         <div class="header">
@@ -440,9 +700,25 @@
             🚚 Driver Tracking
             <span class="badge">Online</span>
           </div>
+          <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="สลับโหมดกลางคืน">
+            🌙
+          </button>
         </div>
 
         <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
+
+        <!-- GPS Status Indicator (คลิกเพื่อ refresh) -->
+        <div id="gpsStatus" class="gps-status checking" onclick="checkGpsStatus()" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
+          <span class="gps-icon">📍</span>
+          <span id="gpsText">กำลังตรวจสอบ GPS...</span>
+          <div class="gps-bars">
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+          </div>
+          <span id="gpsAccuracy" class="gps-accuracy"></span>
+        </div>
 
         <div class="field-group">
           <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
@@ -477,9 +753,17 @@
           </div>
         </div>
 
+        <!-- Last Updated & Auto-refresh Status -->
+        <div id="lastUpdatedContainer" class="last-updated hidden">
+          <div class="last-updated-text">
+            <span>🔄</span>
+            <span id="lastUpdatedText">อัปเดตล่าสุด: -</span>
+          </div>
+          <span id="autoRefreshBadge" class="auto-refresh-badge">Auto</span>
+        </div>
+
         <div class="footer-note">
           เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ
-          และส่ง Flex เข้าแชท LINE
         </div>
       </div>
     </div>
@@ -502,6 +786,26 @@
     let jobClosed = false;
     let tripEnded = false;
 
+    // Auto-refresh variables
+    const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 นาที
+    let autoRefreshTimer = null;
+    let lastUpdatedTime = null;
+    let lastUpdatedDisplayTimer = null;
+
+    // Pull-to-Refresh variables
+    const PTR_THRESHOLD = 80; // ระยะดึงขั้นต่ำ (px) เพื่อ trigger refresh
+    const PTR_MAX_PULL = 120; // ระยะดึงสูงสุด (px)
+    let ptrStartY = 0;
+    let ptrCurrentY = 0;
+    let ptrIsPulling = false;
+    let ptrIsRefreshing = false;
+
+    // GPS Status variables
+    const GPS_CHECK_INTERVAL = 30000; // ตรวจสอบทุก 30 วินาที
+    let gpsWatchId = null;
+    let gpsCheckTimer = null;
+    let lastGpsStatus = 'checking';
+
     // ฟังก์ชันป้องกัน XSS โดย escape HTML special characters
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -511,6 +815,330 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    // ===== Auto-refresh Functions =====
+    function formatTimeAgo(date) {
+      if (!date) return '-';
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+
+      if (diffSec < 10) return 'เมื่อสักครู่';
+      if (diffSec < 60) return `${diffSec} วินาทีที่แล้ว`;
+      if (diffMin < 60) return `${diffMin} นาทีที่แล้ว`;
+
+      // แสดงเวลาจริงถ้าเกิน 1 ชั่วโมง
+      return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function updateLastUpdatedDisplay() {
+      const textEl = document.getElementById('lastUpdatedText');
+      if (textEl && lastUpdatedTime) {
+        textEl.textContent = `อัปเดตล่าสุด: ${formatTimeAgo(lastUpdatedTime)}`;
+      }
+    }
+
+    function showLastUpdatedContainer() {
+      const container = document.getElementById('lastUpdatedContainer');
+      if (container) {
+        container.classList.remove('hidden');
+      }
+    }
+
+    function hideLastUpdatedContainer() {
+      const container = document.getElementById('lastUpdatedContainer');
+      if (container) {
+        container.classList.add('hidden');
+      }
+    }
+
+    function startAutoRefresh() {
+      // หยุด timer เดิมก่อน (ถ้ามี)
+      stopAutoRefresh();
+
+      // อัปเดต badge
+      const badge = document.getElementById('autoRefreshBadge');
+      if (badge) {
+        badge.textContent = 'Auto';
+        badge.classList.remove('paused');
+      }
+
+      // เริ่ม auto-refresh ทุก 5 นาที
+      autoRefreshTimer = setInterval(() => {
+        if (currentReference) {
+          console.log('🔄 Auto-refresh triggered');
+          search(true); // silent refresh
+        }
+      }, AUTO_REFRESH_INTERVAL);
+
+      // อัปเดต display ทุก 30 วินาที
+      lastUpdatedDisplayTimer = setInterval(updateLastUpdatedDisplay, 30000);
+
+      console.log('✅ Auto-refresh started (every 5 minutes)');
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+      if (lastUpdatedDisplayTimer) {
+        clearInterval(lastUpdatedDisplayTimer);
+        lastUpdatedDisplayTimer = null;
+      }
+
+      // อัปเดต badge
+      const badge = document.getElementById('autoRefreshBadge');
+      if (badge) {
+        badge.textContent = 'Paused';
+        badge.classList.add('paused');
+      }
+
+      console.log('⏸️ Auto-refresh stopped');
+    }
+
+    function recordLastUpdated() {
+      lastUpdatedTime = new Date();
+      updateLastUpdatedDisplay();
+      showLastUpdatedContainer();
+    }
+
+    // ===== Pull-to-Refresh Functions =====
+    function initPullToRefresh() {
+      const appShell = document.getElementById('appShell');
+      if (!appShell) return;
+
+      appShell.addEventListener('touchstart', handlePtrTouchStart, { passive: true });
+      appShell.addEventListener('touchmove', handlePtrTouchMove, { passive: false });
+      appShell.addEventListener('touchend', handlePtrTouchEnd, { passive: true });
+    }
+
+    function handlePtrTouchStart(e) {
+      // เริ่ม pull เมื่อ scroll อยู่บนสุดเท่านั้น
+      if (window.scrollY === 0 && !ptrIsRefreshing) {
+        ptrStartY = e.touches[0].clientY;
+        ptrIsPulling = true;
+      }
+    }
+
+    function handlePtrTouchMove(e) {
+      if (!ptrIsPulling || ptrIsRefreshing) return;
+
+      ptrCurrentY = e.touches[0].clientY;
+      const pullDistance = ptrCurrentY - ptrStartY;
+
+      // ดึงลงเท่านั้น (pullDistance > 0) และ scroll อยู่บนสุด
+      if (pullDistance > 0 && window.scrollY === 0) {
+        // ป้องกัน scroll ปกติขณะ pull
+        e.preventDefault();
+
+        const indicator = document.getElementById('ptrIndicator');
+        const icon = document.getElementById('ptrIcon');
+
+        // คำนวณระยะ pull (จำกัดไม่เกิน PTR_MAX_PULL)
+        const actualPull = Math.min(pullDistance, PTR_MAX_PULL);
+        const progress = actualPull / PTR_THRESHOLD;
+
+        // แสดง indicator
+        indicator.classList.add('visible');
+        indicator.style.transform = `translateX(-50%) translateY(${actualPull}px)`;
+
+        // เปลี่ยน icon เมื่อถึง threshold
+        if (pullDistance >= PTR_THRESHOLD) {
+          icon.classList.add('flipped');
+          icon.textContent = '↑';
+        } else {
+          icon.classList.remove('flipped');
+          icon.textContent = '↓';
+        }
+      }
+    }
+
+    function handlePtrTouchEnd(e) {
+      if (!ptrIsPulling || ptrIsRefreshing) return;
+
+      const pullDistance = ptrCurrentY - ptrStartY;
+      const indicator = document.getElementById('ptrIndicator');
+      const icon = document.getElementById('ptrIcon');
+
+      if (pullDistance >= PTR_THRESHOLD && currentReference) {
+        // ถึง threshold และมีงานโหลดอยู่ - ทำ refresh
+        ptrIsRefreshing = true;
+
+        // แสดง spinner
+        icon.outerHTML = '<div id="ptrIcon" class="ptr-spinner"></div>';
+        indicator.classList.add('refreshing');
+        indicator.style.transform = 'translateX(-50%) translateY(60px)';
+
+        // ทำ refresh
+        search(true).finally(() => {
+          // รีเซ็ต indicator หลัง refresh เสร็จ
+          setTimeout(() => {
+            resetPtrIndicator();
+          }, 300);
+        });
+      } else {
+        // ไม่ถึง threshold - รีเซ็ต
+        resetPtrIndicator();
+      }
+
+      ptrIsPulling = false;
+      ptrStartY = 0;
+      ptrCurrentY = 0;
+    }
+
+    function resetPtrIndicator() {
+      const indicator = document.getElementById('ptrIndicator');
+      const iconEl = document.getElementById('ptrIcon');
+
+      // แทนที่ spinner ด้วย arrow ใหม่
+      if (iconEl && iconEl.classList.contains('ptr-spinner')) {
+        iconEl.outerHTML = '<span id="ptrIcon" class="ptr-arrow">↓</span>';
+      }
+
+      indicator.classList.remove('visible', 'refreshing');
+      indicator.style.transform = 'translateX(-50%) translateY(0)';
+
+      const icon = document.getElementById('ptrIcon');
+      if (icon) {
+        icon.classList.remove('flipped');
+        icon.textContent = '↓';
+      }
+
+      ptrIsRefreshing = false;
+    }
+
+    // ===== GPS Status Functions =====
+    function initGpsMonitor() {
+      if (!navigator.geolocation) {
+        updateGpsStatus('error', 'อุปกรณ์ไม่รองรับ GPS', null);
+        return;
+      }
+
+      // เช็ค GPS ครั้งแรก
+      checkGpsStatus();
+
+      // เช็คเป็นระยะ
+      gpsCheckTimer = setInterval(checkGpsStatus, GPS_CHECK_INTERVAL);
+    }
+
+    function checkGpsStatus() {
+      updateGpsStatus('checking', 'กำลังตรวจสอบ GPS...', null);
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const accuracy = pos.coords.accuracy;
+          handleGpsSuccess(accuracy);
+        },
+        (err) => {
+          handleGpsError(err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    function handleGpsSuccess(accuracy) {
+      let status, text, bars;
+
+      if (accuracy <= 20) {
+        // ความแม่นยำดีมาก (≤20 เมตร)
+        status = 'good';
+        text = 'GPS พร้อมใช้งาน';
+        bars = 4;
+      } else if (accuracy <= 50) {
+        // ความแม่นยำดี (≤50 เมตร)
+        status = 'good';
+        text = 'GPS พร้อมใช้งาน';
+        bars = 3;
+      } else if (accuracy <= 100) {
+        // ความแม่นยำปานกลาง (≤100 เมตร)
+        status = 'weak';
+        text = 'สัญญาณ GPS อ่อน';
+        bars = 2;
+      } else {
+        // ความแม่นยำต่ำ (>100 เมตร)
+        status = 'weak';
+        text = 'สัญญาณ GPS อ่อนมาก';
+        bars = 1;
+      }
+
+      const accuracyText = accuracy < 1000
+        ? `±${Math.round(accuracy)}m`
+        : `±${(accuracy / 1000).toFixed(1)}km`;
+
+      updateGpsStatus(status, text, accuracyText, bars);
+    }
+
+    function handleGpsError(err) {
+      let text;
+      switch (err.code) {
+        case err.PERMISSION_DENIED:
+          text = 'ไม่ได้รับอนุญาตเข้าถึง GPS';
+          break;
+        case err.POSITION_UNAVAILABLE:
+          text = 'ไม่พบสัญญาณ GPS';
+          break;
+        case err.TIMEOUT:
+          text = 'หมดเวลาค้นหา GPS';
+          break;
+        default:
+          text = 'เกิดข้อผิดพลาด GPS';
+      }
+      updateGpsStatus('error', text, null, 0);
+    }
+
+    function updateGpsStatus(status, text, accuracy, activeBars = 0) {
+      const container = document.getElementById('gpsStatus');
+      const textEl = document.getElementById('gpsText');
+      const accuracyEl = document.getElementById('gpsAccuracy');
+      const bars = container.querySelectorAll('.gps-bar');
+
+      if (!container) return;
+
+      // อัปเดต class
+      container.classList.remove('checking', 'good', 'weak', 'error');
+      container.classList.add(status);
+
+      // อัปเดต icon
+      const iconEl = container.querySelector('.gps-icon');
+      if (iconEl) {
+        if (status === 'good') iconEl.textContent = '📍';
+        else if (status === 'weak') iconEl.textContent = '📡';
+        else if (status === 'error') iconEl.textContent = '⚠️';
+        else iconEl.textContent = '📍';
+      }
+
+      // อัปเดต text
+      if (textEl) textEl.textContent = text;
+
+      // อัปเดต accuracy
+      if (accuracyEl) {
+        accuracyEl.textContent = accuracy || '';
+      }
+
+      // อัปเดต bars
+      bars.forEach((bar, index) => {
+        if (index < activeBars) {
+          bar.classList.add('active');
+        } else {
+          bar.classList.remove('active');
+        }
+      });
+
+      lastGpsStatus = status;
+    }
+
+    function stopGpsMonitor() {
+      if (gpsWatchId !== null) {
+        navigator.geolocation.clearWatch(gpsWatchId);
+        gpsWatchId = null;
+      }
+      if (gpsCheckTimer) {
+        clearInterval(gpsCheckTimer);
+        gpsCheckTimer = null;
+      }
     }
 
     function showLoading(message) {
@@ -721,6 +1349,12 @@
         renderSummary(d);
         renderAlcoholSection();
         renderTimeline(stops);
+
+        // บันทึกเวลาอัปเดตและเริ่ม auto-refresh
+        recordLastUpdated();
+        if (!autoRefreshTimer) {
+          startAutoRefresh();
+        }
       } catch (err) {
         console.error(err);
         if (!isSilent) {
@@ -746,6 +1380,11 @@
       alcoholAllDone = false;
       jobClosed = false;
       tripEnded = false;
+
+      // หยุด auto-refresh และซ่อน last updated
+      stopAutoRefresh();
+      hideLastUpdatedContainer();
+      lastUpdatedTime = null;
     }
 
     function renderSummary(d) {
@@ -1964,8 +2603,46 @@
       window.open(url, '_blank');
     }
 
+    // ==================== Dark Mode ====================
+    const THEME_KEY = 'driverapp_theme';
+
+    function loadSavedTheme() {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        updateThemeIcon(true);
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        updateThemeIcon(false);
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem(THEME_KEY, 'light');
+        updateThemeIcon(false);
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem(THEME_KEY, 'dark');
+        updateThemeIcon(true);
+      }
+    }
+
+    function updateThemeIcon(isDark) {
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.textContent = isDark ? '☀️' : '🌙';
+        btn.title = isDark ? 'สลับโหมดกลางวัน' : 'สลับโหมดกลางคืน';
+      }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
+      loadSavedTheme();
       initLiff();
+      initPullToRefresh();
+      initGpsMonitor();
 
       document
         .getElementById('btnSearch')
@@ -1986,6 +2663,24 @@
       document
         .getElementById('btnEndTrip')
         .addEventListener('click', openEndTripDialog);
+
+      // Pause/Resume auto-refresh เมื่อ user ออก/กลับมาที่หน้าจอ
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          // User ออกจากหน้าจอ - หยุด auto-refresh ชั่วคราว
+          if (autoRefreshTimer && currentReference) {
+            stopAutoRefresh();
+            console.log('🔕 Page hidden - auto-refresh paused');
+          }
+        } else {
+          // User กลับมาที่หน้าจอ - refresh ทันทีและเริ่ม auto-refresh ใหม่
+          if (currentReference) {
+            console.log('👁️ Page visible - refreshing and resuming auto-refresh');
+            search(true); // silent refresh
+            startAutoRefresh();
+          }
+        }
+      });
     });
 
     window.updateStopStatus = updateStopStatus;
@@ -1998,6 +2693,10 @@
     window.navigateToStop = navigateToStop;
     window.openEndTripDialog = openEndTripDialog;
     window.saveEndTripSummary = saveEndTripSummary;
+    window.startAutoRefresh = startAutoRefresh;
+    window.stopAutoRefresh = stopAutoRefresh;
+    window.checkGpsStatus = checkGpsStatus;
+    window.toggleTheme = toggleTheme;
   </script>
 </body>
 
