@@ -1313,7 +1313,7 @@
 
         <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
 
-        <!-- Trip Dashboard -->
+        <!-- Trip Dashboard (ปิดชั่วคราว)
         <div id="tripDashboard" class="trip-dashboard">
           <div class="trip-dashboard-header">
             <div class="trip-dashboard-title">
@@ -1344,13 +1344,12 @@
           </div>
 
           <div id="tripStopsMini" class="trip-stops-mini">
-            <!-- Stop dots will be inserted here -->
           </div>
 
           <div id="tripExtraInfo" class="trip-extra-info" style="display:none;">
-            <!-- Extra info like fees will be shown here -->
           </div>
         </div>
+        -->
 
         <div id="timelineContainer" class="timeline-container hidden">
           <div class="timeline-title">
@@ -2510,7 +2509,7 @@
       container.classList.remove('hidden');
 
       // อัพเดท Trip Dashboard
-      updateTripDashboard(stops);
+      // updateTripDashboard(stops);
 
       // ตรวจสอบการเปลี่ยนแปลงและแจ้งเตือน
       checkForChanges(stops);
