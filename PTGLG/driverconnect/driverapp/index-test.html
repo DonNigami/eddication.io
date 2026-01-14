@@ -3501,14 +3501,27 @@
     function getNextPendingStop() {
       if (!lastStops || lastStops.length === 0) return null;
 
-      // หา stop ที่ยังไม่เสร็จ (ไม่มี checkinTime หรือไม่มี checkoutTime)
+      // หา stop ที่ยังไม่เสร็จ (เรียงลำดับ Check-in -> Fuel -> Unload -> Check-out)
       for (const stop of lastStops) {
-        // ถ้ายังไม่ checkin
-        if (!stop.checkinTime) {
+        const isOrigin = !!stop.isOriginStop;
+
+        // 1. Check-in
+        if (!stop.checkInTime) {
           return { stop, action: 'checkin' };
         }
-        // ถ้า checkin แล้วแต่ยังไม่ checkout
-        if (stop.checkinTime && !stop.checkoutTime) {
+
+        // 2. Intermediate steps (Non-Origin only)
+        if (!isOrigin) {
+          if (!stop.fuelingTime) {
+            return { stop, action: 'fuel' };
+          }
+          if (!stop.unloadDoneTime) {
+            return { stop, action: 'unload' };
+          }
+        }
+
+        // 3. Check-out
+        if (!stop.checkOutTime) {
           return { stop, action: 'checkout' };
         }
       }
@@ -3538,25 +3551,40 @@
 
       const { stop, action } = next;
       const seq = stop.seq || stop.sequence || '?';
-      const destination = stop.destination || stop.destName || 'ไม่ทราบ';
+      // ใช้ destination2 เป็นชื่อหลัก ถ้าไม่มีใช้ destination1
+      const destination = stop.destination2 || stop.destination1 || stop.destination || 'ไม่ทราบ';
 
       stopLabel.textContent = 'จุดที่ ' + seq + ': ' + destination;
 
-      // สร้างปุ่ม
+      // สร้างปุ่มตาม Action
+      let btnHtml = '';
       if (action === 'checkin') {
-        buttonsDiv.innerHTML = `
+        btnHtml = `
           <button class="btn-checkin" onclick="quickCheckin(${stop.rowIndex}, ${seq})">
             📍 เช็คอิน
           </button>
         `;
-      } else {
-        buttonsDiv.innerHTML = `
+      } else if (action === 'fuel') {
+        btnHtml = `
+          <button class="btn-warning" onclick="updateStopStatus(${stop.rowIndex}, 'FUELING', 'fuel', ${seq})">
+            ⛽ ลงน้ำมัน
+          </button>
+        `;
+      } else if (action === 'unload') {
+        btnHtml = `
+          <button class="btn-outline" style="border:1px solid #ccc;" onclick="updateStopStatus(${stop.rowIndex}, 'UNLOAD_DONE', 'unload', ${seq})">
+            📦 ลงเสร็จ
+          </button>
+        `;
+      } else { // checkout
+        btnHtml = `
           <button class="btn-checkout" onclick="quickCheckout(${stop.rowIndex}, ${seq})">
             ✅ เช็คเอาท์
           </button>
         `;
       }
 
+      buttonsDiv.innerHTML = btnHtml;
       container.classList.add('show');
     }
 
