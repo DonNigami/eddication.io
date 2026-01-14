@@ -1565,14 +1565,43 @@
         try {
           json = JSON.parse(text);
         } catch (e) {
-          console.error('Invalid JSON response:', text);
-          closeLoading();
+          console.warn('POST request failed or invalid JSON:', text);
+          
+          // ✅ Auto Fallback: ถ้าส่ง POST ไม่ผ่าน (NO_EVENT) ให้ลองส่ง GET แทนทันที
           if (text.includes('NO_EVENT')) {
-            showError('ไม่พบข้อมูลกิจกรรม (NO_EVENT) กรุณาลองใหม่อีกครั้ง');
+            console.log('Switching to GET method...');
+            const params = new URLSearchParams();
+            params.append('action', 'updatestop'); // ใช้ 'updatestop' ตามที่ GET รองรับ
+            params.append('rowIndex', rowIndex);
+            params.append('status', newStatus);
+            params.append('type', type);
+            params.append('userId', currentUserId);
+            params.append('lat', String(lat));
+            params.append('lng', String(lng));
+
+            if (type === 'checkin') {
+              params.append('odo', odo || '');
+              if (receiverName) params.append('receiverName', receiverName);
+              if (receiverType) params.append('receiverType', receiverType);
+            } else if (type === 'checkout') {
+              if (hasPumping) params.append('hasPumping', hasPumping);
+              if (hasTransfer) params.append('hasTransfer', hasTransfer);
+            }
+
+            const url = WEB_APP_URL + '?' + params.toString();
+            const resGet = await fetch(url);
+            const textGet = await resGet.text();
+            
+            try {
+              json = JSON.parse(textGet);
+            } catch (ex) {
+              showError('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (GET Retry): ' + textGet.substring(0, 50));
+              return;
+            }
           } else {
             showError('เกิดข้อผิดพลาดจากเซิร์ฟเวอร์: ' + text.substring(0, 50));
+            return;
           }
-          return;
         }
 
         closeLoading();
