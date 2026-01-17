@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <base target="_top" />
+  <meta charset="UTF-8" />
+  <title>Driver Tracking (Supabase - Modular)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+  <!-- Offline Mode Bar -->
+  <div id="offlineBar" class="offline-bar">
+    <span>📵</span>
+    <span>ไม่มีสัญญาณอินเทอร์เน็ต</span>
+    <span id="queueBadge" class="queue-badge" style="display:none;">0 รายการรอส่ง</span>
+  </div>
+
+  <!-- Inline Flex Notification -->
+  <div id="inlineFlex" class="inline-flex hidden">
+    <div class="inline-flex-bar"></div>
+    <div class="inline-flex-title" id="inlineFlexTitle"></div>
+    <div class="inline-flex-text" id="inlineFlexMain"></div>
+    <div class="inline-flex-sub" id="inlineFlexSub"></div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <div class="title">
+            🚚 Driver Tracking
+            <span class="badge supabase">Supabase</span>
+            <span class="realtime-dot" title="Realtime Connected"></span>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button id="themeToggle" class="theme-toggle" title="สลับโหมดกลางคืน">🌙</button>
+          </div>
+        </div>
+
+        <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
+
+        <!-- GPS Status Indicator -->
+        <div id="gpsStatus" class="gps-status checking" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
+          <span class="gps-icon">📍</span>
+          <span id="gpsText">กำลังตรวจสอบ GPS...</span>
+          <div class="gps-bars">
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+          </div>
+          <span id="gpsAccuracy" class="gps-accuracy"></span>
+        </div>
+
+        <div class="field-group">
+          <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
+          <input id="keyword" type="text" placeholder="กรอกเลข Reference เช่น 2511S15403" maxlength="50" />
+          <div id="keywordError" class="error-message"></div>
+        </div>
+
+        <button id="btnSearch">
+          <span>ค้นหา / ดึงงาน</span>
+        </button>
+
+        <div id="summary" class="summary-card hidden"></div>
+        <div id="summarySkeleton" class="summary-card skeleton-summary hidden">
+          <div class="skeleton-row"><div class="skeleton skeleton-label"></div><div class="skeleton skeleton-value"></div></div>
+          <div class="skeleton-row"><div class="skeleton skeleton-label"></div><div class="skeleton skeleton-value"></div></div>
+          <div class="skeleton-row"><div class="skeleton skeleton-label"></div><div class="skeleton skeleton-value"></div></div>
+          <div class="skeleton-row" style="margin-bottom:0;"><div class="skeleton skeleton-label"></div><div class="skeleton skeleton-value"></div></div>
+        </div>
+        <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
+
+        <div id="timelineSkeleton" class="timeline-container hidden">
+          <div class="timeline-title">เส้นทางส่งสินค้า</div>
+          <div style="padding-left:20px;">
+            <div class="skeleton-timeline-item"><div class="skeleton skeleton-marker"></div><div class="skeleton-content"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-sub"></div><div class="skeleton-buttons"><div class="skeleton skeleton-btn"></div><div class="skeleton skeleton-btn"></div></div></div></div>
+            <div class="skeleton-timeline-item"><div class="skeleton skeleton-marker"></div><div class="skeleton-content"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-sub"></div><div class="skeleton-buttons"><div class="skeleton skeleton-btn"></div><div class="skeleton skeleton-btn"></div></div></div></div>
+            <div class="skeleton-timeline-item"><div class="skeleton skeleton-marker"></div><div class="skeleton-content"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-sub"></div><div class="skeleton-buttons"><div class="skeleton skeleton-btn"></div><div class="skeleton skeleton-btn"></div></div></div></div>
+          </div>
+        </div>
+
+        <div id="timelineContainer" class="timeline-container hidden">
+          <div class="timeline-title">
+            เส้นทางส่งสินค้า
+            <span style="font-size:0.8rem;color:var(--text-sub);">(เรียงตามลำดับจุดส่ง)</span>
+          </div>
+          <ul id="timeline" class="timeline"></ul>
+
+          <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+            <button id="btnCloseJob" class="btn-secondary" style="width:100%;margin-bottom:6px;">ปิดงาน (รถพร้อมใช้งาน)</button>
+            <button id="btnEndTrip" class="btn-secondary" style="width:100%;display:none;">บันทึกจบทริป (เลขไมล์ + จุดจบทริป)</button>
+          </div>
+        </div>
+
+        <div id="lastUpdatedContainer" class="last-updated hidden">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span>🔄</span>
+            <span id="lastUpdatedText">อัปเดตล่าสุด: -</span>
+          </div>
+          <span id="autoRefreshBadge" class="auto-refresh-badge">Realtime</span>
+        </div>
+
+        <div class="footer-note">
+          เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ<br>
+          <small style="color:#3ecf8e;">Powered by Supabase - Modular Version</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Script (ES Module) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

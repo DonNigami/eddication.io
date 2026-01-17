@@ -1,0 +1,749 @@
+/**
+ * Driver Tracking App - Main Application
+ * Supabase Version
+ */
+
+import { LIFF_ID, APP_CONFIG } from './config.js';
+import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64 } from './utils.js';
+import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
+import { initSupabase, SupabaseAPI } from './supabase-api.js';
+import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords } from './gps.js';
+import {
+  showLoading, closeLoading, showError, showSuccess, showInfo,
+  showInlineFlex, showInlineFlexCustom, showInputError, clearInputError,
+  showSkeleton, hideSkeleton, recordLastUpdated, hideLastUpdatedContainer,
+  ThemeManager
+} from './ui.js';
+
+// ============================================
+// GLOBAL STATE
+// ============================================
+let currentUserId = '';
+let currentReference = '';
+let currentVehicleDesc = '';
+let lastStops = [];
+let currentDrivers = [];
+let currentCheckedDrivers = [];
+let alcoholAllDone = false;
+let jobClosed = false;
+let tripEnded = false;
+
+// ============================================
+// SEARCH FUNCTION
+// ============================================
+async function search(isSilent = false) {
+  const keywordRaw = document.getElementById('keyword').value;
+  const btn = document.getElementById('btnSearch');
+
+  // Clear previous errors
+  clearInputError('keyword', 'keywordError');
+
+  // Validate input
+  const validation = validateInput(keywordRaw, 'reference');
+  if (!validation.valid) {
+    showInputError('keyword', 'keywordError', validation.message);
+    return;
+  }
+
+  const keyword = validation.value || sanitizeInput(keywordRaw);
+
+  if (!keyword) {
+    showInputError('keyword', 'keywordError', 'กรุณากรอกเลข Reference');
+    return;
+  }
+
+  btn.disabled = true;
+
+  if (!isSilent) {
+    showSkeleton();
+  }
+
+  try {
+    const result = await withRetry(
+      () => SupabaseAPI.search(keyword, currentUserId),
+      {
+        ...APP_CONFIG.RETRY,
+        onRetry: (attempt, waitTime) => {
+          console.log(`🔄 Retry ${attempt}, waiting ${waitTime}ms...`);
+        }
+      }
+    );
+
+    if (!isSilent) hideSkeleton();
+
+    if (!result.success) {
+      clearResult();
+      showError(result.message);
+      return;
+    }
+
+    const d = result.data;
+    lastStops = d.stops || [];
+    currentReference = d.referenceNo || keyword;
+    setCurrentReference(currentReference);
+    localStorage.setItem(APP_CONFIG.LAST_REFERENCE_KEY, currentReference);
+    currentVehicleDesc = d.vehicleDesc || '';
+    currentDrivers = d.alcohol?.drivers || [];
+    currentCheckedDrivers = [...new Set(d.alcohol?.checkedDrivers || [])];
+    alcoholAllDone = currentDrivers.length > 0 && currentDrivers.every(n => currentCheckedDrivers.includes(n));
+    jobClosed = !!d.jobClosed;
+    tripEnded = !!d.tripEnded;
+
+    renderSummary(d);
+    renderAlcoholSection();
+    renderTimeline(lastStops);
+    recordLastUpdated();
+
+    // Subscribe to realtime updates
+    SupabaseAPI.subscribeToJob(currentReference, (payload) => {
+      console.log('📡 Realtime update, refreshing...');
+      search(true);
+    });
+
+  } catch (err) {
+    console.error(err);
+    if (!isSilent) hideSkeleton();
+    showError('เกิดข้อผิดพลาดในการเชื่อมต่อกับ Supabase (ลองใหม่แล้ว 3 ครั้ง)');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================
+// CLEAR RESULT
+// ============================================
+function clearResult() {
+  document.getElementById('summary').classList.add('hidden');
+  document.getElementById('timelineContainer').classList.add('hidden');
+  document.getElementById('summary').innerHTML = '';
+  document.getElementById('timeline').innerHTML = '';
+  document.getElementById('closeJobContainer').classList.add('hidden');
+  document.getElementById('alcoholContainer').classList.add('hidden');
+  hideSkeleton();
+  lastStops = [];
+  currentDrivers = [];
+  currentCheckedDrivers = [];
+  alcoholAllDone = false;
+  jobClosed = false;
+  tripEnded = false;
+  hideLastUpdatedContainer();
+
+  SupabaseAPI.unsubscribe();
+}
+
+// ============================================
+// RENDER FUNCTIONS
+// ============================================
+function renderSummary(d) {
+  const summaryEl = document.getElementById('summary');
+  const stops = d.stops || [];
+  const totalQtyAll = stops.reduce((acc, s) => acc + (s.totalQty || 0), 0);
+
+  summaryEl.innerHTML = `
+    <div class="summary-row"><span class="summary-label">Reference</span><span class="summary-value">${escapeHtml(d.referenceNo)}</span></div>
+    <div class="summary-row"><span class="summary-label">ชื่อรถ</span><span class="summary-value">${escapeHtml(d.vehicleDesc) || '-'}</span></div>
+    <div class="summary-row"><span class="summary-label">จำนวนจุดส่ง</span><span class="summary-value">${stops.length} จุด</span></div>
+    <div class="summary-row"><span class="summary-label">ปริมาณรวม</span><span class="summary-value">${totalQtyAll || 0}</span></div>
+  `;
+  summaryEl.classList.remove('hidden');
+}
+
+function renderAlcoholSection() {
+  const container = document.getElementById('alcoholContainer');
+  if (!currentDrivers || currentDrivers.length === 0) {
+    container.classList.add('hidden');
+    return;
+  }
+
+  let html = `<div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>`;
+
+  currentDrivers.forEach(name => {
+    const checked = currentCheckedDrivers.includes(name);
+    const displayName = escapeHtml(name);
+    const jsName = escapeHtml(name.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+
+    html += `<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
+      <span>${displayName}</span>
+      ${checked
+        ? '<button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>'
+        : `<button class="btn-small btn-outline" onclick="window.DriverApp.doAlcoholCheck('${jsName}')">บันทึกผลแอลกอฮอล์</button>`
+      }
+    </div>`;
+  });
+
+  container.innerHTML = html;
+  container.classList.remove('hidden');
+}
+
+function renderTimeline(stops) {
+  const container = document.getElementById('timelineContainer');
+  const ul = document.getElementById('timeline');
+  const closeJobContainer = document.getElementById('closeJobContainer');
+  const btnCloseJob = document.getElementById('btnCloseJob');
+  const btnEndTrip = document.getElementById('btnEndTrip');
+
+  ul.innerHTML = '';
+  closeJobContainer.classList.add('hidden');
+  if (btnCloseJob) { btnCloseJob.style.display = 'none'; btnCloseJob.disabled = true; }
+  if (btnEndTrip) { btnEndTrip.style.display = 'none'; btnEndTrip.disabled = true; }
+
+  if (!stops || stops.length === 0) {
+    container.classList.add('hidden');
+    return;
+  }
+
+  let allCheckout = true;
+
+  stops.forEach(stop => {
+    const hasCheckIn = !!stop.checkInTime;
+    const hasCheckOut = !!stop.checkOutTime;
+    const isOrigin = !!stop.isOriginStop;
+
+    if (!hasCheckOut) allCheckout = false;
+
+    let btnHtml = '';
+    if (isOrigin) {
+      if (!hasCheckIn) {
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq})">Check-in</button>`;
+      } else if (!hasCheckOut) {
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq})">Check-out</button>`;
+      }
+    } else {
+      if (!hasCheckIn) {
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq})">Check-in</button>`;
+      } else if (!hasCheckOut) {
+        if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel(${stop.rowIndex}, ${stop.seq})">ลงน้ำมัน</button>`;
+        if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload(${stop.rowIndex}, ${stop.seq})">ลงเสร็จ</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq})">Check-out</button>`;
+      }
+    }
+
+    if (stop.destLat && stop.destLng) {
+      btnHtml += `<button class="btn-nav" onclick="window.DriverApp.navigateToStop(${stop.rowIndex})">🧭</button>`;
+    }
+
+    const li = document.createElement('li');
+    li.className = 'timeline-item';
+    li.innerHTML = `
+      <div class="timeline-marker"></div>
+      <div class="timeline-content">
+        <div class="timeline-header-row">
+          <span class="timeline-stop-label">จุดที่ ${stop.seq}</span>
+          <span class="timeline-status">${escapeHtml(stop.status) || '-'}</span>
+        </div>
+        <div class="timeline-sub">${escapeHtml(stop.shipToName) || '-'}</div>
+        ${stop.materials ? `<div class="materials-text">${escapeHtml(stop.materials)}</div>` : ''}
+        <div class="action-row">${btnHtml}</div>
+      </div>
+    `;
+    ul.appendChild(li);
+  });
+
+  container.classList.remove('hidden');
+
+  // Show close/end buttons
+  if (allCheckout && !jobClosed && !tripEnded) {
+    closeJobContainer.classList.remove('hidden');
+    if (btnCloseJob) { btnCloseJob.style.display = 'block'; btnCloseJob.disabled = false; }
+  } else if (jobClosed && !tripEnded) {
+    closeJobContainer.classList.remove('hidden');
+    if (btnEndTrip) { btnEndTrip.style.display = 'block'; btnEndTrip.disabled = false; }
+  }
+}
+
+// ============================================
+// ACTION FUNCTIONS
+// ============================================
+async function startCheckin(rowIndex, seq) {
+  const stop = lastStops.find(s => s.rowIndex === rowIndex);
+  const isOrigin = stop && stop.isOriginStop;
+
+  if (isOrigin) {
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq);
+  } else {
+    const { value: formValues } = await Swal.fire({
+      icon: 'question',
+      title: 'Check-in พร้อมบันทึกข้อมูล',
+      html: `
+        <div style="text-align:left;">
+          <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ</label>
+          <input id="swalOdo" type="number" class="swal2-input" placeholder="เลขไมล์">
+          <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน</label>
+          <input id="swalReceiverName" type="text" class="swal2-input" placeholder="ชื่อผู้รับ">
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Check-in',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#1abc9c',
+      preConfirm: () => ({
+        odo: document.getElementById('swalOdo').value,
+        receiverName: document.getElementById('swalReceiverName').value
+      })
+    });
+
+    if (!formValues) return;
+
+    // Validate odo if provided
+    if (formValues.odo) {
+      const odoValidation = validateInput(formValues.odo, 'odo');
+      if (!odoValidation.valid) {
+        showError(odoValidation.message);
+        return;
+      }
+    }
+
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, formValues.odo, formValues.receiverName);
+  }
+}
+
+async function startCheckout(rowIndex, seq) {
+  const stop = lastStops.find(s => s.rowIndex === rowIndex);
+  const isOrigin = stop && stop.isOriginStop;
+
+  if (isOrigin) {
+    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq);
+  } else {
+    const { value: formValues } = await Swal.fire({
+      icon: 'question',
+      title: 'Check-out พร้อมบันทึกข้อมูล',
+      html: `
+        <div style="text-align:left;">
+          <label><input type="checkbox" id="swalPumping"> มีปั่นน้ำมัน</label><br>
+          <label><input type="checkbox" id="swalTransfer"> มีโยกน้ำมัน</label>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Check-out',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#1abc9c',
+      preConfirm: () => ({
+        hasPumping: document.getElementById('swalPumping').checked ? 'yes' : 'no',
+        hasTransfer: document.getElementById('swalTransfer').checked ? 'yes' : 'no'
+      })
+    });
+
+    if (!formValues) return;
+    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, null, null, null, formValues.hasPumping, formValues.hasTransfer);
+  }
+}
+
+async function doFuel(rowIndex, seq) {
+  await updateStopStatus(rowIndex, 'FUELING', 'fuel', seq);
+}
+
+async function doUnload(rowIndex, seq) {
+  await updateStopStatus(rowIndex, 'UNLOAD_DONE', 'unload', seq);
+}
+
+async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType, hasPumping, hasTransfer) {
+  if (!currentUserId) {
+    showError('ไม่พบข้อมูลผู้ใช้');
+    return;
+  }
+
+  try {
+    showLoading('กำลังอ่านพิกัด GPS...');
+    const pos = await getCurrentPositionAsync();
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+
+    const stopData = {
+      rowIndex, status: newStatus, type, userId: currentUserId,
+      lat, lng, odo: odo ? sanitizeInput(odo) : null,
+      receiverName: receiverName ? sanitizeInput(receiverName) : null,
+      receiverType, hasPumping, hasTransfer
+    };
+
+    showLoading(isOnline() ? 'กำลังอัปเดตสถานะ...' : 'กำลังบันทึกข้อมูล...');
+
+    const result = await executeOrQueue(
+      'updateStop',
+      stopData,
+      () => withRetry(
+        () => SupabaseAPI.updateStop(stopData),
+        APP_CONFIG.RETRY
+      )
+    );
+
+    closeLoading();
+
+    if (!result.success) {
+      showError(result.message);
+      return;
+    }
+
+    // Handle queued response
+    if (result.queued) {
+      const stop = lastStops.find(s => s.rowIndex === rowIndex);
+      showInlineFlexCustom('queued', 'บันทึกไว้แล้ว', `${stop?.shipToName || 'จุดที่ ' + seq} - จะส่งเมื่อออนไลน์`);
+      await showSuccess('บันทึกไว้แล้ว', 'ข้อมูลจะถูกส่งโดยอัตโนมัติเมื่อมีสัญญาณ');
+      return;
+    }
+
+    if (result.stop) {
+      showInlineFlex(type, result.stop);
+    }
+
+    await showSuccess('อัปเดตสำเร็จ', result.message);
+    if (currentReference) search(true);
+
+  } catch (err) {
+    closeLoading();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+async function doAlcoholCheck(driverName) {
+  const { value: formValues } = await Swal.fire({
+    title: 'บันทึกผลแอลกอฮอล์',
+    html: `
+      <div style="text-align:left;">
+        <label>ชื่อคนขับ</label>
+        <input id="swalDriver" type="text" class="swal2-input" value="${escapeHtml(driverName)}" readonly>
+        <label>ค่าแอลกอฮอล์</label>
+        <input id="swalAlcohol" type="number" step="0.001" class="swal2-input" placeholder="0.000">
+        <label>รูปภาพหลักฐาน</label>
+        <input id="swalImage" type="file" accept="image/*" capture="environment" class="swal2-input">
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึก',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#1abc9c',
+    preConfirm: () => {
+      const val = document.getElementById('swalAlcohol').value;
+      const file = document.getElementById('swalImage').files[0];
+      if (!val) { Swal.showValidationMessage('กรุณากรอกค่าแอลกอฮอล์'); return false; }
+      if (!file) { Swal.showValidationMessage('กรุณาถ่ายรูปหลักฐาน'); return false; }
+      return { alcoholValue: val, file };
+    }
+  });
+
+  if (!formValues) return;
+
+  try {
+    showLoading('กำลังดึงพิกัด...');
+    const pos = await getCurrentPositionAsync();
+
+    showLoading('กำลังบันทึก...');
+    const base64 = await fileToBase64(formValues.file);
+
+    // Validate alcohol value
+    const alcoholValidation = validateInput(formValues.alcoholValue, 'alcohol');
+    if (!alcoholValidation.valid) {
+      closeLoading();
+      showError(alcoholValidation.message);
+      return;
+    }
+
+    const alcoholData = {
+      reference: currentReference,
+      driverName: sanitizeInput(driverName),
+      userId: currentUserId,
+      alcoholValue: alcoholValidation.value,
+      imageBase64: base64,
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
+    };
+
+    const result = await executeOrQueue(
+      'uploadAlcohol',
+      alcoholData,
+      () => withRetry(
+        () => SupabaseAPI.uploadAlcohol(alcoholData),
+        APP_CONFIG.RETRY
+      )
+    );
+
+    closeLoading();
+
+    if (!result.success) {
+      showError(result.message);
+      return;
+    }
+
+    // Handle queued response
+    if (result.queued) {
+      showInlineFlexCustom('queued', 'บันทึกไว้แล้ว', `${driverName} - จะส่งเมื่อออนไลน์`);
+      await showSuccess('บันทึกไว้แล้ว', 'ข้อมูลจะถูกส่งโดยอัตโนมัติเมื่อมีสัญญาณ');
+      return;
+    }
+
+    currentCheckedDrivers = result.checkedDrivers || [];
+    renderAlcoholSection();
+    showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อย');
+
+  } catch (err) {
+    closeLoading();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+async function closeJob() {
+  if (!currentReference) {
+    showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+    return;
+  }
+
+  const { value: formValues } = await Swal.fire({
+    icon: 'question',
+    title: 'ปิดงาน',
+    html: `
+      <div style="text-align:left;">
+        <label><input type="radio" name="vehicleStatus" value="ready" checked> พร้อมรับงาน</label><br>
+        <label><input type="radio" name="vehicleStatus" value="maintenance"> เข้าซ่อมบำรุง</label><br><br>
+        <label><input type="checkbox" id="hillFee"> มีค่าขึ้นเขา</label><br>
+        <label><input type="checkbox" id="bkkFee"> มีค่าเข้า กทม</label><br>
+        <label><input type="checkbox" id="repairFee"> นำรถเข้าซ่อม</label>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'ยืนยันปิดงาน',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#1abc9c',
+    preConfirm: () => ({
+      vehicleStatus: document.querySelector('input[name="vehicleStatus"]:checked').value,
+      hillFee: document.getElementById('hillFee').checked ? 'yes' : 'no',
+      bkkFee: document.getElementById('bkkFee').checked ? 'yes' : 'no',
+      repairFee: document.getElementById('repairFee').checked ? 'yes' : 'no'
+    })
+  });
+
+  if (!formValues) return;
+
+  try {
+    showLoading('กำลังปิดงาน...');
+
+    const closeJobData = {
+      reference: currentReference,
+      userId: currentUserId,
+      vehicleStatus: formValues.vehicleStatus,
+      vehicleDesc: currentVehicleDesc,
+      hillFee: formValues.hillFee,
+      bkkFee: formValues.bkkFee,
+      repairFee: formValues.repairFee
+    };
+
+    const result = await executeOrQueue(
+      'closeJob',
+      closeJobData,
+      () => withRetry(
+        () => SupabaseAPI.closeJob(closeJobData),
+        APP_CONFIG.RETRY
+      )
+    );
+
+    closeLoading();
+
+    if (!result.success) {
+      showError(result.message);
+      return;
+    }
+
+    // Handle queued response
+    if (result.queued) {
+      showInlineFlexCustom('queued', 'บันทึกไว้แล้ว', `ปิดงาน ${currentReference} - จะส่งเมื่อออนไลน์`);
+      await showSuccess('บันทึกไว้แล้ว', 'ข้อมูลจะถูกส่งโดยอัตโนมัติเมื่อมีสัญญาณ');
+      return;
+    }
+
+    jobClosed = true;
+    await showSuccess('ปิดงานสำเร็จ', 'บันทึกการปิดงานเรียบร้อย');
+    if (currentReference) search(true);
+
+  } catch (err) {
+    closeLoading();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+async function openEndTripDialog() {
+  if (!currentReference) {
+    showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
+    return;
+  }
+
+  const { value: formValues } = await Swal.fire({
+    title: 'สรุปจบทริป',
+    html: `
+      <div style="text-align:left;">
+        <label>เลขไมล์จบทริป</label>
+        <input id="swalEndOdo" type="number" class="swal2-input" placeholder="เลขไมล์">
+        <label>จุดจบทริป</label>
+        <input id="swalEndPoint" type="text" class="swal2-input" placeholder="ชื่อสถานที่">
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'บันทึกจบทริป',
+    cancelButtonText: 'ยกเลิก',
+    confirmButtonColor: '#1abc9c',
+    preConfirm: () => ({
+      endOdo: document.getElementById('swalEndOdo').value,
+      endPointName: document.getElementById('swalEndPoint').value
+    })
+  });
+
+  if (!formValues) return;
+
+  try {
+    showLoading('กำลังดึงพิกัด...');
+    const pos = await getCurrentPositionAsync();
+
+    // Validate odo if provided
+    if (formValues.endOdo) {
+      const odoValidation = validateInput(formValues.endOdo, 'odo');
+      if (!odoValidation.valid) {
+        showError(odoValidation.message);
+        return;
+      }
+    }
+
+    showLoading('กำลังบันทึกจบทริป...');
+
+    const endTripData = {
+      reference: currentReference,
+      userId: currentUserId,
+      endOdo: formValues.endOdo ? sanitizeInput(formValues.endOdo) : null,
+      endPointName: sanitizeInput(formValues.endPointName),
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude
+    };
+
+    const result = await executeOrQueue(
+      'endTrip',
+      endTripData,
+      () => withRetry(
+        () => SupabaseAPI.endTrip(endTripData),
+        APP_CONFIG.RETRY
+      )
+    );
+
+    closeLoading();
+
+    if (!result.success) {
+      showError(result.message);
+      return;
+    }
+
+    // Handle queued response
+    if (result.queued) {
+      showInlineFlexCustom('queued', 'บันทึกไว้แล้ว', `จบทริป ${currentReference} - จะส่งเมื่อออนไลน์`);
+      await showSuccess('บันทึกไว้แล้ว', 'ข้อมูลจะถูกส่งโดยอัตโนมัติเมื่อมีสัญญาณ');
+      const closeJobContainer = document.getElementById('closeJobContainer');
+      if (closeJobContainer) closeJobContainer.classList.add('hidden');
+      return;
+    }
+
+    tripEnded = true;
+    await showSuccess('จบทริปสำเร็จ', 'บันทึกข้อมูลจบทริปเรียบร้อย');
+
+    const closeJobContainer = document.getElementById('closeJobContainer');
+    if (closeJobContainer) closeJobContainer.classList.add('hidden');
+
+  } catch (err) {
+    closeLoading();
+    showError('เกิดข้อผิดพลาด: ' + err.message);
+  }
+}
+
+function navigateToStop(rowIndex) {
+  const stop = lastStops.find(s => s.rowIndex === rowIndex);
+  if (!stop || !stop.destLat || !stop.destLng) {
+    showInfo('ไม่พบพิกัด', 'ปลายทางนี้ยังไม่มีพิกัดในระบบ');
+    return;
+  }
+  navigateToCoords(stop.destLat, stop.destLng);
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+async function initApp() {
+  // Initialize Supabase
+  initSupabase();
+
+  // Load theme
+  ThemeManager.load();
+
+  // Check GPS
+  checkGpsStatus();
+
+  // Initialize offline queue
+  OfflineQueue.load();
+  initOfflineQueue(SupabaseAPI, search, () => currentReference);
+
+  // Network status listeners
+  window.addEventListener('online', () => {
+    document.getElementById('offlineBar').classList.remove('show');
+    showInlineFlexCustom('success', 'กลับมาออนไลน์แล้ว', 'กำลังซิงค์ข้อมูลที่ค้างอยู่...');
+
+    setTimeout(() => {
+      OfflineQueue.sync();
+    }, 1000);
+  });
+
+  window.addEventListener('offline', () => {
+    document.getElementById('offlineBar').classList.add('show');
+    showInlineFlexCustom('offline', 'ไม่มีสัญญาณอินเทอร์เน็ต', 'ข้อมูลจะถูกบันทึกไว้และส่งเมื่อออนไลน์');
+  });
+
+  // Initialize LIFF
+  try {
+    await liff.init({ liffId: LIFF_ID });
+
+    if (liff.isLoggedIn()) {
+      const profile = await liff.getProfile();
+      currentUserId = profile.userId;
+      document.getElementById('status').textContent = 'สวัสดี ' + profile.displayName;
+    } else {
+      currentUserId = 'test_user_' + Date.now();
+      document.getElementById('status').textContent = 'กำลังใช้งานแบบทดสอบ';
+    }
+  } catch (err) {
+    console.error('LIFF init error:', err);
+    currentUserId = 'fallback_user_' + Date.now();
+    document.getElementById('status').textContent = 'ไม่สามารถเชื่อมต่อ LINE ได้';
+  }
+
+  // Load last reference
+  const lastRef = localStorage.getItem(APP_CONFIG.LAST_REFERENCE_KEY);
+  if (lastRef) {
+    document.getElementById('keyword').value = lastRef;
+  }
+
+  // Bind events
+  document.getElementById('btnSearch').addEventListener('click', () => search());
+  document.getElementById('keyword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') search();
+  });
+  document.getElementById('btnCloseJob').addEventListener('click', closeJob);
+  document.getElementById('btnEndTrip').addEventListener('click', openEndTripDialog);
+  document.getElementById('themeToggle').addEventListener('click', () => ThemeManager.toggle());
+  document.getElementById('gpsStatus').addEventListener('click', checkGpsStatus);
+
+  // Sync queue if online and has pending items
+  if (isOnline() && OfflineQueue.getCount() > 0) {
+    setTimeout(() => OfflineQueue.sync(), 2000);
+  }
+}
+
+// ============================================
+// EXPORT FOR GLOBAL ACCESS
+// ============================================
+window.DriverApp = {
+  search,
+  startCheckin,
+  startCheckout,
+  doFuel,
+  doUnload,
+  doAlcoholCheck,
+  closeJob,
+  openEndTripDialog,
+  navigateToStop,
+  toggleTheme: () => ThemeManager.toggle(),
+  checkGps: checkGpsStatus
+};
+
+// Start the app
+initApp();

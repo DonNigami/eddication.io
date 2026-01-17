@@ -1,0 +1,15 @@
+{
+  "name": "driverconnect-migration",
+  "version": "1.0.0",
+  "description": "Migration scripts for DriverConnect: Google Sheets to Supabase",
+  "main": "import-supabase.js",
+  "scripts": {
+    "import": "node import-supabase.js",
+    "test-connection": "node -e \"const {createClient} = require('@supabase/supabase-js'); console.log('SDK loaded OK');\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
