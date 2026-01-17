@@ -53,61 +53,66 @@ export const SupabaseAPI = {
     console.log('🔍 Supabase: Searching for', reference);
 
     try {
-      // Get job data
-      const { data: jobData, error: jobError } = await supabase
-        .from('jobdata')
+      // Get job from driver_jobs table
+      const { data: job, error: jobError } = await supabase
+        .from('driver_jobs')
         .select('*')
         .eq('reference', reference)
-        .order('seq', { ascending: true });
+        .single();
 
-      if (jobError) throw jobError;
-      if (!jobData || jobData.length === 0) {
-        return { success: false, message: 'ไม่พบข้อมูลงาน' };
+      if (jobError || !job) {
+        return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
       }
 
-      // Get alcohol checks
+      // Get stops from driver_stops table
+      const { data: stopsData, error: stopsError } = await supabase
+        .from('driver_stops')
+        .select('*')
+        .eq('reference', reference)
+        .order('stop_number', { ascending: true });
+
+      // Get alcohol checks from driver_alcohol_checks table
       const { data: alcoholData } = await supabase
-        .from('alcohol_checks')
+        .from('driver_alcohol_checks')
         .select('driver_name')
         .eq('reference', reference);
 
-      const checkedDrivers = alcoholData ? alcoholData.map(a => a.driver_name) : [];
+      const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
 
-      // Transform data
-      const stops = jobData.map(row => ({
+      // Transform stops data to match existing format
+      const stops = (stopsData || []).map(row => ({
         rowIndex: row.id,
-        seq: row.seq,
-        shipToCode: row.ship_to_code,
-        shipToName: row.ship_to_name,
-        status: row.status,
+        seq: row.stop_number,
+        shipToCode: row.stop_number.toString(),
+        shipToName: row.stop_name || `จุดส่งที่ ${row.stop_number}`,
+        status: row.status || 'pending',
         checkInTime: row.checkin_time,
         checkOutTime: row.checkout_time,
-        fuelingTime: row.fueling_time,
-        unloadDoneTime: row.unload_done_time,
-        isOriginStop: row.is_origin_stop,
-        destLat: row.dest_lat,
-        destLng: row.dest_lng,
-        totalQty: row.total_qty,
-        materials: row.materials
+        fuelingTime: row.fuel_time,
+        unloadDoneTime: row.unload_time,
+        isOriginStop: row.stop_number === 1,
+        destLat: row.checkin_location?.lat || null,
+        destLng: row.checkin_location?.lng || null,
+        totalQty: null,
+        materials: row.address
       }));
 
-      const firstRow = jobData[0];
-      const drivers = firstRow.drivers ? firstRow.drivers.split(',').map(d => d.trim()) : [];
+      const drivers = job.drivers ? job.drivers.split(',').map(d => d.trim()) : [];
 
       return {
         success: true,
         data: {
           referenceNo: reference,
-          vehicleDesc: firstRow.vehicle_desc || '',
-          shipmentNos: firstRow.shipment_no ? [firstRow.shipment_no] : [],
+          vehicleDesc: job.vehicle_desc || '',
+          shipmentNos: [],
           totalStops: stops.length,
           stops: stops,
           alcohol: {
             drivers: drivers,
             checkedDrivers: checkedDrivers
           },
-          jobClosed: firstRow.job_closed || false,
-          tripEnded: firstRow.trip_ended || false
+          jobClosed: job.status === 'closed',
+          tripEnded: job.status === 'completed'
         }
       };
     } catch (err) {
@@ -125,31 +130,35 @@ export const SupabaseAPI = {
     try {
       const updates = {
         status: status,
-        updated_at: new Date().toISOString(),
-        updated_by: userId
+        updated_at: new Date().toISOString()
       };
+
+      const location = { lat, lng };
 
       if (type === 'checkin') {
         updates.checkin_time = new Date().toISOString();
-        updates.checkin_lat = lat;
-        updates.checkin_lng = lng;
-        if (odo) updates.odo_start = odo;
-        if (receiverName) updates.receiver_name = receiverName;
-        if (receiverType) updates.receiver_type = receiverType;
+        updates.checkin_location = location;
+        updates.checkin_by = userId;
+        if (receiverName) updates.unload_receiver = receiverName;
       } else if (type === 'checkout') {
         updates.checkout_time = new Date().toISOString();
-        updates.checkout_lat = lat;
-        updates.checkout_lng = lng;
-        if (hasPumping) updates.has_pumping = hasPumping === 'yes';
-        if (hasTransfer) updates.has_transfer = hasTransfer === 'yes';
+        updates.checkout_location = location;
+        updates.checkout_by = userId;
+        if (odo) updates.checkout_odo = parseInt(odo);
       } else if (type === 'fuel') {
-        updates.fueling_time = new Date().toISOString();
+        updates.fuel_time = new Date().toISOString();
+        updates.fuel_location = location;
+        updates.fuel_by = userId;
+        if (odo) updates.fuel_odo = parseInt(odo);
       } else if (type === 'unload') {
-        updates.unload_done_time = new Date().toISOString();
+        updates.unload_time = new Date().toISOString();
+        updates.unload_location = location;
+        updates.unload_by = userId;
+        if (receiverName) updates.unload_receiver = receiverName;
       }
 
       const { data, error } = await supabase
-        .from('jobdata')
+        .from('driver_stops')
         .update(updates)
         .eq('id', rowIndex)
         .select()
@@ -157,12 +166,24 @@ export const SupabaseAPI = {
 
       if (error) throw error;
 
+      // Log the action
+      await supabase
+        .from('driver_logs')
+        .insert({
+          job_id: data.job_id,
+          reference: data.reference,
+          action: type,
+          details: updates,
+          location: location,
+          user_id: userId
+        });
+
       return {
         success: true,
         message: getSuccessMessage(type),
         stop: {
           rowIndex: data.id,
-          seq: data.seq,
+          seq: data.stop_number,
           status: data.status,
           checkInTime: data.checkin_time,
           checkOutTime: data.checkout_time
@@ -181,20 +202,30 @@ export const SupabaseAPI = {
     console.log('🍺 Supabase: Uploading alcohol check for', driverName);
 
     try {
-      // Upload image to Storage
+      // Get job_id first
+      const { data: job } = await supabase
+        .from('driver_jobs')
+        .select('id')
+        .eq('reference', reference)
+        .single();
+
+      if (!job) throw new Error('ไม่พบงาน');
+
+      // Upload image to Storage (alcohol-checks bucket)
       let imageUrl = null;
       if (imageBase64) {
-        const fileName = `alcohol/${Date.now()}_${userId}.jpg`;
+        const fileName = `${reference}_${driverName}_${Date.now()}.jpg`;
         const base64Data = imageBase64.split(',')[1] || imageBase64;
+        
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('images')
+          .from('alcohol-checks')
           .upload(fileName, decodeBase64(base64Data), {
             contentType: 'image/jpeg'
           });
 
         if (!uploadError && uploadData) {
           const { data: urlData } = supabase.storage
-            .from('images')
+            .from('alcohol-checks')
             .getPublicUrl(fileName);
           imageUrl = urlData.publicUrl;
         }
@@ -202,24 +233,36 @@ export const SupabaseAPI = {
 
       // Insert alcohol check record
       const { data, error } = await supabase
-        .from('alcohol_checks')
+        .from('driver_alcohol_checks')
         .insert({
+          job_id: job.id,
           reference: reference,
           driver_name: driverName,
           alcohol_value: parseFloat(alcoholValue),
           image_url: imageUrl,
-          lat: lat,
-          lng: lng,
-          user_id: userId,
-          created_at: new Date().toISOString()
+          location: { lat, lng },
+          checked_by: userId,
+          checked_at: new Date().toISOString()
         })
         .select();
 
       if (error) throw error;
 
+      // Log action
+      await supabase
+        .from('driver_logs')
+        .insert({
+          job_id: job.id,
+          reference: reference,
+          action: 'alcohol',
+          details: { driverName, alcoholValue, imageUrl },
+          location: { lat, lng },
+          user_id: userId
+        });
+
       // Get updated checked drivers
       const { data: allChecks } = await supabase
-        .from('alcohol_checks')
+        .from('driver_alcohol_checks')
         .select('driver_name')
         .eq('reference', reference);
 
@@ -242,34 +285,38 @@ export const SupabaseAPI = {
     console.log('📋 Supabase: Closing job', reference);
 
     try {
+      const totalFees = (
+        (hillFee === 'yes' ? 500 : 0) + 
+        (bkkFee === 'yes' ? 300 : 0) + 
+        (repairFee === 'yes' ? 1000 : 0)
+      );
+
       // Update job status
-      const { error: updateError } = await supabase
-        .from('jobdata')
+      const { data, error } = await supabase
+        .from('driver_jobs')
         .update({
-          job_closed: true,
+          status: 'closed',
           vehicle_status: vehicleStatus,
-          closed_at: new Date().toISOString(),
-          closed_by: userId
+          fees: totalFees,
+          updated_at: new Date().toISOString(),
+          updated_by: userId
         })
-        .eq('reference', reference);
+        .eq('reference', reference)
+        .select()
+        .single();
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      // Insert close job record
-      const { error: insertError } = await supabase
-        .from('close_job_data')
+      // Log action
+      await supabase
+        .from('driver_logs')
         .insert({
+          job_id: data.id,
           reference: reference,
-          user_id: userId,
-          vehicle_desc: vehicleDesc,
-          vehicle_status: vehicleStatus,
-          hill_fee: hillFee === 'yes',
-          bkk_fee: bkkFee === 'yes',
-          repair_fee: repairFee === 'yes',
-          created_at: new Date().toISOString()
+          action: 'close',
+          details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee },
+          user_id: userId
         });
-
-      if (insertError) console.warn('Warning: Could not insert close_job_data', insertError);
 
       return { success: true, message: 'ปิดงานสำเร็จ' };
     } catch (err) {
@@ -285,16 +332,39 @@ export const SupabaseAPI = {
     console.log('🏁 Supabase: Ending trip', reference);
 
     try {
-      const { error } = await supabase
-        .from('jobdata')
+      const { data, error } = await supabase
+        .from('driver_jobs')
         .update({
-          trip_ended: true,
+          status: 'completed',
           end_odo: endOdo ? parseInt(endOdo) : null,
-          end_point_name: endPointName,
-          end_lat: lat,
-          end_lng: lng,
-          ended_at: new Date().toISOString(),
-          ended_by: userId
+          end_location: { lat, lng },
+          updated_at: new Date().toISOString(),
+          updated_by: userId
+        })
+        .eq('reference', reference)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Log action
+      await supabase
+        .from('driver_logs')
+        .insert({
+          job_id: data.id,
+          reference: reference,
+          action: 'endtrip',
+          details: { endOdo, endPointName, location: { lat, lng } },
+          location: { lat, lng },
+          user_id: userId
+        });
+
+      return { success: true, message: 'บันทึกจบทริปสำเร็จ' };
+    } catch (err) {
+      console.error('❌ Supabase endTrip error:', err);
+      return { success: false, message: 'บันทึกจบทริปไม่สำเร็จ: ' + err.message };
+    }
+  },
         })
         .eq('reference', reference);
 
