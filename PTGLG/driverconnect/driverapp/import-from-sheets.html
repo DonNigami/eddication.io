@@ -414,6 +414,42 @@
       return result;
     }
 
+    // Convert date from DD/MM/YYYY to YYYY-MM-DD
+    function convertDateFormat(dateStr) {
+      if (!dateStr || dateStr.trim() === '') return null;
+      
+      dateStr = dateStr.trim();
+      
+      // If already in YYYY-MM-DD format, return as is
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      
+      // Convert DD/MM/YYYY to YYYY-MM-DD
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      // Convert DD.MM.YYYY to YYYY-MM-DD
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('.');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      // Try parsing as date object
+      try {
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        console.warn('Failed to parse date:', dateStr);
+      }
+      
+      return null;
+    }
+
     // Map row to database format
     function mapRowToDatabase(row) {
       const mapped = {
@@ -428,14 +464,17 @@
           let value = row[sheetCol];
 
           // Type conversions
-          if (dbCol === 'distance') {
+          if (dbCol === 'distance' || dbCol === 'delivery_qty') {
             value = parseFloat(value) || null;
           } else if (dbCol.includes('_date')) {
-            // Convert date format if needed
-            value = value || null;
+            // Convert date format from DD/MM/YYYY to YYYY-MM-DD
+            value = convertDateFormat(value);
           } else if (dbCol.includes('_time')) {
             // Convert time format if needed
-            value = value || null;
+            value = value.trim() || null;
+          } else if (dbCol === 'canceled') {
+            // Convert to boolean
+            value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'x';
           }
 
           mapped[dbCol] = value;
@@ -445,6 +484,11 @@
       // Use Shipment No. as reference if reference is not provided
       if (!mapped.reference && mapped.shipment_no) {
         mapped.reference = mapped.shipment_no;
+      }
+
+      // Set drivers field from driver_name if not exists
+      if (!mapped.drivers && mapped.driver_name) {
+        mapped.drivers = mapped.driver_name;
       }
 
       return mapped;

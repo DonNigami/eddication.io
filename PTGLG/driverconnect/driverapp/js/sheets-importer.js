@@ -123,6 +123,44 @@ function parseCSVLine(line) {
 }
 
 /**
+ * Convert date from DD/MM/YYYY to YYYY-MM-DD (PostgreSQL format)
+ */
+function convertDateFormat(dateStr) {
+  if (!dateStr || dateStr.trim() === '') return null;
+  
+  dateStr = dateStr.trim();
+  
+  // If already in YYYY-MM-DD format, return as is
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Convert DD/MM/YYYY to YYYY-MM-DD
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split('/');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  
+  // Convert DD.MM.YYYY to YYYY-MM-DD
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+    const [day, month, year] = dateStr.split('.');
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  
+  // Try parsing as date object
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+  } catch (e) {
+    console.warn('Failed to parse date:', dateStr);
+  }
+  
+  return null;
+}
+
+/**
  * Map Google Sheets row to driver_jobs database format
  */
 export function mapRowToDriverJob(row) {
@@ -141,8 +179,8 @@ export function mapRowToDriverJob(row) {
       if (dbCol === 'distance' || dbCol === 'delivery_qty') {
         value = parseFloat(value) || null;
       } else if (dbCol.includes('_date') && value) {
-        // Keep date as string for now (database will parse)
-        value = value.trim();
+        // Convert date format from DD/MM/YYYY to YYYY-MM-DD
+        value = convertDateFormat(value);
       } else if (dbCol.includes('_time') && value) {
         value = value.trim();
       } else if (dbCol === 'scheduling_end' && value) {
