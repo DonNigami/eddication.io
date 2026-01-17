@@ -381,8 +381,360 @@ Application is considered "production-ready" when:
 
 ---
 
+## 🔄 Application Process Flow
+
+> **Reference:** `index-test-20260115.html` (Original implementation)
+
+### 1. Initialization Flow
+
+```
+[User opens LIFF URL]
+        ↓
+[Check if LINE LIFF SDK loaded]
+        ↓
+    ┌───┴───┐
+    │ No    │ Yes
+    ↓       ↓
+[Error]  [liff.init({liffId})]
+            ↓
+        [liff.isLoggedIn()?]
+            ↓
+        ┌───┴───┐
+        │ No    │ Yes
+        ↓       ↓
+    [liff.login()] [Get Profile: liff.getProfile()]
+                        ↓
+                [Save to user_profiles table]
+                        ↓
+                [Display: "สวัสดี {displayName}"]
+                        ↓
+                [Initialize GPS Monitor]
+                        ↓
+                [Check localStorage for cached job]
+                        ↓
+                    ┌───┴───┐
+                    │ No    │ Yes
+                    ↓       ↓
+                [Wait]   [Auto-load cached job]
+```
+
+### 2. Search Job Flow
+
+```
+[User enters Reference Number]
+        ↓
+[Click "ค้นหา / ดึงงาน" button]
+        ↓
+[Validate input (not empty)]
+        ↓
+[Query Supabase: driver_jobs WHERE reference = ?]
+        ↓
+    ┌───┴───┐
+    │ Not Found │ Found
+    ↓           ↓
+[Show error] [Fetch driver_stops WHERE job_id = ?]
+                ↓
+            [Update user_profiles.last_reference]
+                ↓
+            [Cache to localStorage]
+                ↓
+            [Display Summary Card]
+                ↓
+            [Render Timeline with stops]
+                ↓
+            [Setup Quick Actions for next stop]
+                ↓
+            [Start Auto-refresh timer]
+```
+
+### 3. Alcohol Check Flow
+
+```
+[Click "บันทึกผลแอลกอฮอล์" button]
+        ↓
+[SweetAlert2 Popup: input alcohol value]
+        ↓
+[User enters value (0.00 format)]
+        ↓
+[SweetAlert2 Popup: capture/upload image]
+        ↓
+[Get current GPS location]
+        ↓
+[Upload image to Supabase Storage: 'alcohol-checks' bucket]
+        ↓
+[Insert to driver_alcohol_checks table:
+ - job_id, reference, driver_name
+ - alcohol_value, image_url
+ - location: {lat, lng}
+ - created_at]
+        ↓
+[Show success toast notification]
+        ↓
+[Refresh job data]
+```
+
+### 4. Stop Status Update Flows
+
+#### 4.1 Check-in Flow
+```
+[Click "Check-in" button on timeline stop]
+        ↓
+[Get current GPS location]
+        ↓
+[Confirm with SweetAlert2]
+        ↓
+[Update driver_stops:
+ - status: 'checked_in'
+ - checkin_time: now()
+ - checkin_location: {lat, lng}]
+        ↓
+[Insert driver_logs: action='checkin']
+        ↓
+[Show inline flex notification]
+        ↓
+[Refresh timeline]
+```
+
+#### 4.2 Fuel Stop Flow
+```
+[Click "เติมน้ำมัน" button]
+        ↓
+[Get current GPS location]
+        ↓
+[SweetAlert2: input fuel liters & amount]
+        ↓
+[Update driver_stops:
+ - fuel_location: {lat, lng}
+ - fuel_liters, fuel_amount]
+        ↓
+[Insert driver_logs: action='fuel']
+        ↓
+[Show success notification]
+```
+
+#### 4.3 Unload Stop Flow
+```
+[Click "ลงสินค้า" button]
+        ↓
+[Get current GPS location]
+        ↓
+[Confirm with SweetAlert2]
+        ↓
+[Update driver_stops:
+ - unload_location: {lat, lng}
+ - unload_time: now()]
+        ↓
+[Insert driver_logs: action='unload']
+        ↓
+[Show success notification]
+```
+
+#### 4.4 Check-out Flow
+```
+[Click "Check-out" button]
+        ↓
+[Get current GPS location]
+        ↓
+[Validate: must have checked_in first]
+        ↓
+[Confirm with SweetAlert2]
+        ↓
+[Update driver_stops:
+ - status: 'completed'
+ - checkout_time: now()
+ - checkout_location: {lat, lng}]
+        ↓
+[Insert driver_logs: action='checkout']
+        ↓
+[Check if all stops completed]
+        ↓
+    ┌───┴───┐
+    │ No    │ Yes
+    ↓       ↓
+[Refresh] [Show "ปิดงาน" button]
+```
+
+### 5. Close Job Flow
+
+```
+[Click "ปิดงาน" button]
+        ↓
+[Confirm with SweetAlert2]
+        ↓
+[Update driver_jobs:
+ - status: 'closed'
+ - closed_at: now()]
+        ↓
+[Insert driver_logs: action='close_job']
+        ↓
+[Show success notification]
+        ↓
+[Clear localStorage cache]
+        ↓
+[Reset UI to initial state]
+```
+
+### 6. End Trip Flow
+
+```
+[Click "บันทึกจบทริป" button]
+        ↓
+[SweetAlert2: input ODO_end (ending mileage)]
+        ↓
+[Get current GPS location]
+        ↓
+[Update driver_jobs:
+ - ODO_end: value
+ - end_location: {lat, lng}
+ - status: 'completed']
+        ↓
+[Insert driver_logs: action='end_trip']
+        ↓
+[Show success notification with trip summary]
+```
+
+### 7. Additional Features
+
+#### 7.1 Offline Mode
+```
+[Network status change detected]
+        ↓
+    ┌───┴───┐
+    │ Offline │ Online
+    ↓         ↓
+[Show offline bar] [Process offline queue]
+[Queue actions to localStorage] [Sync pending items]
+                                [Hide offline bar]
+```
+
+#### 7.2 Auto-Refresh
+```
+[Timer: every 30 seconds]
+        ↓
+[Check if job is loaded]
+        ↓
+[Check if page is visible (not background)]
+        ↓
+[Fetch latest data from Supabase]
+        ↓
+[Update UI if changes detected]
+```
+
+#### 7.3 Pull-to-Refresh (PTR)
+```
+[User pulls down on container]
+        ↓
+[touchmove: calculate pull distance]
+        ↓
+[If distance > threshold (60px)]
+        ↓
+[Show PTR indicator with spinner]
+        ↓
+[touchend: trigger refresh]
+        ↓
+[Call window.DriverApp.search()]
+        ↓
+[Hide PTR indicator]
+```
+
+#### 7.4 GPS Monitor
+```
+[Initialize: navigator.geolocation.watchPosition()]
+        ↓
+[Every position update]
+        ↓
+[Calculate accuracy level:
+ - excellent: < 10m
+ - good: < 30m
+ - fair: < 100m
+ - poor: >= 100m]
+        ↓
+[Update GPS status indicator]
+        ↓
+[Store latest position for actions]
+```
+
+#### 7.5 Quick Actions Bar
+```
+[Job loaded with pending stops]
+        ↓
+[Find next incomplete stop]
+        ↓
+[Show floating quick actions bar]
+        ↓
+[Display relevant buttons:
+ - Check-in (if not checked in)
+ - Fuel (if checked in)
+ - Unload (if checked in)
+ - Check-out (if checked in)]
+        ↓
+[User clicks action → execute flow]
+```
+
+#### 7.6 Notification Settings
+```
+[Click notification bell icon]
+        ↓
+[Show settings popup:
+ - Sound notifications toggle
+ - Vibration toggle
+ - Auto-refresh interval]
+        ↓
+[Save to localStorage]
+        ↓
+[Apply settings immediately]
+```
+
+#### 7.7 Dark Mode
+```
+[Click moon/sun icon]
+        ↓
+[Toggle document.body class 'dark-mode']
+        ↓
+[Save preference to localStorage]
+        ↓
+[CSS variables automatically switch:
+ - --bg-main: light/dark
+ - --text-main: dark/light
+ - --card-bg: white/dark-gray]
+```
+
+### 8. Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      LINE LIFF App                          │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │
+│  │   app.js    │  │ enhanced-   │  │   supabase-api.js   │ │
+│  │  (Main UI)  │  │   ux.js     │  │   (API Layer)       │ │
+│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘ │
+│         │                │                     │            │
+│         └────────────────┼─────────────────────┘            │
+│                          │                                  │
+└──────────────────────────┼──────────────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                      Supabase Backend                        │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
+│  │ driver_jobs  │  │ driver_stops │  │ driver_logs  │       │
+│  │  (Headers)   │  │   (Items)    │  │   (Audit)    │       │
+│  └──────────────┘  └──────────────┘  └──────────────┘       │
+│  ┌──────────────────┐  ┌─────────────────┐                  │
+│  │ driver_alcohol_  │  │  user_profiles  │                  │
+│  │     checks       │  │   (Tracking)    │                  │
+│  └──────────────────┘  └─────────────────┘                  │
+│  ┌──────────────────────────────────────────┐               │
+│  │         Storage: 'alcohol-checks'        │               │
+│  │              (Image uploads)             │               │
+│  └──────────────────────────────────────────┘               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
 **End of Plan Document**
 
-> 💡 **Remember:** Always read this plan before making changes!  
-> 📝 **Always update:** Document new features and changes here!  
+> 💡 **Remember:** Always read this plan before making changes!
+> 📝 **Always update:** Document new features and changes here!
 > 🧪 **Always test:** Before committing to production!
