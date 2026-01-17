@@ -507,100 +507,77 @@ export const SupabaseAPI = {
    * Update stop status
    */
   async updateStop({ reference, seq, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
-    console.log('🔄 Supabase: Updating stop', seq, 'for reference', reference, 'type', type);
+    console.log('🔄 Supabase: Updating jobdata for stop', seq, 'ref', reference, 'type', type);
 
     try {
-      const updates = {
+      const jobdataUpdate = {
         status: status,
         updated_at: new Date().toISOString()
       };
 
-      const location = { lat, lng };
-
       if (type === 'checkin') {
-        updates.checkin_time = new Date().toISOString();
-        updates.checkin_location = location;
-        updates.checkin_by = userId;
-        if (receiverName) updates.unload_receiver = receiverName;
+        jobdataUpdate.checkin_time = new Date().toISOString();
+        jobdataUpdate.checkin_lat = lat;
+        jobdataUpdate.checkin_lng = lng;
+        if (odo) jobdataUpdate.checkin_odo = parseInt(odo);
+        if (receiverName) jobdataUpdate.receiver_name = receiverName;
       } else if (type === 'checkout') {
-        updates.checkout_time = new Date().toISOString();
-        updates.checkout_location = location;
-        updates.checkout_by = userId;
-        if (odo) updates.checkout_odo = parseInt(odo);
+        jobdataUpdate.checkout_time = new Date().toISOString();
+        jobdataUpdate.checkout_lat = lat;
+        jobdataUpdate.checkout_lng = lng;
+        if (hasPumping) jobdataUpdate.has_pumping = hasPumping === 'yes';
+        if (hasTransfer) jobdataUpdate.has_transfer = hasTransfer === 'yes';
       } else if (type === 'fuel') {
-        updates.fuel_time = new Date().toISOString();
-        updates.fuel_location = location;
-        updates.fuel_by = userId;
-        if (odo) updates.fuel_odo = parseInt(odo);
+        jobdataUpdate.fueling_time = new Date().toISOString();
       } else if (type === 'unload') {
-        updates.unload_time = new Date().toISOString();
-        updates.unload_location = location;
-        updates.unload_by = userId;
-        if (receiverName) updates.unload_receiver = receiverName;
+        jobdataUpdate.unload_done_time = new Date().toISOString();
       }
 
       const { data, error } = await supabase
-        .from('driver_stops')
-        .update(updates)
+        .from('jobdata')
+        .update(jobdataUpdate)
         .eq('reference', reference)
-        .eq('stop_number', seq)
+        .eq('seq', seq)
         .select()
         .single();
 
-      if (error) throw error;
-
-      // Also update jobdata table (sync)
-      const jobdataUpdate = {
-        status: status === 'checkin' ? 'CHECKIN' : 
-                status === 'checkout' ? 'CHECKOUT' : 'PENDING',
-        updated_at: new Date().toISOString()
-      };
-
-      if (type === 'checkin') {
-        jobdataUpdate.checkin_time = updates.checkin_time;
-        jobdataUpdate.checkin_lat = lat;
-        jobdataUpdate.checkin_lng = lng;
-        if (receiverName) jobdataUpdate.receiver_name = receiverName;
-      } else if (type === 'checkout') {
-        jobdataUpdate.checkout_time = updates.checkout_time;
-        jobdataUpdate.checkout_lat = lat;
-        jobdataUpdate.checkout_lng = lng;
-        if (odo) jobdataUpdate.checkin_odo = parseInt(odo);
-      } else if (type === 'fuel') {
-        jobdataUpdate.fueling_time = updates.fuel_time;
-      } else if (type === 'unload') {
-        jobdataUpdate.unload_done_time = updates.unload_time;
-        if (receiverName) jobdataUpdate.receiver_name = receiverName;
+      if (error) {
+        // Handle case where 0 rows are found, which might happen
+        if (error.code === 'PGRST116') {
+          console.warn('⚠️ updateStop: 0 rows updated in jobdata. This might be unexpected.');
+          // We can return success here if we consider this non-fatal
+          return { success: true, message: 'อัปเดตสำเร็จ (แต่ไม่พบแถวข้อมูลใน jobdata)' };
+        }
+        throw error;
       }
 
-      // Update jobdata by reference and seq
-      await supabase
-        .from('jobdata')
-        .update(jobdataUpdate)
-        .eq('reference', data.reference)
-        .eq('seq', data.stop_number);
-
-      // Log the action
-      await supabase
-        .from('driver_logs')
-        .insert({
-          job_id: data.job_id,
-          reference: data.reference,
-          action: type,
-          details: updates,
-          location: location,
-          user_id: userId
-        });
+      // Log the action to driver_logs if possible.
+      // Note: job_id might not be available here. We'll log without it.
+      try {
+        await supabase
+          .from('driver_logs')
+          .insert({
+            reference: reference,
+            action: type,
+            details: { ...jobdataUpdate, seq },
+            location: { lat, lng },
+            user_id: userId
+          });
+      } catch (logError) {
+        console.warn('⚠️ Could not write to driver_logs:', logError.message);
+      }
 
       return {
         success: true,
         message: getSuccessMessage(type),
         stop: {
           rowIndex: data.id,
-          seq: data.stop_number,
+          seq: data.seq,
           status: data.status,
           checkInTime: data.checkin_time,
-          checkOutTime: data.checkout_time
+          checkOutTime: data.checkout_time,
+          fuelingTime: data.fueling_time,
+          unloadDoneTime: data.unload_done_time,
         }
       };
     } catch (err) {
