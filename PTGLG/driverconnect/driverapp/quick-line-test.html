@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔍 Quick LINE LIFF Test</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 24px;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 10px;
+      margin: 15px 0;
+      font-weight: 500;
+      text-align: center;
+    }
+    .loading { background: #fff3cd; color: #856404; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    .warning { background: #fff3cd; color: #856404; }
+    .detail {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    .label { font-weight: 600; color: #666; }
+    .value { color: #333; margin-left: 10px; }
+    .emoji { font-size: 48px; text-align: center; margin: 20px 0; }
+    button {
+      width: 100%;
+      padding: 15px;
+      background: #06c755;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    button:hover { background: #05b34d; }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 LINE LIFF Quick Test</h1>
+    
+    <div id="statusBox" class="status loading">
+      🔄 กำลังตรวจสอบ...
+    </div>
+
+    <div id="detailsBox"></div>
+
+    <div id="actionBox"></div>
+  </div>
+
+  <script>
+    const LIFF_ID = '2007705394-Fgx9wdHu';
+
+    function showStatus(message, type = 'info') {
+      const box = document.getElementById('statusBox');
+      box.textContent = message;
+      box.className = `status ${type}`;
+    }
+
+    function addDetail(label, value) {
+      const box = document.getElementById('detailsBox');
+      const detail = document.createElement('div');
+      detail.className = 'detail';
+      detail.innerHTML = `<span class="label">${label}:</span><span class="value">${value}</span>`;
+      box.appendChild(detail);
+    }
+
+    async function testLIFF() {
+      // Step 1: Check LIFF SDK
+      if (typeof liff === 'undefined') {
+        showStatus('❌ LIFF SDK ไม่โหลด', 'error');
+        addDetail('Error', 'LIFF SDK script ไม่ถูกโหลด');
+        addDetail('Solution', 'ตรวจสอบ internet connection หรือ CDN');
+        return;
+      }
+
+      addDetail('✅ LIFF SDK', 'Loaded');
+
+      // Step 2: Check browser
+      const ua = navigator.userAgent.toLowerCase();
+      const isLINE = ua.includes('line');
+      addDetail('Browser', isLINE ? '✅ LINE App' : '❌ ' + (
+        ua.includes('chrome') ? 'Chrome' :
+        ua.includes('firefox') ? 'Firefox' :
+        ua.includes('safari') ? 'Safari' : 'Unknown'
+      ));
+
+      // Step 3: Initialize LIFF
+      try {
+        showStatus('⏳ กำลัง initialize LIFF...', 'loading');
+        await liff.init({ liffId: LIFF_ID });
+        
+        addDetail('✅ LIFF Init', 'Success');
+        addDetail('LIFF ID', LIFF_ID);
+        
+        // Step 4: Check status
+        const inClient = liff.isInClient();
+        const loggedIn = liff.isLoggedIn();
+        
+        addDetail('In LINE Client', inClient ? '✅ Yes' : '❌ No');
+        addDetail('Logged In', loggedIn ? '✅ Yes' : '❌ No');
+        addDetail('OS', liff.getOS());
+        addDetail('Language', liff.getLanguage());
+
+        // Step 5: Get profile if possible
+        if (loggedIn) {
+          try {
+            const profile = await liff.getProfile();
+            showStatus(`✅ สวัสดี ${profile.displayName}!`, 'success');
+            
+            document.getElementById('actionBox').innerHTML = `
+              <div class="emoji">👤</div>
+              <div class="detail">
+                <span class="label">User ID:</span>
+                <span class="value">${profile.userId.substring(0, 20)}...</span>
+              </div>
+              <div class="detail">
+                <span class="label">Display Name:</span>
+                <span class="value">${profile.displayName}</span>
+              </div>
+              ${profile.pictureUrl ? `<img src="${profile.pictureUrl}" style="width:80px;height:80px;border-radius:50%;margin:15px auto;display:block;">` : ''}
+            `;
+          } catch (err) {
+            showStatus('⚠️ ไม่สามารถดึง profile ได้', 'warning');
+            addDetail('Error', err.message);
+          }
+        } else {
+          // Not logged in
+          if (inClient) {
+            showStatus('⚠️ อยู่ใน LINE แต่ยังไม่ได้ login', 'warning');
+            document.getElementById('actionBox').innerHTML = `
+              <div class="emoji">🔐</div>
+              <button onclick="liff.login()">เข้าสู่ระบบ LINE</button>
+            `;
+          } else {
+            showStatus('ℹ️ ไม่ได้เปิดใน LINE App', 'info');
+            document.getElementById('actionBox').innerHTML = `
+              <div class="emoji">📱</div>
+              <div class="detail" style="text-align:center;">
+                <strong>วิธีการใช้งาน:</strong><br><br>
+                1. Upload ไฟล์นี้ไปยัง hosting (HTTPS)<br>
+                2. ตั้งค่า LIFF Endpoint URL<br>
+                3. เปิดใน LINE app:<br>
+                <code style="background:#e9ecef;padding:5px;border-radius:3px;display:inline-block;margin-top:10px;">
+                  https://liff.line.me/${LIFF_ID}
+                </code>
+              </div>
+            `;
+          }
+        }
+
+      } catch (err) {
+        showStatus('❌ LIFF Error: ' + err.message, 'error');
+        addDetail('Error Name', err.name);
+        addDetail('Error Code', err.code || 'N/A');
+        
+        document.getElementById('actionBox').innerHTML = `
+          <div class="emoji">❌</div>
+          <div class="detail">
+            <strong>Common Issues:</strong><br><br>
+            • LIFF_ID_NOT_FOUND: LIFF ID ไม่ถูกต้อง<br>
+            • UNAUTHORIZED: Endpoint URL ไม่ตรง<br>
+            • Network Error: ไม่มี internet<br>
+            • Invalid LIFF ID: LIFF ID รูปแบบผิด
+          </div>
+          <pre>${err.stack}</pre>
+        `;
+      }
+    }
+
+    // Auto run
+    testLIFF();
+  </script>
+</body>
+</html>
