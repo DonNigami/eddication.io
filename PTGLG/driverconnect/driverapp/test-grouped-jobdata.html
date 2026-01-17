@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grouped Jobdata Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: white;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+
+    .stop-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .stop-name {
+      font-weight: 600;
+      color: #333;
+      font-size: 16px;
+    }
+
+    .badge {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge.pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .badge.checkin {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+
+    .badge.checkout {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .info-value {
+      color: #333;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn:disabled {
+      background: #d1d5db;
+      cursor: not-allowed;
+    }
+
+    .debug {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 12px;
+      font-family: monospace;
+      color: #374151;
+    }
+
+    .loading {
+      text-align: center;
+      color: white;
+      padding: 20px;
+    }
+
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .materials {
+      background: #f0f4ff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin: 10px 0;
+      font-size: 13px;
+      color: #4338ca;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚚 Grouped Jobdata Example</h1>
+
+    <div id="loading" class="loading">กำลังโหลด...</div>
+    <div id="error" class="error" style="display: none;"></div>
+    <div id="stops-container"></div>
+  </div>
+
+  <script type="module">
+    import { 
+      getGroupedJobs, 
+      checkinGroupedStop, 
+      checkoutGroupedStop,
+      isWithinRadius,
+      formatMaterials
+    } from './js/jobdata-grouped-api.js';
+
+    // Test reference
+    const TEST_REFERENCE = '2601M01559';
+
+    // Load and display stops
+    async function loadStops() {
+      try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+
+        const stops = await getGroupedJobs(TEST_REFERENCE);
+        
+        document.getElementById('loading').style.display = 'none';
+        
+        if (stops.length === 0) {
+          document.getElementById('error').textContent = 'ไม่พบข้อมูล';
+          document.getElementById('error').style.display = 'block';
+          return;
+        }
+
+        renderStops(stops);
+      } catch (error) {
+        console.error('Error loading stops:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('error').textContent = `Error: ${error.message}`;
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+
+    // Render stops
+    function renderStops(stops) {
+      const container = document.getElementById('stops-container');
+      container.innerHTML = '';
+
+      stops.forEach(stop => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="stop-header">
+            <div class="stop-name">${stop.seq}. ${stop.ship_to_name}</div>
+            <div class="badge ${stop.status}">${stop.status}</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">รหัสลูกค้า</div>
+            <div class="info-value">${stop.ship_to_code}</div>
+          </div>
+
+          <div class="materials">
+            📦 ${formatMaterials(stop.materials, 2)}
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">ปริมาณรวม</div>
+            <div class="info-value">${stop.total_qty} KL</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">จำนวน items</div>
+            <div class="info-value">${stop.item_count} รายการ</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">Check-in</div>
+            <div class="info-value">${stop.checkin_time ? new Date(stop.checkin_time).toLocaleString('th-TH') : '-'}</div>
+          </div>
+
+          <div class="info-row">
+            <div class="info-label">Check-out</div>
+            <div class="info-value">${stop.checkout_time ? new Date(stop.checkout_time).toLocaleString('th-TH') : '-'}</div>
+          </div>
+
+          ${stop.status === 'pending' ? `
+            <button class="btn btn-primary" onclick="handleCheckin('${stop.reference}', '${stop.ship_to_code}')">
+              📍 Check-in
+            </button>
+          ` : ''}
+
+          ${stop.status === 'checkin' ? `
+            <button class="btn btn-success" onclick="handleCheckout('${stop.reference}', '${stop.ship_to_code}')">
+              ✅ Check-out
+            </button>
+          ` : ''}
+
+          <div class="debug">
+            <strong>Debug Info:</strong><br>
+            Group ID: ${stop.group_id}<br>
+            Item IDs: ${stop.item_ids?.join(', ')}<br>
+            Coordinates: ${stop.dest_lat}, ${stop.dest_lng}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Handle check-in
+    window.handleCheckin = async function(reference, shipToCode) {
+      try {
+        // Get current position
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+
+        const result = await checkinGroupedStop({
+          reference,
+          shipToCode,
+          checkinLat: position.coords.latitude,
+          checkinLng: position.coords.longitude,
+          checkinOdo: null, // TODO: Get from user input
+          accuracy: position.coords.accuracy,
+          updatedBy: 'test_user'
+        });
+
+        alert(`✅ Check-in สำเร็จ!\n\nอัพเดท ${result.updated_count} แถว\nIDs: ${result.updated_ids.join(', ')}`);
+        
+        // Reload
+        await loadStops();
+      } catch (error) {
+        console.error('Check-in error:', error);
+        alert(`❌ Error: ${error.message}`);
+      }
+    };
+
+    // Handle check-out
+    window.handleCheckout = async function(reference, shipToCode) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+
+        const receiverName = prompt('ชื่อผู้รับ:');
+        if (!receiverName) return;
+
+        const result = await checkoutGroupedStop({
+          reference,
+          shipToCode,
+          checkoutLat: position.coords.latitude,
+          checkoutLng: position.coords.longitude,
+          checkoutOdo: null,
+          receiverName,
+          receiverType: 'พนักงาน',
+          updatedBy: 'test_user'
+        });
+
+        alert(`✅ Check-out สำเร็จ!\n\nอัพเดท ${result.updated_count} แถว\nIDs: ${result.updated_ids.join(', ')}`);
+        
+        // Reload
+        await loadStops();
+      } catch (error) {
+        console.error('Check-out error:', error);
+        alert(`❌ Error: ${error.message}`);
+      }
+    };
+
+    // Initialize
+    loadStops();
+  </script>
+</body>
+</html>
