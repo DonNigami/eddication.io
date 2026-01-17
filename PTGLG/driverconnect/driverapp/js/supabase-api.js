@@ -367,6 +367,80 @@ export const SupabaseAPI = {
   },
 
   /**
+   * Save or update user profile
+   */
+  async saveUserProfile(profile) {
+    console.log('👤 Supabase: Saving user profile', profile.userId);
+
+    try {
+      // Check if user exists
+      const { data: existing } = await supabase
+        .from('user_profiles')
+        .select('id, total_visits')
+        .eq('user_id', profile.userId)
+        .single();
+
+      if (existing) {
+        // Update existing user
+        const { error } = await supabase
+          .from('user_profiles')
+          .update({
+            display_name: profile.displayName,
+            picture_url: profile.pictureUrl,
+            status_message: profile.statusMessage || null,
+            last_seen_at: new Date().toISOString(),
+            total_visits: (existing.total_visits || 0) + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', profile.userId);
+
+        if (error) throw error;
+        console.log('✅ User profile updated (visit #' + ((existing.total_visits || 0) + 1) + ')');
+      } else {
+        // Insert new user
+        const { error } = await supabase
+          .from('user_profiles')
+          .insert({
+            user_id: profile.userId,
+            display_name: profile.displayName,
+            picture_url: profile.pictureUrl,
+            status_message: profile.statusMessage || null,
+            first_seen_at: new Date().toISOString(),
+            last_seen_at: new Date().toISOString(),
+            total_visits: 1
+          });
+
+        if (error) throw error;
+        console.log('✅ New user profile created');
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('❌ Supabase saveUserProfile error:', err);
+      return { success: false, message: err.message };
+    }
+  },
+
+  /**
+   * Update user's last searched reference
+   */
+  async updateUserLastReference(userId, reference) {
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          last_reference: reference,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } catch (err) {
+      console.error('❌ Update last reference error:', err);
+    }
+  },
+
+  /**
    * Subscribe to realtime updates
    */
   subscribeToJob(reference, onUpdate) {

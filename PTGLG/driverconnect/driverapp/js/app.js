@@ -82,6 +82,12 @@ async function search(isSilent = false) {
     currentReference = d.referenceNo || keyword;
     setCurrentReference(currentReference);
     localStorage.setItem(APP_CONFIG.LAST_REFERENCE_KEY, currentReference);
+    
+    // Update user's last searched reference
+    if (currentUserId && currentUserId.startsWith('U')) {
+      SupabaseAPI.updateUserLastReference(currentUserId, currentReference);
+    }
+    
     currentVehicleDesc = d.vehicleDesc || '';
     currentDrivers = d.alcohol?.drivers || [];
     currentCheckedDrivers = [...new Set(d.alcohol?.checkedDrivers || [])];
@@ -696,6 +702,14 @@ async function initApp() {
       const profile = await liff.getProfile();
       currentUserId = profile.userId;
       document.getElementById('status').textContent = 'สวัสดี ' + profile.displayName;
+      
+      // Save user profile to Supabase
+      await SupabaseAPI.saveUserProfile({
+        userId: profile.userId,
+        displayName: profile.displayName,
+        pictureUrl: profile.pictureUrl,
+        statusMessage: profile.statusMessage
+      });
     } else {
       currentUserId = 'test_user_' + Date.now();
       document.getElementById('status').textContent = 'กำลังใช้งานแบบทดสอบ';
