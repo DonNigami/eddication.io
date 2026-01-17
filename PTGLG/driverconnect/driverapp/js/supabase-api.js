@@ -175,6 +175,11 @@ export const SupabaseAPI = {
         };
       }
 
+      // Log jobdata error if exists
+      if (jobdataError) {
+        console.warn('⚠️ jobdata query error:', jobdataError.message, '- Falling back to driver_jobs');
+      }
+
       // Step 2: If not found in jobdata, search in driver_jobs
       console.log('🔍 Step 2: Not found in jobdata, searching in driver_jobs...');
       const { data: jobs, error: jobError } = await supabase
@@ -183,7 +188,25 @@ export const SupabaseAPI = {
         .eq('reference', reference)
         .order('created_at', { ascending: true });
 
-      if (jobError || !jobs || jobs.length === 0) {
+      // Handle driver_jobs error
+      if (jobError) {
+        console.error('❌ driver_jobs query error:', jobError);
+        
+        // Check if it's a 406 or table not found error
+        if (jobError.code === 'PGRST116' || jobError.message.includes('406')) {
+          return { 
+            success: false, 
+            message: '⚠️ ตาราง driver_jobs ยังไม่พร้อมใช้งาน\nกรุณาติดต่อผู้ดูแลระบบ\n\n(Error: Table not configured or RLS blocked)' 
+          };
+        }
+        
+        return { 
+          success: false, 
+          message: 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + jobError.message 
+        };
+      }
+
+      if (!jobs || jobs.length === 0) {
         return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
       }
       

@@ -6,7 +6,7 @@
 import { LIFF_ID, APP_CONFIG } from './config.js';
 import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64 } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
-import { initSupabase, SupabaseAPI } from './supabase-api.js';
+import { initSupabase, SupabaseAPI } from './supabase-api-jobdata-only.js';
 import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords } from './gps.js';
 import {
   showLoading, closeLoading, showError, showSuccess, showInfo,
