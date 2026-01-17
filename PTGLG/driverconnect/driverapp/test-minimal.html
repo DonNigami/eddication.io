@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Minimal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+  <h1>Test Buttons</h1>
+  <button id="testBtn">Click Me!</button>
+  <div id="output"></div>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    console.log('✅ Script started');
+    
+    // Test Supabase
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+    
+    window.supabaseTest = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase initialized:', window.supabaseTest);
+
+    // Test LIFF
+    const LIFF_ID = '2007705394-Fgx9wdHu';
+    
+    async function testInit() {
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF initialized');
+        
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          document.getElementById('output').innerHTML = `
+            <p>✅ LINE Profile: ${profile.displayName}</p>
+            <p>User ID: ${profile.userId}</p>
+          `;
+        } else {
+          document.getElementById('output').innerHTML = '<p>🧪 กำลังใช้งานแบบทดสอบ (ไม่ได้เปิดใน LINE)</p>';
+        }
+      } catch (error) {
+        console.error('❌ LIFF Error:', error);
+        document.getElementById('output').innerHTML = '<p>❌ Error: ' + error.message + '</p>';
+      }
+    }
+
+    // Test button
+    document.getElementById('testBtn').addEventListener('click', function() {
+      alert('Button works! ✅');
+      console.log('✅ Button clicked');
+    });
+
+    // Run
+    testInit();
+  </script>
+</body>
+</html>

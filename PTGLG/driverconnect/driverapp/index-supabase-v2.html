@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <base target="_top" />
+  <meta charset="UTF-8" />
+  <title>Driver Tracking (Supabase V2)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --primary: #1abc9c;
+      --primary-dark: #16a085;
+      --bg: #f4f8f7;
+      --text-main: #222;
+      --text-sub: #666;
+      --card-bg: #ffffff;
+      --border-radius: 14px;
+      --input-bg: #f7faf9;
+      --input-border: #dce2e0;
+      --shadow-color: rgba(0, 0, 0, 0.06);
+      --timeline-border: #e4ece9;
+      --timeline-bg: #f7faf9;
+    }
+
+    /* Dark Mode */
+    [data-theme="dark"] {
+      --bg: #1a1a2e;
+      --text-main: #eaeaea;
+      --text-sub: #a0a0a0;
+      --card-bg: #16213e;
+      --input-bg: #1a1a2e;
+      --input-border: #2a2a4a;
+      --shadow-color: rgba(0, 0, 0, 0.3);
+      --timeline-border: #2a2a4a;
+      --timeline-bg: #1a1a2e;
+    }
+
+    [data-theme="dark"] .badge { background: rgba(26, 188, 156, 0.2); }
+    [data-theme="dark"] .summary-card { background: var(--timeline-bg); border-color: var(--timeline-border); }
+    [data-theme="dark"] .timeline-content { background: var(--card-bg); border-color: var(--timeline-border); }
+    [data-theme="dark"] .gps-status.checking { background: rgba(52, 152, 219, 0.15); }
+    [data-theme="dark"] .gps-status.good { background: rgba(26, 188, 156, 0.15); }
+    [data-theme="dark"] .gps-status.weak { background: rgba(243, 156, 18, 0.15); }
+    [data-theme="dark"] .gps-status.error { background: rgba(231, 76, 60, 0.15); }
+    [data-theme="dark"] .last-updated { background: rgba(26, 188, 156, 0.12); }
+    [data-theme="dark"] .ptr-indicator { background: var(--card-bg); }
+    [data-theme="dark"] .inline-flex { background: var(--card-bg); }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-main); }
+    .app-shell { min-height: 100vh; display: flex; justify-content: center; padding: 12px; }
+    .container { width: 100%; max-width: 520px; }
+    .card { background: var(--card-bg); border-radius: var(--border-radius); padding: 16px 18px 20px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06); }
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .title { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 999px; background: rgba(26, 188, 156, 0.1); color: var(--primary-dark); }
+    .badge.supabase { background: rgba(62, 207, 142, 0.15); color: #3ecf8e; }
+    .badge.v2 { background: rgba(52, 152, 219, 0.15); color: #3498db; }
+    .status-text { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 10px; }
+    .field-group { margin-bottom: 10px; }
+    label { display: block; font-size: 0.8rem; color: var(--text-sub); margin-bottom: 4px; }
+    input[type='text'], input[type='number'] { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--input-border); font-size: 0.95rem; outline: none; transition: border 0.2s, box-shadow 0.2s, background 0.2s; background: var(--input-bg); color: var(--text-main); }
+    input[type='text']:focus, input[type='number']:focus { border-color: var(--primary); background: var(--card-bg); box-shadow: 0 0 0 2px rgba(26, 188, 156, 0.18); }
+
+    .theme-toggle, .notification-btn { background: none; border: none; width: 36px; height: 36px; padding: 0; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: background 0.2s, transform 0.2s; }
+    .theme-toggle:hover, .notification-btn:hover { background: rgba(26, 188, 156, 0.1); transform: scale(1.1); }
+
+    .offline-bar { display: none; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; padding: 8px 16px; text-align: center; font-size: 0.85rem; font-weight: 600; position: sticky; top: 0; z-index: 1000; }
+    .offline-bar.show { display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .queue-badge { background: rgba(255, 255, 255, 0.25); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; margin-left: 4px; }
+
+    button { width: 100%; padding: 11px 12px; border-radius: 999px; border: none; font-size: 0.95rem; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #ffffff; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, opacity 0.15s; }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(22, 160, 133, 0.28); }
+    button:active { transform: translateY(0); box-shadow: none; opacity: 0.9; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
+
+    .btn-small { width: auto; padding: 10px 16px; font-size: 0.95rem; border-radius: 999px; margin: 4px 6px 0 0; }
+    .btn-outline { background: #ffffff; color: var(--primary-dark); border: 1px solid rgba(26, 188, 156, 0.35); box-shadow: none; }
+    .btn-outline:hover { background: rgba(26, 188, 156, 0.06); }
+    .btn-secondary { background: #95a5a6; background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+
+    .summary-card { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #f7faf9; border: 1px solid #e3ebe8; font-size: 0.88rem; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .summary-label { color: var(--text-sub); }
+    .summary-value { font-weight: 600; }
+
+    .timeline-container { margin-top: 14px; }
+    .timeline-item { margin-bottom: 12px; padding-left: 30px; position: relative; }
+    .timeline-item:before { content: ''; position: absolute; left: 8px; top: 0; bottom: -12px; width: 2px; background: var(--timeline-border); }
+    .timeline-item:last-child:before { display: none; }
+    .timeline-dot { position: absolute; left: 0; top: 5px; width: 18px; height: 18px; border-radius: 50%; background: var(--card-bg); border: 3px solid var(--primary); }
+    .timeline-content { background: var(--timeline-bg); border: 1px solid var(--timeline-border); border-radius: 10px; padding: 10px 12px; font-size: 0.88rem; }
+    .timeline-content strong { font-size: 0.92rem; color: var(--text-main); }
+
+    .gps-status { padding: 8px 12px; border-radius: 10px; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; transition: background 0.3s; }
+    .gps-status.checking { background: rgba(52, 152, 219, 0.08); color: #3498db; }
+    .gps-status.good { background: rgba(26, 188, 156, 0.08); color: #16a085; }
+    .gps-status.weak { background: rgba(243, 156, 18, 0.08); color: #d68910; }
+    .gps-status.error { background: rgba(231, 76, 60, 0.08); color: #c0392b; }
+    .gps-icon { font-size: 1.1rem; }
+
+    .realtime-dot { width: 8px; height: 8px; background: #27ae60; border-radius: 50%; display: inline-block; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .last-updated { display: inline-block; padding: 4px 10px; background: rgba(26, 188, 156, 0.08); color: var(--primary-dark); border-radius: 12px; font-size: 0.75rem; margin-top: 8px; }
+
+    .ptr-indicator { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--card-bg); display: flex; align-items: center; justify-content: center; transform: translateY(-100%); transition: transform 0.3s ease-out; z-index: 999; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+    .ptr-indicator.show { transform: translateY(0); }
+
+    .inline-flex { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); max-width: 90%; padding: 12px 18px; background: var(--card-bg); border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); font-size: 0.9rem; z-index: 1001; animation: slideDown 0.3s ease-out; }
+    @keyframes slideDown { from { transform: translate(-50%, -20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+
+    .driver-checkbox-container { margin: 12px 0; max-height: 200px; overflow-y: auto; border: 1px solid var(--input-border); border-radius: 10px; padding: 8px; background: var(--input-bg); }
+    .driver-checkbox-item { display: flex; align-items: center; padding: 8px; margin-bottom: 6px; border-radius: 8px; background: var(--card-bg); transition: background 0.2s; }
+    .driver-checkbox-item:hover { background: rgba(26, 188, 156, 0.05); }
+    .driver-checkbox-item input[type="checkbox"] { width: 18px; height: 18px; margin-right: 10px; cursor: pointer; }
+    .driver-checkbox-item label { margin: 0; cursor: pointer; flex: 1; font-size: 0.9rem; }
+
+    .image-preview { margin-top: 8px; border-radius: 10px; overflow: hidden; max-height: 200px; }
+    .image-preview img { width: 100%; height: auto; display: block; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+
+<body>
+  <!-- Offline Indicator -->
+  <div id="offlineBar" class="offline-bar">
+    📵 ออฟไลน์ - ระบบจะบันทึกข้อมูลและส่งเมื่อกลับมาออนไลน์
+    <span class="queue-badge" id="queueCount">0</span>
+  </div>
+
+  <!-- Pull-to-Refresh Indicator -->
+  <div id="ptrIndicator" class="ptr-indicator">
+    <div style="text-align:center;">
+      <div style="font-size:1.5rem;">🔄</div>
+      <div style="font-size:0.85rem;color:var(--text-sub);margin-top:4px;">ดึงลงเพื่อรีเฟรช</div>
+    </div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <div class="title">
+            🚚 Driver Tracking
+            <span class="badge supabase">Supabase</span>
+            <span class="badge v2">V2</span>
+            <span class="realtime-dot" title="Realtime Connected"></span>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button id="themeToggle" class="theme-toggle" title="สลับโหมดกลางคืน">🌙</button>
+          </div>
+        </div>
+
+        <div id="status" class="status-text">🔄 กำลังโหลดโปรไฟล์จาก LINE...</div>
+
+        <!-- GPS Status Indicator -->
+        <div id="gpsStatus" class="gps-status checking" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
+          <span class="gps-icon">📍</span>
+          <span id="gpsText">กำลังตรวจสอบ GPS...</span>
+        </div>
+
+        <!-- Search Form -->
+        <div class="field-group">
+          <label for="txtReference">🔍 เลข Reference (ตัวอย่าง: HXX-XXXXXX)</label>
+          <input type="text" id="txtReference" placeholder="กรุณากรอกเลข Reference..." />
+        </div>
+
+        <button id="btnSearch">🔍 ค้นหางาน</button>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden">
+          <!-- Summary Card -->
+          <div class="summary-card">
+            <div class="summary-row">
+              <span class="summary-label">Reference:</span>
+              <span class="summary-value" id="summaryReference">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">ทะเบียนรถ:</span>
+              <span class="summary-value" id="summaryVehicle">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">คนขับ:</span>
+              <span class="summary-value" id="summaryDrivers">-</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">จำนวนจุดส่ง:</span>
+              <span class="summary-value" id="summaryStops">-</span>
+            </div>
+            <span class="last-updated" id="lastUpdated">อัปเดตล่าสุด: -</span>
+          </div>
+
+          <!-- Alcohol Check Section -->
+          <div id="alcoholSection" class="hidden">
+            <h3 style="margin-top:16px;font-size:1rem;">🧪 ตรวจแอลกอฮอล์</h3>
+            <div id="driverCheckboxes" class="driver-checkbox-container"></div>
+            <div class="field-group">
+              <label for="txtAlcoholValue">ค่าแอลกอฮอล์ (0.00 - 5.00)</label>
+              <input type="number" id="txtAlcoholValue" placeholder="0.00" step="0.001" min="0" max="5" />
+            </div>
+            <div class="field-group">
+              <label for="fileAlcoholImage">📸 รูปภาพการตรวจ</label>
+              <input type="file" id="fileAlcoholImage" accept="image/*" capture="environment" style="padding:8px;" />
+              <div id="imagePreview" class="image-preview hidden"></div>
+            </div>
+            <button id="btnUploadAlcohol">📤 บันทึกการตรวจแอลกอฮอล์</button>
+          </div>
+
+          <!-- Timeline -->
+          <div class="timeline-container" id="timeline"></div>
+
+          <!-- Action Buttons -->
+          <div style="margin-top:14px;">
+            <button id="btnCheckIn" class="btn-small btn-outline">✅ Check-in</button>
+            <button id="btnFuel" class="btn-small btn-outline">⛽ ลงน้ำมัน</button>
+            <button id="btnUnload" class="btn-small btn-outline">📦 ลงเสร็จ</button>
+            <button id="btnCheckOut" class="btn-small btn-outline">🏁 Check-out</button>
+          </div>
+
+          <div style="margin-top:12px;">
+            <button id="btnCloseJob" class="btn-secondary">🚫 ปิดงาน</button>
+          </div>
+
+          <div style="margin-top:8px;">
+            <button id="btnEndTrip">🏁 จบทริป</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App Script (Type Module) -->
+  <script type="module">
+    console.log('✅ App V2 Script Loaded');
+
+    // Import dependencies (using direct imports from CDN-loaded globals)
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+    const LIFF_ID = '2007705394-Fgx9wdHu';
+
+    // Initialize Supabase (using unique namespace)
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase Client Initialized');
+
+    // Global State
+    let currentUserId = '';
+    let currentReference = '';
+    let currentVehicleDesc = '';
+
+    // Initialize LIFF
+    async function initLiff() {
+      try {
+        console.log('🔄 Initializing LIFF...');
+        await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF Initialized');
+
+        if (liff.isLoggedIn()) {
+          const profile = await liff.getProfile();
+          currentUserId = profile.userId;
+          document.getElementById('status').textContent = `✅ สวัสดี ${profile.displayName}`;
+          console.log('✅ LINE Profile loaded:', profile.displayName);
+        } else {
+          document.getElementById('status').textContent = '🧪 กำลังใช้งานแบบทดสอบ (ไม่ได้เปิดใน LINE)';
+          console.log('⚠️ Not logged in to LINE');
+        }
+      } catch (error) {
+        console.error('❌ LIFF Error:', error);
+        document.getElementById('status').textContent = '❌ ไม่สามารถเชื่อมต่อ LINE ได้: ' + error.message;
+      }
+    }
+
+    // Check GPS
+    async function checkGPS() {
+      const statusEl = document.getElementById('gpsStatus');
+      const textEl = document.getElementById('gpsText');
+      
+      statusEl.className = 'gps-status checking';
+      textEl.textContent = 'กำลังตรวจสอบ GPS...';
+
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
+          });
+        });
+
+        const accuracy = position.coords.accuracy;
+        
+        if (accuracy <= 20) {
+          statusEl.className = 'gps-status good';
+          textEl.textContent = `📍 GPS ดีมาก (ความแม่นยำ ${accuracy.toFixed(0)} ม.)`;
+        } else if (accuracy <= 50) {
+          statusEl.className = 'gps-status good';
+          textEl.textContent = `📍 GPS ดี (ความแม่นยำ ${accuracy.toFixed(0)} ม.)`;
+        } else {
+          statusEl.className = 'gps-status weak';
+          textEl.textContent = `⚠️ GPS อ่อน (ความแม่นยำ ${accuracy.toFixed(0)} ม.)`;
+        }
+
+        console.log('✅ GPS:', position.coords);
+        return position.coords;
+      } catch (error) {
+        statusEl.className = 'gps-status error';
+        textEl.textContent = '❌ ไม่สามารถเข้าถึง GPS ได้';
+        console.error('❌ GPS Error:', error);
+        throw error;
+      }
+    }
+
+    // Search Job
+    async function searchJob() {
+      const reference = document.getElementById('txtReference').value.trim();
+      
+      if (!reference) {
+        await Swal.fire('⚠️', 'กรุณากรอกเลข Reference', 'warning');
+        return;
+      }
+
+      console.log('🔍 Searching job:', reference);
+      
+      const loading = Swal.fire({
+        title: '🔄 กำลังค้นหา...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+      });
+
+      try {
+        // Query job from Supabase
+        const { data, error } = await sbClient
+          .from('jobs')
+          .select('*')
+          .eq('reference', reference)
+          .single();
+
+        if (error) throw error;
+
+        if (!data) {
+          await Swal.fire('❌', 'ไม่พบงาน Reference นี้', 'error');
+          return;
+        }
+
+        currentReference = reference;
+        currentVehicleDesc = data.vehicle_desc || '-';
+
+        // Update summary
+        document.getElementById('summaryReference').textContent = reference;
+        document.getElementById('summaryVehicle').textContent = data.vehicle_desc || '-';
+        document.getElementById('summaryDrivers').textContent = data.drivers || '-';
+        document.getElementById('summaryStops').textContent = '0';
+        document.getElementById('lastUpdated').textContent = `อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`;
+
+        // Show results
+        document.getElementById('results').classList.remove('hidden');
+        document.getElementById('alcoholSection').classList.remove('hidden');
+
+        await loading.close();
+        await Swal.fire('✅', 'พบงานแล้ว!', 'success');
+        
+        console.log('✅ Job found:', data);
+      } catch (error) {
+        await loading.close();
+        await Swal.fire('❌', 'เกิดข้อผิดพลาด: ' + error.message, 'error');
+        console.error('❌ Search error:', error);
+      }
+    }
+
+    // Toggle Theme
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', newTheme);
+      document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+      
+      localStorage.setItem('driverapp_theme', newTheme);
+      console.log('🎨 Theme changed to:', newTheme);
+    }
+
+    // Load Theme from LocalStorage
+    function loadTheme() {
+      const savedTheme = localStorage.getItem('driverapp_theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      document.getElementById('themeToggle').textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    }
+
+    // Event Listeners
+    document.getElementById('btnSearch').addEventListener('click', searchJob);
+    document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    document.getElementById('gpsStatus').addEventListener('click', checkGPS);
+
+    // Placeholder handlers for other buttons
+    document.getElementById('btnCheckIn').addEventListener('click', () => alert('Check-in feature coming soon'));
+    document.getElementById('btnFuel').addEventListener('click', () => alert('Fuel feature coming soon'));
+    document.getElementById('btnUnload').addEventListener('click', () => alert('Unload feature coming soon'));
+    document.getElementById('btnCheckOut').addEventListener('click', () => alert('Check-out feature coming soon'));
+    document.getElementById('btnUploadAlcohol').addEventListener('click', () => alert('Alcohol check feature coming soon'));
+    document.getElementById('btnCloseJob').addEventListener('click', () => alert('Close job feature coming soon'));
+    document.getElementById('btnEndTrip').addEventListener('click', () => alert('End trip feature coming soon'));
+
+    // Initialize App
+    async function initApp() {
+      console.log('🚀 Initializing App V2...');
+      loadTheme();
+      await initLiff();
+      await checkGPS();
+      console.log('✅ App V2 Ready');
+    }
+
+    // Start
+    initApp();
+  </script>
+</body>
+</html>
