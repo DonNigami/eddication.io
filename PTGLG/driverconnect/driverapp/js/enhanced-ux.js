@@ -54,7 +54,9 @@ function initPullToRefresh() {
       ptrText.textContent = 'กำลังรีเฟรช...';
       
       // Trigger refresh
-      await window.search(true); // silent refresh
+      if (window.DriverApp && typeof window.DriverApp.search === 'function') {
+        await window.DriverApp.search(true); // silent refresh
+      }
       
       setTimeout(() => {
         ptrIndicator.style.transform = 'translateY(-100%)';
