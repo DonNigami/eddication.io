@@ -6,11 +6,13 @@
   <meta charset="UTF-8" />
   <title>Driver Tracking (Supabase)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
 
   <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -193,14 +195,14 @@
             <span class="realtime-dot" title="Realtime Connected"></span>
           </div>
           <div style="display:flex;gap:4px;">
-            <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()" title="สลับโหมดกลางคืน">🌙</button>
+            <button id="themeToggle" class="theme-toggle" title="สลับโหมดกลางคืน">🌙</button>
           </div>
         </div>
 
         <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
 
         <!-- GPS Status Indicator -->
-        <div id="gpsStatus" class="gps-status checking" onclick="checkGpsStatus()" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
+        <div id="gpsStatus" class="gps-status checking" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
           <span class="gps-icon">📍</span>
           <span id="gpsText">กำลังตรวจสอบ GPS...</span>
           <div class="gps-bars">
@@ -276,8 +278,16 @@
     const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
 
-    // Initialize Supabase client
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Initialize Supabase client (check if already initialized)
+    let supabase;
+    if (window.supabaseClient) {
+      supabase = window.supabaseClient;
+      console.log('♻️ Reusing existing Supabase client');
+    } else {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      window.supabaseClient = supabase;
+      console.log('✅ Supabase client initialized');
+    }
 
     // LIFF Configuration
     const LIFF_ID = '2007705394-y4mV76Gv';
@@ -1811,6 +1821,12 @@
       });
       document.getElementById('btnCloseJob').addEventListener('click', closeJob);
       document.getElementById('btnEndTrip').addEventListener('click', openEndTripDialog);
+      
+      // Bind theme toggle
+      document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+      
+      // Bind GPS status check
+      document.getElementById('gpsStatus').addEventListener('click', checkGpsStatus);
 
       // Sync queue if online and has pending items
       if (isOnline && OfflineQueue.getCount() > 0) {
