@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import SAP Data from Google Sheets</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 30px;
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .info-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 8px;
+    }
+
+    .info-box h3 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .info-box p {
+      color: #555;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-box code {
+      background: #e0e7ff;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #667eea;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-secondary {
+      background: #f5f5f5;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .status-box {
+      margin-top: 25px;
+      padding: 20px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .status-box.loading {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      display: block;
+    }
+
+    .status-box.success {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      display: block;
+    }
+
+    .status-box.error {
+      background: #f8d7da;
+      border: 2px solid #dc3545;
+      display: block;
+    }
+
+    .status-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .status-message {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 15px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      border: 2px solid #e0e0e0;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 24px;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .example-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .example-link:hover {
+      text-decoration: underline;
+    }
+
+    .warning-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin-bottom: 25px;
+      border-radius: 8px;
+    }
+
+    .warning-box strong {
+      color: #856404;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📊 Import SAP Shipment Data</h1>
+    <p class="subtitle">นำเข้าข้อมูลจาก Google Sheets เข้าสู่ระบบ Driver Tracking</p>
+
+    <div class="info-box">
+      <h3>📝 วิธีใช้งาน</h3>
+      <p>
+        1. ทำให้ Google Sheet เป็น <strong>Public</strong> (Anyone with the link can view)<br>
+        2. Copy Sheet ID จาก URL (ตัวอย่าง: <code>1iwPr3RSBUT4frRfyFJxW5C2qP-TPseEBW_80CDitbuE</code>)<br>
+        3. ระบุ Sheet Name (เช่น <code>Sheet1</code> หรือชื่อแท็บที่ต้องการ)<br>
+        4. กด Import Data
+      </p>
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ สำคัญ:</strong> ตรวจสอบให้แน่ใจว่า Column Headers ใน Google Sheet ตรงกับโครงสร้างฐานข้อมูล
+    </div>
+
+    <form id="importForm">
+      <div class="form-group">
+        <label for="sheetId">Google Sheet ID</label>
+        <input 
+          type="text" 
+          id="sheetId" 
+          placeholder="1iwPr3RSBUT4frRfyFJxW5C2qP-TPseEBW_80CDitbuE"
+          value="1iwPr3RSBUT4frRfyFJxW5C2qP-TPseEBW_80CDitbuE"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="sheetName">Sheet Name (Tab Name)</label>
+        <input 
+          type="text" 
+          id="sheetName" 
+          placeholder="Sheet1"
+          value="Sheet1"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="startRow">Start Row (แถวที่เริ่มข้อมูล)</label>
+        <input 
+          type="number" 
+          id="startRow" 
+          value="2"
+          min="2"
+          required
+        >
+        <small style="color: #666; display: block; margin-top: 5px;">แถวที่ 1 คือ header, ข้อมูลเริ่มแถวที่ 2</small>
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn-secondary" onclick="testConnection()">
+          🔍 ทดสอบการเชื่อมต่อ
+        </button>
+        <button type="submit" class="btn-primary" id="importBtn">
+          <span>📥 Import Data</span>
+        </button>
+      </div>
+    </form>
+
+    <div id="statusBox" class="status-box">
+      <div class="status-title" id="statusTitle"></div>
+      <div class="status-message" id="statusMessage"></div>
+      <div class="progress-bar" style="display: none;" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="stats-grid" id="statsGrid" style="display: none;"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    // Supabase Configuration
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+    
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Google Sheets CSV Export URL template
+    function getSheetCSVUrl(sheetId, sheetName) {
+      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+    }
+
+    // Column mapping from Google Sheets to Database
+    const COLUMN_MAPPING = {
+      'Shipment No.': 'shipment_no',
+      'Sts': 'sts',
+      'Sts Text': 'sts_text',
+      'Vehicle': 'vehicle',
+      'Vehicle Description': 'vehicle_desc',
+      'Trip': 'trip',
+      'Carrier': 'carrier',
+      'Carrier Name': 'carrier_name',
+      'Driver': 'driver',
+      'Driver name': 'driver_name',
+      'Route': 'route',
+      'Distance': 'distance',
+      'Distance UOM': 'distance_uom',
+      'Scheduling end': 'scheduling_end',
+      'Planned load start (Date)': 'planned_load_start_date',
+      'Planned load start (Time)': 'planned_load_start_time',
+      'Actual load start (Date)': 'actual_load_start_date',
+      'Actual load start (Time)': 'actual_load_start_time',
+      'Actual load end (Date)': 'actual_load_end_date',
+      'Actual load end (Time)': 'actual_load_end_time',
+      'Actual del.conf.end (Date)': 'actual_del_conf_end_date',
+      'Transport Plan Pt': 'transport_plan_pt',
+      'Transport Plan Pt Desc': 'transport_plan_pt_desc',
+      'Shipment Type': 'shipment_type',
+      'Shipment Type Desc': 'shipment_type_desc',
+      'ShpCosting': 'shp_costing',
+      'ShpCostSettl': 'shp_cost_settl',
+      'Reference': 'reference'
+    };
+
+    // Parse CSV
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n');
+      const headers = parseCSVLine(lines[0]);
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const values = parseCSVLine(lines[i]);
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        data.push(row);
+      }
+
+      return { headers, data };
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
+    // Map row to database format
+    function mapRowToDatabase(row) {
+      const mapped = {
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Map each column
+      Object.entries(COLUMN_MAPPING).forEach(([sheetCol, dbCol]) => {
+        if (row[sheetCol] !== undefined && row[sheetCol] !== '') {
+          let value = row[sheetCol];
+
+          // Type conversions
+          if (dbCol === 'distance') {
+            value = parseFloat(value) || null;
+          } else if (dbCol.includes('_date')) {
+            // Convert date format if needed
+            value = value || null;
+          } else if (dbCol.includes('_time')) {
+            // Convert time format if needed
+            value = value || null;
+          }
+
+          mapped[dbCol] = value;
+        }
+      });
+
+      // Use Shipment No. as reference if reference is not provided
+      if (!mapped.reference && mapped.shipment_no) {
+        mapped.reference = mapped.shipment_no;
+      }
+
+      return mapped;
+    }
+
+    // Show status
+    function showStatus(type, title, message, progress = null) {
+      const statusBox = document.getElementById('statusBox');
+      const statusTitle = document.getElementById('statusTitle');
+      const statusMessage = document.getElementById('statusMessage');
+      const progressBar = document.getElementById('progressBar');
+      const progressFill = document.getElementById('progressFill');
+
+      statusBox.className = `status-box ${type}`;
+      statusTitle.textContent = title;
+      statusMessage.innerHTML = message;
+
+      if (progress !== null) {
+        progressBar.style.display = 'block';
+        progressFill.style.width = `${progress}%`;
+      } else {
+        progressBar.style.display = 'none';
+      }
+    }
+
+    // Show stats
+    function showStats(stats) {
+      const statsGrid = document.getElementById('statsGrid');
+      statsGrid.style.display = 'grid';
+      statsGrid.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-number">${stats.total}</div>
+          <div class="stat-label">Total Rows</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${stats.success}</div>
+          <div class="stat-label">Imported</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number">${stats.failed}</div>
+          <div class="stat-label">Failed</div>
+        </div>
+      `;
+    }
+
+    // Test connection
+    window.testConnection = async function() {
+      const sheetId = document.getElementById('sheetId').value;
+      const sheetName = document.getElementById('sheetName').value;
+
+      if (!sheetId || !sheetName) {
+        alert('กรุณากรอก Sheet ID และ Sheet Name');
+        return;
+      }
+
+      showStatus('loading', '🔍 กำลังทดสอบการเชื่อมต่อ...', 'กำลังดึงข้อมูลจาก Google Sheets...');
+
+      try {
+        const url = getSheetCSVUrl(sheetId, sheetName);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('ไม่สามารถเข้าถึง Google Sheet ได้ ตรวจสอบว่า Sheet เป็น Public แล้ว');
+        }
+
+        const csvText = await response.text();
+        const { headers, data } = parseCSV(csvText);
+
+        showStatus('success', '✅ เชื่อมต่อสำเร็จ!', `
+          พบ ${data.length} แถว<br>
+          Columns: ${headers.slice(0, 5).join(', ')}${headers.length > 5 ? '...' : ''}
+        `);
+      } catch (error) {
+        showStatus('error', '❌ เชื่อมต่อล้มเหลว', error.message);
+      }
+    };
+
+    // Import data
+    document.getElementById('importForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const sheetId = document.getElementById('sheetId').value;
+      const sheetName = document.getElementById('sheetName').value;
+      const startRow = parseInt(document.getElementById('startRow').value);
+      const importBtn = document.getElementById('importBtn');
+
+      importBtn.disabled = true;
+      importBtn.innerHTML = '<div class="spinner"></div> <span>กำลัง Import...</span>';
+
+      showStatus('loading', '📥 กำลังนำเข้าข้อมูล...', 'กำลังดึงข้อมูลจาก Google Sheets...', 0);
+
+      try {
+        // Fetch CSV data
+        const url = getSheetCSVUrl(sheetId, sheetName);
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error('ไม่สามารถเข้าถึง Google Sheet ได้');
+        }
+
+        const csvText = await response.text();
+        const { headers, data } = parseCSV(csvText);
+
+        showStatus('loading', '📥 กำลังนำเข้าข้อมูล...', `พบ ${data.length} แถว กำลัง import...`, 10);
+
+        // Import data
+        const stats = { total: data.length, success: 0, failed: 0 };
+        const errors = [];
+
+        for (let i = 0; i < data.length; i++) {
+          try {
+            const row = data[i];
+            const mapped = mapRowToDatabase(row);
+
+            // Check if reference exists
+            if (!mapped.reference) {
+              throw new Error('Missing reference/shipment_no');
+            }
+
+            // Upsert to database
+            const { data: result, error } = await supabase
+              .from('driver_jobs')
+              .upsert(mapped, { 
+                onConflict: 'reference',
+                returning: 'minimal' 
+              });
+
+            if (error) throw error;
+
+            stats.success++;
+          } catch (error) {
+            stats.failed++;
+            errors.push(`Row ${i + startRow}: ${error.message}`);
+          }
+
+          // Update progress
+          const progress = ((i + 1) / data.length) * 100;
+          showStatus('loading', '📥 กำลังนำเข้าข้อมูล...', 
+            `กำลังประมวลผล ${i + 1}/${data.length} แถว...`, progress);
+        }
+
+        // Show result
+        if (stats.failed === 0) {
+          showStatus('success', '✅ Import สำเร็จ!', 
+            `นำเข้าข้อมูลทั้งหมด ${stats.success} รายการสำเร็จ`);
+        } else {
+          showStatus('success', '⚠️ Import เสร็จสิ้น (มีข้อผิดพลาดบางรายการ)', 
+            `สำเร็จ: ${stats.success} | ล้มเหลว: ${stats.failed}<br><br>
+            <strong>Errors:</strong><br>${errors.slice(0, 5).join('<br>')}
+            ${errors.length > 5 ? `<br>และอีก ${errors.length - 5} รายการ...` : ''}`);
+        }
+
+        showStats(stats);
+
+      } catch (error) {
+        showStatus('error', '❌ Import ล้มเหลว', error.message);
+      } finally {
+        importBtn.disabled = false;
+        importBtn.innerHTML = '<span>📥 Import Data</span>';
+      }
+    });
+  </script>
+</body>
+</html>

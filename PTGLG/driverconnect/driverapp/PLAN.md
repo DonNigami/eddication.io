@@ -346,6 +346,12 @@ Application is considered "production-ready" when:
 
 ## 📚 Change Log
 
+### 2026-01-17 - Bug Fix: Pull-to-Refresh Search Error
+- **Issue:** PTR called `window.search()` which didn't exist (ES6 module scope)
+- **Fix:** Changed to `window.DriverApp.search()` in enhanced-ux.js line 57
+- **Impact:** Pull-to-Refresh now works correctly without console errors
+- **Files Modified:** `js/enhanced-ux.js`
+
 ### 2026-01-17 - User Tracking Implementation
 - Added user_profiles table with visit tracking
 - Added saveUserProfile() and updateUserLastReference() to supabase-api.js
