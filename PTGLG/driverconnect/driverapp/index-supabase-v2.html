@@ -267,18 +267,27 @@
         await liff.init({ liffId: LIFF_ID });
         console.log('✅ LIFF Initialized');
 
-        if (liff.isLoggedIn()) {
-          const profile = await liff.getProfile();
-          currentUserId = profile.userId;
-          document.getElementById('status').textContent = `✅ สวัสดี ${profile.displayName}`;
-          console.log('✅ LINE Profile loaded:', profile.displayName);
-        } else {
-          document.getElementById('status').textContent = '🧪 กำลังใช้งานแบบทดสอบ (ไม่ได้เปิดใน LINE)';
-          console.log('⚠️ Not logged in to LINE');
+        if (!liff.isLoggedIn()) {
+          console.log('⚠️ Not logged in - Redirecting to LINE login...');
+          document.getElementById('status').textContent = '🔄 กำลังนำคุณไปยังหน้า Login ของ LINE...';
+          liff.login();
+          return;
         }
+
+        const profile = await liff.getProfile();
+        currentUserId = profile.userId;
+        document.getElementById('status').textContent = `✅ สวัสดี ${profile.displayName}`;
+        console.log('✅ LINE Profile loaded:', profile.displayName);
       } catch (error) {
         console.error('❌ LIFF Error:', error);
         document.getElementById('status').textContent = '❌ ไม่สามารถเชื่อมต่อ LINE ได้: ' + error.message;
+        
+        await Swal.fire({
+          icon: 'error',
+          title: '❌ ไม่สามารถเชื่อมต่อ LINE',
+          text: error.message,
+          confirmButtonText: 'ตกลง'
+        });
       }
     }
 
