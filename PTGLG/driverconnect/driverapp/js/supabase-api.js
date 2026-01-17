@@ -365,17 +365,6 @@ export const SupabaseAPI = {
       return { success: false, message: 'บันทึกจบทริปไม่สำเร็จ: ' + err.message };
     }
   },
-        })
-        .eq('reference', reference);
-
-      if (error) throw error;
-
-      return { success: true, message: 'จบทริปสำเร็จ' };
-    } catch (err) {
-      console.error('❌ Supabase endTrip error:', err);
-      return { success: false, message: 'จบทริปไม่สำเร็จ: ' + err.message };
-    }
-  },
 
   /**
    * Subscribe to realtime updates
