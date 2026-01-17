@@ -210,12 +210,49 @@ function renderTimeline(stops) {
 
   let allCheckout = true;
 
+  // Group stops by shipToCode
+  const grouped = {};
+  const groupOrder = [];
+  
   stops.forEach(stop => {
-    const hasCheckIn = !!stop.checkInTime;
-    const hasCheckOut = !!stop.checkOutTime;
-    const isOrigin = !!stop.isOriginStop;
+    const key = stop.shipToCode || stop.shipToName || `stop_${stop.seq}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        shipToCode: stop.shipToCode,
+        shipToName: stop.shipToName,
+        seq: stop.seq,
+        stops: [],
+        isOriginStop: stop.isOriginStop,
+        destLat: stop.destLat,
+        destLng: stop.destLng
+      };
+      groupOrder.push(key);
+    }
+    
+    grouped[key].stops.push(stop);
+  });
+
+  // Render grouped stops
+  groupOrder.forEach(key => {
+    const group = grouped[key];
+    const firstStop = group.stops[0];
+    
+    // Check if all stops in this group are checked out
+    const hasCheckIn = group.stops.some(s => !!s.checkInTime);
+    const hasCheckOut = group.stops.every(s => !!s.checkOutTime);
+    const isOrigin = group.isOriginStop;
 
     if (!hasCheckOut) allCheckout = false;
+
+    // Collect all materials from stops in this group
+    const allMaterials = group.stops
+      .map(s => s.materials)
+      .filter(m => m)
+      .join(', ');
+
+    // Use the first stop for button actions
+    const stop = firstStop;
 
     let btnHtml = '';
     if (isOrigin) {
@@ -234,21 +271,27 @@ function renderTimeline(stops) {
       }
     }
 
-    if (stop.destLat && stop.destLng) {
+    if (group.destLat && group.destLng) {
       btnHtml += `<button class="btn-nav" onclick="window.DriverApp.navigateToStop(${stop.rowIndex})">🧭</button>`;
     }
 
     const li = document.createElement('li');
     li.className = 'timeline-item';
+    
+    // Show item count if multiple items in group
+    const itemCountBadge = group.stops.length > 1 
+      ? `<span style="background:#3ecf8e;color:white;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:4px;">${group.stops.length} รายการ</span>` 
+      : '';
+    
     li.innerHTML = `
       <div class="timeline-marker"></div>
       <div class="timeline-content">
         <div class="timeline-header-row">
-          <span class="timeline-stop-label">จุดที่ ${stop.seq}</span>
-          <span class="timeline-status">${escapeHtml(stop.status) || '-'}</span>
+          <span class="timeline-stop-label">จุดที่ ${group.seq}${itemCountBadge}</span>
+          <span class="timeline-status">${escapeHtml(firstStop.status) || '-'}</span>
         </div>
-        <div class="timeline-sub">${escapeHtml(stop.shipToName) || '-'}</div>
-        ${stop.materials ? `<div class="materials-text">${escapeHtml(stop.materials)}</div>` : ''}
+        <div class="timeline-sub">${escapeHtml(group.shipToName) || '-'}</div>
+        ${allMaterials ? `<div class="materials-text">${escapeHtml(allMaterials)}</div>` : ''}
         <div class="action-row">${btnHtml}</div>
       </div>
     `;
