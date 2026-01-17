@@ -351,7 +351,7 @@
       try {
         // Query job from Supabase
         const { data, error } = await sbClient
-          .from('jobs')
+          .from('driver_jobs')
           .select('*')
           .eq('reference', reference)
           .single();
