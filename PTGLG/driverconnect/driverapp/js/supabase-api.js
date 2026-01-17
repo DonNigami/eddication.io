@@ -539,23 +539,25 @@ export const SupabaseAPI = {
         status: status,
         updated_at: new Date().toISOString()
       };
+      
+      const now = new Date().toISOString();
 
       if (type === 'checkin') {
-        jobdataUpdate.checkin_time = new Date().toISOString();
+        jobdataUpdate.checkin_time = now;
         jobdataUpdate.checkin_lat = lat;
         jobdataUpdate.checkin_lng = lng;
         if (odo) jobdataUpdate.checkin_odo = parseInt(odo);
         if (receiverName) jobdataUpdate.receiver_name = receiverName;
       } else if (type === 'checkout') {
-        jobdataUpdate.checkout_time = new Date().toISOString();
+        jobdataUpdate.checkout_time = now;
         jobdataUpdate.checkout_lat = lat;
         jobdataUpdate.checkout_lng = lng;
         if (hasPumping) jobdataUpdate.has_pumping = hasPumping === 'yes';
         if (hasTransfer) jobdataUpdate.has_transfer = hasTransfer === 'yes';
       } else if (type === 'fuel') {
-        jobdataUpdate.fueling_time = new Date().toISOString();
+        jobdataUpdate.fueling_time = now;
       } else if (type === 'unload') {
-        jobdataUpdate.unload_done_time = new Date().toISOString();
+        jobdataUpdate.unload_done_time = now;
       }
 
       const { data, error } = await supabase
@@ -567,13 +569,48 @@ export const SupabaseAPI = {
         .single();
 
       if (error) {
-        // Handle case where 0 rows are found, which might happen
         if (error.code === 'PGRST116') {
           console.warn('⚠️ updateStop: 0 rows updated in jobdata. This might be unexpected.');
-          // We can return success here if we consider this non-fatal
           return { success: true, message: 'อัปเดตสำเร็จ (แต่ไม่พบแถวข้อมูลใน jobdata)' };
         }
         throw error;
+      }
+
+      // Also update trip_stops for consistency
+      try {
+        const tripStopUpdate = { status: status, updated_at: now };
+        if (type === 'checkin') {
+          tripStopUpdate.check_in_time = now;
+          tripStopUpdate.checkin_time = now; // backward compatibility
+          tripStopUpdate.check_in_lat = lat;
+          tripStopUpdate.check_in_lng = lng;
+          if (odo) tripStopUpdate.check_in_odo = parseInt(odo);
+          if (receiverName) tripStopUpdate.receiver_name = receiverName;
+          if (receiverType) tripStopUpdate.receiver_type = receiverType;
+        } else if (type === 'checkout') {
+          tripStopUpdate.check_out_time = now;
+          tripStopUpdate.checkout_time = now; // backward compatibility
+        } else if (type === 'fuel') {
+          tripStopUpdate.fueling_time = now;
+          tripStopUpdate.fuel_time = now; // backward compatibility
+        } else if (type === 'unload') {
+          tripStopUpdate.unload_done_time = now;
+          tripStopUpdate.unload_time = now; // backward compatibility
+        }
+        
+        const { error: tripStopError } = await supabase
+          .from(TABLES.TRIP_STOPS)
+          .update(tripStopUpdate)
+          .eq('reference', reference)
+          .eq('sequence', seq);
+
+        if (tripStopError) {
+          console.warn(`⚠️ Could not sync update to trip_stops for seq ${seq}:`, tripStopError.message);
+        } else {
+          console.log(`✅ Synced update to trip_stops for seq ${seq}`);
+        }
+      } catch (syncError) {
+        console.warn('⚠️ Error during trip_stops sync:', syncError.message);
       }
 
       // Log the action to driver_logs
