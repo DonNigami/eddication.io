@@ -28,6 +28,22 @@
     <span id="queueBadge" class="queue-badge" style="display:none;">0 รายการรอส่ง</span>
   </div>
 
+  <!-- Pull-to-Refresh Indicator -->
+  <div id="ptrIndicator" class="ptr-indicator">
+    <div style="text-align:center;">
+      <div id="ptrIcon" style="font-size:1.8rem;transition:transform 0.3s;">↓</div>
+      <div id="ptrText" style="font-size:0.85rem;color:var(--text-sub);margin-top:4px;">ดึงลงเพื่อรีเฟรช</div>
+    </div>
+  </div>
+
+  <!-- Syncing Bar -->
+  <div id="syncingBar" class="syncing-bar">
+    <span class="spin">⚙️</span> กำลังซิงค์ข้อมูล...
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
   <!-- Inline Flex Notification -->
   <div id="inlineFlex" class="inline-flex hidden">
     <div class="inline-flex-bar"></div>
@@ -46,6 +62,10 @@
             <span class="realtime-dot" title="Realtime Connected"></span>
           </div>
           <div style="display:flex;gap:4px;">
+            <button id="notificationBtn" class="notification-btn" title="ตั้งค่าการแจ้งเตือน">
+              🔔
+              <span class="notif-badge hidden"></span>
+            </button>
             <button id="themeToggle" class="theme-toggle" title="สลับโหมดกลางคืน">🌙</button>
           </div>
         </div>
@@ -122,6 +142,19 @@
     </div>
   </div>
 
+  <!-- Quick Actions Floating Bar -->
+  <div id="quickActions" class="quick-actions hidden">
+    <div class="quick-actions-header">
+      <span class="quick-actions-title">⚡ จุดถัดไป</span>
+      <span id="quickActionsStop" class="quick-actions-stop"></span>
+      <button class="quick-actions-close" id="quickActionsClose">✕</button>
+    </div>
+    <div id="quickActionsButtons" class="quick-actions-buttons"></div>
+  </div>
+
+  <!-- Enhanced UX Features -->
+  <script src="js/enhanced-ux.js"></script>
+  
   <!-- Application Script (ES Module) -->
   <script type="module" src="js/app.js"></script>
 </body>
