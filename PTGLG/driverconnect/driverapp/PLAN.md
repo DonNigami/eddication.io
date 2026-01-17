@@ -1,8 +1,8 @@
 # 📋 PLAN - Driver Tracking App Development Plan
 
-> **Last Updated:** 2026-01-17  
-> **Project:** Driver Tracking App (LINE LIFF + Supabase)  
-> **Status:** ✅ Core Features Working | 🔄 User Tracking Added
+> **Last Updated:** 2026-01-17
+> **Project:** Driver Tracking App (LINE LIFF + Supabase)
+> **Status:** ✅ Core Features Working | 🔄 Schema Aligned with app/PLAN.md
 
 ---
 
@@ -11,6 +11,8 @@
 แอปพลิเคชันสำหรับคนขับรถเพื่อติดตามงานส่งของ ใช้ LINE LIFF เป็นหน้าบ้าน และ Supabase เป็น Backend Database
 
 **Main File:** `PTGLG/driverconnect/driverapp/index-supabase-modular.html`
+
+**Schema Reference:** `PTGLG/driverconnect/app/PLAN.md` (Migration Plan)
 
 ---
 
@@ -23,7 +25,7 @@ PTGLG/driverconnect/driverapp/
 ├── index-test-20260115.html       📚 Reference version (original features)
 ├── js/
 │   ├── app.js                     ✅ Main app logic + LIFF init + User tracking
-│   ├── supabase-api.js            ✅ Database API layer (driver_* tables) + User profile functions
+│   ├── supabase-api.js            ✅ Database API layer (trips, trip_stops, alcohol_checks)
 │   ├── enhanced-ux.js             ✅ UX features (PTR, toast, quick actions, syncing bar)
 │   ├── config.js                  ✅ Configuration (LIFF ID, Supabase credentials)
 │   └── supabase-api-helper.js     ⚠️  Not actively used
@@ -34,7 +36,9 @@ supabase/
 ├── migrations/
 │   ├── 20260117_create_driver_tracking_tables.sql  ✅ Applied
 │   ├── 20260117_fix_rls_policies.sql               ✅ Applied (RLS disabled for testing)
-│   └── 20260117_update_user_profiles.sql           ⏳ PENDING - Need to apply!
+│   ├── 20260117_update_user_profiles.sql           ⏳ PENDING
+│   ├── 20260117_migrate_to_trips_schema.sql        ⏳ PENDING - Rename to trips schema
+│   └── 20260117_create_alcohol_evidence_bucket.sql ⏳ PENDING - Create storage bucket
 └── check-user-profiles.sql        📋 Query to verify table structure
 ```
 
@@ -42,57 +46,80 @@ supabase/
 
 ## 🗄️ Database Schema (Supabase)
 
+> **Schema aligned with:** `PTGLG/driverconnect/app/PLAN.md`
+
 ### Tables
 
-#### 1. **driver_jobs** (Job Headers)
+#### 1. **trips** (formerly driver_jobs)
 ```sql
-- id (uuid, PK)
-- reference (text, UNIQUE) -- รหัสงาน เช่น 2601S16472
+- id (bigint, PK)
+- reference_no (text, UNIQUE) -- รหัสงาน เช่น 2601S16472
+- reference (text) -- backward compatibility
 - vehicle_desc (text)
-- drivers (text) -- comma-separated names
-- status (text) -- 'active', 'completed', 'closed'
-- ODO_start, ODO_end (numeric)
+- shipment_nos (jsonb) -- array of shipment numbers
+- driver_ids (jsonb) -- array of LINE User IDs
+- drivers (text) -- comma-separated names (backward compatibility)
+- status (text, default 'open')
+- job_closed (boolean, default false)
+- trip_ended (boolean, default false)
+- start_time, end_time (timestamptz)
+- ODO_start, end_odo (numeric)
 - location (jsonb) -- {lat, lng}
-- total_fee, toll_fee, etc. (numeric)
-- created_at, updated_at (timestamp)
+- end_location (jsonb)
+- total_fee, toll_fee, fees (numeric)
+- created_at, updated_at (timestamptz)
 ```
 
-#### 2. **driver_stops** (Individual Stops)
+#### 2. **trip_stops** (formerly driver_stops)
 ```sql
-- id (uuid, PK)
-- job_id (uuid, FK -> driver_jobs)
+- id (bigint, PK)
+- trip_id (bigint, FK -> trips.id)
 - reference (text)
-- stop_number (integer)
-- status (text)
-- checkin_time, checkout_time (timestamp)
-- checkin_location, checkout_location (jsonb) -- {lat, lng}
-- fuel_location, unload_location (jsonb)
+- sequence (int) -- stop order
+- stop_number (int) -- backward compatibility
+- destination_name (text) -- Maps to destination1/destination2
+- stop_name (text) -- backward compatibility
+- lat, lng (double precision) -- Destination coordinates
+- status (text, default 'pending')
+- is_origin (boolean)
+- check_in_time, check_out_time (timestamptz)
+- checkin_time, checkout_time (timestamptz) -- backward compatibility
+- fueling_time, unload_done_time (timestamptz)
+- fuel_time, unload_time (timestamptz) -- backward compatibility
+- check_in_odo (numeric)
+- receiver_name, receiver_type (text)
+- check_in_lat, check_in_lng (double precision) -- Actual location at check-in
+- checkin_location (jsonb) -- backward compatibility
 ```
 
-#### 3. **driver_alcohol_checks**
+#### 3. **alcohol_checks** (formerly driver_alcohol_checks)
 ```sql
-- id (uuid, PK)
-- job_id (uuid, FK)
+- id (bigint, PK)
+- trip_id (bigint, FK -> trips.id)
 - reference (text)
+- driver_user_id (text) -- LINE User ID
 - driver_name (text)
 - alcohol_value (numeric)
-- image_url (text) -- URL to 'alcohol-checks' storage bucket
-- location (jsonb)
-- created_at (timestamp)
+- image_url (text) -- URL to 'alcohol-evidence' storage bucket
+- checked_at (timestamptz)
+- lat, lng (double precision)
+- location (jsonb) -- backward compatibility
 ```
 
 #### 4. **driver_logs** (Audit Trail)
 ```sql
 - id (uuid, PK)
-- job_id (uuid, FK)
+- trip_id (uuid, FK -> trips.id)
+- job_id (uuid) -- backward compatibility
 - reference (text)
-- action (text) -- 'checkin', 'checkout', 'fuel', etc.
+- action (text) -- 'checkin', 'checkout', 'fuel', 'unload', 'alcohol', 'close', 'endtrip'
 - details (jsonb)
 - location (jsonb)
-- created_at (timestamp)
+- user_id (text)
+- created_at (timestamptz)
 ```
 
-#### 5. **user_profiles** (User Tracking) ✅ EXISTS
+#### 5. **user_profiles** (User Tracking)
 ```sql
 - id (uuid, PK)
 - user_id (text, UNIQUE) -- LINE User ID (starts with 'U')
@@ -107,11 +134,21 @@ supabase/
 ```
 
 ### Storage Buckets
-- `alcohol-checks` - Store alcohol test images
+- `alcohol-evidence` - Store alcohol test images (per app/PLAN.md)
+- ~~`alcohol-checks`~~ - Old bucket name (deprecated)
 
 ### RLS Status
-- ⚠️ **Currently DISABLED for all driver_* tables** (for testing)
+- ⚠️ **Currently DISABLED for all tables** (for testing)
 - 🔐 **Production:** Need to enable RLS with proper policies
+
+### Table Name Migration
+| Old Name | New Name | Status |
+|----------|----------|--------|
+| driver_jobs | trips | ⏳ PENDING |
+| driver_stops | trip_stops | ⏳ PENDING |
+| driver_alcohol_checks | alcohol_checks | ⏳ PENDING |
+| driver_logs | driver_logs | ✅ No change |
+| alcohol-checks (bucket) | alcohol-evidence | ⏳ PENDING |
 
 ---
 
@@ -345,6 +382,20 @@ Application is considered "production-ready" when:
 ---
 
 ## 📚 Change Log
+
+### 2026-01-17 - Schema Alignment with app/PLAN.md
+- **Objective:** Align driverapp schema with migration plan in `PTGLG/driverconnect/app/PLAN.md`
+- **Changes:**
+  - Renamed table references: driver_jobs → trips, driver_stops → trip_stops, driver_alcohol_checks → alcohol_checks
+  - Updated supabase-api.js to use TABLES constant for all table references
+  - Added new column mappings: sequence, destination_name, check_in_time, check_out_time, fueling_time, unload_done_time
+  - Added trip_id FK to trip_stops and alcohol_checks tables
+  - Changed storage bucket from 'alcohol-checks' to 'alcohol-evidence'
+  - Created migration SQL: `20260117_migrate_to_trips_schema.sql`
+  - Created storage bucket SQL: `20260117_create_alcohol_evidence_bucket.sql`
+- **Backward Compatibility:** Old column names preserved alongside new ones
+- **Files Modified:** `js/supabase-api.js`, `PLAN.md`
+- **Migrations:** 2 new SQL files pending execution
 
 ### 2026-01-17 - Bug Fix: Pull-to-Refresh Search Error
 - **Issue:** PTR called `window.search()` which didn't exist (ES6 module scope)

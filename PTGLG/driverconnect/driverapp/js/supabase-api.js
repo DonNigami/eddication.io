@@ -1,9 +1,29 @@
 /**
  * Driver Tracking App - Supabase API Functions
+ *
+ * Schema aligned with app/PLAN.md:
+ * - trips (formerly driver_jobs)
+ * - trip_stops (formerly driver_stops)
+ * - alcohol_checks (formerly driver_alcohol_checks)
+ * - driver_logs (audit trail)
+ * - Storage: alcohol-evidence bucket
  */
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { decodeBase64 } from './utils.js';
+
+// Table names (aligned with app/PLAN.md)
+const TABLES = {
+  TRIPS: 'trips',
+  TRIP_STOPS: 'trip_stops',
+  ALCOHOL_CHECKS: 'alcohol_checks',
+  DRIVER_LOGS: 'driver_logs',
+  JOBDATA: 'jobdata',
+  USER_PROFILES: 'user_profiles'
+};
+
+// Storage bucket name
+const STORAGE_BUCKET = 'alcohol-evidence';
 
 // Initialize Supabase client
 let supabase = null;
@@ -186,54 +206,54 @@ async function enrichStopsWithCoordinates(stops, route = null) {
 }
 
 /**
- * Sync driver_jobs data to jobdata table
+ * Sync trips data to jobdata table
  */
-async function syncToJobdata(jobs, stops, reference) {
+async function syncToJobdata(trips, stops, reference) {
   try {
-    console.log('🔄 Syncing driver_jobs to jobdata...', jobs.length, 'jobs');
-    
+    console.log('🔄 Syncing trips to jobdata...', trips.length, 'trips');
+
     // Delete existing jobdata rows for this reference
     await supabase
-      .from('jobdata')
+      .from(TABLES.JOBDATA)
       .delete()
       .eq('reference', reference);
-    
-    // Insert new rows (each job row = 1 stop in jobdata)
-    const jobdataRows = jobs.map((job, index) => {
+
+    // Insert new rows (each trip row = 1 stop in jobdata)
+    const jobdataRows = trips.map((trip, index) => {
       const stop = stops[index] || {};
-      
+
       return {
         reference: reference,
-        shipment_no: job.shipment_no || '',
-        ship_to_code: job.ship_to || stop.shipToCode || '',
-        ship_to_name: job.ship_to_name || stop.shipToName || '',
+        shipment_no: trip.shipment_no || '',
+        ship_to_code: trip.ship_to || stop.shipToCode || '',
+        ship_to_name: trip.ship_to_name || stop.shipToName || '',
         status: stop.status || 'PENDING',
         checkin_time: stop.checkInTime || null,
         checkout_time: stop.checkOutTime || null,
         fueling_time: stop.fuelingTime || null,
         unload_done_time: stop.unloadDoneTime || null,
-        vehicle_desc: job.vehicle_desc || '',
-        drivers: job.drivers || '',
+        vehicle_desc: trip.vehicle_desc || '',
+        drivers: trip.drivers || '',
         seq: index + 1,
-        route: job.route || '',
+        route: trip.route || '',
         is_origin_stop: index === 0,
-        materials: job.material_desc || stop.materials || '',
-        total_qty: job.delivery_qty || stop.totalQty || null,
+        materials: trip.material_desc || stop.materials || '',
+        total_qty: trip.delivery_qty || stop.totalQty || null,
         dest_lat: stop.destLat || null,
         dest_lng: stop.destLng || null,
-        job_closed: job.status === 'closed',
-        trip_ended: job.status === 'completed',
-        vehicle_status: job.vehicle_status || null,
+        job_closed: trip.job_closed || trip.status === 'closed',
+        trip_ended: trip.trip_ended || trip.status === 'completed',
+        vehicle_status: trip.vehicle_status || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
     });
-    
+
     if (jobdataRows.length > 0) {
       const { error } = await supabase
-        .from('jobdata')
+        .from(TABLES.JOBDATA)
         .insert(jobdataRows);
-      
+
       if (error) {
         console.error('❌ Error syncing to jobdata:', error);
       } else {
@@ -275,17 +295,17 @@ export const SupabaseAPI = {
       // Step 1: Search in jobdata table first
       // ============================================
       console.log('🔍 Step 1: Searching in jobdata table...');
-      
+
       let jobdataRows = null;
       let jobdataError = null;
-      
+
       try {
         const result = await supabase
-          .from('jobdata')
+          .from(TABLES.JOBDATA)
           .select('*')
           .eq('reference', reference)
           .order('seq', { ascending: true });
-        
+
         jobdataRows = result.data;
         jobdataError = result.error;
       } catch (err) {
@@ -299,9 +319,9 @@ export const SupabaseAPI = {
         
         const firstRow = jobdataRows[0];
         
-        // Get alcohol checks from driver_alcohol_checks table
+        // Get alcohol checks from alcohol_checks table
         const { data: alcoholData } = await supabase
-          .from('driver_alcohol_checks')
+          .from(TABLES.ALCOHOL_CHECKS)
           .select('driver_name')
           .eq('reference', reference);
 
@@ -358,92 +378,97 @@ export const SupabaseAPI = {
       }
 
       // ============================================
-      // Step 2: Search in driver_jobs (fallback)
+      // Step 2: Search in trips table (fallback)
       // ============================================
-      console.log('🔍 Step 2: Searching in driver_jobs...');
-      
+      console.log('🔍 Step 2: Searching in trips table...');
+
       let jobs = null;
       let jobError = null;
-      
+
       try {
         const result = await supabase
-          .from('driver_jobs')
+          .from(TABLES.TRIPS)
           .select('*')
           .eq('reference', reference)
           .order('created_at', { ascending: true });
-        
+
         jobs = result.data;
         jobError = result.error;
       } catch (err) {
-        console.error('❌ driver_jobs query exception:', err.message);
+        console.error('❌ trips query exception:', err.message);
         jobError = err;
       }
 
-      // Handle driver_jobs error
+      // Handle trips query error
       if (jobError) {
-        console.error('❌ driver_jobs query error:', jobError);
-        
+        console.error('❌ trips query error:', jobError);
+
         // If it's an RLS or permission error, show helpful message
         const errorMsg = jobError.message || '';
         if (jobError.code === 'PGRST116' || errorMsg.includes('406') || errorMsg.includes('permission') || errorMsg.includes('policy')) {
-          return { 
-            success: false, 
-            message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference + '\n\nกรุณาตรวจสอบ:\n1. เลข Reference ถูกต้องหรือไม่\n2. งานถูกสร้างในระบบแล้วหรือยัง\n\n(หมายเหตุ: ตรวจสอบทั้ง jobdata และ driver_jobs แล้ว)' 
+          return {
+            success: false,
+            message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference + '\n\nกรุณาตรวจสอบ:\n1. เลข Reference ถูกต้องหรือไม่\n2. งานถูกสร้างในระบบแล้วหรือยัง\n\n(หมายเหตุ: ตรวจสอบทั้ง jobdata และ trips แล้ว)'
           };
         }
-        
-        return { 
-          success: false, 
-          message: 'เกิดข้อผิดพลาด: ' + errorMsg 
+
+        return {
+          success: false,
+          message: 'เกิดข้อผิดพลาด: ' + errorMsg
         };
       }
 
       if (!jobs || jobs.length === 0) {
-        return { 
-          success: false, 
-          message: 'ไม่พบข้อมูลงาน Reference: ' + reference + '\n\n(ค้นหาทั้ง jobdata และ driver_jobs แล้ว)' 
+        return {
+          success: false,
+          message: 'ไม่พบข้อมูลงาน Reference: ' + reference + '\n\n(ค้นหาทั้ง jobdata และ trips แล้ว)'
         };
       }
-      
-      console.log('✅ Found in driver_jobs:', jobs.length, 'rows');
+
+      console.log('✅ Found in trips:', jobs.length, 'rows');
       
       // Use first job for header info
       const job = jobs[0];
 
-      // Get stops from driver_stops table
+      // Get stops from trip_stops table
       const { data: stopsData, error: stopsError } = await supabase
-        .from('driver_stops')
+        .from(TABLES.TRIP_STOPS)
         .select('*')
         .eq('reference', reference)
-        .order('stop_number', { ascending: true });
+        .order('sequence', { ascending: true });
 
-      // Get alcohol checks from driver_alcohol_checks table
+      // Get alcohol checks from alcohol_checks table
       const { data: alcoholData } = await supabase
-        .from('driver_alcohol_checks')
+        .from(TABLES.ALCOHOL_CHECKS)
         .select('driver_name')
         .eq('reference', reference);
 
       const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
 
-      // If driver_stops has data, use it. Otherwise, create stops from each job row
+      // If trip_stops has data, use it. Otherwise, create stops from each trip row
       let stops = [];
-      
+
       if (stopsData && stopsData.length > 0) {
-        // Use driver_stops data
+        // Use trip_stops data (aligned with app/PLAN.md schema)
         stops = stopsData.map(row => ({
           rowIndex: row.id,
-          seq: row.stop_number,
-          shipToCode: row.stop_number.toString(),
-          shipToName: row.stop_name || `จุดส่งที่ ${row.stop_number}`,
+          seq: row.sequence || row.stop_number,
+          shipToCode: (row.sequence || row.stop_number).toString(),
+          shipToName: row.destination_name || row.stop_name || `จุดส่งที่ ${row.sequence || row.stop_number}`,
           address: row.address,
           status: row.status || 'pending',
-          checkInTime: row.checkin_time,
-          checkOutTime: row.checkout_time,
-          fuelingTime: row.fuel_time,
-          unloadDoneTime: row.unload_time,
-          isOriginStop: row.stop_number === 1,
-          destLat: row.checkin_location?.lat || null,
-          destLng: row.checkin_location?.lng || null,
+          checkInTime: row.check_in_time || row.checkin_time,
+          checkOutTime: row.check_out_time || row.checkout_time,
+          fuelingTime: row.fueling_time || row.fuel_time,
+          unloadDoneTime: row.unload_done_time || row.unload_time,
+          isOriginStop: row.is_origin || row.sequence === 1 || row.stop_number === 1,
+          destLat: row.lat || row.checkin_location?.lat || null,
+          destLng: row.lng || row.checkin_location?.lng || null,
+          checkInOdo: row.check_in_odo,
+          receiverName: row.receiver_name,
+          receiverType: row.receiver_type,
+          checkInLat: row.check_in_lat,
+          checkInLng: row.check_in_lng,
           totalQty: null,
           materials: row.address
         }));
@@ -476,13 +501,13 @@ export const SupabaseAPI = {
       // Enrich stops with coordinates from master location tables
       const enrichedStops = await enrichStopsWithCoordinates(stops, job.route || null);
 
-      // Step 3: Sync data to jobdata table (found in driver_jobs, copy to jobdata)
-      console.log('🔄 Step 3: Syncing from driver_jobs to jobdata...');
+      // Step 3: Sync data to jobdata table (found in trips, copy to jobdata)
+      console.log('🔄 Step 3: Syncing from trips to jobdata...');
       await syncToJobdata(jobs, enrichedStops, reference);
 
       return {
         success: true,
-        source: 'driver_jobs',
+        source: 'trips',
         data: {
           referenceNo: reference,
           vehicleDesc: job.vehicle_desc || '',
@@ -534,7 +559,7 @@ export const SupabaseAPI = {
       }
 
       const { data, error } = await supabase
-        .from('jobdata')
+        .from(TABLES.JOBDATA)
         .update(jobdataUpdate)
         .eq('reference', reference)
         .eq('seq', seq)
@@ -551,11 +576,10 @@ export const SupabaseAPI = {
         throw error;
       }
 
-      // Log the action to driver_logs if possible.
-      // Note: job_id might not be available here. We'll log without it.
+      // Log the action to driver_logs
       try {
         await supabase
-          .from('driver_logs')
+          .from(TABLES.DRIVER_LOGS)
           .insert({
             reference: reference,
             action: type,
@@ -588,51 +612,53 @@ export const SupabaseAPI = {
 
   /**
    * Upload alcohol check
+   * Schema aligned with app/PLAN.md: alcohol_checks table
    */
   async uploadAlcohol({ reference, driverName, userId, alcoholValue, imageBase64, lat, lng }) {
     console.log('🍺 Supabase: Uploading alcohol check for', driverName);
 
     try {
-      // Get job_id first
-      const { data: job } = await supabase
-        .from('driver_jobs')
+      // Get trip_id first
+      const { data: trip } = await supabase
+        .from(TABLES.TRIPS)
         .select('id')
         .eq('reference', reference)
         .single();
 
-      if (!job) throw new Error('ไม่พบงาน');
+      if (!trip) throw new Error('ไม่พบงาน');
 
-      // Upload image to Storage (alcohol-checks bucket)
+      // Upload image to Storage (alcohol-evidence bucket per PLAN.md)
       let imageUrl = null;
       if (imageBase64) {
         const fileName = `${reference}_${driverName}_${Date.now()}.jpg`;
         const base64Data = imageBase64.split(',')[1] || imageBase64;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('alcohol-checks')
+          .from(STORAGE_BUCKET)
           .upload(fileName, decodeBase64(base64Data), {
             contentType: 'image/jpeg'
           });
 
         if (!uploadError && uploadData) {
           const { data: urlData } = supabase.storage
-            .from('alcohol-checks')
+            .from(STORAGE_BUCKET)
             .getPublicUrl(fileName);
           imageUrl = urlData.publicUrl;
         }
       }
 
-      // Insert alcohol check record
+      // Insert alcohol check record (schema per PLAN.md)
       const { data, error } = await supabase
-        .from('driver_alcohol_checks')
+        .from(TABLES.ALCOHOL_CHECKS)
         .insert({
-          job_id: job.id,
+          trip_id: trip.id,
           reference: reference,
           driver_name: driverName,
+          driver_user_id: userId,
           alcohol_value: parseFloat(alcoholValue),
           image_url: imageUrl,
-          location: { lat, lng },
-          checked_by: userId,
+          lat: lat,
+          lng: lng,
           checked_at: new Date().toISOString()
         })
         .select();
@@ -641,9 +667,9 @@ export const SupabaseAPI = {
 
       // Log action
       await supabase
-        .from('driver_logs')
+        .from(TABLES.DRIVER_LOGS)
         .insert({
-          job_id: job.id,
+          trip_id: trip.id,
           reference: reference,
           action: 'alcohol',
           details: { driverName, alcoholValue, imageUrl },
@@ -653,7 +679,7 @@ export const SupabaseAPI = {
 
       // Get updated checked drivers
       const { data: allChecks } = await supabase
-        .from('driver_alcohol_checks')
+        .from(TABLES.ALCOHOL_CHECKS)
         .select('driver_name')
         .eq('reference', reference);
 
@@ -671,22 +697,24 @@ export const SupabaseAPI = {
 
   /**
    * Close job
+   * Schema aligned with app/PLAN.md: trips table with job_closed flag
    */
   async closeJob({ reference, userId, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee }) {
     console.log('📋 Supabase: Closing job', reference);
 
     try {
       const totalFees = (
-        (hillFee === 'yes' ? 500 : 0) + 
-        (bkkFee === 'yes' ? 300 : 0) + 
+        (hillFee === 'yes' ? 500 : 0) +
+        (bkkFee === 'yes' ? 300 : 0) +
         (repairFee === 'yes' ? 1000 : 0)
       );
 
-      // Update job status
+      // Update trip status (per PLAN.md schema)
       const { data, error } = await supabase
-        .from('driver_jobs')
+        .from(TABLES.TRIPS)
         .update({
           status: 'closed',
+          job_closed: true,
           vehicle_status: vehicleStatus,
           fees: totalFees,
           updated_at: new Date().toISOString(),
@@ -700,7 +728,7 @@ export const SupabaseAPI = {
 
       // Also update jobdata table
       await supabase
-        .from('jobdata')
+        .from(TABLES.JOBDATA)
         .update({
           job_closed: true,
           job_closed_at: new Date().toISOString(),
@@ -712,9 +740,9 @@ export const SupabaseAPI = {
 
       // Log action
       await supabase
-        .from('driver_logs')
+        .from(TABLES.DRIVER_LOGS)
         .insert({
-          job_id: data.id,
+          trip_id: data.id,
           reference: reference,
           action: 'close',
           details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee },
@@ -730,15 +758,18 @@ export const SupabaseAPI = {
 
   /**
    * End trip
+   * Schema aligned with app/PLAN.md: trips table with trip_ended flag and end_time
    */
   async endTrip({ reference, userId, endOdo, endPointName, lat, lng }) {
     console.log('🏁 Supabase: Ending trip', reference);
 
     try {
       const { data, error } = await supabase
-        .from('driver_jobs')
+        .from(TABLES.TRIPS)
         .update({
           status: 'completed',
+          trip_ended: true,
+          end_time: new Date().toISOString(),
           end_odo: endOdo ? parseInt(endOdo) : null,
           end_location: { lat, lng },
           updated_at: new Date().toISOString(),
@@ -752,7 +783,7 @@ export const SupabaseAPI = {
 
       // Also update jobdata table
       await supabase
-        .from('jobdata')
+        .from(TABLES.JOBDATA)
         .update({
           trip_ended: true,
           trip_ended_at: new Date().toISOString(),
@@ -767,9 +798,9 @@ export const SupabaseAPI = {
 
       // Log action
       await supabase
-        .from('driver_logs')
+        .from(TABLES.DRIVER_LOGS)
         .insert({
-          job_id: data.id,
+          trip_id: data.id,
           reference: reference,
           action: 'endtrip',
           details: { endOdo, endPointName, location: { lat, lng } },
@@ -793,7 +824,7 @@ export const SupabaseAPI = {
     try {
       // Check if user exists
       const { data: existing } = await supabase
-        .from('user_profiles')
+        .from(TABLES.USER_PROFILES)
         .select('id, total_visits')
         .eq('user_id', profile.userId)
         .single();
@@ -801,7 +832,7 @@ export const SupabaseAPI = {
       if (existing) {
         // Update existing user
         const { error } = await supabase
-          .from('user_profiles')
+          .from(TABLES.USER_PROFILES)
           .update({
             display_name: profile.displayName,
             picture_url: profile.pictureUrl,
@@ -817,7 +848,7 @@ export const SupabaseAPI = {
       } else {
         // Insert new user
         const { error } = await supabase
-          .from('user_profiles')
+          .from(TABLES.USER_PROFILES)
           .insert({
             user_id: profile.userId,
             display_name: profile.displayName,
@@ -845,7 +876,7 @@ export const SupabaseAPI = {
   async updateUserLastReference(userId, reference) {
     try {
       const { error } = await supabase
-        .from('user_profiles')
+        .from(TABLES.USER_PROFILES)
         .update({
           last_reference: reference,
           updated_at: new Date().toISOString()
@@ -876,7 +907,7 @@ export const SupabaseAPI = {
         {
           event: '*',
           schema: 'public',
-          table: 'jobdata',
+          table: TABLES.JOBDATA,
           filter: `reference=eq.${reference}`
         },
         (payload) => {
