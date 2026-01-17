@@ -617,7 +617,12 @@ async function closeJob() {
 
     jobClosed = true;
     await showSuccess('ปิดงานสำเร็จ', 'บันทึกการปิดงานเรียบร้อย');
-    if (currentReference) search(true);
+    
+    // Reset UI to initial state per PLAN.md
+    clearResult();
+    document.getElementById('keyword').value = '';
+    localStorage.removeItem(APP_CONFIG.LAST_REFERENCE_KEY);
+    hideLastUpdatedContainer();
 
   } catch (err) {
     closeLoading();
@@ -785,6 +790,7 @@ async function initApp() {
   const lastRef = localStorage.getItem(APP_CONFIG.LAST_REFERENCE_KEY);
   if (lastRef) {
     document.getElementById('keyword').value = lastRef;
+    search(true); // Auto-load cached job
   }
 
   // Bind events
