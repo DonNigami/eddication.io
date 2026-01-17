@@ -12,18 +12,18 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { decodeBase64 } from './utils.js';
 
-// Table names (aligned with app/PLAN.md)
+// Table names (aligned with app/PLAN.md migration status - PENDING)
 const TABLES = {
-  TRIPS: 'trips',
-  TRIP_STOPS: 'trip_stops',
-  ALCOHOL_CHECKS: 'alcohol_checks',
+  TRIPS: 'driver_jobs',
+  TRIP_STOPS: 'driver_stops',
+  ALCOHOL_CHECKS: 'driver_alcohol_checks',
   DRIVER_LOGS: 'driver_logs',
   JOBDATA: 'jobdata',
   USER_PROFILES: 'user_profiles'
 };
 
-// Storage bucket name
-const STORAGE_BUCKET = 'alcohol-evidence';
+// Storage bucket name (migration PENDING)
+const STORAGE_BUCKET = 'alcohol-checks';
 
 // Initialize Supabase client
 let supabase = null;
