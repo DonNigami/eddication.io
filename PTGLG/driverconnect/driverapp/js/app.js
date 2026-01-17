@@ -78,6 +78,8 @@ async function search(isSilent = false) {
     }
 
     const d = result.data;
+    const source = result.source || 'unknown';
+    
     lastStops = d.stops || [];
     currentReference = d.referenceNo || keyword;
     setCurrentReference(currentReference);
@@ -95,7 +97,7 @@ async function search(isSilent = false) {
     jobClosed = !!d.jobClosed;
     tripEnded = !!d.tripEnded;
 
-    renderSummary(d);
+    renderSummary(d, source);
     renderAlcoholSection();
     renderTimeline(lastStops);
     recordLastUpdated();
@@ -140,13 +142,21 @@ function clearResult() {
 // ============================================
 // RENDER FUNCTIONS
 // ============================================
-function renderSummary(d) {
+function renderSummary(d, source = 'unknown') {
   const summaryEl = document.getElementById('summary');
   const stops = d.stops || [];
   const totalQtyAll = stops.reduce((acc, s) => acc + (s.totalQty || 0), 0);
 
+  // Determine source badge
+  let sourceBadge = '';
+  if (source === 'jobdata') {
+    sourceBadge = '<span class="badge" style="background:#3ecf8e;font-size:0.7rem;margin-left:4px;">jobdata</span>';
+  } else if (source === 'driver_jobs') {
+    sourceBadge = '<span class="badge" style="background:#f39c12;font-size:0.7rem;margin-left:4px;">driver_jobs→synced</span>';
+  }
+
   summaryEl.innerHTML = `
-    <div class="summary-row"><span class="summary-label">Reference</span><span class="summary-value">${escapeHtml(d.referenceNo)}</span></div>
+    <div class="summary-row"><span class="summary-label">Reference</span><span class="summary-value">${escapeHtml(d.referenceNo)}${sourceBadge}</span></div>
     <div class="summary-row"><span class="summary-label">ชื่อรถ</span><span class="summary-value">${escapeHtml(d.vehicleDesc) || '-'}</span></div>
     <div class="summary-row"><span class="summary-label">จำนวนจุดส่ง</span><span class="summary-value">${stops.length} จุด</span></div>
     <div class="summary-row"><span class="summary-label">ปริมาณรวม</span><span class="summary-value">${totalQtyAll || 0}</span></div>

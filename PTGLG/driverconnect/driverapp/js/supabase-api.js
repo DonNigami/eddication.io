@@ -109,18 +109,33 @@ function getSuccessMessage(type) {
 export const SupabaseAPI = {
   /**
    * Search job by reference
+   * Search priority: jobdata first, then driver_jobs
    */
   async search(reference, userId) {
     console.log('🔍 Supabase: Searching for', reference);
 
     try {
+      // ============================================
       // Step 1: Search in jobdata table first
+      // ============================================
       console.log('🔍 Step 1: Searching in jobdata table...');
-      const { data: jobdataRows, error: jobdataError } = await supabase
-        .from('jobdata')
-        .select('*')
-        .eq('reference', reference)
-        .order('seq', { ascending: true });
+      
+      let jobdataRows = null;
+      let jobdataError = null;
+      
+      try {
+        const result = await supabase
+          .from('jobdata')
+          .select('*')
+          .eq('reference', reference)
+          .order('seq', { ascending: true });
+        
+        jobdataRows = result.data;
+        jobdataError = result.error;
+      } catch (err) {
+        console.warn('⚠️ jobdata query exception:', err.message);
+        jobdataError = err;
+      }
 
       // If found in jobdata, use it
       if (!jobdataError && jobdataRows && jobdataRows.length > 0) {
@@ -159,6 +174,7 @@ export const SupabaseAPI = {
 
         return {
           success: true,
+          source: 'jobdata',
           data: {
             referenceNo: reference,
             vehicleDesc: firstRow.vehicle_desc || '',
@@ -175,39 +191,59 @@ export const SupabaseAPI = {
         };
       }
 
-      // Log jobdata error if exists
+      // Log jobdata result
       if (jobdataError) {
-        console.warn('⚠️ jobdata query error:', jobdataError.message, '- Falling back to driver_jobs');
+        console.warn('⚠️ jobdata query error:', jobdataError.message);
+      } else {
+        console.log('ℹ️ No data found in jobdata');
       }
 
-      // Step 2: If not found in jobdata, search in driver_jobs
-      console.log('🔍 Step 2: Not found in jobdata, searching in driver_jobs...');
-      const { data: jobs, error: jobError } = await supabase
-        .from('driver_jobs')
-        .select('*')
-        .eq('reference', reference)
-        .order('created_at', { ascending: true });
+      // ============================================
+      // Step 2: Search in driver_jobs (fallback)
+      // ============================================
+      console.log('🔍 Step 2: Searching in driver_jobs...');
+      
+      let jobs = null;
+      let jobError = null;
+      
+      try {
+        const result = await supabase
+          .from('driver_jobs')
+          .select('*')
+          .eq('reference', reference)
+          .order('created_at', { ascending: true });
+        
+        jobs = result.data;
+        jobError = result.error;
+      } catch (err) {
+        console.error('❌ driver_jobs query exception:', err.message);
+        jobError = err;
+      }
 
       // Handle driver_jobs error
       if (jobError) {
         console.error('❌ driver_jobs query error:', jobError);
         
-        // Check if it's a 406 or table not found error
-        if (jobError.code === 'PGRST116' || jobError.message.includes('406')) {
+        // If it's an RLS or permission error, show helpful message
+        const errorMsg = jobError.message || '';
+        if (jobError.code === 'PGRST116' || errorMsg.includes('406') || errorMsg.includes('permission') || errorMsg.includes('policy')) {
           return { 
             success: false, 
-            message: '⚠️ ตาราง driver_jobs ยังไม่พร้อมใช้งาน\nกรุณาติดต่อผู้ดูแลระบบ\n\n(Error: Table not configured or RLS blocked)' 
+            message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference + '\n\nกรุณาตรวจสอบ:\n1. เลข Reference ถูกต้องหรือไม่\n2. งานถูกสร้างในระบบแล้วหรือยัง\n\n(หมายเหตุ: ตรวจสอบทั้ง jobdata และ driver_jobs แล้ว)' 
           };
         }
         
         return { 
           success: false, 
-          message: 'เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: ' + jobError.message 
+          message: 'เกิดข้อผิดพลาด: ' + errorMsg 
         };
       }
 
       if (!jobs || jobs.length === 0) {
-        return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
+        return { 
+          success: false, 
+          message: 'ไม่พบข้อมูลงาน Reference: ' + reference + '\n\n(ค้นหาทั้ง jobdata และ driver_jobs แล้ว)' 
+        };
       }
       
       console.log('✅ Found in driver_jobs:', jobs.length, 'rows');
@@ -284,6 +320,7 @@ export const SupabaseAPI = {
 
       return {
         success: true,
+        source: 'driver_jobs',
         data: {
           referenceNo: reference,
           vehicleDesc: job.vehicle_desc || '',
@@ -292,6 +329,12 @@ export const SupabaseAPI = {
           stops: stops,
           alcohol: {
             drivers: drivers,
+            checkedDrivers: checkedDrivers
+          },
+          jobClosed: job.status === 'closed',
+          tripEnded: job.status === 'completed'
+        }
+      };
             checkedDrivers: checkedDrivers
           },
           jobClosed: job.status === 'closed',
