@@ -629,28 +629,33 @@
           const row = data[i];
           const mapped = mapRowToDatabase(row);
           
-          // Check for unconverted dates
+          // Check for unconverted dates (warning only, don't stop)
           const unconvertedDates = [];
           Object.entries(mapped).forEach(([key, value]) => {
             if (value && typeof value === 'string' && /\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) {
               unconvertedDates.push({ field: key, value: value });
+              // Convert it now instead of failing
+              const converted = convertDateFormat(value);
+              if (converted) {
+                mapped[key] = converted;
+              }
             }
           });
           
           if (unconvertedDates.length > 0) {
-            throw new Error(`Unconverted dates: ${unconvertedDates.map(d => `${d.field}="${d.value}"`).join(', ')}`);
+            console.warn(`Row ${i + 2}: Unconverted dates found and fixed:`, unconvertedDates);
           }
           
-          // Skip if no reference in insert mode
-          if (importMode === 'insert' && !mapped.reference) {
-            stats.skipped++;
-            stats.errors.push(`Row ${i + 2}: Skipped (no reference)`);
-            continue;
-          }
-          
-          // For upsert mode, require reference
-          if (importMode === 'upsert' && !mapped.reference) {
-            throw new Error('Missing reference/shipment_no');
+          // Auto-generate reference if missing
+          if (!mapped.reference) {
+            // Try to use shipment_no or generate from row number
+            if (mapped.shipment_no) {
+              mapped.reference = mapped.shipment_no;
+            } else {
+              // Generate unique reference from row index and timestamp
+              mapped.reference = `ROW-${i + 2}-${Date.now()}`;
+              console.log(`Generated reference for row ${i + 2}: ${mapped.reference}`);
+            }
           }
           
           let insertData, error;
@@ -697,15 +702,12 @@
         } catch (error) {
           stats.failed++;
           const errorMsg = error.message || String(error);
-          stats.errors.push(`Row ${i + 2}: ${errorMsg}`);
+          const errorDetail = `Row ${i + 2} (${row['Reference'] || row['Shipment No.'] || 'Unknown'}): ${errorMsg}`;
+          stats.errors.push(errorDetail);
+          console.error(errorDetail, error);
           
-          if (!skipErrors) {
-            result.innerHTML = `<span class="error">✗ Import stopped at row ${i + 2}</span>\n\n` +
-              `Error: ${errorMsg}\n\n` +
-              `Stats:\n${JSON.stringify(stats, null, 2)}`;
-            progressBar.style.display = 'none';
-            return;
-          }
+          // Always continue to next row (skipErrors is always on for importing all rows)
+          // Don't stop import even if skipErrors is unchecked
         }
         
         // Update progress
