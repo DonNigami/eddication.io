@@ -8,7 +8,7 @@ export const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
 
 // LIFF Configuration
-export const LIFF_ID = '2007705394-y4mV76Gv';
+export const LIFF_ID = '2007705394-Fgx9wdHu';
 
 // App Settings
 export const APP_CONFIG = {
