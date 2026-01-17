@@ -199,7 +199,7 @@
           </div>
         </div>
 
-        <div id="status" class="status-text">กำลังโหลดโปรไฟล์จาก LINE...</div>
+        <div id="status" class="status-text">🔄 กำลังโหลดโปรไฟล์จาก LINE...</div>
 
         <!-- GPS Status Indicator -->
         <div id="gpsStatus" class="gps-status checking" style="cursor:pointer;" title="คลิกเพื่อตรวจสอบ GPS ใหม่">
@@ -1791,21 +1791,58 @@
       });
 
       // Initialize LIFF
+      console.log('🔄 Initializing LIFF with ID:', LIFF_ID);
+      
       try {
+        // Check if liff is available
+        if (typeof liff === 'undefined') {
+          throw new Error('LIFF SDK not loaded');
+        }
+
         await liff.init({ liffId: LIFF_ID });
+        console.log('✅ LIFF initialized');
+        console.log('📱 Is in LINE client:', liff.isInClient());
+        console.log('🔐 Is logged in:', liff.isLoggedIn());
 
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
           currentUserId = profile.userId;
-          document.getElementById('status').textContent = 'สวัสดี ' + profile.displayName;
+          document.getElementById('status').textContent = '✅ สวัสดี ' + profile.displayName;
+          console.log('👤 User Profile:', profile);
         } else {
-          currentUserId = 'test_user_' + Date.now();
-          document.getElementById('status').textContent = 'กำลังใช้งานแบบทดสอบ';
+          // Not logged in - try to login
+          if (liff.isInClient()) {
+            // In LINE app but not logged in
+            currentUserId = 'test_user_' + Date.now();
+            document.getElementById('status').textContent = '⚠️ กรุณาเข้าสู่ระบบ LINE';
+            console.log('⚠️ In LINE client but not logged in');
+          } else {
+            // Not in LINE app
+            currentUserId = 'test_user_' + Date.now();
+            document.getElementById('status').textContent = '🧪 กำลังใช้งานแบบทดสอบ (ไม่ได้อยู่ใน LINE)';
+            console.log('🧪 Not in LINE client - using test mode');
+          }
         }
       } catch (err) {
-        console.error('LIFF init error:', err);
+        console.error('❌ LIFF init error:', err);
+        console.error('Error details:', {
+          name: err.name,
+          message: err.message,
+          code: err.code
+        });
+        
         currentUserId = 'fallback_user_' + Date.now();
-        document.getElementById('status').textContent = 'ไม่สามารถเชื่อมต่อ LINE ได้';
+        
+        // Show specific error message
+        if (err.message.includes('LIFF SDK not loaded')) {
+          document.getElementById('status').textContent = '❌ LIFF SDK ไม่โหลด';
+        } else if (err.code === 'LIFF_ID_NOT_FOUND') {
+          document.getElementById('status').textContent = '❌ LIFF ID ไม่ถูกต้อง';
+        } else if (err.code === 'UNAUTHORIZED') {
+          document.getElementById('status').textContent = '❌ ไม่ได้รับอนุญาต';
+        } else {
+          document.getElementById('status').textContent = '⚠️ ใช้งานโหมดทดสอบ (LIFF Error: ' + err.message + ')';
+        }
       }
 
       // Load last reference
