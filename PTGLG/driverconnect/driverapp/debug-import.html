@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Import - Test Single Row</title>
+  <style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #4ec9b0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #0e639c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+    pre {
+      background: #252526;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      border-left: 3px solid #4ec9b0;
+    }
+    .success { color: #4ec9b0; }
+    .error { color: #f48771; }
+    .warning { color: #dcdcaa; }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #252526;
+      border-radius: 5px;
+    }
+    input, select {
+      padding: 8px;
+      margin: 5px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #d4d4d4;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Debug Import Tool</h1>
+    
+    <div class="section">
+      <h3>1. Fetch Data from Google Sheets</h3>
+      <input type="text" id="sheetId" value="1iwPr3RSBUT4frRfyFJxW5C2qP-TPseEBW_80CDitbuE" style="width: 400px;">
+      <input type="text" id="sheetName" value="Sheet1" style="width: 150px;">
+      <button onclick="fetchSheetData()">Fetch Sheet Data</button>
+      <pre id="fetchResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>2. Check Database Schema</h3>
+      <button onclick="checkSchema()">Check driver_jobs Columns</button>
+      <pre id="schemaResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>3. Test Row Mapping</h3>
+      <label>Select Row: <select id="rowSelect"></select></label>
+      <button onclick="testMapping()">Test Mapping</button>
+      <pre id="mappingResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>4. Test Single Insert</h3>
+      <button onclick="testInsert()">Insert First Row</button>
+      <pre id="insertResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>5. Check Existing Data</h3>
+      <button onclick="checkData()">List All Jobs</button>
+      <pre id="dataResult">Waiting...</pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+    
+    window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.sheetData = null;
+
+    function getSheetCSVUrl(sheetId, sheetName) {
+      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim().replace(/^"|"$/g, ''));
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim().replace(/^"|"$/g, ''));
+      return result;
+    }
+
+    function parseCSV(csvText) {
+      const lines = csvText.split('\n').filter(line => line.trim());
+      const headers = parseCSVLine(lines[0]);
+      const data = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || '';
+        });
+        data.push(row);
+      }
+
+      return { headers, data };
+    }
+
+    function convertDateFormat(dateStr) {
+      if (!dateStr || dateStr.trim() === '') return null;
+      
+      dateStr = dateStr.trim();
+      
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('.');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      return null;
+    }
+
+    window.fetchSheetData = async function() {
+      const result = document.getElementById('fetchResult');
+      result.innerHTML = '<span class="warning">Fetching...</span>';
+      
+      try {
+        const sheetId = document.getElementById('sheetId').value;
+        const sheetName = document.getElementById('sheetName').value;
+        const url = getSheetCSVUrl(sheetId, sheetName);
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Cannot access sheet');
+        
+        const csvText = await response.text();
+        const { headers, data } = parseCSV(csvText);
+        
+        window.sheetData = { headers, data };
+        
+        // Populate row select
+        const rowSelect = document.getElementById('rowSelect');
+        rowSelect.innerHTML = '';
+        data.forEach((row, i) => {
+          const option = document.createElement('option');
+          option.value = i;
+          option.text = `Row ${i + 2}: ${row['Shipment No.'] || row['Reference'] || 'No ID'}`;
+          rowSelect.appendChild(option);
+        });
+        
+        result.innerHTML = `<span class="success">✓ Success!</span>\n\n` +
+          `Total Rows: ${data.length}\n` +
+          `Columns: ${headers.length}\n\n` +
+          `Headers:\n${JSON.stringify(headers, null, 2)}`;
+      } catch (error) {
+        result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n${error.stack}`;
+      }
+    };
+
+    window.checkSchema = async function() {
+      const result = document.getElementById('schemaResult');
+      result.innerHTML = '<span class="warning">Checking...</span>';
+      
+      try {
+        // Get table info using raw SQL query
+        const { data, error } = await supabase
+          .from('driver_jobs')
+          .select('*')
+          .limit(1);
+        
+        if (error) throw error;
+        
+        const columns = data.length > 0 ? Object.keys(data[0]) : [];
+        
+        result.innerHTML = `<span class="success">✓ Table exists!</span>\n\n` +
+          `Columns (${columns.length}):\n${JSON.stringify(columns, null, 2)}`;
+      } catch (error) {
+        result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n\n` +
+          `Details: ${JSON.stringify(error, null, 2)}`;
+      }
+    };
+
+    window.testMapping = function() {
+      const result = document.getElementById('mappingResult');
+      
+      if (!window.sheetData) {
+        result.innerHTML = '<span class="error">✗ Please fetch sheet data first!</span>';
+        return;
+      }
+      
+      const rowIndex = parseInt(document.getElementById('rowSelect').value);
+      const row = window.sheetData.data[rowIndex];
+      
+      const mapped = {
+        status: 'pending',
+        reference: row['Shipment No.'] || row['Reference'],
+        shipment_no: row['Shipment No.'],
+        sts: row['Sts'],
+        sts_text: row['Sts Text'],
+        vehicle: row['Vehicle'],
+        vehicle_desc: row['Vehicle Description'],
+        trip: row['Trip'],
+        carrier: row['Carrier'],
+        carrier_name: row['Carrier Name'],
+        driver: row['Driver'],
+        driver_name: row['Driver name'],
+        drivers: row['Driver name'],
+        route: row['Route'],
+        distance: parseFloat(row['Distance']) || null,
+        distance_uom: row['Distance UOM'],
+        planned_load_start_date: convertDateFormat(row['Planned load start (Date)']),
+        del_date: convertDateFormat(row['Del Date']),
+        delivery: row['Delivery'],
+        material: row['Material'],
+        material_desc: row['Material Desc'],
+        delivery_qty: parseFloat(row['Delivery Qty']) || null,
+        ship_to_name: row['Ship to Name'],
+        ship_to_address: row['Ship to Address'],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      result.innerHTML = `<span class="success">✓ Mapped!</span>\n\n` +
+        `Original Row:\n${JSON.stringify(row, null, 2)}\n\n` +
+        `Mapped Data:\n${JSON.stringify(mapped, null, 2)}`;
+      
+      window.testMappedData = mapped;
+    };
+
+    window.testInsert = async function() {
+      const result = document.getElementById('insertResult');
+      
+      if (!window.testMappedData) {
+        result.innerHTML = '<span class="error">✗ Please test mapping first!</span>';
+        return;
+      }
+      
+      result.innerHTML = '<span class="warning">Inserting...</span>';
+      
+      try {
+        const { data, error } = await supabase
+          .from('driver_jobs')
+          .upsert(window.testMappedData, { 
+            onConflict: 'reference'
+          })
+          .select();
+        
+        if (error) throw error;
+        
+        result.innerHTML = `<span class="success">✓ Insert Success!</span>\n\n` +
+          `Inserted Data:\n${JSON.stringify(data, null, 2)}`;
+      } catch (error) {
+        result.innerHTML = `<span class="error">✗ Insert Failed!</span>\n\n` +
+          `Error Message: ${error.message}\n\n` +
+          `Error Details:\n${JSON.stringify(error, null, 2)}\n\n` +
+          `Data Attempted:\n${JSON.stringify(window.testMappedData, null, 2)}`;
+      }
+    };
+
+    window.checkData = async function() {
+      const result = document.getElementById('dataResult');
+      result.innerHTML = '<span class="warning">Loading...</span>';
+      
+      try {
+        const { data, error } = await supabase
+          .from('driver_jobs')
+          .select('id, reference, shipment_no, vehicle_desc, driver_name, delivery, material')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (error) throw error;
+        
+        result.innerHTML = `<span class="success">✓ Found ${data.length} rows!</span>\n\n` +
+          JSON.stringify(data, null, 2);
+      } catch (error) {
+        result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n\n` +
+          JSON.stringify(error, null, 2);
+      }
+    };
+
+    // Auto-fetch on load
+    setTimeout(() => {
+      document.getElementById('fetchResult').innerHTML = '<span class="warning">Click "Fetch Sheet Data" to start</span>';
+    }, 100);
+  </script>
+</body>
+</html>

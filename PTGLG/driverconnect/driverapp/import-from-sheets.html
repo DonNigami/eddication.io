@@ -608,20 +608,26 @@
               throw new Error('Missing reference/shipment_no');
             }
 
+            console.log('Importing row:', i + 1, mapped); // Debug log
+
             // Upsert to database
             const { data: result, error } = await supabase
               .from('driver_jobs')
               .upsert(mapped, { 
-                onConflict: 'reference',
-                returning: 'minimal' 
+                onConflict: 'reference'
               });
 
-            if (error) throw error;
+            if (error) {
+              console.error('Supabase error:', error);
+              throw new Error(error.message || error.hint || JSON.stringify(error));
+            }
 
             stats.success++;
           } catch (error) {
             stats.failed++;
-            errors.push(`Row ${i + startRow}: ${error.message}`);
+            const errorMsg = error.message || String(error);
+            console.error('Row error:', i + startRow, errorMsg);
+            errors.push(`Row ${i + startRow}: ${errorMsg}`);
           }
 
           // Update progress
@@ -637,14 +643,15 @@
         } else {
           showStatus('success', '⚠️ Import เสร็จสิ้น (มีข้อผิดพลาดบางรายการ)', 
             `สำเร็จ: ${stats.success} | ล้มเหลว: ${stats.failed}<br><br>
-            <strong>Errors:</strong><br>${errors.slice(0, 5).join('<br>')}
-            ${errors.length > 5 ? `<br>และอีก ${errors.length - 5} รายการ...` : ''}`);
+            <strong>Errors:</strong><br>${errors.slice(0, 10).join('<br>')}
+            ${errors.length > 10 ? `<br>และอีก ${errors.length - 10} รายการ...` : ''}`);
         }
 
         showStats(stats);
 
       } catch (error) {
-        showStatus('error', '❌ Import ล้มเหลว', error.message);
+        console.error('Import failed:', error);
+        showStatus('error', '❌ Import ล้มเหลว', error.message || String(error));
       } finally {
         importBtn.disabled = false;
         importBtn.innerHTML = '<span>📥 Import Data</span>';
