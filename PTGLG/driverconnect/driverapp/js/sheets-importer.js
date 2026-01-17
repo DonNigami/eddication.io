@@ -5,7 +5,7 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// Column mapping configuration
+// Column mapping configuration - ALL columns in driver_jobs table
 export const COLUMN_MAPPING = {
   // Main identifiers
   'Shipment No.': 'shipment_no',
@@ -51,11 +51,9 @@ export const COLUMN_MAPPING = {
   
   // Costing
   'ShpCosting': 'shp_costing',
-  'ShpCostSettl': 'shp_cost_settl'
-};
-
-// Delivery item columns mapping
-export const ITEM_COLUMN_MAPPING = {
+  'ShpCostSettl': 'shp_cost_settl',
+  
+  // Delivery Item columns (now in driver_jobs table)
   'Shipment Item': 'shipment_item',
   'Delivery': 'delivery',
   'Ship to': 'ship_to',
@@ -134,13 +132,13 @@ export function mapRowToDriverJob(row) {
     updated_at: new Date().toISOString()
   };
 
-  // Map header columns
+  // Map ALL columns (now includes delivery items)
   Object.entries(COLUMN_MAPPING).forEach(([sheetCol, dbCol]) => {
     if (row[sheetCol] !== undefined && row[sheetCol] !== '') {
       let value = row[sheetCol];
 
       // Type conversions
-      if (dbCol === 'distance') {
+      if (dbCol === 'distance' || dbCol === 'delivery_qty') {
         value = parseFloat(value) || null;
       } else if (dbCol.includes('_date') && value) {
         // Keep date as string for now (database will parse)
@@ -150,6 +148,9 @@ export function mapRowToDriverJob(row) {
       } else if (dbCol === 'scheduling_end' && value) {
         // Convert to ISO timestamp if needed
         value = value.trim();
+      } else if (dbCol === 'canceled') {
+        // Convert to boolean
+        value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'x';
       }
 
       mapped[dbCol] = value;
@@ -171,70 +172,32 @@ export function mapRowToDriverJob(row) {
 
 /**
  * Map row to driver_job_items format
+ * DEPRECATED - Now all columns are in driver_jobs table
  */
 export function mapRowToJobItem(row, jobId, reference) {
-  const mapped = {
-    job_id: jobId,
-    reference: reference,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-
-  // Map item columns
-  Object.entries(ITEM_COLUMN_MAPPING).forEach(([sheetCol, dbCol]) => {
-    if (row[sheetCol] !== undefined && row[sheetCol] !== '') {
-      let value = row[sheetCol];
-
-      // Type conversions
-      if (dbCol === 'delivery_qty') {
-        value = parseFloat(value) || null;
-      } else if (dbCol === 'del_date' && value) {
-        value = value.trim();
-      } else if (dbCol === 'canceled') {
-        value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'x';
-      }
-
-      mapped[dbCol] = value;
-    }
-  });
-
-  return mapped;
+  // Kept for backward compatibility but not used
+  console.warn('mapRowToJobItem is deprecated - all columns now in driver_jobs');
+  return null;
 }
 
 /**
  * Group rows by shipment (for one-to-many relationship)
+ * DEPRECATED - Now using flat structure
  */
 export function groupRowsByShipment(rows) {
-  const grouped = new Map();
-
-  rows.forEach(row => {
-    const shipmentNo = row['Shipment No.'] || row['Reference'];
-    if (!shipmentNo) return;
-
-    if (!grouped.has(shipmentNo)) {
-      grouped.set(shipmentNo, {
-        header: row,
-        items: []
-      });
-    }
-
-    // If this row has delivery item info, add to items
-    if (row['Delivery'] || row['Material']) {
-      grouped.get(shipmentNo).items.push(row);
-    }
-  });
-
-  return grouped;
+  // Kept for backward compatibility but not used
+  console.warn('groupRowsByShipment is deprecated - using flat import');
+  return new Map();
 }
 
 /**
  * Import data from Google Sheets
+ * Now simplified - all columns go to driver_jobs table
  */
 export async function importFromSheets(supabase, sheetId, sheetName, options = {}) {
   const {
     startRow = 2,
-    onProgress = () => {},
-    importItems = true
+    onProgress = () => {}
   } = options;
 
   const stats = {
@@ -259,91 +222,36 @@ export async function importFromSheets(supabase, sheetId, sheetName, options = {
     stats.total = data.length;
     onProgress({ stage: 'parsing', current: 0, total: data.length });
 
-    // Group rows by shipment if importing items
-    const grouped = importItems ? groupRowsByShipment(data) : null;
-
-    if (grouped) {
-      // Import with items
-      let current = 0;
-      for (const [shipmentNo, { header, items }] of grouped) {
-        try {
-          // Insert/Update driver_job
-          const jobData = mapRowToDriverJob(header);
-          
-          const { data: job, error: jobError } = await supabase
-            .from('driver_jobs')
-            .upsert(jobData, { 
-              onConflict: 'reference',
-              returning: 'representation'
-            })
-            .select()
-            .single();
-
-          if (jobError) throw jobError;
-
-          // Insert items if any
-          if (items.length > 0 && job) {
-            const itemsData = items.map(item => 
-              mapRowToJobItem(item, job.id, job.reference)
-            );
-
-            const { error: itemsError } = await supabase
-              .from('driver_job_items')
-              .upsert(itemsData, {
-                onConflict: 'id'
-              });
-
-            if (itemsError) {
-              console.warn('Failed to insert items:', itemsError);
-            }
-          }
-
-          stats.success++;
-        } catch (error) {
-          stats.failed++;
-          stats.errors.push(`Shipment ${shipmentNo}: ${error.message}`);
+    // Import all rows directly to driver_jobs
+    for (let i = 0; i < data.length; i++) {
+      try {
+        const jobData = mapRowToDriverJob(data[i]);
+        
+        if (!jobData.reference) {
+          throw new Error('Missing reference/shipment_no');
         }
 
-        current++;
-        onProgress({ 
-          stage: 'importing', 
-          current, 
-          total: grouped.size,
-          stats 
-        });
+        const { error } = await supabase
+          .from('driver_jobs')
+          .upsert(jobData, { 
+            onConflict: 'reference',
+            returning: 'minimal'
+          });
+
+        if (error) throw error;
+
+        stats.success++;
+      } catch (error) {
+        stats.failed++;
+        stats.errors.push(`Row ${i + startRow}: ${error.message}`);
       }
-    } else {
-      // Import without items (simple mode)
-      for (let i = 0; i < data.length; i++) {
-        try {
-          const jobData = mapRowToDriverJob(data[i]);
-          
-          if (!jobData.reference) {
-            throw new Error('Missing reference/shipment_no');
-          }
 
-          const { error } = await supabase
-            .from('driver_jobs')
-            .upsert(jobData, { 
-              onConflict: 'reference',
-              returning: 'minimal'
-            });
-
-          if (error) throw error;
-
-          stats.success++;
-        } catch (error) {
-          stats.failed++;
-          stats.errors.push(`Row ${i + startRow}: ${error.message}`);
-        }
-
-        onProgress({ 
-          stage: 'importing', 
-          current: i + 1, 
-          total: data.length,
-          stats 
-        });
-      }
+      onProgress({ 
+        stage: 'importing', 
+        current: i + 1, 
+        total: data.length,
+        stats 
+      });
     }
 
     return stats;
@@ -358,9 +266,6 @@ export default {
   getSheetCSVUrl,
   parseCSV,
   mapRowToDriverJob,
-  mapRowToJobItem,
-  groupRowsByShipment,
   importFromSheets,
-  COLUMN_MAPPING,
-  ITEM_COLUMN_MAPPING
+  COLUMN_MAPPING
 };
