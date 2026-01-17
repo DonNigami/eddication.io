@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LIFF Debug Tool</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h3 { margin-top: 0; color: #333; }
+    .status { 
+      padding: 10px; 
+      border-radius: 5px; 
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+    .info { background: #d1ecf1; color: #0c5460; }
+    .warning { background: #fff3cd; color: #856404; }
+    pre { 
+      background: #f8f9fa; 
+      padding: 10px; 
+      border-radius: 5px; 
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: #06c755;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover { background: #05b34d; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .detail { font-size: 14px; margin: 5px 0; }
+    .label { font-weight: bold; color: #666; }
+  </style>
+</head>
+<body>
+  <h1>🔍 LIFF Debug Tool</h1>
+  
+  <div class="card">
+    <h3>ℹ️ Environment Info</h3>
+    <div class="detail"><span class="label">User Agent:</span> <span id="userAgent"></span></div>
+    <div class="detail"><span class="label">Browser:</span> <span id="browser"></span></div>
+    <div class="detail"><span class="label">LIFF SDK:</span> <span id="liffSdk"></span></div>
+  </div>
+
+  <div class="card">
+    <h3>🔧 LIFF Configuration</h3>
+    <div class="detail"><span class="label">LIFF ID:</span> 2007705394-Fgx9wdHu</div>
+    <button id="btnInit">Initialize LIFF</button>
+    <button id="btnLogin" disabled>Login</button>
+    <button id="btnLogout" disabled>Logout</button>
+    <div id="initStatus"></div>
+  </div>
+
+  <div class="card">
+    <h3>📊 LIFF Status</h3>
+    <div class="detail"><span class="label">Initialized:</span> <span id="isInit">❌ Not yet</span></div>
+    <div class="detail"><span class="label">In LINE Client:</span> <span id="isInClient">-</span></div>
+    <div class="detail"><span class="label">Logged In:</span> <span id="isLoggedIn">-</span></div>
+    <div class="detail"><span class="label">OS:</span> <span id="liffOS">-</span></div>
+    <div class="detail"><span class="label">Language:</span> <span id="liffLang">-</span></div>
+    <div class="detail"><span class="label">LIFF Version:</span> <span id="liffVersion">-</span></div>
+  </div>
+
+  <div class="card" id="profileCard" style="display:none;">
+    <h3>👤 User Profile</h3>
+    <div id="profileInfo"></div>
+    <div id="profileImage"></div>
+  </div>
+
+  <div class="card">
+    <h3>📝 Console Logs</h3>
+    <pre id="logs"></pre>
+    <button onclick="document.getElementById('logs').textContent = ''">Clear Logs</button>
+  </div>
+
+  <script>
+    const LIFF_ID = '2007705394-Fgx9wdHu';
+    let logBuffer = [];
+
+    function log(message, data = null) {
+      const timestamp = new Date().toLocaleTimeString();
+      const logLine = `[${timestamp}] ${message}${data ? '\n' + JSON.stringify(data, null, 2) : ''}`;
+      console.log(message, data);
+      logBuffer.push(logLine);
+      document.getElementById('logs').textContent = logBuffer.join('\n\n');
+    }
+
+    function updateStatus(elementId, text, className = 'info') {
+      const el = document.getElementById(elementId);
+      el.innerHTML = `<div class="status ${className}">${text}</div>`;
+    }
+
+    // Environment info
+    document.getElementById('userAgent').textContent = navigator.userAgent;
+    
+    const ua = navigator.userAgent.toLowerCase();
+    let browserName = 'Unknown';
+    if (ua.includes('line')) browserName = '✅ LINE Browser';
+    else if (ua.includes('chrome')) browserName = 'Chrome';
+    else if (ua.includes('firefox')) browserName = 'Firefox';
+    else if (ua.includes('safari')) browserName = 'Safari';
+    document.getElementById('browser').textContent = browserName;
+
+    document.getElementById('liffSdk').textContent = typeof liff !== 'undefined' ? '✅ Loaded' : '❌ Not loaded';
+
+    // Initialize LIFF
+    document.getElementById('btnInit').addEventListener('click', async () => {
+      log('🔄 Starting LIFF initialization...');
+      log('LIFF ID:', LIFF_ID);
+
+      if (typeof liff === 'undefined') {
+        log('❌ LIFF SDK not loaded!');
+        updateStatus('initStatus', '❌ LIFF SDK not loaded', 'error');
+        return;
+      }
+
+      try {
+        log('⏳ Calling liff.init()...');
+        await liff.init({ liffId: LIFF_ID });
+        
+        log('✅ LIFF initialized successfully!');
+        updateStatus('initStatus', '✅ LIFF initialized successfully!', 'success');
+        
+        // Update status
+        document.getElementById('isInit').textContent = '✅ Yes';
+        document.getElementById('isInClient').textContent = liff.isInClient() ? '✅ Yes (in LINE app)' : '❌ No (in browser)';
+        document.getElementById('isLoggedIn').textContent = liff.isLoggedIn() ? '✅ Yes' : '❌ No';
+        document.getElementById('liffOS').textContent = liff.getOS();
+        document.getElementById('liffLang').textContent = liff.getLanguage();
+        document.getElementById('liffVersion').textContent = liff.getVersion();
+
+        log('📊 LIFF Status:', {
+          isInClient: liff.isInClient(),
+          isLoggedIn: liff.isLoggedIn(),
+          os: liff.getOS(),
+          language: liff.getLanguage(),
+          version: liff.getVersion()
+        });
+
+        // Enable buttons
+        document.getElementById('btnInit').disabled = true;
+        document.getElementById('btnLogin').disabled = !liff.isInClient() || liff.isLoggedIn();
+        document.getElementById('btnLogout').disabled = !liff.isLoggedIn();
+
+        // Get profile if logged in
+        if (liff.isLoggedIn()) {
+          await getProfile();
+        } else {
+          if (liff.isInClient()) {
+            log('⚠️ In LINE app but not logged in');
+            updateStatus('initStatus', '⚠️ You are in LINE app but not logged in. Click "Login" button.', 'warning');
+          } else {
+            log('ℹ️ Not in LINE app (opened in browser)');
+            updateStatus('initStatus', 'ℹ️ You are not in LINE app. Profile features not available.', 'info');
+          }
+        }
+
+      } catch (err) {
+        log('❌ LIFF initialization failed!');
+        log('Error:', {
+          name: err.name,
+          message: err.message,
+          code: err.code,
+          stack: err.stack
+        });
+        updateStatus('initStatus', `❌ Error: ${err.message}`, 'error');
+        document.getElementById('isInit').textContent = '❌ Failed';
+      }
+    });
+
+    // Login
+    document.getElementById('btnLogin').addEventListener('click', () => {
+      log('🔐 Calling liff.login()...');
+      liff.login();
+    });
+
+    // Logout
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      log('🚪 Calling liff.logout()...');
+      liff.logout();
+      location.reload();
+    });
+
+    // Get profile
+    async function getProfile() {
+      try {
+        log('👤 Getting user profile...');
+        const profile = await liff.getProfile();
+        
+        log('✅ Profile retrieved successfully!');
+        log('Profile data:', profile);
+
+        document.getElementById('profileCard').style.display = 'block';
+        document.getElementById('profileInfo').innerHTML = `
+          <div class="detail"><span class="label">User ID:</span> ${profile.userId}</div>
+          <div class="detail"><span class="label">Display Name:</span> ${profile.displayName}</div>
+          <div class="detail"><span class="label">Status Message:</span> ${profile.statusMessage || '-'}</div>
+        `;
+
+        if (profile.pictureUrl) {
+          document.getElementById('profileImage').innerHTML = `
+            <img src="${profile.pictureUrl}" alt="Profile" style="width:100px;height:100px;border-radius:50%;margin-top:10px;">
+          `;
+        }
+
+      } catch (err) {
+        log('❌ Failed to get profile!');
+        log('Error:', err);
+        document.getElementById('profileCard').style.display = 'block';
+        document.getElementById('profileInfo').innerHTML = `<div class="status error">❌ Failed to get profile: ${err.message}</div>`;
+      }
+    }
+
+    // Auto-init if in LINE
+    log('🚀 Debug tool loaded');
+    log('Detected browser:', browserName);
+    
+    if (ua.includes('line')) {
+      log('✅ Detected LINE Browser - will auto-initialize');
+      setTimeout(() => {
+        document.getElementById('btnInit').click();
+      }, 1000);
+    } else {
+      log('ℹ️ Not in LINE Browser - click "Initialize LIFF" button to test');
+    }
+  </script>
+</body>
+</html>
