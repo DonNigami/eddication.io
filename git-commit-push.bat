@@ -31,7 +31,7 @@ git diff --cached --name-only
 echo.
 
 set /p COMMIT_MSG="Enter commit message (or press Enter for default): "
-if "%COMMIT_MSG%"=="" set COMMIT_MSG=fix: Supabase errors and add documentation
+if "%COMMIT_MSG%"=="" set COMMIT_MSG=fix: Update LIFF ID and add comprehensive debugging tools
 
 echo.
 echo ----------------------------------------
@@ -54,14 +54,25 @@ if %ERRORLEVEL% EQU 0 (
         echo [SUCCESS] Push successful!
     ) else (
         echo.
-        echo [ERROR] Push failed. Try:
-        echo   1. git push origin master (if main branch is named master)
-        echo   2. git push (if upstream is set)
-        echo   3. Check network connection
+        echo [ERROR] Push failed. Trying 'master' branch...
+        git push origin master
+        
+        if %ERRORLEVEL% EQU 0 (
+            echo.
+            echo [SUCCESS] Push to master successful!
+        ) else (
+            echo.
+            echo [ERROR] Push failed. Try:
+            echo   1. git push (if upstream is set)
+            echo   2. Check network connection
+            echo   3. Check remote permissions
+        )
     )
 ) else (
     echo.
     echo [ERROR] Commit failed or nothing to commit
+    echo.
+    git status
 )
 
 echo.
