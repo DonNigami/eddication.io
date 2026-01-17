@@ -98,6 +98,16 @@
 
     <div class="section">
       <h3>5. Import All Rows</h3>
+      <div style="margin-bottom: 15px; background: #3c3c3c; padding: 15px; border-radius: 5px;">
+        <label style="display: block; margin-bottom: 10px;">
+          <input type="radio" name="importMode" value="upsert" checked>
+          <strong style="color: #4ec9b0;">Upsert Mode</strong> - Update if reference exists, Insert if new
+        </label>
+        <label style="display: block;">
+          <input type="radio" name="importMode" value="insert">
+          <strong style="color: #dcdcaa;">Insert All Mode</strong> - Import every row (allow duplicate references)
+        </label>
+      </div>
       <button onclick="importAllRows()" style="background: #0e7490; font-weight: bold;">📥 Import ALL Rows</button>
       <button onclick="stopImport()" style="background: #991b1b;">⏹ Stop Import</button>
       <div style="margin-top: 10px;">
@@ -587,6 +597,7 @@
       const progressBar = document.getElementById('progressBar');
       const progressFill = document.getElementById('progressFill');
       const skipErrors = document.getElementById('skipErrors').checked;
+      const importMode = document.querySelector('input[name="importMode"]:checked').value;
       
       if (!window.sheetData) {
         result.innerHTML = '<span class="error">✗ Please fetch sheet data first!</span>';
@@ -601,10 +612,12 @@
         total: data.length,
         success: 0,
         failed: 0,
+        skipped: 0,
         errors: []
       };
       
-      result.innerHTML = `<span class="warning">⏳ Importing ${data.length} rows...</span>\n\n`;
+      const modeText = importMode === 'upsert' ? 'Upsert' : 'Insert All';
+      result.innerHTML = `<span class="warning">⏳ Importing ${data.length} rows (${modeText} mode)...</span>\n\n`;
       
       for (let i = 0; i < data.length; i++) {
         if (window.importStopped) {
@@ -616,16 +629,66 @@
           const row = data[i];
           const mapped = mapRowToDatabase(row);
           
-          if (!mapped.reference) {
+          // Check for unconverted dates
+          const unconvertedDates = [];
+          Object.entries(mapped).forEach(([key, value]) => {
+            if (value && typeof value === 'string' && /\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) {
+              unconvertedDates.push({ field: key, value: value });
+            }
+          });
+          
+          if (unconvertedDates.length > 0) {
+            throw new Error(`Unconverted dates: ${unconvertedDates.map(d => `${d.field}="${d.value}"`).join(', ')}`);
+          }
+          
+          // Skip if no reference in insert mode
+          if (importMode === 'insert' && !mapped.reference) {
+            stats.skipped++;
+            stats.errors.push(`Row ${i + 2}: Skipped (no reference)`);
+            continue;
+          }
+          
+          // For upsert mode, require reference
+          if (importMode === 'upsert' && !mapped.reference) {
             throw new Error('Missing reference/shipment_no');
           }
           
-          const { data: insertData, error } = await supabase
-            .from('driver_jobs')
-            .upsert(mapped, { 
-              onConflict: 'reference'
-            })
-            .select();
+          let insertData, error;
+          
+          if (importMode === 'upsert') {
+            // Upsert mode - update if exists, insert if new
+            ({ data: insertData, error } = await supabase
+              .from('driver_jobs')
+              .upsert(mapped, { 
+                onConflict: 'reference'
+              })
+              .select());
+          } else {
+            // Insert all mode - insert every row (allow duplicates)
+            // Remove reference from unique constraint by not using upsert
+            const insertPayload = { ...mapped };
+            
+            // Generate unique reference if duplicate
+            if (mapped.reference) {
+              // Check if reference exists
+              const { data: existing } = await supabase
+                .from('driver_jobs')
+                .select('reference')
+                .eq('reference', mapped.reference)
+                .limit(1);
+              
+              if (existing && existing.length > 0) {
+                // Make reference unique by adding timestamp
+                insertPayload.reference = `${mapped.reference}-${Date.now()}`;
+                console.log(`Duplicate reference found, using: ${insertPayload.reference}`);
+              }
+            }
+            
+            ({ data: insertData, error } = await supabase
+              .from('driver_jobs')
+              .insert(insertPayload)
+              .select());
+          }
           
           if (error) throw error;
           
@@ -652,24 +715,23 @@
         
         // Update result every 10 rows
         if ((i + 1) % 10 === 0 || i === data.length - 1) {
-          result.innerHTML = `<span class="warning">⏳ Importing...</span>\n\n` +
+          result.innerHTML = `<span class="warning">⏳ Importing (${modeText})...</span>\n\n` +
             `Progress: ${i + 1}/${data.length}\n` +
             `Success: ${stats.success}\n` +
-            `Failed: ${stats.failed}`;
+            `Failed: ${stats.failed}\n` +
+            (stats.skipped > 0 ? `Skipped: ${stats.skipped}\n` : '');
         }
       }
       
       // Final result
-      if (stats.failed === 0) {
-        result.innerHTML = `<span class="success">✓ Import Complete!</span>\n\n` +
-          `Total: ${stats.total}\n` +
-          `Success: ${stats.success}\n` +
-          `Failed: ${stats.failed}`;
+      const summaryStats = `Total: ${stats.total}\nSuccess: ${stats.success}\nFailed: ${stats.failed}` +
+        (stats.skipped > 0 ? `\nSkipped: ${stats.skipped}` : '');
+      
+      if (stats.failed === 0 && stats.skipped === 0) {
+        result.innerHTML = `<span class="success">✓ Import Complete!</span>\n\n` + summaryStats;
       } else {
-        result.innerHTML = `<span class="warning">⚠ Import Complete with Errors</span>\n\n` +
-          `Total: ${stats.total}\n` +
-          `Success: ${stats.success}\n` +
-          `Failed: ${stats.failed}\n\n` +
+        result.innerHTML = `<span class="warning">⚠ Import Complete with Issues</span>\n\n` +
+          summaryStats + `\n\n` +
           `Errors (first 20):\n${stats.errors.slice(0, 20).join('\n')}\n` +
           (stats.errors.length > 20 ? `\n...and ${stats.errors.length - 20} more` : '');
       }
