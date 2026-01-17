@@ -30,6 +30,162 @@ export function getSupabase() {
 }
 
 /**
+ * Enrich stops with coordinates from master location tables
+ * รองรับโครงสร้างตารางจริงใน Supabase
+ */
+async function enrichStopsWithCoordinates(stops, route = null) {
+  if (!stops || stops.length === 0) return stops;
+
+  try {
+    console.log('🔍 Enriching coordinates for', stops.length, 'stops');
+
+    // Step 1: Get origin coordinate if route is provided
+    let originLat = null;
+    let originLng = null;
+
+    if (route) {
+      const routePrefix = route.substring(0, 3).toUpperCase();
+      
+      try {
+        // ตาราง origin ใช้ originKey, name, lat, lng, radiusMeters, routeCode
+        const { data: originData } = await supabase
+          .from('origin')
+          .select('originKey, name, lat, lng, radiusMeters, routeCode')
+          .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
+          .limit(1)
+          .maybeSingle();
+
+        if (originData) {
+          originLat = parseFloat(originData.lat);
+          originLng = parseFloat(originData.lng);
+          
+          if (!isNaN(originLat) && !isNaN(originLng)) {
+            console.log(`✅ Found origin: ${originData.name} (${originLat}, ${originLng})`);
+          } else {
+            originLat = null;
+            originLng = null;
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Error fetching origin:', error.message);
+      }
+    }
+
+    // Step 2: Get all customer coordinates
+    // ตาราง customer ใช้ stationKey เป็น primary key (เช่น 1102, 1202)
+    const shipToCodes = stops
+      .filter(s => s.shipToCode && !s.isOriginStop)
+      .map(s => s.shipToCode)
+      .filter((v, i, a) => a.indexOf(v) === i); // unique
+
+    const customerMap = new Map();
+
+    if (shipToCodes.length > 0) {
+      try {
+        const { data: customerData } = await supabase
+          .from('customer')
+          .select('stationKey, name, lat, lng, radiusMeters')
+          .in('stationKey', shipToCodes);
+
+        if (customerData) {
+          customerData.forEach(c => {
+            const lat = parseFloat(c.lat);
+            const lng = parseFloat(c.lng);
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              customerMap.set(c.stationKey, { lat, lng });
+            }
+          });
+          console.log(`✅ Found ${customerData.length} customers with coordinates`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error fetching customers:', error.message);
+      }
+    }
+
+    // Step 3: Get all station coordinates
+    // ตาราง station ใช้ stationKey เป็น primary key (เช่น ZS184, ZS185)
+    const stationMap = new Map();
+
+    if (shipToCodes.length > 0) {
+      try {
+        const { data: stationData } = await supabase
+          .from('station')
+          .select('stationKey, station_name, lat, lng')
+          .in('stationKey', shipToCodes);
+
+        if (stationData) {
+          stationData.forEach(s => {
+            const lat = parseFloat(s.lat);
+            const lng = parseFloat(s.lng);
+            
+            if (!isNaN(lat) && !isNaN(lng)) {
+              stationMap.set(s.stationKey, { lat, lng });
+            }
+          });
+          console.log(`✅ Found ${stationData.length} stations with coordinates`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error fetching stations:', error.message);
+      }
+    }
+
+    // Step 4: Enrich stops
+    const enrichedStops = stops.map(stop => {
+      // If already has coordinates, keep them
+      if (stop.destLat && stop.destLng) {
+        return stop;
+      }
+
+      // Origin stop - use origin coordinates
+      if (stop.isOriginStop && originLat && originLng) {
+        return {
+          ...stop,
+          destLat: originLat,
+          destLng: originLng
+        };
+      }
+
+      // Regular stop - lookup in customer or station
+      if (stop.shipToCode) {
+        // Try customer first (ใช้ shipToCode match กับ stationKey)
+        const customer = customerMap.get(stop.shipToCode);
+        if (customer && customer.lat && customer.lng) {
+          return {
+            ...stop,
+            destLat: customer.lat,
+            destLng: customer.lng
+          };
+        }
+
+        // Try station (ใช้ shipToCode match กับ stationKey)
+        const station = stationMap.get(stop.shipToCode);
+        if (station && station.lat && station.lng) {
+          return {
+            ...stop,
+            destLat: station.lat,
+            destLng: station.lng
+          };
+        }
+      }
+
+      // No coordinates found
+      return stop;
+    });
+
+    const enrichedCount = enrichedStops.filter(s => s.destLat && s.destLng).length;
+    console.log(`✅ Enriched ${enrichedCount}/${stops.length} stops with coordinates`);
+
+    return enrichedStops;
+
+  } catch (error) {
+    console.error('❌ Error enriching coordinates:', error);
+    // Return original stops if enrichment fails
+    return stops;
+  }
+}
+
+/**
  * Sync driver_jobs data to jobdata table
  */
 async function syncToJobdata(jobs, stops, reference) {
@@ -170,6 +326,9 @@ export const SupabaseAPI = {
           materials: row.materials || ''
         }));
 
+        // Enrich stops with coordinates from master location tables
+        const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || null);
+
         const drivers = firstRow.drivers ? firstRow.drivers.split(',').map(d => d.trim()) : [];
 
         return {
@@ -179,8 +338,8 @@ export const SupabaseAPI = {
             referenceNo: reference,
             vehicleDesc: firstRow.vehicle_desc || '',
             shipmentNos: [],
-            totalStops: stops.length,
-            stops: stops,
+            totalStops: enrichedStops.length,
+            stops: enrichedStops,
             alcohol: {
               drivers: drivers,
               checkedDrivers: checkedDrivers
@@ -314,9 +473,12 @@ export const SupabaseAPI = {
 
       const drivers = job.drivers ? job.drivers.split(',').map(d => d.trim()) : [];
 
+      // Enrich stops with coordinates from master location tables
+      const enrichedStops = await enrichStopsWithCoordinates(stops, job.route || null);
+
       // Step 3: Sync data to jobdata table (found in driver_jobs, copy to jobdata)
       console.log('🔄 Step 3: Syncing from driver_jobs to jobdata...');
-      await syncToJobdata(jobs, stops, reference);
+      await syncToJobdata(jobs, enrichedStops, reference);
 
       return {
         success: true,
@@ -325,8 +487,8 @@ export const SupabaseAPI = {
           referenceNo: reference,
           vehicleDesc: job.vehicle_desc || '',
           shipmentNos: [],
-          totalStops: stops.length,
-          stops: stops,
+          totalStops: enrichedStops.length,
+          stops: enrichedStops,
           alcohol: {
             drivers: drivers,
             checkedDrivers: checkedDrivers
