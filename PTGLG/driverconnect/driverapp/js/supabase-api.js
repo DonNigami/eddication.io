@@ -335,12 +335,6 @@ export const SupabaseAPI = {
           tripEnded: job.status === 'completed'
         }
       };
-            checkedDrivers: checkedDrivers
-          },
-          jobClosed: job.status === 'closed',
-          tripEnded: job.status === 'completed'
-        }
-      };
     } catch (err) {
       console.error('❌ Supabase search error:', err);
       return { success: false, message: 'เกิดข้อผิดพลาดในการค้นหา: ' + err.message };
