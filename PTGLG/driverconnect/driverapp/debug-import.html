@@ -260,20 +260,40 @@
       
       dateStr = dateStr.trim();
       
+      // Already in YYYY-MM-DD format
       if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
         return dateStr;
       }
       
-      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      // Convert DD/MM/YYYY to YYYY-MM-DD
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
         const [day, month, year] = dateStr.split('/');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        const converted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        console.log(`Date converted: ${dateStr} → ${converted}`);
+        return converted;
       }
       
-      if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateStr)) {
+      // Convert DD.MM.YYYY to YYYY-MM-DD
+      if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(dateStr)) {
         const [day, month, year] = dateStr.split('.');
-        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        const converted = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        console.log(`Date converted: ${dateStr} → ${converted}`);
+        return converted;
       }
       
+      // Try parsing with Date object
+      try {
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          const converted = date.toISOString().split('T')[0];
+          console.log(`Date parsed: ${dateStr} → ${converted}`);
+          return converted;
+        }
+      } catch (e) {
+        console.warn('Failed to parse date:', dateStr, e);
+      }
+      
+      console.warn('Date format not recognized:', dateStr);
       return null;
     }
 
@@ -342,14 +362,22 @@
           if (dbCol === 'distance' || dbCol === 'delivery_qty') {
             value = parseFloat(value) || null;
           } else if (dbCol.includes('_date') && value) {
+            // Convert date format
+            const originalValue = value;
             value = convertDateFormat(value);
+            if (value === null) {
+              console.warn(`Failed to convert date for ${dbCol}:`, originalValue);
+            }
           } else if (dbCol.includes('_time') && value) {
             value = value.trim() || null;
           } else if (dbCol === 'canceled') {
             value = value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'x';
           }
 
-          mapped[dbCol] = value;
+          // Only set if value is not null
+          if (value !== null) {
+            mapped[dbCol] = value;
+          }
         }
       });
 
@@ -460,6 +488,15 @@
       
       result.innerHTML = '<span class="warning">Inserting...</span>';
       
+      console.log('=== TEST INSERT ===');
+      console.log('Mapped data:', window.testMappedData);
+      
+      // Check for date fields
+      const dateFields = Object.entries(window.testMappedData)
+        .filter(([key, value]) => key.includes('_date') && value);
+      
+      console.log('Date fields:', dateFields);
+      
       try {
         const { data, error } = await supabase
           .from('driver_jobs')
@@ -473,8 +510,10 @@
         result.innerHTML = `<span class="success">✓ Insert Success!</span>\n\n` +
           `Inserted Data:\n${JSON.stringify(data, null, 2)}`;
       } catch (error) {
+        console.error('Insert error:', error);
         result.innerHTML = `<span class="error">✗ Insert Failed!</span>\n\n` +
           `Error Message: ${error.message}\n\n` +
+          `Error Code: ${error.code}\n\n` +
           `Error Details:\n${JSON.stringify(error, null, 2)}\n\n` +
           `Data Attempted:\n${JSON.stringify(window.testMappedData, null, 2)}`;
       }
