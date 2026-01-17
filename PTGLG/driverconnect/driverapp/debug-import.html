@@ -350,23 +350,36 @@
         'Delivery UOM': 'delivery_uom',
         'Order': 'order_no',
         'Billing Doc': 'billing_doc',
-        'Canceled': 'canceled'
+        'Canceled': 'canceled',
+        // Additional possible date columns
+        'Actual del.conf.end (Time)': 'actual_del_conf_end_time'
       };
 
       // Map all columns
       Object.entries(columnMapping).forEach(([sheetCol, dbCol]) => {
         if (row[sheetCol] !== undefined && row[sheetCol] !== '') {
           let value = row[sheetCol];
+          const originalValue = value;
 
           // Type conversions
           if (dbCol === 'distance' || dbCol === 'delivery_qty') {
             value = parseFloat(value) || null;
           } else if (dbCol.includes('_date') && value) {
             // Convert date format
-            const originalValue = value;
             value = convertDateFormat(value);
             if (value === null) {
-              console.warn(`Failed to convert date for ${dbCol}:`, originalValue);
+              console.warn(`Failed to convert date for ${dbCol} (${sheetCol}):`, originalValue);
+            } else {
+              console.log(`✓ Converted ${dbCol}: ${originalValue} → ${value}`);
+            }
+          } else if (dbCol === 'scheduling_end' && value) {
+            // scheduling_end might be a date too
+            if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) {
+              const converted = convertDateFormat(value);
+              if (converted) {
+                value = converted + 'T00:00:00Z'; // Make it a timestamp
+                console.log(`✓ Converted scheduling_end: ${originalValue} → ${value}`);
+              }
             }
           } else if (dbCol.includes('_time') && value) {
             value = value.trim() || null;
@@ -375,8 +388,17 @@
           }
 
           // Only set if value is not null
-          if (value !== null) {
+          if (value !== null && value !== undefined) {
             mapped[dbCol] = value;
+          }
+        }
+      });
+
+      // IMPORTANT: Check if any unmapped columns contain dates
+      Object.entries(row).forEach(([sheetCol, value]) => {
+        if (value && typeof value === 'string' && /\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) {
+          if (!columnMapping[sheetCol]) {
+            console.warn(`⚠️ Unmapped column with date format: "${sheetCol}" = "${value}"`);
           }
         }
       });
@@ -490,6 +512,26 @@
       
       console.log('=== TEST INSERT ===');
       console.log('Mapped data:', window.testMappedData);
+      
+      // Check ALL fields for date formats that aren't converted
+      const problematicFields = [];
+      Object.entries(window.testMappedData).forEach(([key, value]) => {
+        if (value && typeof value === 'string') {
+          // Check if value looks like a date in DD/MM/YYYY format
+          if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) {
+            problematicFields.push({ field: key, value: value });
+            console.error(`❌ UNCONVERTED DATE FOUND: ${key} = "${value}"`);
+          }
+        }
+      });
+      
+      if (problematicFields.length > 0) {
+        result.innerHTML = `<span class="error">❌ Found unconverted dates!</span>\n\n` +
+          `These fields still have DD/MM/YYYY format:\n` +
+          problematicFields.map(f => `- ${f.field}: "${f.value}"`).join('\n') +
+          `\n\nPlease check the column mapping and convert these fields.`;
+        return;
+      }
       
       // Check for date fields
       const dateFields = Object.entries(window.testMappedData)
