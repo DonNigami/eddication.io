@@ -648,12 +648,12 @@
           
           // Auto-generate reference if missing
           if (!mapped.reference) {
-            // Try to use shipment_no or generate from row number
+            // Try to use shipment_no
             if (mapped.shipment_no) {
               mapped.reference = mapped.shipment_no;
             } else {
-              // Generate unique reference from row index and timestamp
-              mapped.reference = `ROW-${i + 2}-${Date.now()}`;
+              // Use row number as reference
+              mapped.reference = `ROW-${i + 2}`;
               console.log(`Generated reference for row ${i + 2}: ${mapped.reference}`);
             }
           }
@@ -669,25 +669,8 @@
               })
               .select());
           } else {
-            // Insert all mode - insert every row (allow duplicates)
-            // Remove reference from unique constraint by not using upsert
+            // Insert all mode - insert every row using original reference
             const insertPayload = { ...mapped };
-            
-            // Generate unique reference if duplicate
-            if (mapped.reference) {
-              // Check if reference exists
-              const { data: existing } = await supabase
-                .from('driver_jobs')
-                .select('reference')
-                .eq('reference', mapped.reference)
-                .limit(1);
-              
-              if (existing && existing.length > 0) {
-                // Make reference unique by adding timestamp
-                insertPayload.reference = `${mapped.reference}-${Date.now()}`;
-                console.log(`Duplicate reference found, using: ${insertPayload.reference}`);
-              }
-            }
             
             ({ data: insertData, error } = await supabase
               .from('driver_jobs')
