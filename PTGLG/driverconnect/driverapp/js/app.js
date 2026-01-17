@@ -408,10 +408,18 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverNam
     const lng = pos.coords.longitude;
 
     const stopData = {
-      rowIndex, status: newStatus, type, userId: currentUserId,
-      lat, lng, odo: odo ? sanitizeInput(odo) : null,
+      reference: currentReference,
+      seq: seq,
+      status: newStatus,
+      type,
+      userId: currentUserId,
+      lat,
+      lng,
+      odo: odo ? sanitizeInput(odo) : null,
       receiverName: receiverName ? sanitizeInput(receiverName) : null,
-      receiverType, hasPumping, hasTransfer
+      receiverType,
+      hasPumping,
+      hasTransfer
     };
 
     showLoading(isOnline() ? 'กำลังอัปเดตสถานะ...' : 'กำลังบันทึกข้อมูล...');

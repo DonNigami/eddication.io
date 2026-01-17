@@ -506,8 +506,8 @@ export const SupabaseAPI = {
   /**
    * Update stop status
    */
-  async updateStop({ rowIndex, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
-    console.log('🔄 Supabase: Updating stop', rowIndex, type);
+  async updateStop({ reference, seq, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
+    console.log('🔄 Supabase: Updating stop', seq, 'for reference', reference, 'type', type);
 
     try {
       const updates = {
@@ -542,7 +542,8 @@ export const SupabaseAPI = {
       const { data, error } = await supabase
         .from('driver_stops')
         .update(updates)
-        .eq('id', rowIndex)
+        .eq('reference', reference)
+        .eq('stop_number', seq)
         .select()
         .single();
 
