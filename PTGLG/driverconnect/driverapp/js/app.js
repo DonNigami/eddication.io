@@ -253,21 +253,22 @@ function renderTimeline(stops) {
 
     // Use the first stop for button actions
     const stop = firstStop;
+    const jsShipToCode = group.shipToCode ? `'${group.shipToCode.replace(/'/g, "\\'")}'` : 'null';
 
     let btnHtml = '';
     if (isOrigin) {
       if (!hasCheckIn) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq})">Check-in</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
       } else if (!hasCheckOut) {
-        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq})">Check-out</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
       }
     } else {
       if (!hasCheckIn) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq})">Check-in</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
       } else if (!hasCheckOut) {
-        if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel(${stop.rowIndex}, ${stop.seq})">ลงน้ำมัน</button>`;
-        if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload(${stop.rowIndex}, ${stop.seq})">ลงเสร็จ</button>`;
-        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq})">Check-out</button>`;
+        if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">ลงน้ำมัน</button>`;
+        if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">ลงเสร็จ</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
       }
     }
 
@@ -313,12 +314,12 @@ function renderTimeline(stops) {
 // ============================================
 // ACTION FUNCTIONS
 // ============================================
-async function startCheckin(rowIndex, seq) {
+async function startCheckin(rowIndex, seq, shipToCode) {
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;
 
   if (isOrigin) {
-    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq);
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode);
   } else {
     const { value: formValues } = await Swal.fire({
       icon: 'question',
@@ -352,16 +353,16 @@ async function startCheckin(rowIndex, seq) {
       }
     }
 
-    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, formValues.odo, formValues.receiverName);
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, formValues.odo, formValues.receiverName);
   }
 }
 
-async function startCheckout(rowIndex, seq) {
+async function startCheckout(rowIndex, seq, shipToCode) {
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;
 
   if (isOrigin) {
-    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq);
+    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, shipToCode);
   } else {
     const { value: formValues } = await Swal.fire({
       icon: 'question',
@@ -383,19 +384,19 @@ async function startCheckout(rowIndex, seq) {
     });
 
     if (!formValues) return;
-    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, null, null, null, formValues.hasPumping, formValues.hasTransfer);
+    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, shipToCode, null, null, null, formValues.hasPumping, formValues.hasTransfer);
   }
 }
 
-async function doFuel(rowIndex, seq) {
-  await updateStopStatus(rowIndex, 'FUELING', 'fuel', seq);
+async function doFuel(rowIndex, seq, shipToCode) {
+  await updateStopStatus(rowIndex, 'FUELING', 'fuel', seq, shipToCode);
 }
 
-async function doUnload(rowIndex, seq) {
-  await updateStopStatus(rowIndex, 'UNLOAD_DONE', 'unload', seq);
+async function doUnload(rowIndex, seq, shipToCode) {
+  await updateStopStatus(rowIndex, 'UNLOAD_DONE', 'unload', seq, shipToCode);
 }
 
-async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverName, receiverType, hasPumping, hasTransfer) {
+async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo, receiverName, receiverType, hasPumping, hasTransfer) {
   if (!currentUserId) {
     showError('ไม่พบข้อมูลผู้ใช้');
     return;
@@ -410,6 +411,7 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, odo, receiverNam
     const stopData = {
       reference: currentReference,
       seq: seq,
+      shipToCode: shipToCode,
       status: newStatus,
       type,
       userId: currentUserId,

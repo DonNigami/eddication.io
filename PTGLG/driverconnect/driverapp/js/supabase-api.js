@@ -531,16 +531,16 @@ export const SupabaseAPI = {
   /**
    * Update stop status
    */
-  async updateStop({ reference, seq, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
-    console.log('🔄 Supabase: Updating jobdata for stop', seq, 'ref', reference, 'type', type);
+  async updateStop({ reference, seq, shipToCode, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
+    console.log('🔄 Supabase: Updating stop status for ref', reference, 'type', type);
 
     try {
+      const now = new Date().toISOString();
       const jobdataUpdate = {
         status: status,
-        updated_at: new Date().toISOString()
+        updated_at: now,
+        updated_by: userId
       };
-      
-      const now = new Date().toISOString();
 
       if (type === 'checkin') {
         jobdataUpdate.checkin_time = now;
@@ -560,25 +560,36 @@ export const SupabaseAPI = {
         jobdataUpdate.unload_done_time = now;
       }
 
-      const { data, error } = await supabase
+      // Update jobdata table - by ship_to_code if available, otherwise by seq
+      const query = supabase
         .from(TABLES.JOBDATA)
         .update(jobdataUpdate)
-        .eq('reference', reference)
-        .eq('seq', seq)
-        .select()
-        .single();
+        .eq('reference', reference);
+
+      if (shipToCode) {
+        console.log(`...targeting ship_to_code: ${shipToCode}`);
+        query.eq('ship_to_code', shipToCode);
+      } else {
+        console.log(`...targeting seq: ${seq}`);
+        query.eq('seq', seq);
+      }
+      
+      const { data, error } = await query.select();
 
       if (error) {
+        // No rows found is not a critical error here, just means no match.
         if (error.code === 'PGRST116') {
-          console.warn('⚠️ updateStop: 0 rows updated in jobdata. This might be unexpected.');
-          return { success: true, message: 'อัปเดตสำเร็จ (แต่ไม่พบแถวข้อมูลใน jobdata)' };
+          console.warn('⚠️ updateStop: 0 rows updated in jobdata.');
+        } else {
+          throw error;
         }
-        throw error;
+      } else {
+        console.log(`✅ Updated ${data.length} rows in jobdata.`);
       }
 
-      // Also update trip_stops for consistency
+      // Also update trip_stops for consistency, using sequence number
       try {
-        const tripStopUpdate = { status: status, updated_at: now };
+        const tripStopUpdate = { status: status, updated_at: now, updated_by: userId };
         if (type === 'checkin') {
           tripStopUpdate.check_in_time = now;
           tripStopUpdate.checkin_time = now; // backward compatibility
@@ -613,33 +624,36 @@ export const SupabaseAPI = {
         console.warn('⚠️ Error during trip_stops sync:', syncError.message);
       }
 
-      // Log the action to driver_logs
+      // Log the action to driver_logs (log once per action, not per row updated)
       try {
         await supabase
           .from(TABLES.DRIVER_LOGS)
           .insert({
             reference: reference,
             action: type,
-            details: { ...jobdataUpdate, seq },
+            details: { ...jobdataUpdate, shipToCode: shipToCode || null, seq: seq },
             location: { lat, lng },
             user_id: userId
           });
       } catch (logError) {
         console.warn('⚠️ Could not write to driver_logs:', logError.message);
       }
+      
+      // Return the first updated row for UI feedback if available
+      const firstUpdatedStop = Array.isArray(data) && data.length > 0 ? data[0] : null;
 
       return {
         success: true,
         message: getSuccessMessage(type),
-        stop: {
-          rowIndex: data.id,
-          seq: data.seq,
-          status: data.status,
-          checkInTime: data.checkin_time,
-          checkOutTime: data.checkout_time,
-          fuelingTime: data.fueling_time,
-          unloadDoneTime: data.unload_done_time,
-        }
+        stop: firstUpdatedStop ? {
+          rowIndex: firstUpdatedStop.id,
+          seq: firstUpdatedStop.seq,
+          status: firstUpdatedStop.status,
+          checkInTime: firstUpdatedStop.checkin_time,
+          checkOutTime: firstUpdatedStop.checkout_time,
+          fuelingTime: firstUpdatedStop.fueling_time,
+          unloadDoneTime: firstUpdatedStop.unload_done_time,
+        } : null
       };
     } catch (err) {
       console.error('❌ Supabase updateStop error:', err);
