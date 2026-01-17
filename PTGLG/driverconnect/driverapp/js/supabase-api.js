@@ -30,6 +30,67 @@ export function getSupabase() {
 }
 
 /**
+ * Sync driver_jobs data to jobdata table
+ */
+async function syncToJobdata(jobs, stops, reference) {
+  try {
+    console.log('🔄 Syncing driver_jobs to jobdata...', jobs.length, 'jobs');
+    
+    // Delete existing jobdata rows for this reference
+    await supabase
+      .from('jobdata')
+      .delete()
+      .eq('reference', reference);
+    
+    // Insert new rows (each job row = 1 stop in jobdata)
+    const jobdataRows = jobs.map((job, index) => {
+      const stop = stops[index] || {};
+      
+      return {
+        reference: reference,
+        shipment_no: job.shipment_no || '',
+        ship_to_code: job.ship_to || stop.shipToCode || '',
+        ship_to_name: job.ship_to_name || stop.shipToName || '',
+        status: stop.status || 'PENDING',
+        checkin_time: stop.checkInTime || null,
+        checkout_time: stop.checkOutTime || null,
+        fueling_time: stop.fuelingTime || null,
+        unload_done_time: stop.unloadDoneTime || null,
+        vehicle_desc: job.vehicle_desc || '',
+        drivers: job.drivers || '',
+        seq: index + 1,
+        route: job.route || '',
+        is_origin_stop: index === 0,
+        materials: job.material_desc || stop.materials || '',
+        total_qty: job.delivery_qty || stop.totalQty || null,
+        dest_lat: stop.destLat || null,
+        dest_lng: stop.destLng || null,
+        job_closed: job.status === 'closed',
+        trip_ended: job.status === 'completed',
+        vehicle_status: job.vehicle_status || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    });
+    
+    if (jobdataRows.length > 0) {
+      const { error } = await supabase
+        .from('jobdata')
+        .insert(jobdataRows);
+      
+      if (error) {
+        console.error('❌ Error syncing to jobdata:', error);
+      } else {
+        console.log('✅ Synced', jobdataRows.length, 'rows to jobdata');
+      }
+    }
+  } catch (err) {
+    console.error('❌ syncToJobdata error:', err);
+    // Don't throw - continue even if sync fails
+  }
+}
+
+/**
  * Helper: Get success message by type
  */
 function getSuccessMessage(type) {
@@ -53,16 +114,83 @@ export const SupabaseAPI = {
     console.log('🔍 Supabase: Searching for', reference);
 
     try {
-      // Get job from driver_jobs table
-      const { data: job, error: jobError } = await supabase
+      // Step 1: Search in jobdata table first
+      console.log('🔍 Step 1: Searching in jobdata table...');
+      const { data: jobdataRows, error: jobdataError } = await supabase
+        .from('jobdata')
+        .select('*')
+        .eq('reference', reference)
+        .order('seq', { ascending: true });
+
+      // If found in jobdata, use it
+      if (!jobdataError && jobdataRows && jobdataRows.length > 0) {
+        console.log('✅ Found in jobdata:', jobdataRows.length, 'rows');
+        
+        const firstRow = jobdataRows[0];
+        
+        // Get alcohol checks from driver_alcohol_checks table
+        const { data: alcoholData } = await supabase
+          .from('driver_alcohol_checks')
+          .select('driver_name')
+          .eq('reference', reference);
+
+        const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
+        
+        // Convert jobdata rows to stops format
+        const stops = jobdataRows.map(row => ({
+          rowIndex: row.id,
+          seq: row.seq,
+          shipToCode: row.ship_to_code || '',
+          shipToName: row.ship_to_name || `จุดส่งที่ ${row.seq}`,
+          address: row.ship_to_name || '',
+          status: row.status || 'PENDING',
+          checkInTime: row.checkin_time,
+          checkOutTime: row.checkout_time,
+          fuelingTime: row.fueling_time,
+          unloadDoneTime: row.unload_done_time,
+          isOriginStop: row.is_origin_stop || row.seq === 1,
+          destLat: row.dest_lat || null,
+          destLng: row.dest_lng || null,
+          totalQty: row.total_qty || null,
+          materials: row.materials || ''
+        }));
+
+        const drivers = firstRow.drivers ? firstRow.drivers.split(',').map(d => d.trim()) : [];
+
+        return {
+          success: true,
+          data: {
+            referenceNo: reference,
+            vehicleDesc: firstRow.vehicle_desc || '',
+            shipmentNos: [],
+            totalStops: stops.length,
+            stops: stops,
+            alcohol: {
+              drivers: drivers,
+              checkedDrivers: checkedDrivers
+            },
+            jobClosed: firstRow.job_closed || false,
+            tripEnded: firstRow.trip_ended || false
+          }
+        };
+      }
+
+      // Step 2: If not found in jobdata, search in driver_jobs
+      console.log('🔍 Step 2: Not found in jobdata, searching in driver_jobs...');
+      const { data: jobs, error: jobError } = await supabase
         .from('driver_jobs')
         .select('*')
         .eq('reference', reference)
-        .single();
+        .order('created_at', { ascending: true });
 
-      if (jobError || !job) {
+      if (jobError || !jobs || jobs.length === 0) {
         return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
       }
+      
+      console.log('✅ Found in driver_jobs:', jobs.length, 'rows');
+      
+      // Use first job for header info
+      const job = jobs[0];
 
       // Get stops from driver_stops table
       const { data: stopsData, error: stopsError } = await supabase
@@ -79,25 +207,57 @@ export const SupabaseAPI = {
 
       const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
 
-      // Transform stops data to match existing format
-      const stops = (stopsData || []).map(row => ({
-        rowIndex: row.id,
-        seq: row.stop_number,
-        shipToCode: row.stop_number.toString(),
-        shipToName: row.stop_name || `จุดส่งที่ ${row.stop_number}`,
-        status: row.status || 'pending',
-        checkInTime: row.checkin_time,
-        checkOutTime: row.checkout_time,
-        fuelingTime: row.fuel_time,
-        unloadDoneTime: row.unload_time,
-        isOriginStop: row.stop_number === 1,
-        destLat: row.checkin_location?.lat || null,
-        destLng: row.checkin_location?.lng || null,
-        totalQty: null,
-        materials: row.address
-      }));
+      // If driver_stops has data, use it. Otherwise, create stops from each job row
+      let stops = [];
+      
+      if (stopsData && stopsData.length > 0) {
+        // Use driver_stops data
+        stops = stopsData.map(row => ({
+          rowIndex: row.id,
+          seq: row.stop_number,
+          shipToCode: row.stop_number.toString(),
+          shipToName: row.stop_name || `จุดส่งที่ ${row.stop_number}`,
+          address: row.address,
+          status: row.status || 'pending',
+          checkInTime: row.checkin_time,
+          checkOutTime: row.checkout_time,
+          fuelingTime: row.fuel_time,
+          unloadDoneTime: row.unload_time,
+          isOriginStop: row.stop_number === 1,
+          destLat: row.checkin_location?.lat || null,
+          destLng: row.checkin_location?.lng || null,
+          totalQty: null,
+          materials: row.address
+        }));
+      } else {
+        // Create stops from each job row (each row = 1 stop/delivery item)
+        stops = jobs.map((jobRow, index) => ({
+          rowIndex: jobRow.id,
+          seq: index + 1,
+          shipToCode: jobRow.ship_to || '',
+          shipToName: jobRow.ship_to_name || `จุดส่งที่ ${index + 1}`,
+          address: jobRow.ship_to_address || '',
+          status: 'pending',
+          checkInTime: null,
+          checkOutTime: null,
+          fuelingTime: null,
+          unloadDoneTime: null,
+          isOriginStop: index === 0,
+          destLat: null,
+          destLng: null,
+          totalQty: jobRow.delivery_qty || null,
+          materials: jobRow.material_desc || '',
+          delivery: jobRow.delivery || '',
+          material: jobRow.material || '',
+          deliveryItem: jobRow.delivery_item || ''
+        }));
+      }
 
       const drivers = job.drivers ? job.drivers.split(',').map(d => d.trim()) : [];
+
+      // Step 3: Sync data to jobdata table (found in driver_jobs, copy to jobdata)
+      console.log('🔄 Step 3: Syncing from driver_jobs to jobdata...');
+      await syncToJobdata(jobs, stops, reference);
 
       return {
         success: true,
@@ -165,6 +325,37 @@ export const SupabaseAPI = {
         .single();
 
       if (error) throw error;
+
+      // Also update jobdata table (sync)
+      const jobdataUpdate = {
+        status: status === 'checkin' ? 'CHECKIN' : 
+                status === 'checkout' ? 'CHECKOUT' : 'PENDING',
+        updated_at: new Date().toISOString()
+      };
+
+      if (type === 'checkin') {
+        jobdataUpdate.checkin_time = updates.checkin_time;
+        jobdataUpdate.checkin_lat = lat;
+        jobdataUpdate.checkin_lng = lng;
+        if (receiverName) jobdataUpdate.receiver_name = receiverName;
+      } else if (type === 'checkout') {
+        jobdataUpdate.checkout_time = updates.checkout_time;
+        jobdataUpdate.checkout_lat = lat;
+        jobdataUpdate.checkout_lng = lng;
+        if (odo) jobdataUpdate.checkin_odo = parseInt(odo);
+      } else if (type === 'fuel') {
+        jobdataUpdate.fueling_time = updates.fuel_time;
+      } else if (type === 'unload') {
+        jobdataUpdate.unload_done_time = updates.unload_time;
+        if (receiverName) jobdataUpdate.receiver_name = receiverName;
+      }
+
+      // Update jobdata by reference and seq
+      await supabase
+        .from('jobdata')
+        .update(jobdataUpdate)
+        .eq('reference', data.reference)
+        .eq('seq', data.stop_number);
 
       // Log the action
       await supabase
@@ -307,6 +498,18 @@ export const SupabaseAPI = {
 
       if (error) throw error;
 
+      // Also update jobdata table
+      await supabase
+        .from('jobdata')
+        .update({
+          job_closed: true,
+          job_closed_at: new Date().toISOString(),
+          vehicle_status: vehicleStatus,
+          closed_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('reference', reference);
+
       // Log action
       await supabase
         .from('driver_logs')
@@ -346,6 +549,21 @@ export const SupabaseAPI = {
         .single();
 
       if (error) throw error;
+
+      // Also update jobdata table
+      await supabase
+        .from('jobdata')
+        .update({
+          trip_ended: true,
+          trip_ended_at: new Date().toISOString(),
+          trip_end_odo: endOdo ? parseInt(endOdo) : null,
+          trip_end_lat: lat,
+          trip_end_lng: lng,
+          trip_end_place: endPointName,
+          ended_by: userId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('reference', reference);
 
       // Log action
       await supabase
