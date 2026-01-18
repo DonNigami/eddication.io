@@ -211,7 +211,10 @@ function renderTimeline(stops) {
   if (btnCloseJob) { btnCloseJob.style.display = 'none'; btnCloseJob.disabled = true; }
   if (btnEndTrip) { btnEndTrip.style.display = 'none'; btnEndTrip.disabled = true; }
 
-  if (!stops || stops.length === 0) {
+  // Filter out "คลังศรีราชา" stops before rendering
+  const filteredStops = stops ? stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา')) : [];
+
+  if (filteredStops.length === 0) {
     container.classList.add('hidden');
     return;
   }
@@ -222,7 +225,7 @@ function renderTimeline(stops) {
   const grouped = {};
   const groupOrder = [];
   
-  stops.forEach(stop => {
+  filteredStops.forEach(stop => {
     const key = stop.shipToCode || stop.shipToName || `stop_${stop.seq}`;
     
     if (!grouped[key]) {

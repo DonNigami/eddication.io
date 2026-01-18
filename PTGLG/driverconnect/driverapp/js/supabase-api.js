@@ -186,7 +186,9 @@ async function enrichStopsWithCoordinates(stops, route = null) {
  */
 async function syncToJobdata(trips, stops, reference) {
   try {
-    console.log('🔄 Syncing stops to jobdata...', stops.length, 'stops');
+    // Filter out "คลังศรีราชา" stops before syncing
+    const filteredStops = stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
+    console.log(`🔄 Syncing stops to jobdata... Total: ${stops.length}, After filtering 'คลังศรีราชา': ${filteredStops.length}`);
 
     // Delete existing jobdata rows for this reference
     await supabase
@@ -198,7 +200,7 @@ async function syncToJobdata(trips, stops, reference) {
     const sharedTripInfo = trips[0] || {};
 
     // Create jobdata rows from the processed STOPS array
-    const jobdataRows = stops.map(stop => {
+    const jobdataRows = filteredStops.map(stop => {
       return {
         reference: reference,
         shipment_no: stop.shipmentNo || '',
@@ -329,59 +331,67 @@ export const SupabaseAPI = {
       if (!jobdataError && jobdataRows && jobdataRows.length > 0) {
         console.log('✅ Found in jobdata:', jobdataRows.length, 'rows');
         
-        const firstRow = jobdataRows[0];
-        
-        // Get alcohol checks from alcohol_checks table
-        const { data: alcoholData } = await supabase
-          .from(TABLES.ALCOHOL_CHECKS)
-          .select('driver_name')
-          .eq('reference', reference);
+        // Filter out "คลังศรีราชา" stops
+        const filteredJobdataRows = jobdataRows.filter(row => row.ship_to_name && !row.ship_to_name.includes('คลังศรีราชา'));
 
-        const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
-        
-        // Convert jobdata rows to stops format
-        const stops = jobdataRows.map(row => ({
-          rowIndex: String(row.id), // Ensure rowIndex is always a string
-          seq: row.seq,
-          shipToCode: row.ship_to_code || '',
-          shipToName: row.ship_to_name || `จุดส่งที่ ${row.seq}`,
-          address: row.ship_to_name || '',
-          status: row.status || 'PENDING',
-          checkInTime: row.checkin_time,
-          checkOutTime: row.checkout_time,
-          fuelingTime: row.fueling_time,
-          unloadDoneTime: row.unload_done_time,
-          isOriginStop: row.is_origin_stop || row.seq === 1,
-          destLat: row.dest_lat || null,
-          destLng: row.dest_lng || null,
-          radiusM: row.radius_m || null,
-          distanceKm: row.distance_km || null,
-          totalQty: row.total_qty || null,
-          materials: row.materials || ''
-        }));
+        if (filteredJobdataRows.length === 0) {
+            console.log('ℹ️ All stops were filtered out as "คลังศรีราชา". Proceeding to fallback search.');
+        } else {
+            console.log('✅ Filtered to:', filteredJobdataRows.length, 'rows after excluding "คลังศรีราชา"');
+            const firstRow = filteredJobdataRows[0];
+            
+            // Get alcohol checks from alcohol_checks table
+            const { data: alcoholData } = await supabase
+              .from(TABLES.ALCOHOL_CHECKS)
+              .select('driver_name')
+              .eq('reference', reference);
 
-        // Enrich stops with coordinates from master location tables
-        const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || null);
+            const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
+            
+            // Convert jobdata rows to stops format
+            const stops = filteredJobdataRows.map(row => ({
+              rowIndex: String(row.id), // Ensure rowIndex is always a string
+              seq: row.seq,
+              shipToCode: row.ship_to_code || '',
+              shipToName: row.ship_to_name || `จุดส่งที่ ${row.seq}`,
+              address: row.ship_to_name || '',
+              status: row.status || 'PENDING',
+              checkInTime: row.checkin_time,
+              checkOutTime: row.checkout_time,
+              fuelingTime: row.fueling_time,
+              unloadDoneTime: row.unload_done_time,
+              isOriginStop: row.is_origin_stop || row.seq === 1,
+              destLat: row.dest_lat || null,
+              destLng: row.dest_lng || null,
+              radiusM: row.radius_m || null,
+              distanceKm: row.distance_km || null,
+              totalQty: row.total_qty || null,
+              materials: row.materials || ''
+            }));
 
-        const drivers = firstRow.drivers ? firstRow.drivers.split('/').map(d => d.trim()) : [];
+            // Enrich stops with coordinates from master location tables
+            const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || null);
 
-        return {
-          success: true,
-          source: 'jobdata',
-          data: {
-            referenceNo: reference,
-            vehicleDesc: firstRow.vehicle_desc || '',
-            shipmentNos: [],
-            totalStops: enrichedStops.length,
-            stops: enrichedStops,
-            alcohol: {
-              drivers: drivers,
-              checkedDrivers: checkedDrivers
-            },
-            jobClosed: firstRow.job_closed || false,
-            tripEnded: firstRow.trip_ended || false
-          }
-        };
+            const drivers = firstRow.drivers ? firstRow.drivers.split('/').map(d => d.trim()) : [];
+
+            return {
+              success: true,
+              source: 'jobdata',
+              data: {
+                referenceNo: reference,
+                vehicleDesc: firstRow.vehicle_desc || '',
+                shipmentNos: [],
+                totalStops: enrichedStops.length,
+                stops: enrichedStops,
+                alcohol: {
+                  drivers: drivers,
+                  checkedDrivers: checkedDrivers
+                },
+                jobClosed: firstRow.job_closed || false,
+                tripEnded: firstRow.trip_ended || false
+              }
+            };
+        }
       }
 
       // Log jobdata result
@@ -485,8 +495,11 @@ export const SupabaseAPI = {
         }));
       }
 
+      // Filter out "คลังศรีราชา" from destination stops
+      const filteredDestinationStops = destinationStops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
+
       // 4. Combine and re-sequence
-      let finalStops = [originStop, ...destinationStops];
+      let finalStops = [originStop, ...filteredDestinationStops];
       finalStops.forEach((s, i) => { s.seq = i + 1; });
       
       // 5. Enrich coordinates for destination stops
