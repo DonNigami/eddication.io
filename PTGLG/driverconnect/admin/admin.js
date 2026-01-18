@@ -178,7 +178,7 @@ async function updateMapMarkers() {
     try {
         // Fetch active jobs (or all jobs for now) to get relevant driver_logs
         const { data: activeJobs, error: jobsError } = await supabase
-            .from('jobdata')
+            .from('driver_jobs') // Changed from jobdata to driver_jobs
             .select('reference, drivers')
             .not('trip_ended', 'is', true); // Only jobs not ended
 
@@ -361,7 +361,7 @@ async function loadDashboardAnalytics() {
 
         // Active Jobs (e.g., status 'active' and trip_ended is false)
         const { count: activeJobs, error: jobsError } = await supabase
-            .from('jobdata')
+            .from('driver_jobs') // Changed from jobdata to driver_jobs
             .select('*', { count: 'exact' })
             .eq('status', 'active')
             .eq('trip_ended', false);
@@ -473,7 +473,7 @@ async function handleUserUpdate(event) {
 async function loadJobs(searchTerm = '') {
     jobsTableBody.innerHTML = '<tr><td colspan="6">Loading jobs...</td></tr>';
     try {
-        let query = supabase.from('jobdata').select('*').order('created_at', { ascending: false });
+        let query = supabase.from('driver_jobs').select('*').order('created_at', { ascending: false });
 
         if (searchTerm) {
             query = query.or(`reference.ilike.%${searchTerm}%,shipment_no.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
@@ -571,7 +571,7 @@ async function handleJobSubmit(event) {
         let error = null;
         if (jobId) {
             // Update existing job
-            ({ error } = await supabase.from('jobdata').update(jobData).eq('id', jobId));
+            ({ error } = await supabase.from('driver_jobs').update(jobData).eq('id', jobId));
         } else {
             // Create new job
             jobData.created_at = new Date().toISOString();
@@ -597,7 +597,7 @@ async function handleDeleteJob(jobId) {
 
     try {
         const { error } = await supabase
-            .from('jobdata')
+            .from('driver_jobs') // Changed from jobdata to driver_jobs
             .delete()
             .eq('id', jobId);
 
@@ -632,7 +632,7 @@ async function openJobDetailsModal(jobId) {
     try {
         // Fetch Job Data
         const { data: job, error: jobError } = await supabase
-            .from('jobdata')
+            .from('driver_jobs') // Changed from jobdata to driver_jobs
             .select('*')
             .eq('id', jobId)
             .single();
@@ -648,18 +648,18 @@ async function openJobDetailsModal(jobId) {
         detailJobUpdatedAt.textContent = new Date(job.updated_at).toLocaleString();
 
         // Fetch Trip Stops
-        const { data: tripStops, error: stopsError } = await supabase
-            .from('trip_stops') // Assuming 'trip_stops' table has 'trip_id' matching 'jobdata.id'
+        const { data: driverStops, error: stopsError } = await supabase
+            .from('driver_stop') // Changed from trip_stops to driver_stop
             .select('*')
             .eq('trip_id', jobId)
             .order('sequence', { ascending: true });
         if (stopsError) throw stopsError;
 
         jobDetailsStopsTableBody.innerHTML = '';
-        if (tripStops.length === 0) {
+        if (driverStops.length === 0) {
             jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="5">No stops found.</td></tr>';
         } else {
-            tripStops.forEach(stop => {
+            driverStops.forEach(stop => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${stop.sequence || 'N/A'}</td>
@@ -673,21 +673,21 @@ async function openJobDetailsModal(jobId) {
         }
 
         // Fetch Alcohol Checks
-        const { data: alcoholChecks, error: alcoholError } = await supabase
-            .from('alcohol_checks')
+        const { data: driverAlcoholChecks, error: alcoholError } = await supabase
+            .from('driver_alcohol_checks') // Changed from alcohol_checks to driver_alcohol_checks
             .select('*')
-            .eq('trip_id', jobId)
+            .eq('job_id', jobId) // Changed from trip_id to job_id as per driver_alcohol_checks schema
             .order('checked_at', { ascending: false });
         if (alcoholError) throw alcoholError;
 
         jobDetailsAlcoholTableBody.innerHTML = '';
-        if (alcoholChecks.length === 0) {
+        if (driverAlcoholChecks.length === 0) {
             jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">No alcohol checks found.</td></tr>';
         } else {
-            alcoholChecks.forEach(check => {
+            driverAlcoholChecks.forEach(check => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${check.driver_name || 'N/A'}</td>
+                    <td>${check.checked_by || 'N/A'}</td> <!-- Changed from driver_name to checked_by -->
                     <td>${check.alcohol_value || 'N/A'}</td>
                     <td>${new Date(check.checked_at).toLocaleString()}</td>
                     <td>${check.image_url ? `<a href="${check.image_url}" target="_blank">View Image</a>` : 'N/A'}</td>
@@ -790,7 +790,7 @@ async function generateDriverReport() {
     try {
         // Fetch jobs for the driver within the date range
         const { data: jobs, error: jobsError } = await supabase
-            .from('jobdata')
+            .from('driver_jobs') // Changed from jobdata to driver_jobs
             .select('*')
             .ilike('drivers', `%${driverId}%`) // Assuming 'drivers' column contains driver_id or name
             .gte('created_at', startDate + 'T00:00:00Z')
