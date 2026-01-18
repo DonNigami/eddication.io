@@ -231,6 +231,41 @@ function loadSectionData(sectionId) {
     }
 }
 
+// Real-time Subscriptions
+function setupRealtimeSubscriptions() {
+    supabase
+        .channel('user_profiles_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
+            if (payload.new.status === 'PENDING') {
+                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
+                // Refresh dashboard KPIs and user list
+                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                    loadDashboardAnalytics();
+                }
+                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
+                    loadUsers();
+                }
+            }
+        })
+        .subscribe();
+}
+
+// Notification Helper
+function showNotification(message, type = 'info') {
+    const notificationItem = document.createElement('div');
+    notificationItem.classList.add('notification-item', type);
+    notificationItem.innerHTML = `
+        <span class="icon">${type === 'error' ? '!' : 'ℹ️'}</span>
+        <span class="message">${message}</span>
+    `;
+    notificationContainer.prepend(notificationItem); // Add to top
+
+    // Automatically remove after 5 seconds
+    setTimeout(() => {
+        notificationItem.remove();
+    }, 5000);
+}
+
 // Map Functions
 let map;
 let markers = L.featureGroup(); // Group to manage markers
@@ -366,44 +401,6 @@ async function loadDashboardAnalytics() {
     }
 }
 
-
-    }
-}
-
-// Real-time Subscriptions
-function setupRealtimeSubscriptions() {
-    supabase
-        .channel('user_profiles_changes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
-            if (payload.new.status === 'PENDING') {
-                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
-                // Refresh dashboard KPIs and user list
-                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
-                    loadDashboardAnalytics();
-                }
-                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
-                    loadUsers();
-                }
-            }
-        })
-        .subscribe();
-}
-
-// Notification Helper
-function showNotification(message, type = 'info') {
-    const notificationItem = document.createElement('div');
-    notificationItem.classList.add('notification-item', type);
-    notificationItem.innerHTML = `
-        <span class="icon">${type === 'error' ? '!' : 'ℹ️'}</span>
-        <span class="message">${message}</span>
-    `;
-    notificationContainer.prepend(notificationItem); // Add to top
-
-    // Automatically remove after 5 seconds
-    setTimeout(() => {
-        notificationItem.remove();
-    }, 5000);
-}
 
 // User Management Functions
 async function loadUsers() {
