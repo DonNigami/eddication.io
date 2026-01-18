@@ -475,7 +475,7 @@ window.clearJobData = async function() {
     const { data, error } = await supabase
       .from('driver_jobs')
       .delete()
-      .neq('id', -1); // Deletes all rows since id is always not equal to -1
+      .not('id', 'is', null); // Deletes all rows since id is a PK and never null
 
     if (error) throw error;
     
