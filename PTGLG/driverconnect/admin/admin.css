@@ -1,0 +1,291 @@
+:root {
+    --bg-color: #1a1a1a;
+    --sidebar-bg: #2c2c2c;
+    --card-bg: #252525;
+    --primary-color: #1abc9c;
+    --text-color: #f1f1f1;
+    --text-muted: #888;
+    --border-color: #444;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow: hidden;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.auth-box {
+    background-color: var(--card-bg);
+    padding: 40px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+#admin-container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: var(--sidebar-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar-header h2 {
+    margin: 0 0 30px 0;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+.sidebar-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav a {
+    display: block;
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.sidebar-nav a:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav a.active {
+    background-color: var(--primary-color);
+    color: #fff;
+    font-weight: bold;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 15px;
+}
+
+#admin-username {
+    font-size: 0.9em;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+#logout-button {
+    background: none;
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 30px;
+    overflow-y: auto;
+}
+
+.content-section {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.content-section h1 {
+    color: #fff;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+/* Table Styles */
+.table-container {
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+thead {
+    background-color: var(--sidebar-bg);
+}
+
+tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Form elements inside tables */
+td select, td button {
+    padding: 6px 10px;
+    background-color: #333;
+    color: var(--text-color);
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+td button {
+    background-color: var(--primary-color);
+    border: none;
+    color: #fff;
+    margin-left: 5px;
+}
+td button:hover {
+    opacity: 0.9;
+}
+.leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9);
+}
+
+/* Job Management Specific Styles */
+.job-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.job-controls input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+.job-controls button {
+    padding: 10px 15px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.job-controls button:hover {
+    opacity: 0.9;
+}
+
+/* Modal Styles */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    margin: auto;
+    padding: 30px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.modal-content h2 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 15px;
+    top: 10px;
+    cursor: pointer;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+#job-form label {
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 15px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#job-form input[type="text"],
+#job-form select {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    background-color: #333;
+    color: var(--text-color);
+}
+
+#job-form input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+#job-form button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+    width: 100%;
+}
+#job-form button[type="submit"]:hover {
+    opacity: 0.9;
+}
+
