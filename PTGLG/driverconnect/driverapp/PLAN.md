@@ -660,18 +660,18 @@ Application is considered "production-ready" when:
 ```
 [Click "ปิดงาน" button]
         ↓
-[SweetAlert2: Input Driver Count, Vehicle Status, Holiday Work, Special Fees]
+[SweetAlert2: Input Driver Count, Vehicle Status, Holiday Work, etc.]
         ↓
 [User Confirms]
         ↓
+[Was 'Holiday Work' checked?]
+        ├─── Yes ──> [Show 2nd Confirmation Dialog] ──> [User Cancels] ──> [Abort]
+        ↓ No / User Confirms 2nd Dialog
 [Execute or Queue 'closeJob']
         ↓
-[Update jobdata:
- - status: 'closed', job_closed: true
- - driver_count, vehicle_status, is_holiday_work
- - updated_at, closed_by]
+[Update jobdata table]
         ↓
-[Insert driver_logs: action='close']
+[Insert driver_logs]
         ↓
 [Show Success Notification & Refresh UI]
 ```

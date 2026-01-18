@@ -697,6 +697,24 @@ async function closeJob() {
 
   if (!formValues) return;
 
+  // Add extra confirmation step if holiday work is checked
+  if (formValues.isHolidayWork) {
+    const { isConfirmed } = await Swal.fire({
+      title: 'ยืนยันทำงานวันหยุด',
+      text: 'คุณแน่ใจหรือไม่ว่าต้องการบันทึกเป็นการทำงานในวันหยุด?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'ยืนยัน',
+      cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!isConfirmed) {
+      return; // Abort if user cancels the holiday confirmation
+    }
+  }
+
   try {
     showLoading('กำลังปิดงาน...');
 
