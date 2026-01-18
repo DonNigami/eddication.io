@@ -1,6 +1,6 @@
 // Supabase & LIFF Configuration
 const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_Nmy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
 const LIFF_ID = '2007705394-Fgx9wdHu'; // Using driver app LIFF ID for now
 
 // Initialize Supabase client
@@ -261,7 +261,7 @@ async function loadPlaybackData() {
         if (error) throw error;
 
         playbackData = logs.filter(log => log.location && log.location.lat && log.location.lng)
-                           .map(log => ({ lat: log.location.lat, lng: log.location.lng, created_at: log.created_at }));
+            .map(log => ({ lat: log.location.lat, lng: log.location.lng, created_at: log.created_at }));
 
         if (playbackData.length < 2) {
             showNotification('Not enough location data for playback in the selected period.', 'info');
@@ -280,7 +280,7 @@ async function loadPlaybackData() {
             iconAnchor: [16, 32]
         });
         playbackMarker = L.marker([playbackData[0].lat, playbackData[0].lng], { icon: driverIcon }).addTo(map)
-                           .bindPopup(`Driver: ${playbackDriverSelect.options[playbackDriverSelect.selectedIndex].text}<br>Time: ${new Date(playbackData[0].created_at).toLocaleString()}`);
+            .bindPopup(`Driver: ${playbackDriverSelect.options[playbackDriverSelect.selectedIndex].text}<br>Time: ${new Date(playbackData[0].created_at).toLocaleString()}`);
 
         showNotification(`Loaded ${playbackData.length} points for playback.`, 'info');
 
@@ -1298,7 +1298,7 @@ function setupEventListeners() {
 
     // Driver Reports Event Listeners
     generateReportBtn.addEventListener('click', generateDriverReport);
-    
+
     // Settings Event Listeners
     settingsForm.addEventListener('submit', saveSettings);
 
@@ -1342,7 +1342,7 @@ function setupRealtimeSubscriptions() {
             }
         })
         .subscribe();
-    
+
     // Realtime for triggered_alerts
     supabase
         .channel('triggered_alerts_changes')
@@ -1391,7 +1391,7 @@ async function initializeApp() {
             .from('user_profiles')
             .select('*')
             // Using user_id (LINE ID) for lookup as per corrected schema assumption
-            .eq('user_id', lineProfile.userId) 
+            .eq('user_id', lineProfile.userId)
             .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
