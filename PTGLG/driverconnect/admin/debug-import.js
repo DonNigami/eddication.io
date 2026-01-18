@@ -460,7 +460,7 @@ window.checkData = async function() {
 window.clearJobData = async function() {
   const result = document.getElementById('clearResult');
   
-  const confirmed = confirm('Are you sure you want to delete ALL data from the jobdata table? This action cannot be undone.');
+  const confirmed = confirm('Are you sure you want to delete ALL data from the driver_jobs table? This action cannot be undone.');
   
   if (!confirmed) {
     result.innerHTML = '<span class="warning">Clear operation canceled.</span>';
