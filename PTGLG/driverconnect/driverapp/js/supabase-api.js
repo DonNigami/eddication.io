@@ -591,22 +591,17 @@ export const SupabaseAPI = {
       try {
         const tripStopUpdate = { status: status, updated_at: now, updated_by: userId };
         if (type === 'checkin') {
-          tripStopUpdate.check_in_time = now;
-          tripStopUpdate.checkin_time = now; // backward compatibility
-          tripStopUpdate.check_in_lat = lat;
-          tripStopUpdate.check_in_lng = lng;
+          tripStopUpdate.checkin_time = now;
+          tripStopUpdate.checkin_location = { lat, lng };
           if (odo) tripStopUpdate.check_in_odo = parseInt(odo);
           if (receiverName) tripStopUpdate.receiver_name = receiverName;
           if (receiverType) tripStopUpdate.receiver_type = receiverType;
         } else if (type === 'checkout') {
-          tripStopUpdate.check_out_time = now;
-          tripStopUpdate.checkout_time = now; // backward compatibility
+          tripStopUpdate.checkout_time = now;
         } else if (type === 'fuel') {
-          tripStopUpdate.fueling_time = now;
-          tripStopUpdate.fuel_time = now; // backward compatibility
+          tripStopUpdate.fuel_time = now;
         } else if (type === 'unload') {
-          tripStopUpdate.unload_done_time = now;
-          tripStopUpdate.unload_time = now; // backward compatibility
+          tripStopUpdate.unload_time = now;
         }
         
         const { error: tripStopError } = await supabase
@@ -765,7 +760,6 @@ export const SupabaseAPI = {
         .from(TABLES.TRIPS)
         .update({
           status: 'closed',
-          job_closed: true,
           vehicle_status: vehicleStatus,
           fees: totalFees,
           updated_at: new Date().toISOString(),
@@ -819,7 +813,6 @@ export const SupabaseAPI = {
         .from(TABLES.TRIPS)
         .update({
           status: 'completed',
-          trip_ended: true,
           end_time: new Date().toISOString(),
           end_odo: endOdo ? parseInt(endOdo) : null,
           end_location: { lat, lng },
