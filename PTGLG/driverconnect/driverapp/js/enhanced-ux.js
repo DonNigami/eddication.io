@@ -24,6 +24,7 @@ function initPullToRefresh() {
     if (window.scrollY === 0) {
       ptrStartY = e.touches[0].clientY;
       isPulling = true;
+      ptrIndicator.style.transition = 'none'; // Disable transition during pull
     }
   });
 
@@ -33,24 +34,32 @@ function initPullToRefresh() {
     ptrCurrentY = e.touches[0].clientY;
     const diff = ptrCurrentY - ptrStartY;
 
-    if (diff > 0 && diff < 150) {
-      ptrIndicator.style.transform = `translateY(${diff - 60}px)`;
-      ptrIcon.style.transform = `rotate(${diff * 2}deg)`;
-      ptrText.textContent = 'ดึงลงเพื่อรีเฟรช';
-    } else if (diff >= 150) {
-      ptrIcon.textContent = '↻';
-      ptrText.textContent = 'ปล่อยเพื่อรีเฟรช';
+    if (diff > 0) {
+      ptrIndicator.style.opacity = '1';
+      const pullDistance = Math.max(0, diff - 60);
+      ptrIndicator.style.transform = `translateX(-50%) translateY(${pullDistance}px)`;
+
+      if (diff < 150) {
+        ptrIcon.style.transform = `rotate(${diff * 2}deg)`;
+        ptrText.textContent = 'ดึงลงเพื่อรีเฟรช';
+      } else {
+        ptrIcon.style.transform = 'none';
+        ptrIcon.textContent = '↻';
+        ptrText.textContent = 'ปล่อยเพื่อรีเฟรช';
+      }
     }
   });
 
   appShell.addEventListener('touchend', async () => {
     if (!isPulling) return;
     
+    ptrIndicator.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
     const diff = ptrCurrentY - ptrStartY;
     
     if (diff >= 150) {
-      ptrIcon.textContent = '⟳';
-      ptrIcon.style.animation = 'spin 1s linear infinite';
+      ptrIndicator.style.transform = 'translateX(-50%) translateY(40px)'; // Hold position while refreshing
+      ptrIcon.style.display = 'none';
+      ptrIndicator.querySelector('.ptr-spinner').style.display = 'block';
       ptrText.textContent = 'กำลังรีเฟรช...';
       
       // Trigger refresh
@@ -59,14 +68,16 @@ function initPullToRefresh() {
       }
       
       setTimeout(() => {
-        ptrIndicator.style.transform = 'translateY(-100%)';
-        ptrIcon.style.animation = 'none';
+        ptrIndicator.style.transform = 'translateX(-50%) translateY(-70px)';
+        ptrIndicator.style.opacity = '0';
+        ptrIcon.style.display = 'block';
+        ptrIndicator.querySelector('.ptr-spinner').style.display = 'none';
         ptrIcon.textContent = '↓';
         ptrIcon.style.transform = 'rotate(0deg)';
       }, 500);
     } else {
-      ptrIndicator.style.transform = 'translateY(-100%)';
-      ptrIcon.style.transform = 'rotate(0deg)';
+      ptrIndicator.style.transform = 'translateX(-50%) translateY(-70px)';
+      ptrIndicator.style.opacity = '0';
     }
     
     isPulling = false;
