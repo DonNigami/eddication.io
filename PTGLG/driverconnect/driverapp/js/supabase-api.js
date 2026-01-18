@@ -218,6 +218,7 @@ async function syncToJobdata(trips, stops, reference) {
         dest_lat: stop.destLat || null,
         dest_lng: stop.destLng || null,
         radius_m: stop.radiusM || null,
+        distance_km: stop.distanceKm || null,
         job_closed: sharedTripInfo.status === 'closed',
         trip_ended: sharedTripInfo.status === 'completed',
         created_at: new Date().toISOString(),
@@ -353,6 +354,7 @@ export const SupabaseAPI = {
           destLat: row.dest_lat || null,
           destLng: row.dest_lng || null,
           radiusM: row.radius_m || null,
+          distanceKm: row.distance_km || null,
           totalQty: row.total_qty || null,
           materials: row.materials || ''
         }));
@@ -478,6 +480,7 @@ export const SupabaseAPI = {
           checkInTime: null, checkOutTime: null, fuelingTime: null, unloadDoneTime: null,
           totalQty: jobRow.delivery_qty || null,
           materials: jobRow.material_desc || '',
+          distanceKm: jobRow.distance || null
         }));
       }
 

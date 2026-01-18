@@ -283,7 +283,7 @@ function renderTimeline(stops) {
     }
 
     if (group.destLat && group.destLng) {
-      btnHtml += `<button class="btn-nav" onclick="window.DriverApp.navigateToStop('${stop.rowIndex}')">🧭</button>`;
+      btnHtml += `<button class="btn-nav" onclick="window.DriverApp.navigateToStop('${stop.rowIndex}')">นำทาง</button>`;
     }
 
     const li = document.createElement('li');
