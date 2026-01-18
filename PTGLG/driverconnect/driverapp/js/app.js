@@ -270,11 +270,14 @@ function renderTimeline(stops) {
         btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
       }
     } else {
+      // Destination Stop State Machine
       if (!hasCheckIn) {
         btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
+      } else if (!stop.fuelingTime) {
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงน้ำมัน</button>`;
+      } else if (!stop.unloadDoneTime) {
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงเสร็จ</button>`;
       } else if (!hasCheckOut) {
-        if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงน้ำมัน</button>`;
-        if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงเสร็จ</button>`;
         btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
       }
     }

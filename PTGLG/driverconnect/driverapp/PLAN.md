@@ -478,12 +478,12 @@ Application is considered "production-ready" when:
         ↓
 [Validate input (not empty)]
         ↓
-[Query Supabase: driver_jobs WHERE reference = ?]
+[Query Supabase: trips WHERE reference_no = ?]
         ↓
     ┌───┴───┐
     │ Not Found │ Found
     ↓           ↓
-[Show error] [Fetch driver_stops WHERE job_id = ?]
+[Show error] [Fetch trip_stops WHERE trip_id = ?]
                 ↓
             [Update user_profiles.last_reference]
                 ↓
@@ -511,10 +511,10 @@ Application is considered "production-ready" when:
         ↓
 [Get current GPS location]
         ↓
-[Upload image to Supabase Storage: 'alcohol-checks' bucket]
+[Upload image to Supabase Storage: 'alcohol-evidence' bucket]
         ↓
-[Insert to driver_alcohol_checks table:
- - job_id, reference, driver_name
+[Insert to alcohol_checks table:
+ - trip_id, reference, driver_name
  - alcohol_value, image_url
  - location: {lat, lng}
  - created_at]
@@ -534,7 +534,7 @@ Application is considered "production-ready" when:
         ↓
 [Confirm with SweetAlert2]
         ↓
-[Update driver_stops:
+[Update trip_stops:
  - status: 'checked_in'
  - checkin_time: now()
  - checkin_location: {lat, lng}]
@@ -554,7 +554,7 @@ Application is considered "production-ready" when:
         ↓
 [SweetAlert2: input fuel liters & amount]
         ↓
-[Update driver_stops:
+[Update trip_stops:
  - fuel_location: {lat, lng}
  - fuel_liters, fuel_amount]
         ↓
@@ -571,7 +571,7 @@ Application is considered "production-ready" when:
         ↓
 [Confirm with SweetAlert2]
         ↓
-[Update driver_stops:
+[Update trip_stops:
  - unload_location: {lat, lng}
  - unload_time: now()]
         ↓
@@ -590,7 +590,7 @@ Application is considered "production-ready" when:
         ↓
 [Confirm with SweetAlert2]
         ↓
-[Update driver_stops:
+[Update trip_stops:
  - status: 'completed'
  - checkout_time: now()
  - checkout_location: {lat, lng}]
@@ -612,7 +612,7 @@ Application is considered "production-ready" when:
         ↓
 [Confirm with SweetAlert2]
         ↓
-[Update driver_jobs:
+[Update trips:
  - status: 'closed'
  - closed_at: now()]
         ↓
@@ -634,7 +634,7 @@ Application is considered "production-ready" when:
         ↓
 [Get current GPS location]
         ↓
-[Update driver_jobs:
+[Update trips:
  - ODO_end: value
  - end_location: {lat, lng}
  - status: 'completed']
@@ -768,15 +768,15 @@ Application is considered "production-ready" when:
 ┌──────────────────────────────────────────────────────────────┐
 │                      Supabase Backend                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │ driver_jobs  │  │ driver_stops │  │ driver_logs  │       │
+│  │    trips     │  │  trip_stops  │  │ driver_logs  │       │
 │  │  (Headers)   │  │   (Items)    │  │   (Audit)    │       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
 │  ┌──────────────────┐  ┌─────────────────┐                  │
-│  │ driver_alcohol_  │  │  user_profiles  │                  │
-│  │     checks       │  │   (Tracking)    │                  │
+│  │  alcohol_checks  │  │  user_profiles  │                  │
+│  │                  │  │   (Tracking)    │                  │
 │  └──────────────────┘  └─────────────────┘                  │
 │  ┌──────────────────────────────────────────┐               │
-│  │         Storage: 'alcohol-checks'        │               │
+│  │         Storage: 'alcohol-evidence'      │               │
 │  │              (Image uploads)             │               │
 │  └──────────────────────────────────────────┘               │
 └──────────────────────────────────────────────────────────────┘
