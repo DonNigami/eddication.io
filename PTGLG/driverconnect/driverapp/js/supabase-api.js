@@ -664,14 +664,14 @@ export const SupabaseAPI = {
     console.log('🍺 Supabase: Uploading alcohol check for', driverName);
 
     try {
-      // Get trip_id first
-      const { data: trip } = await supabase
+      // Get trip_id first. A reference can have multiple rows, but they belong to the same trip.
+      const { data: trips } = await supabase
         .from(TABLES.TRIPS)
         .select('id')
-        .eq('reference', reference)
-        .single();
+        .eq('reference', reference);
 
-      if (!trip) throw new Error('ไม่พบงาน');
+      if (!trips || trips.length === 0) throw new Error('ไม่พบงาน');
+      const tripId = trips[0].id; // Use the ID from the first row
 
       // Upload image to Storage (alcohol-evidence bucket per PLAN.md)
       let imageUrl = null;
@@ -697,7 +697,7 @@ export const SupabaseAPI = {
       const { data, error } = await supabase
         .from(TABLES.ALCOHOL_CHECKS)
         .insert({
-          trip_id: trip.id,
+          trip_id: tripId,
           reference: reference,
           driver_name: driverName,
           driver_user_id: userId,
@@ -715,7 +715,7 @@ export const SupabaseAPI = {
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          trip_id: trip.id,
+          trip_id: tripId,
           reference: reference,
           action: 'alcohol',
           details: { driverName, alcoholValue, imageUrl },
@@ -766,10 +766,10 @@ export const SupabaseAPI = {
           updated_by: userId
         })
         .eq('reference', reference)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Job not found or failed to update.");
 
       // Also update jobdata table
       await supabase
@@ -787,7 +787,7 @@ export const SupabaseAPI = {
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          trip_id: data.id,
+          trip_id: data[0].id, // Use ID from the first record
           reference: reference,
           action: 'close',
           details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee },
@@ -820,10 +820,10 @@ export const SupabaseAPI = {
           updated_by: userId
         })
         .eq('reference', reference)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Job not found or failed to update.");
 
       // Also update jobdata table
       await supabase
@@ -844,7 +844,7 @@ export const SupabaseAPI = {
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          trip_id: data.id,
+          trip_id: data[0].id, // Use ID from the first record
           reference: reference,
           action: 'endtrip',
           details: { endOdo, endPointName, location: { lat, lng } },
