@@ -225,7 +225,7 @@ async function enrichStopsWithCoordinates(stops, route = null) {
  */
 async function syncToJobdata(trips, stops, reference) {
   try {
-    console.log('🔄 Syncing trips to jobdata...', trips.length, 'trips');
+    console.log('🔄 Syncing stops to jobdata...', stops.length, 'stops');
 
     // Delete existing jobdata rows for this reference
     await supabase
@@ -233,32 +233,32 @@ async function syncToJobdata(trips, stops, reference) {
       .delete()
       .eq('reference', reference);
 
-    // Insert new rows (each trip row = 1 stop in jobdata)
-    const jobdataRows = trips.map((trip, index) => {
-      const stop = stops[index] || {};
+    // The first trip row contains shared info like vehicle, drivers, route
+    const sharedTripInfo = trips[0] || {};
 
+    // Create jobdata rows from the processed STOPS array
+    const jobdataRows = stops.map(stop => {
       return {
         reference: reference,
-        shipment_no: trip.shipment_no || '',
-        ship_to_code: trip.ship_to || stop.shipToCode || '',
-        ship_to_name: trip.ship_to_name || stop.shipToName || '',
+        shipment_no: stop.shipmentNo || '',
+        ship_to_code: stop.shipToCode || '',
+        ship_to_name: stop.shipToName || '',
         status: stop.status || 'PENDING',
         checkin_time: stop.checkInTime || null,
         checkout_time: stop.checkOutTime || null,
         fueling_time: stop.fuelingTime || null,
         unload_done_time: stop.unloadDoneTime || null,
-        vehicle_desc: trip.vehicle_desc || '',
-        drivers: trip.drivers || '',
-        seq: index + 1,
-        route: trip.route || '',
-        is_origin_stop: index === 0,
-        materials: trip.material_desc || stop.materials || '',
-        total_qty: trip.delivery_qty || stop.totalQty || null,
+        vehicle_desc: sharedTripInfo.vehicle_desc || '',
+        drivers: sharedTripInfo.drivers || '',
+        seq: stop.seq,
+        route: sharedTripInfo.route || '',
+        is_origin_stop: stop.isOriginStop || false,
+        materials: stop.materials || '',
+        total_qty: stop.totalQty || null,
         dest_lat: stop.destLat || null,
         dest_lng: stop.destLng || null,
-        job_closed: trip.job_closed || trip.status === 'closed',
-        trip_ended: trip.trip_ended || trip.status === 'completed',
-        vehicle_status: trip.vehicle_status || null,
+        job_closed: sharedTripInfo.status === 'closed',
+        trip_ended: sharedTripInfo.status === 'completed',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
