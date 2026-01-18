@@ -614,38 +614,6 @@ export const SupabaseAPI = {
         console.log(`✅ Updated ${data.length} rows in jobdata.`);
       }
 
-      // Also update trip_stops for consistency, using sequence number
-      try {
-        const tripStopUpdate = { status: status, updated_at: now, updated_by: userId };
-        if (type === 'checkin') {
-          tripStopUpdate.checkin_time = now;
-          tripStopUpdate.checkin_location = { lat, lng };
-          if (odo) tripStopUpdate.check_in_odo = parseInt(odo);
-          if (receiverName) tripStopUpdate.receiver_name = receiverName;
-          if (receiverType) tripStopUpdate.receiver_type = receiverType;
-        } else if (type === 'checkout') {
-          tripStopUpdate.checkout_time = now;
-        } else if (type === 'fuel') {
-          tripStopUpdate.fuel_time = now;
-        } else if (type === 'unload') {
-          tripStopUpdate.unload_time = now;
-        }
-        
-        const { error: tripStopError } = await supabase
-          .from(TABLES.TRIP_STOPS)
-          .update(tripStopUpdate)
-          .eq('reference', reference)
-          .eq('sequence', seq);
-
-        if (tripStopError) {
-          console.warn(`⚠️ Could not sync update to trip_stops for seq ${seq}:`, tripStopError.message);
-        } else {
-          console.log(`✅ Synced update to trip_stops for seq ${seq}`);
-        }
-      } catch (syncError) {
-        console.warn('⚠️ Error during trip_stops sync:', syncError.message);
-      }
-
       // Log the action to driver_logs (log once per action, not per row updated)
       try {
         await supabase
@@ -804,27 +772,22 @@ export const SupabaseAPI = {
         (repairFee === 'yes' ? 1000 : 0)
       );
 
-      // Update trip status (per PLAN.md schema)
-      const { data, error } = await supabase
+      // Fetch trip_id for logging (read-only from TABLES.TRIPS)
+      const { data: tripsData, error: tripsError } = await supabase
         .from(TABLES.TRIPS)
-        .update({
-          status: 'closed',
-          vehicle_status: vehicleStatus,
-          fees: totalFees,
-          updated_at: new Date().toISOString(),
-          updated_by: userId
-        })
-        .eq('reference', reference)
-        .select();
+        .select('id')
+        .eq('reference', reference);
+      
+      if (tripsError) throw tripsError;
+      if (!tripsData || tripsData.length === 0) throw new Error("Trip not found for logging.");
+      const tripIdForLog = tripsData[0].id;
 
-      if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Job not found or failed to update.");
-
-      // Also update jobdata table
-      await supabase
+      // Update jobdata table (primary writable table for status)
+      const { data, error } = await supabase
         .from(TABLES.JOBDATA)
         .update({
-          job_closed: true,
+          status: 'closed',
+          job_closed: true, // This field is in jobdata, not driver_jobs
           job_closed_at: new Date().toISOString(),
           vehicle_status: vehicleStatus,
           closed_by: userId,
@@ -832,11 +795,14 @@ export const SupabaseAPI = {
         })
         .eq('reference', reference);
 
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("Jobdata not found or failed to update.");
+
       // Log action
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          trip_id: data[0].id, // Use ID from the first record
+          job_id: tripIdForLog, // Use ID fetched from TABLES.TRIPS
           reference: reference,
           action: 'close',
           details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee },
@@ -858,26 +824,22 @@ export const SupabaseAPI = {
     console.log('🏁 Supabase: Ending trip', reference);
 
     try {
-      const { data, error } = await supabase
+      // Fetch trip_id for logging (read-only from TABLES.TRIPS)
+      const { data: tripsData, error: tripsError } = await supabase
         .from(TABLES.TRIPS)
-        .update({
-          status: 'completed',
-          end_odo: endOdo ? parseInt(endOdo) : null,
-          end_location: { lat, lng },
-          updated_at: new Date().toISOString(),
-          updated_by: userId
-        })
-        .eq('reference', reference)
-        .select();
+        .select('id')
+        .eq('reference', reference);
+      
+      if (tripsError) throw tripsError;
+      if (!tripsData || tripsData.length === 0) throw new Error("Trip not found for logging.");
+      const tripIdForLog = tripsData[0].id;
 
-      if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Job not found or failed to update.");
-
-      // Also update jobdata table
+      // Update jobdata table (primary writable table for status)
       await supabase
         .from(TABLES.JOBDATA)
         .update({
-          trip_ended: true,
+          status: 'completed',
+          trip_ended: true, // This field is in jobdata, not driver_jobs
           trip_ended_at: new Date().toISOString(),
           trip_end_odo: endOdo ? parseInt(endOdo) : null,
           trip_end_lat: lat,
@@ -892,7 +854,7 @@ export const SupabaseAPI = {
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          trip_id: data[0].id, // Use ID from the first record
+          job_id: tripIdForLog, // Use ID fetched from TABLES.TRIPS
           reference: reference,
           action: 'endtrip',
           details: { endOdo, endPointName, location: { lat, lng } },
