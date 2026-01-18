@@ -621,6 +621,9 @@ async function handleDeleteJob(jobId) {
 
         alert('Job deleted successfully!');
         loadJobs(); // Refresh job list
+    } catch (error) { // Added missing catch block
+        console.error('Error deleting job:', error);
+        alert(`Failed to delete job: ${error.message}`);
     }
 }
 
