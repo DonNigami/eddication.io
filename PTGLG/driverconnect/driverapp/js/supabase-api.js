@@ -294,6 +294,40 @@ function getSuccessMessage(type) {
   return messages[type] || 'อัปเดตสำเร็จ';
 }
 
+async function getOriginConfig(route) {
+  let originData = null;
+  // 1. Try by route
+  if (route) {
+    const routePrefix = route.substring(0, 3).toUpperCase();
+    try {
+      const { data } = await supabase
+        .from('origin')
+        .select('originKey, name, lat, lng, radiusMeters, routeCode')
+        .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
+        .limit(1)
+        .maybeSingle();
+      if (data) originData = data;
+    } catch (error) {
+      console.warn('⚠️ Error fetching origin by route:', error.message);
+    }
+  }
+  // 2. Fallback to default
+  if (!originData) {
+    try {
+      const { data } = await supabase
+        .from('origin')
+        .select('originKey, name, lat, lng, radiusMeters, routeCode')
+        .order('id', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (data) originData = data;
+    } catch (error) {
+      console.warn('⚠️ Error fetching default origin:', error.message);
+    }
+  }
+  return originData;
+}
+
 /**
  * Supabase API Functions
  */
@@ -393,130 +427,108 @@ export const SupabaseAPI = {
       }
 
       // ============================================
-      // Step 2: Search in trips table (fallback)
+      // Step 2: Search in trips table (fallback) & build from scratch
       // ============================================
       console.log('🔍 Step 2: Searching in trips table...');
 
-      let jobs = null;
-      let jobError = null;
+      const { data: jobs, error: jobError } = await supabase
+        .from(TABLES.TRIPS)
+        .select('*')
+        .eq('reference', reference)
+        .order('created_at', { ascending: true });
 
-      try {
-        const result = await supabase
-          .from(TABLES.TRIPS)
-          .select('*')
-          .eq('reference', reference)
-          .order('created_at', { ascending: true });
-
-        jobs = result.data;
-        jobError = result.error;
-      } catch (err) {
-        console.error('❌ trips query exception:', err.message);
-        jobError = err;
-      }
-
-      // Handle trips query error
       if (jobError) {
         console.error('❌ trips query error:', jobError);
-
-        // If it's an RLS or permission error, show helpful message
         const errorMsg = jobError.message || '';
         if (jobError.code === 'PGRST116' || errorMsg.includes('406') || errorMsg.includes('permission') || errorMsg.includes('policy')) {
-          return {
-            success: false,
-            message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference + '\n\nกรุณาตรวจสอบ:\n1. เลข Reference ถูกต้องหรือไม่\n2. งานถูกสร้างในระบบแล้วหรือยัง\n\n(หมายเหตุ: ตรวจสอบทั้ง jobdata และ trips แล้ว)'
-          };
+          return { success: false, message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference };
         }
-
-        return {
-          success: false,
-          message: 'เกิดข้อผิดพลาด: ' + errorMsg
-        };
+        return { success: false, message: 'เกิดข้อผิดพลาด: ' + errorMsg };
       }
 
       if (!jobs || jobs.length === 0) {
-        return {
-          success: false,
-          message: 'ไม่พบข้อมูลงาน Reference: ' + reference + '\n\n(ค้นหาทั้ง jobdata และ trips แล้ว)'
-        };
+        return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
       }
 
       console.log('✅ Found in trips:', jobs.length, 'rows');
-      
-      // Use first job for header info
-      const job = jobs[0];
+      const jobHeader = jobs[0];
 
-      // Get stops from trip_stops table
-      const { data: stopsData, error: stopsError } = await supabase
+      // --- Replicate driverjob.js logic: Create synthetic origin + destination stops ---
+      
+      // 1. Get Origin Config
+      const originConfig = await getOriginConfig(jobHeader.route);
+      if (!originConfig) {
+        return { success: false, message: 'ไม่สามารถหาข้อมูลจุดต้นทาง (origin) ได้' };
+      }
+
+      // 2. Create Synthetic Origin Stop
+      const originStop = {
+        rowIndex: 'origin_0', // Synthetic ID
+        seq: 1,
+        shipToCode: originConfig.originKey,
+        shipToName: originConfig.name,
+        address: originConfig.name,
+        status: 'PENDING',
+        isOriginStop: true,
+        destLat: parseFloat(originConfig.lat) || null,
+        destLng: parseFloat(originConfig.lng) || null,
+        // other fields null/default
+        checkInTime: null, checkOutTime: null, fuelingTime: null, unloadDoneTime: null,
+        totalQty: null, materials: 'จุดต้นทาง'
+      };
+
+      // 3. Get Destination Stops from driver_stops or driver_jobs
+      const { data: stopsData } = await supabase
         .from(TABLES.TRIP_STOPS)
         .select('*')
         .eq('reference', reference)
         .order('sequence', { ascending: true });
 
-      // Get alcohol checks from alcohol_checks table
-      const { data: alcoholData } = await supabase
-        .from(TABLES.ALCOHOL_CHECKS)
-        .select('driver_name')
-        .eq('reference', reference);
-
-      const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
-
-      // If trip_stops has data, use it. Otherwise, create stops from each trip row
-      let stops = [];
-
+      let destinationStops = [];
       if (stopsData && stopsData.length > 0) {
-        // Use trip_stops data (aligned with app/PLAN.md schema)
-        stops = stopsData.map(row => ({
+        // Data exists in driver_stops, use it
+        destinationStops = stopsData.map(row => ({
           rowIndex: row.id,
           seq: row.sequence || row.stop_number,
-          shipToCode: (row.sequence || row.stop_number).toString(),
-          shipToName: row.destination_name || row.stop_name || `จุดส่งที่ ${row.sequence || row.stop_number}`,
+          shipToCode: row.ship_to_code || (row.sequence || row.stop_number).toString(),
+          shipToName: row.destination_name || row.stop_name,
           address: row.address,
           status: row.status || 'pending',
-          checkInTime: row.check_in_time || row.checkin_time,
-          checkOutTime: row.check_out_time || row.checkout_time,
-          fuelingTime: row.fueling_time || row.fuel_time,
-          unloadDoneTime: row.unload_done_time || row.unload_time,
-          isOriginStop: row.is_origin || row.sequence === 1 || row.stop_number === 1,
-          destLat: row.lat || row.checkin_location?.lat || null,
-          destLng: row.lng || row.checkin_location?.lng || null,
-          checkInOdo: row.check_in_odo,
-          receiverName: row.receiver_name,
-          receiverType: row.receiver_type,
-          checkInLat: row.check_in_lat,
-          checkInLng: row.check_in_lng,
-          totalQty: null,
-          materials: row.address
+          isOriginStop: false, // Force false, as we have a synthetic origin
+          destLat: parseFloat(row.lat) || null,
+          destLng: parseFloat(row.lng) || null,
+          checkInTime: row.checkin_time, checkOutTime: row.checkout_time, fuelingTime: row.fuel_time, unloadDoneTime: row.unload_time,
         }));
       } else {
-        // Create stops from each job row (each row = 1 stop/delivery item)
-        stops = jobs.map((jobRow, index) => ({
+        // No data in driver_stops, create from driver_jobs rows
+        destinationStops = jobs.map((jobRow) => ({
           rowIndex: jobRow.id,
-          seq: index + 1,
+          seq: 0, // Will be re-sequenced later
           shipToCode: jobRow.ship_to || '',
-          shipToName: jobRow.ship_to_name || `จุดส่งที่ ${index + 1}`,
+          shipToName: jobRow.ship_to_name,
           address: jobRow.ship_to_address || '',
           status: 'pending',
-          checkInTime: null,
-          checkOutTime: null,
-          fuelingTime: null,
-          unloadDoneTime: null,
-          isOriginStop: index === 0,
-          destLat: null,
-          destLng: null,
+          isOriginStop: false,
+          destLat: null, destLng: null,
+          checkInTime: null, checkOutTime: null, fuelingTime: null, unloadDoneTime: null,
           totalQty: jobRow.delivery_qty || null,
           materials: jobRow.material_desc || '',
-          delivery: jobRow.delivery || '',
-          material: jobRow.material || '',
-          deliveryItem: jobRow.delivery_item || ''
         }));
       }
 
-      const drivers = job.drivers ? job.drivers.split('/').map(d => d.trim()) : [];
+      // 4. Combine and re-sequence
+      let finalStops = [originStop, ...destinationStops];
+      finalStops.forEach((s, i) => { s.seq = i + 1; });
+      
+      // 5. Enrich coordinates for destination stops
+      const enrichedStops = await enrichStopsWithCoordinates(finalStops, jobHeader.route);
 
-      // Enrich stops with coordinates from master location tables
-      const enrichedStops = await enrichStopsWithCoordinates(stops, job.route || null);
+      // 6. Get other data
+      const { data: alcoholData } = await supabase.from(TABLES.ALCOHOL_CHECKS).select('driver_name').eq('reference', reference);
+      const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
+      const drivers = jobHeader.drivers ? jobHeader.drivers.split('/').map(d => d.trim()) : [];
 
-      // Step 3: Sync data to jobdata table (found in trips, copy to jobdata)
+      // 7. Sync to jobdata
       console.log('🔄 Step 3: Syncing from trips to jobdata...');
       await syncToJobdata(jobs, enrichedStops, reference);
 
@@ -525,7 +537,7 @@ export const SupabaseAPI = {
         source: 'trips',
         data: {
           referenceNo: reference,
-          vehicleDesc: job.vehicle_desc || '',
+          vehicleDesc: jobHeader.vehicle_desc || '',
           shipmentNos: [],
           totalStops: enrichedStops.length,
           stops: enrichedStops,
@@ -533,8 +545,8 @@ export const SupabaseAPI = {
             drivers: drivers,
             checkedDrivers: checkedDrivers
           },
-          jobClosed: job.status === 'closed',
-          tripEnded: job.status === 'completed'
+          jobClosed: jobHeader.status === 'closed',
+          tripEnded: jobHeader.status === 'completed'
         }
       };
     } catch (err) {
