@@ -1274,16 +1274,17 @@ async function loadLogs() {
 
 // --- Holiday Work Functions ---
 async function loadHolidayWorkJobs(searchTerm = '', filterHolidayOnly = false) {
-    holidayWorkTableBody.innerHTML = '<tr><td colspan="6">Loading jobs...</td></tr>';
+    holidayWorkTableBody.innerHTML = '<tr><td colspan="7">Loading jobs...</td></tr>';
     try {
-        let query = supabase.from('driver_jobs').select('*').order('created_at', { ascending: false });
+        // Always filter for is_holiday_work = true and not yet approved
+        let query = supabase.from('driver_jobs')
+            .select('*')
+            .eq('is_holiday_work', true)
+            .eq('holiday_work_approved', false)
+            .order('created_at', { ascending: false });
 
         if (searchTerm) {
             query = query.or(`reference.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
-        }
-
-        if (filterHolidayOnly) {
-            query = query.eq('is_holiday_work', true);
         }
 
         const { data: jobs, error } = await query;
@@ -1292,24 +1293,27 @@ async function loadHolidayWorkJobs(searchTerm = '', filterHolidayOnly = false) {
 
         holidayWorkTableBody.innerHTML = '';
         if (jobs.length === 0) {
-            holidayWorkTableBody.innerHTML = '<tr><td colspan="6">No jobs found.</td></tr>';
+            holidayWorkTableBody.innerHTML = '<tr><td colspan="7">No pending holiday work jobs found.</td></tr>';
             return;
         }
 
         jobs.forEach(job => {
             const row = document.createElement('tr');
             const isHoliday = job.is_holiday_work;
+            const isApproved = job.holiday_work_approved;
             const badgeClass = isHoliday ? 'badge-holiday' : 'badge-normal';
             const badgeText = isHoliday ? 'Yes' : 'No';
+            const approvedBadge = isApproved ? '<span class="status-badge badge-success">Approved</span>' : '<span class="status-badge badge-warning">Pending</span>';
 
             row.innerHTML = `
                 <td>${job.reference || 'N/A'}</td>
                 <td>${job.drivers || 'N/A'}</td>
                 <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
                 <td><span class="status-badge ${badgeClass}">${badgeText}</span></td>
+                <td>${approvedBadge}</td>
                 <td>${job.holiday_work_notes || '-'}</td>
                 <td>
-                    <button class="edit-holiday-btn" data-job-id="${job.id}">Edit</button>
+                    <button class="edit-holiday-btn" data-job-id="${job.id}">Approve</button>
                 </td>
             `;
             holidayWorkTableBody.appendChild(row);
@@ -1326,7 +1330,7 @@ async function loadHolidayWorkJobs(searchTerm = '', filterHolidayOnly = false) {
 
     } catch (error) {
         console.error('Error loading holiday work jobs:', error);
-        holidayWorkTableBody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`;
+        holidayWorkTableBody.innerHTML = `<tr><td colspan="7">Error: ${error.message}</td></tr>`;
     }
 }
 
@@ -1351,18 +1355,24 @@ async function handleHolidayWorkSubmit(event) {
     const notes = holidayWorkNotesInput.value;
 
     try {
+        // Get current admin user info
+        const lineProfile = await liff.getProfile();
+        
         const { error } = await supabase
             .from('driver_jobs')
             .update({
                 is_holiday_work: isHoliday,
                 holiday_work_notes: notes,
+                holiday_work_approved: true,
+                holiday_work_approved_by: lineProfile.userId,
+                holiday_work_approved_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             })
             .eq('id', jobId);
 
         if (error) throw error;
 
-        showNotification('Holiday work status updated successfully!', 'info');
+        showNotification('Holiday work approved successfully!', 'info');
         closeHolidayWorkModal();
         loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked);
     } catch (error) {
