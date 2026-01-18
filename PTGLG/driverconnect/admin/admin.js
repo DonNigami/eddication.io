@@ -178,136 +178,6 @@ function showAccessDenied() {
 }
 
 
-// --- Event Listeners Setup ---
-function setupEventListeners() {
-    // Sidebar navigation
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetId = e.currentTarget.dataset.target;
-            navigateTo(targetId);
-        });
-    });
-
-    // Logout
-    logoutButton.addEventListener('click', () => {
-        if (liff.isLoggedIn()) {
-            liff.logout();
-            window.location.reload();
-        }
-    });
-
-    // Job Management (Edit/Create) Event Listeners
-    jobSearchInput.addEventListener('keyup', (e) => loadJobs(e.target.value));
-    createJobButton.addEventListener('click', () => openJobModal());
-    jobModalCloseButton.addEventListener('click', closeJobModal);
-    jobModal.addEventListener('click', (e) => {
-        if (e.target === jobModal) {
-            closeJobModal();
-        }
-    });
-    jobForm.addEventListener('submit', handleJobSubmit);
-
-    // Job Details Event Listeners
-    jobDetailsCloseButton.addEventListener('click', closeJobDetailsModal);
-    jobDetailsModal.addEventListener('click', (e) => {
-        if (e.target === jobDetailsModal) {
-            closeJobDetailsModal();
-        }
-    });
-
-    // Driver Reports Event Listeners
-    generateReportBtn.addEventListener('click', generateDriverReport);
-    
-    // Settings Event Listeners
-    settingsForm.addEventListener('submit', saveSettings);
-
-    // Map Playback Event Listeners
-    loadPlaybackDataBtn.addEventListener('click', loadPlaybackData);
-    playButton.addEventListener('click', startPlayback);
-    pauseButton.addEventListener('click', pausePlayback);
-    stopButton.addEventListener('click', stopPlayback);
-
-    // Scheduled Reports Event Listeners
-    createReportScheduleBtn.addEventListener('click', () => openReportScheduleModal());
-    reportScheduleForm.addEventListener('submit', handleReportScheduleSubmit);
-    reportScheduleModalCloseButton.addEventListener('click', closeReportScheduleModal);
-    reportScheduleModal.addEventListener('click', (e) => {
-        if (e.target === reportScheduleModal) {
-            closeReportScheduleModal();
-        }
-    });
-
-    // Log Viewer Event Listeners
-    logSearchReferenceInput.addEventListener('keyup', () => loadLogs());
-    logSearchActionInput.addEventListener('keyup', () => loadLogs());
-    logSearchUserIdInput.addEventListener('keyup', () => loadLogs());
-}
-
-function navigateTo(targetId) {
-    // Hide all sections
-    document.querySelectorAll('.content-section').forEach(section => {
-        section.classList.add('hidden');
-    });
-
-    // Deactivate all nav links
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-    });
-
-    // Show target section and activate nav link
-    const targetSection = document.getElementById(targetId);
-    const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
-
-    if (targetSection) {
-        targetSection.classList.remove('hidden');
-    }
-    if (targetLink) {
-        targetLink.classList.add('active');
-    }
-
-    // Load data for the section if needed
-    loadSectionData(targetId);
-}
-
-
-// --- Real-time Subscriptions ---
-function setupRealtimeSubscriptions() {
-    supabase
-        .channel('user_profiles_changes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
-            if (payload.new.status === 'PENDING') {
-                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
-                // Refresh dashboard KPIs and user list
-                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
-                    loadDashboardAnalytics();
-                }
-                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
-                    loadUsers();
-                }
-                updateAlertsBadge(); // New pending user also affects alerts badge
-            }
-        })
-        .subscribe();
-    
-    // Realtime for triggered_alerts
-    supabase
-        .channel('triggered_alerts_changes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'triggered_alerts' }, payload => {
-            const newAlert = payload.new;
-            showNotification(`New Alert: ${newAlert.message} (Driver: ${newAlert.driver_user_id})`, 'error');
-            // Refresh dashboard KPIs and user list
-            if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
-                loadDashboardAnalytics();
-            }
-            if (document.querySelector('.nav-link[data-target="alerts"]').classList.contains('active')) {
-                loadAlerts();
-            }
-            updateAlertsBadge();
-        })
-        .subscribe();
-}
-
 // --- Utility Functions ---
 
 // Notification Helper
@@ -1013,6 +883,7 @@ async function generateDriverReport() {
                 row.innerHTML = `
                     <td>${job.reference || 'N/A'}</td>
                     <td>${job.shipment_no || 'N/A'}</td>
+                    <td>${job.drivers || 'N/A'}</td>
                     <td>${job.status || 'N/A'}</td>
                     <td>${job.trip_ended ? 'Yes' : 'No'}</td>
                     <td>${new Date(job.created_at).toLocaleString()}</td>
@@ -1381,5 +1252,42 @@ async function loadLogs() {
     } catch (error) {
         console.error('Error loading logs:', error);
         logsTableBody.innerHTML = `<tr><td colspan="6">Error loading logs: ${error.message}</td></tr>`;
+    }
+}
+
+function loadSectionData(targetId) {
+    switch (targetId) {
+        case 'dashboard':
+            loadDashboardAnalytics();
+            initMap();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'jobs':
+            loadJobs();
+            break;
+        case 'reports':
+            loadDriverReports();
+            break;
+        case 'settings':
+            loadSettings();
+            break;
+        case 'alerts':
+            loadAlerts();
+            break;
+        case 'playback':
+            // Populate driver select for playback
+            loadDriverReports(); // Reusing the function to populate driver select
+            break;
+        case 'schedules':
+            loadReportSchedules();
+            break;
+        case 'logs':
+            loadLogs();
+            break;
+        default:
+            console.warn('Unknown section:', targetId);
+            break;
     }
 }
