@@ -23,7 +23,7 @@ const TABLES = {
 };
 
 // Storage bucket name (migration PENDING)
-const STORAGE_BUCKET = 'alcohol-checks';
+const STORAGE_BUCKET = 'alcohol-evidence';
 
 // Initialize Supabase client
 let supabase = null;
@@ -349,7 +349,7 @@ export const SupabaseAPI = {
         // Enrich stops with coordinates from master location tables
         const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || null);
 
-        const drivers = firstRow.drivers ? firstRow.drivers.split(',').map(d => d.trim()) : [];
+        const drivers = firstRow.drivers ? firstRow.drivers.split('/').map(d => d.trim()) : [];
 
         return {
           success: true,
@@ -496,7 +496,7 @@ export const SupabaseAPI = {
         }));
       }
 
-      const drivers = job.drivers ? job.drivers.split(',').map(d => d.trim()) : [];
+      const drivers = job.drivers ? job.drivers.split('/').map(d => d.trim()) : [];
 
       // Enrich stops with coordinates from master location tables
       const enrichedStops = await enrichStopsWithCoordinates(stops, job.route || null);
@@ -714,7 +714,7 @@ export const SupabaseAPI = {
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          trip_id: tripId,
+          job_id: tripId,
           reference: reference,
           action: 'alcohol',
           details: { driverName, alcoholValue, imageUrl },
