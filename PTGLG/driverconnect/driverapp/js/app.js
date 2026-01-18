@@ -265,22 +265,22 @@ function renderTimeline(stops) {
     let btnHtml = '';
     if (isOrigin) {
       if (!hasCheckIn) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
       } else if (!hasCheckOut) {
-        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
       }
     } else {
       if (!hasCheckIn) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
       } else if (!hasCheckOut) {
-        if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">ลงน้ำมัน</button>`;
-        if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">ลงเสร็จ</button>`;
-        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout(${stop.rowIndex}, ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
+        if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงน้ำมัน</button>`;
+        if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงเสร็จ</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
       }
     }
 
     if (group.destLat && group.destLng) {
-      btnHtml += `<button class="btn-nav" onclick="window.DriverApp.navigateToStop(${stop.rowIndex})">🧭</button>`;
+      btnHtml += `<button class="btn-nav" onclick="window.DriverApp.navigateToStop('${stop.rowIndex}')">🧭</button>`;
     }
 
     const li = document.createElement('li');

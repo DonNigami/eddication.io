@@ -378,7 +378,7 @@ export const SupabaseAPI = {
         
         // Convert jobdata rows to stops format
         const stops = jobdataRows.map(row => ({
-          rowIndex: row.id,
+          rowIndex: String(row.id), // Ensure rowIndex is always a string
           seq: row.seq,
           shipToCode: row.ship_to_code || '',
           shipToName: row.ship_to_name || `จุดส่งที่ ${row.seq}`,
@@ -488,7 +488,7 @@ export const SupabaseAPI = {
       if (stopsData && stopsData.length > 0) {
         // Data exists in driver_stops, use it
         destinationStops = stopsData.map(row => ({
-          rowIndex: row.id,
+          rowIndex: String(row.id), // Ensure rowIndex is a string
           seq: row.sequence || row.stop_number,
           shipToCode: row.ship_to_code || (row.sequence || row.stop_number).toString(),
           shipToName: row.destination_name || row.stop_name,
@@ -502,7 +502,7 @@ export const SupabaseAPI = {
       } else {
         // No data in driver_stops, create from driver_jobs rows
         destinationStops = jobs.map((jobRow) => ({
-          rowIndex: jobRow.id,
+          rowIndex: String(jobRow.id), // Ensure rowIndex is a string
           seq: 0, // Will be re-sequenced later
           shipToCode: jobRow.ship_to || '',
           shipToName: jobRow.ship_to_name,
