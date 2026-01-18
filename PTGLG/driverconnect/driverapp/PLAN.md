@@ -54,7 +54,44 @@ supabase/
 
 ### Tables
 
-#### 1. **trips** (formerly driver_jobs)
+#### 1. **jobdata** (Primary Table for App State)
+> This table is the main source of truth for the app. Data is synced from the legacy `trips` table if not found here.
+```sql
+- id (bigint, PK)
+- reference (text, INDEX)
+- shipment_no (text)
+- ship_to_code (text)
+- ship_to_name (text)
+- status (text)
+- checkin_time, checkout_time, fueling_time, unload_done_time (timestamptz)
+- checkin_lat, checkin_lng, checkout_lat, checkout_lng (double precision)
+- checkin_odo (numeric)
+- receiver_name (text), receiver_type (text)
+- has_pumping (boolean), has_transfer (boolean)
+- vehicle_desc (text)
+- drivers (text)
+- seq (int)
+- route (text)
+- is_origin_stop (boolean)
+- materials (text)
+- total_qty (numeric)
+- dest_lat, dest_lng (double precision)
+- radius_m (numeric)
+- job_closed (boolean)
+- trip_ended (boolean)
+- job_closed_at (timestamptz)
+- trip_ended_at (timestamptz)
+- trip_end_odo (numeric)
+- driver_count (int)
+- vehicle_status (text)
+- is_holiday_work (boolean) -- NEW
+- created_at, updated_at (timestamptz)
+- updated_by (text)
+- closed_by (text)
+- ended_by (text)
+```
+
+#### 2. **trips** (formerly driver_jobs)
 ```sql
 - id (bigint, PK)
 - reference_no (text, UNIQUE) -- รหัสงาน เช่น 2601S16472
@@ -74,7 +111,7 @@ supabase/
 - created_at, updated_at (timestamptz)
 ```
 
-#### 2. **trip_stops** (formerly driver_stops)
+#### 3. **trip_stops** (formerly driver_stops)
 ```sql
 - id (bigint, PK)
 - trip_id (bigint, FK -> trips.id)
@@ -96,7 +133,7 @@ supabase/
 - checkin_location (jsonb) -- backward compatibility
 ```
 
-#### 3. **alcohol_checks** (formerly driver_alcohol_checks)
+#### 4. **alcohol_checks** (formerly driver_alcohol_checks)
 ```sql
 - id (bigint, PK)
 - trip_id (bigint, FK -> trips.id)
@@ -110,7 +147,7 @@ supabase/
 - location (jsonb) -- backward compatibility
 ```
 
-#### 4. **driver_logs** (Audit Trail)
+#### 5. **driver_logs** (Audit Trail)
 ```sql
 - id (uuid, PK)
 - trip_id (uuid, FK -> trips.id)
@@ -123,7 +160,7 @@ supabase/
 - created_at (timestamptz)
 ```
 
-#### 5. **user_profiles** (User Tracking)
+#### 6. **user_profiles** (User Tracking)
 ```sql
 - id (uuid, PK)
 - user_id (text, UNIQUE) -- LINE User ID (starts with 'U')
@@ -623,19 +660,20 @@ Application is considered "production-ready" when:
 ```
 [Click "ปิดงาน" button]
         ↓
-[Confirm with SweetAlert2]
+[SweetAlert2: Input Driver Count, Vehicle Status, Holiday Work, Special Fees]
         ↓
-[Update trips:
- - status: 'closed'
- - closed_at: now()]
+[User Confirms]
         ↓
-[Insert driver_logs: action='close_job']
+[Execute or Queue 'closeJob']
         ↓
-[Show success notification]
+[Update jobdata:
+ - status: 'closed', job_closed: true
+ - driver_count, vehicle_status, is_holiday_work
+ - updated_at, closed_by]
         ↓
-[Clear localStorage cache]
+[Insert driver_logs: action='close']
         ↓
-[Reset UI to initial state]
+[Show Success Notification & Refresh UI]
 ```
 
 ### 6. End Trip Flow

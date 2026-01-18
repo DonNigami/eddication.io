@@ -669,7 +669,8 @@ async function closeJob() {
           <label style="font-weight:bold; display:block; margin-bottom: 5px;">ค่าใช้จ่ายพิเศษ (ถ้ามี)</label>
           <label style="display:block; margin-bottom: 5px;"><input type="checkbox" id="hillFee"> มีค่าขึ้นเขา</label>
           <label style="display:block; margin-bottom: 5px;"><input type="checkbox" id="bkkFee"> มีค่าเข้า กทม</label>
-          <label style="display:block;"><input type="checkbox" id="repairFee"> นำรถเข้าซ่อม</label>
+          <label style="display:block; margin-bottom: 5px;"><input type="checkbox" id="repairFee"> นำรถเข้าซ่อม</label>
+          <label style="display:block;"><input type="checkbox" id="swalHolidayWork"> ทำงานในวันหยุด</label>
         </div>
       </div>
     `,
@@ -688,7 +689,8 @@ async function closeJob() {
         vehicleStatus: document.querySelector('input[name="vehicleStatus"]:checked').value,
         hillFee: document.getElementById('hillFee').checked ? 'yes' : 'no',
         bkkFee: document.getElementById('bkkFee').checked ? 'yes' : 'no',
-        repairFee: document.getElementById('repairFee').checked ? 'yes' : 'no'
+        repairFee: document.getElementById('repairFee').checked ? 'yes' : 'no',
+        isHolidayWork: document.getElementById('swalHolidayWork').checked
       }
     }
   });
@@ -706,7 +708,8 @@ async function closeJob() {
       vehicleDesc: currentVehicleDesc,
       hillFee: formValues.hillFee,
       bkkFee: formValues.bkkFee,
-      repairFee: formValues.repairFee
+      repairFee: formValues.repairFee,
+      isHolidayWork: formValues.isHolidayWork
     };
 
     const result = await executeOrQueue(
