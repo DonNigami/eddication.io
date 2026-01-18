@@ -95,7 +95,7 @@ async function initializeApp() {
         }
 
         const lineProfile = await liff.getProfile();
-        
+
         const { data: userProfile, error } = await supabase
             .from('user_profiles')
             .select('*')
@@ -171,7 +171,7 @@ function setupEventListeners() {
 
     // Driver Reports Event Listeners
     generateReportBtn.addEventListener('click', generateDriverReport);
-    
+
     // Settings Event Listeners
     settingsForm.addEventListener('submit', saveSettings);
 
@@ -195,7 +195,7 @@ function navigateTo(targetId) {
     // Show target section and activate nav link
     const targetSection = document.getElementById(targetId);
     const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
-    
+
     if (targetSection) {
         targetSection.classList.remove('hidden');
     }
@@ -537,7 +537,7 @@ async function loadJobs(searchTerm = '') {
                 handleDeleteJob(jobId);
             });
         });
-        
+
         document.querySelectorAll('.view-details-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const jobId = e.target.dataset.jobId;
@@ -630,7 +630,7 @@ async function handleDeleteJob(jobId) {
 // Job Details Functions
 async function openJobDetailsModal(jobId) {
     jobDetailsModal.classList.remove('hidden');
-    
+
     // Clear previous data
     jobDetailsReferenceTitle.textContent = 'Loading...';
     detailJobReference.textContent = 'Loading...';
