@@ -822,12 +822,12 @@ function toggleAdminMode() {
     isAdminMode = !isAdminMode;
     const adminToggleBtn = document.getElementById('adminToggle');
     if (isAdminMode) {
-        adminToggleBtn.style.backgroundColor = 'var(--accent-color)';
+        adminToggleBtn.style.backgroundColor = '#2ecc71'; // Green
         adminToggleBtn.style.color = 'white';
         showInfo('เปิดโหมดแอดมิน', 'ปิดการตรวจสอบระยะห่าง');
     } else {
-        adminToggleBtn.style.backgroundColor = 'transparent';
-        adminToggleBtn.style.color = 'var(--text-main)';
+        adminToggleBtn.style.backgroundColor = '#e74c3c'; // Red
+        adminToggleBtn.style.color = 'white';
         showInfo('ปิดโหมดแอดมิน', 'เปิดการตรวจสอบระยะห่าง');
     }
 }
@@ -846,6 +846,8 @@ async function initApp() {
   adminToggleBtn.setAttribute('aria-label', 'สลับโหมดแอดมิน');
   adminToggleBtn.innerHTML = '👑';
   adminToggleBtn.style.display = 'none'; // Hidden by default
+  adminToggleBtn.style.backgroundColor = '#e74c3c'; // Default to Red (OFF)
+  adminToggleBtn.style.color = 'white';
   document.querySelector('.header > div:last-child').prepend(adminToggleBtn);
 
   // Load theme
@@ -884,18 +886,38 @@ async function initApp() {
       }
       
       const statusEl = document.getElementById('status');
+      const profilePictureUrl = currentUserProfile?.picture_url || profile.pictureUrl;
+
+      // Make statusEl a flex container for image and text
+      statusEl.style.display = 'flex';
+      statusEl.style.alignItems = 'center';
+      statusEl.style.gap = '10px';
+
       // Logic based on 'APPROVED' status as per user request
       if (currentUserProfile?.status === 'APPROVED') {
-        statusEl.textContent = 'สวัสดี ' + (currentUserProfile.display_name || profile.displayName);
+        const displayName = currentUserProfile.display_name || profile.displayName;
+        const welcomeText = currentUserProfile.user_type === 'ADMIN' ? 'สวัสดี Admin ' : 'สวัสดี ';
+        
+        let profileImageHtml = '';
+        if (profilePictureUrl) {
+            profileImageHtml = `<img src="${profilePictureUrl}" alt="Profile" style="width: 36px; height: 36px; border-radius: 50%;">`;
+        }
+
+        statusEl.innerHTML = `
+          ${profileImageHtml}
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${welcomeText}${escapeHtml(displayName)}</span>
+        `;
         statusEl.style.color = 'var(--text-main)';
+        
         // Show admin button if user's type is admin
         if (currentUserProfile.user_type === 'ADMIN') {
-          statusEl.textContent = 'สวัสดี Admin ' + (currentUserProfile.display_name || profile.displayName);
           document.getElementById('adminToggle').style.display = 'block';
         }
       } else {
-        statusEl.textContent = 'สถานะ: รอการอนุมัติใช้งาน';
+        statusEl.innerHTML = `<span>สถานะ: รอการอนุมัติใช้งาน</span>`;
         statusEl.style.color = 'orange';
+        // Reset flex styles if no image
+        statusEl.style.display = 'block';
       }
       
     } else {
