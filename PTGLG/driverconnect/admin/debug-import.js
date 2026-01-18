@@ -457,6 +457,37 @@ window.checkData = async function() {
   }
 };
 
+window.clearJobData = async function() {
+  const result = document.getElementById('clearResult');
+  
+  const confirmed = confirm('Are you sure you want to delete ALL data from the jobdata table? This action cannot be undone.');
+  
+  if (!confirmed) {
+    result.innerHTML = '<span class="warning">Clear operation canceled.</span>';
+    return;
+  }
+  
+  result.innerHTML = '<span class="warning">🔥 Deleting all job data...</span>';
+  
+  try {
+    // Delete all rows in the driver_jobs table. 
+    // The `neq` condition is a common way to target all rows for deletion.
+    const { data, error } = await supabase
+      .from('driver_jobs')
+      .delete()
+      .neq('id', -1); // Deletes all rows since id is always not equal to -1
+
+    if (error) throw error;
+    
+    result.innerHTML = `<span class="success">✓ All job data has been deleted successfully!</span>`;
+      
+  } catch (error) {
+    console.error('Clear data error:', error);
+    result.innerHTML = `<span class="error">✗ Failed to clear data!</span>\n\n` +
+      `Error: ${error.message}`;
+  }
+};
+
 window.importAllRows = async function() {
   const result = document.getElementById('importAllResult');
   const progressBar = document.getElementById('progressBar');
