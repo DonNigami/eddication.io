@@ -1,6 +1,6 @@
 // Supabase & LIFF Configuration
 const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_Nmy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
 const LIFF_ID = '2007705394-Fgx9wdHu'; // Using driver app LIFF ID for now
 
 // DOM Elements - General
@@ -115,67 +115,6 @@ let playbackMarker = null;
 let playbackData = []; // Stores [{lat, lng, created_at}, ...]
 let playbackIndex = 0;
 let playbackInterval = null;
-
-
-// --- Core Application Functions ---
-
-// Main App Initialization
-document.addEventListener('DOMContentLoaded', async () => {
-    await initializeApp();
-    setupRealtimeSubscriptions(); // Setup real-time listeners
-});
-
-
-async function initializeApp() {
-    try {
-        await liff.init({ liffId: LIFF_ID });
-
-        if (!liff.isLoggedIn()) {
-            authStatus.textContent = 'กรุณา Login...';
-            liff.login({ redirectUri: window.location.href });
-            return;
-        }
-
-        const lineProfile = await liff.getProfile();
-
-        // Check user profile for admin status
-        const { data: userProfile, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            // Using user_id (LINE ID) for lookup as per corrected schema assumption
-            .eq('user_id', lineProfile.userId) 
-            .single();
-
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-            throw new Error(`Supabase error: ${error.message}`);
-        }
-
-        if (userProfile && userProfile.user_type === 'ADMIN' && userProfile.status === 'APPROVED') {
-            showAdminPanel(lineProfile);
-        } else {
-            showAccessDenied();
-        }
-
-    } catch (error) {
-        console.error('Initialization failed:', error);
-        authStatus.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
-    }
-}
-
-function showAdminPanel(profile) {
-    authContainer.classList.add('hidden');
-    adminContainer.classList.remove('hidden');
-    adminUsername.textContent = profile.displayName;
-
-    setupEventListeners();
-    // Default to dashboard view
-    navigateTo('dashboard');
-    updateAlertsBadge(); // Load initial alert count
-}
-
-function showAccessDenied() {
-    authStatus.innerHTML = 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้<br>กรุณาติดต่อผู้ดูแลระบบ';
-}
 
 
 // --- Utility Functions ---
@@ -1253,6 +1192,135 @@ async function loadLogs() {
         console.error('Error loading logs:', error);
         logsTableBody.innerHTML = `<tr><td colspan="6">Error loading logs: ${error.message}</td></tr>`;
     }
+}
+
+// --- Real-time Subscriptions ---
+function setupRealtimeSubscriptions() {
+    supabase
+        .channel('user_profiles_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
+            if (payload.new.status === 'PENDING') {
+                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
+                // Refresh dashboard KPIs and user list
+                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                    loadDashboardAnalytics();
+                }
+                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
+                    loadUsers();
+                }
+                updateAlertsBadge(); // New pending user also affects alerts badge
+            }
+        })
+        .subscribe();
+    
+    // Realtime for triggered_alerts
+    supabase
+        .channel('triggered_alerts_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'triggered_alerts' }, payload => {
+            const newAlert = payload.new;
+            showNotification(`New Alert: ${newAlert.message} (Driver: ${newAlert.driver_user_id})`, 'error');
+            // Refresh dashboard KPIs and user list
+            if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                loadDashboardAnalytics();
+            }
+            if (document.querySelector('.nav-link[data-target="alerts"]').classList.contains('active')) {
+                loadAlerts();
+            }
+            updateAlertsBadge();
+        })
+        .subscribe();
+}
+
+// --- Event Listeners Setup ---
+function setupEventListeners() {
+    // Sidebar navigation
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = e.currentTarget.dataset.target;
+            navigateTo(targetId);
+        });
+    });
+
+    // Logout
+    logoutButton.addEventListener('click', () => {
+        if (liff.isLoggedIn()) {
+            liff.logout();
+            window.location.reload();
+        }
+    });
+
+    // Job Management (Edit/Create) Event Listeners
+    jobSearchInput.addEventListener('keyup', (e) => loadJobs(e.target.value));
+    createJobButton.addEventListener('click', () => openJobModal());
+    jobModalCloseButton.addEventListener('click', closeJobModal);
+    jobModal.addEventListener('click', (e) => {
+        if (e.target === jobModal) {
+            closeJobModal();
+        }
+    });
+    jobForm.addEventListener('submit', handleJobSubmit);
+
+    // Job Details Event Listeners
+    jobDetailsCloseButton.addEventListener('click', closeJobDetailsModal);
+    jobDetailsModal.addEventListener('click', (e) => {
+        if (e.target === jobDetailsModal) {
+            closeJobDetailsModal();
+        }
+    });
+
+    // Driver Reports Event Listeners
+    generateReportBtn.addEventListener('click', generateDriverReport);
+    
+    // Settings Event Listeners
+    settingsForm.addEventListener('submit', saveSettings);
+
+    // Map Playback Event Listeners
+    loadPlaybackDataBtn.addEventListener('click', loadPlaybackData);
+    playButton.addEventListener('click', startPlayback);
+    pauseButton.addEventListener('click', pausePlayback);
+    stopButton.addEventListener('click', stopPlayback);
+
+    // Scheduled Reports Event Listeners
+    createReportScheduleBtn.addEventListener('click', () => openReportScheduleModal());
+    reportScheduleForm.addEventListener('submit', handleReportScheduleSubmit);
+    reportScheduleModalCloseButton.addEventListener('click', closeReportScheduleModal);
+    reportScheduleModal.addEventListener('click', (e) => {
+        if (e.target === reportScheduleModal) {
+            closeReportScheduleModal();
+        }
+    });
+
+    // Log Viewer Event Listeners
+    logSearchReferenceInput.addEventListener('keyup', () => loadLogs());
+    logSearchActionInput.addEventListener('keyup', () => loadLogs());
+    logSearchUserIdInput.addEventListener('keyup', () => loadLogs());
+}
+
+function navigateTo(targetId) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.add('hidden');
+    });
+
+    // Deactivate all nav links
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show target section and activate nav link
+    const targetSection = document.getElementById(targetId);
+    const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
+
+    if (targetSection) {
+        targetSection.classList.remove('hidden');
+    }
+    if (targetLink) {
+        targetLink.classList.add('active');
+    }
+
+    // Load data for the section if needed
+    loadSectionData(targetId);
 }
 
 function loadSectionData(targetId) {
