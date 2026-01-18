@@ -535,7 +535,8 @@ export const SupabaseAPI = {
       const jobdataUpdate = {
         status: status,
         updated_at: now,
-        updated_by: userId
+        updated_by: userId,
+        processdata_time: now
       };
 
       if (type === 'checkin') {
@@ -787,7 +788,8 @@ export const SupabaseAPI = {
           job_closed_at: new Date().toISOString(),
           vehicle_status: vehicleStatus,
           closed_by: userId,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          processdata_time: new Date().toISOString()
         })
         .eq('reference', reference);
 
@@ -841,7 +843,8 @@ export const SupabaseAPI = {
           trip_end_lng: lng,
           trip_end_place: endPointName,
           ended_by: userId,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          processdata_time: new Date().toISOString()
         })
         .eq('reference', reference);
 
