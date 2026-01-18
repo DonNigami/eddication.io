@@ -908,7 +908,7 @@ export const SupabaseAPI = {
             first_seen_at: new Date().toISOString(),
             last_seen_at: new Date().toISOString(),
             total_visits: 1,
-            status: 'PENDING'
+            user_type: 'DRIVER' // Default type for new users
           });
 
         if (error) throw error;

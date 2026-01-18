@@ -34,7 +34,7 @@ let tripEnded = false;
 // SEARCH FUNCTION
 // ============================================
 async function search(isSilent = false) {
-  // User Approval Check
+  // User Approval Check (reverted to 'APPROVED' as per user request)
   if (currentUserProfile?.status !== 'APPROVED') {
     showError('คุณยังไม่ได้รับอนุมัติให้ใช้งานระบบ', 'กรุณาติดต่อผู้ดูแล');
     return;
@@ -884,21 +884,18 @@ async function initApp() {
       }
       
       const statusEl = document.getElementById('status');
+      // Logic based on 'APPROVED' status as per user request
       if (currentUserProfile?.status === 'APPROVED') {
         statusEl.textContent = 'สวัสดี ' + (currentUserProfile.display_name || profile.displayName);
         statusEl.style.color = 'var(--text-main)';
-        // Show admin button if user is admin
-        if (currentUserProfile.role === 'ADMIN') {
+        // Show admin button if user's type is admin
+        if (currentUserProfile.user_type === 'ADMIN') {
+          statusEl.textContent = 'สวัสดี Admin ' + (currentUserProfile.display_name || profile.displayName);
           document.getElementById('adminToggle').style.display = 'block';
         }
-      } else if (currentUserProfile?.status === 'PENDING') {
-        statusEl.textContent = 'สถานะ: รอการอนุมัติ';
-        statusEl.style.color = 'orange';
-      } else if (currentUserProfile?.status === 'REJECTED') {
-        statusEl.textContent = 'สถานะ: คุณถูกปฏิเสธการเข้าใช้งาน';
-        statusEl.style.color = 'red';
       } else {
-        statusEl.textContent = 'สวัสดี ' + profile.displayName;
+        statusEl.textContent = 'สถานะ: รอการอนุมัติใช้งาน';
+        statusEl.style.color = 'orange';
       }
       
     } else {
