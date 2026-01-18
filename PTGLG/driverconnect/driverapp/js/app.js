@@ -707,12 +707,7 @@ async function closeJob() {
 
     jobClosed = true;
     await showSuccess('ปิดงานสำเร็จ', 'บันทึกการปิดงานเรียบร้อย');
-    
-    // Reset UI to initial state per PLAN.md
-    clearResult();
-    document.getElementById('keyword').value = '';
-    localStorage.removeItem(APP_CONFIG.LAST_REFERENCE_KEY);
-    hideLastUpdatedContainer();
+    if (currentReference) search(true); // Refresh the job data to show the 'End Trip' button
 
   } catch (err) {
     closeLoading();
