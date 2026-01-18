@@ -1641,21 +1641,60 @@ async function openSiphoningModal(record = null) {
     siphoningForm.reset();
     siphoningEvidencePreview.classList.add('hidden');
 
-    // Load stations from driver_stop for dropdown
+    // Load stations from station and customer tables for dropdown
     try {
-        const { data: stops } = await supabase
-            .from('driver_stop')
-            .select('destination_name, customer_code')
-            .order('destination_name');
+        // Get stations from station table
+        const { data: stations } = await supabase
+            .from('station')
+            .select('station_name, stationKey, "plant code"')
+            .order('station_name');
 
-        const uniqueStations = [...new Map(stops?.map(s => [s.destination_name, s]) || []).values()];
+        // Get customers from customer table
+        const { data: customers } = await supabase
+            .from('customer')
+            .select('name, stationKey')
+            .order('name');
+
         siphoningStation.innerHTML = '<option value="">-- Select Station --</option>';
-        uniqueStations.forEach(stop => {
-            const option = document.createElement('option');
-            option.value = JSON.stringify({ name: stop.destination_name, code: stop.customer_code });
-            option.textContent = stop.destination_name;
-            siphoningStation.appendChild(option);
-        });
+        
+        // Add optgroup for stations
+        if (stations && stations.length > 0) {
+            const stationGroup = document.createElement('optgroup');
+            stationGroup.label = 'Stations';
+            stations.forEach(station => {
+                if (station.station_name) {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({ 
+                        name: station.station_name, 
+                        code: station.stationKey,
+                        plantCode: station['plant code'],
+                        type: 'station'
+                    });
+                    option.textContent = station.station_name;
+                    stationGroup.appendChild(option);
+                }
+            });
+            siphoningStation.appendChild(stationGroup);
+        }
+
+        // Add optgroup for customers
+        if (customers && customers.length > 0) {
+            const customerGroup = document.createElement('optgroup');
+            customerGroup.label = 'Customers';
+            customers.forEach(customer => {
+                if (customer.name) {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({ 
+                        name: customer.name, 
+                        code: customer.stationKey,
+                        type: 'customer'
+                    });
+                    option.textContent = customer.name;
+                    customerGroup.appendChild(option);
+                }
+            });
+            siphoningStation.appendChild(customerGroup);
+        }
     } catch (e) {
         console.warn('Could not load stations:', e);
     }
