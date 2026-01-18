@@ -700,7 +700,7 @@ export const SupabaseAPI = {
           trip_id: tripId,
           reference: reference,
           driver_name: driverName,
-          driver_user_id: userId,
+          user_id: userId, // Corrected column name
           alcohol_value: parseFloat(alcoholValue),
           image_url: imageUrl,
           lat: lat,
