@@ -19,7 +19,8 @@ const TABLES = {
   ALCOHOL_CHECKS: 'driver_alcohol_checks',
   DRIVER_LOGS: 'driver_logs',
   JOBDATA: 'jobdata',
-  USER_PROFILES: 'user_profiles'
+  USER_PROFILES: 'user_profiles',
+  PROCESS_DATA: 'process_data'
 };
 
 // Storage bucket name (migration PENDING)
@@ -219,8 +220,8 @@ async function syncToJobdata(trips, stops, reference) {
         dest_lng: stop.destLng || null,
         radius_m: stop.radiusM || null,
         distance_km: stop.distanceKm || null,
-        job_closed: sharedTripInfo.status === 'closed',
-        trip_ended: sharedTripInfo.status === 'completed',
+        job_closed: false,
+        trip_ended: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -543,6 +544,7 @@ export const SupabaseAPI = {
         jobdataUpdate.checkin_lng = lng;
         if (odo) jobdataUpdate.checkin_odo = parseInt(odo);
         if (receiverName) jobdataUpdate.receiver_name = receiverName;
+        if (receiverType) jobdataUpdate.receiver_type = receiverType;
       } else if (type === 'checkout') {
         jobdataUpdate.checkout_time = now;
         jobdataUpdate.checkout_lat = lat;
@@ -700,6 +702,32 @@ export const SupabaseAPI = {
     } catch (err) {
       console.error('❌ Supabase uploadAlcohol error:', err);
       return { success: false, message: 'บันทึกการตรวจแอลกอฮอล์ไม่สำเร็จ: ' + err.message };
+    }
+  },
+
+  async uploadProcessData(payload) {
+    console.log('📝 Supabase: Uploading process data', payload);
+    try {
+      const { error } = await supabase
+        .from(TABLES.PROCESS_DATA)
+        .insert({
+          reference: payload.reference,
+          row_index: payload.rowIndex,
+          ship_to_code: payload.shipToCode,
+          ship_to_name: payload.shipToName,
+          receiver_name: payload.receiverName,
+          receiver_type: payload.receiverType,
+          odo_value: payload.odo,
+          user_id: payload.userId,
+          lat: payload.lat,
+          lng: payload.lng,
+          timestamp: new Date().toISOString()
+        });
+      if (error) throw error;
+      return { success: true, message: "บันทึก processdata สำเร็จ" };
+    } catch (err) {
+      console.error('❌ Supabase uploadProcessData error:', err);
+      return { success: false, message: 'บันทึกข้อมูลผู้รับน้ำมันไม่สำเร็จ: ' + err.message };
     }
   },
 
