@@ -104,7 +104,22 @@ const notificationContainer = document.getElementById('notification-container');
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Main App Logic
+// Global state for map playback
+let map;
+let markers = L.featureGroup(); // Group to manage markers
+let mapCenterLat = 13.736717; // Default to Bangkok
+let mapCenterLng = 100.523186;
+let mapZoom = 10;
+let playbackPath = null;
+let playbackMarker = null;
+let playbackData = []; // Stores [{lat, lng, created_at}, ...]
+let playbackIndex = 0;
+let playbackInterval = null;
+
+
+// --- Core Application Functions ---
+
+// Main App Initialization
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
     setupRealtimeSubscriptions(); // Setup real-time listeners
@@ -123,10 +138,12 @@ async function initializeApp() {
 
         const lineProfile = await liff.getProfile();
 
+        // Check user profile for admin status
         const { data: userProfile, error } = await supabase
             .from('user_profiles')
             .select('*')
-            .eq('user_id', lineProfile.userId)
+            // Using user_id (LINE ID) for lookup as per corrected schema assumption
+            .eq('user_id', lineProfile.userId) 
             .single();
 
         if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
@@ -160,6 +177,8 @@ function showAccessDenied() {
     authStatus.innerHTML = 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้<br>กรุณาติดต่อผู้ดูแลระบบ';
 }
 
+
+// --- Event Listeners Setup ---
 function setupEventListeners() {
     // Sidebar navigation
     navLinks.forEach(link => {
@@ -251,38 +270,8 @@ function navigateTo(targetId) {
     loadSectionData(targetId);
 }
 
-function loadSectionData(sectionId) {
-    switch (sectionId) {
-        case 'dashboard':
-            initMap();
-            loadDashboardAnalytics();
-            loadPlaybackDrivers(); // Load drivers for playback
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'jobs':
-            loadJobs();
-            break;
-        case 'driver-reports':
-            loadDriverReports();
-            break;
-        case 'settings':
-            loadSettings();
-            break;
-        case 'alerts':
-            loadAlerts();
-            break;
-        case 'scheduled-reports':
-            loadReportSchedules();
-            break;
-        case 'logs':
-            loadLogs();
-            break;
-    }
-}
 
-// Real-time Subscriptions
+// --- Real-time Subscriptions ---
 function setupRealtimeSubscriptions() {
     supabase
         .channel('user_profiles_changes')
@@ -319,6 +308,8 @@ function setupRealtimeSubscriptions() {
         .subscribe();
 }
 
+// --- Utility Functions ---
+
 // Notification Helper
 function showNotification(message, type = 'info') {
     const notificationItem = document.createElement('div');
@@ -335,17 +326,7 @@ function showNotification(message, type = 'info') {
     }, 5000);
 }
 
-// Map Functions
-let map;
-let markers = L.featureGroup(); // Group to manage markers
-let mapCenterLat = 13.736717; // Default to Bangkok
-let mapCenterLng = 100.523186;
-let mapZoom = 10;
-let playbackPath = null;
-let playbackMarker = null;
-let playbackData = []; // Stores [{lat, lng, created_at}, ...]
-let playbackIndex = 0;
-let playbackInterval = null;
+// --- Map Related Functions ---
 
 async function loadMapSettings() {
     try {
@@ -559,7 +540,7 @@ function stopPlayback() {
 }
 
 
-// Dashboard Analytics Functions
+// --- Dashboard Analytics Functions ---
 async function loadDashboardAnalytics() {
     try {
         // Total Users
@@ -595,7 +576,7 @@ async function loadDashboardAnalytics() {
 }
 
 
-// User Management Functions
+// --- User Management Functions ---
 async function loadUsers() {
     const usersTableBody = document.querySelector('#users-table tbody');
     usersTableBody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
@@ -616,7 +597,7 @@ async function loadUsers() {
         usersTableBody.innerHTML = ''; // Clear loading state
         users.forEach(user => {
             const row = document.createElement('tr');
-            row.dataset.userId = user.id;
+            row.dataset.userId = user.id; // UserProfile ID (serial)
 
             const statusOptions = ['PENDING', 'APPROVED', 'REJECTED']
                 .map(s => `<option value="${s}" ${user.status === s ? 'selected' : ''}>${s}</option>`).join('');
@@ -629,7 +610,7 @@ async function loadUsers() {
                 <td>${user.user_id}</td>
                 <td><select class="status-select">${statusOptions}</select></td>
                 <td><select class="role-select">${roleOptions}</select></td>
-                <td><button class="save-user-btn">Save</button></td>
+                <td><button class="save-user-btn" data-id="${user.id}">Save</button></td>
             `;
             usersTableBody.appendChild(row);
         });
@@ -648,7 +629,7 @@ async function loadUsers() {
 async function handleUserUpdate(event) {
     const button = event.currentTarget;
     const row = button.closest('tr');
-    const userId = row.dataset.userId;
+    const userId = row.dataset.id; // UserProfile ID (serial)
     const status = row.querySelector('.status-select').value;
     const userType = row.querySelector('.role-select').value;
 
@@ -663,7 +644,7 @@ async function handleUserUpdate(event) {
                 user_type: userType,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', userId);
+            .eq('id', userId); // Use user_profiles.id (serial) for update
 
         if (error) throw error;
 
@@ -678,7 +659,8 @@ async function handleUserUpdate(event) {
     }
 }
 
-// Job Management Functions
+
+// --- Job Management Functions ---
 async function loadJobs(searchTerm = '') {
     jobsTableBody.innerHTML = '<tr><td colspan="6">Loading jobs...</td></tr>';
     try {
@@ -820,7 +802,8 @@ async function handleDeleteJob(jobId) {
     }
 }
 
-// Job Details Functions
+
+// --- Job Details Functions ---
 async function openJobDetailsModal(jobId) {
     jobDetailsModal.classList.remove('hidden');
 
@@ -939,11 +922,12 @@ function closeJobDetailsModal() {
     jobDetailsModal.classList.add('hidden');
 }
 
-// Driver Reports Functions
+
+// --- Driver Reports Functions ---
 async function loadDriverReports() {
     reportDriverSelect.innerHTML = '<option value="">Loading drivers...</option>';
     try {
-        const { data: drivers, error } = await supabase
+        const { data: users, error } = await supabase
             .from('user_profiles')
             .select('user_id, display_name')
             .eq('user_type', 'DRIVER')
@@ -952,10 +936,10 @@ async function loadDriverReports() {
         if (error) throw error;
 
         reportDriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
-        drivers.forEach(driver => {
+        users.forEach(user => {
             const option = document.createElement('option');
-            option.value = driver.user_id;
-            option.textContent = driver.display_name || driver.user_id;
+            option.value = user.user_id;
+            option.textContent = user.display_name || user.user_id;
             reportDriverSelect.appendChild(option);
         });
 
@@ -971,38 +955,6 @@ async function loadDriverReports() {
     } catch (error) {
         console.error('Error loading drivers for report:', error);
         reportDriverSelect.innerHTML = '<option value="">Error loading drivers</option>';
-    }
-}
-
-// Playback Driver selection and default dates
-async function loadPlaybackDrivers() {
-    playbackDriverSelect.innerHTML = '<option value="">Loading drivers...</option>';
-    try {
-        const { data: drivers, error } = await supabase
-            .from('user_profiles')
-            .select('user_id, display_name')
-            .eq('user_type', 'DRIVER')
-            .order('display_name', { ascending: true });
-
-        if (error) throw error;
-
-        playbackDriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
-        drivers.forEach(driver => {
-            const option = document.createElement('option');
-            option.value = driver.user_id;
-            option.textContent = driver.display_name || driver.user_id;
-            playbackDriverSelect.appendChild(option);
-        });
-
-        // Set default date/time for playback (today from 00:00 to now)
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-        playbackStartDatetime.value = startOfDay.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-        playbackEndDatetime.value = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
-
-    } catch (error) {
-        console.error('Error loading drivers for playback:', error);
-        playbackDriverSelect.innerHTML = '<option value="">Error loading drivers</option>';
     }
 }
 
@@ -1079,7 +1031,8 @@ async function generateDriverReport() {
     }
 }
 
-// Settings Functions
+
+// --- Settings Functions ---
 async function loadSettings() {
     try {
         const { data: settings, error } = await supabase
@@ -1148,7 +1101,7 @@ async function saveSettings(event) {
 }
 
 
-// Alerts Functions
+// --- Alerts Functions ---
 async function loadAlerts() {
     alertsTableBody.innerHTML = '<tr><td colspan="7">Loading alerts...</td></tr>';
     try {
@@ -1240,7 +1193,149 @@ async function handleResolveAlert(event) {
 }
 
 
-// Log Viewer Functions
+// --- Scheduled Reports Functions ---
+async function loadReportSchedules() {
+    reportSchedulesTableBody.innerHTML = '<tr><td colspan="6">Loading report schedules...</td></tr>';
+    try {
+        const { data: schedules, error } = await supabase
+            .from('report_schedules')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (error) throw error;
+
+        reportSchedulesTableBody.innerHTML = '';
+        if (schedules.length === 0) {
+            reportSchedulesTableBody.innerHTML = '<tr><td colspan="6">No report schedules found.</td></tr>';
+            return;
+        }
+
+        schedules.forEach(schedule => {
+            const row = document.createElement('tr');
+            row.dataset.scheduleId = schedule.id;
+            const nextRun = schedule.next_generation_at ? new Date(schedule.next_generation_at).toLocaleString() : 'N/A';
+            const statusClass = schedule.status === 'active' ? 'status-active' : 'status-paused';
+            row.innerHTML = `
+                <td>${schedule.report_name || 'N/A'}</td>
+                <td>${schedule.report_type || 'N/A'}</td>
+                <td>${schedule.frequency || 'N/A'}</td>
+                <td>${nextRun}</td>
+                <td class="${statusClass}">${schedule.status}</td>
+                <td>
+                    <button class="edit-schedule-btn" data-id="${schedule.id}">Edit</button>
+                    <button class="delete-schedule-btn" data-id="${schedule.id}" style="background-color: #e74c3c;">Delete</button>
+                </td>
+            `;
+            reportSchedulesTableBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.edit-schedule-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const scheduleId = e.target.dataset.id;
+                const schedule = schedules.find(s => s.id === scheduleId);
+                openReportScheduleModal(schedule);
+            });
+        });
+
+        document.querySelectorAll('.delete-schedule-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const scheduleId = e.target.dataset.id;
+                handleDeleteReportSchedule(scheduleId);
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading report schedules:', error);
+        reportSchedulesTableBody.innerHTML = `<tr><td colspan="6">Error loading report schedules: ${error.message}</td></tr>`;
+    }
+}
+
+function openReportScheduleModal(schedule = null) {
+    reportScheduleForm.reset();
+    scheduleIdInput.value = '';
+
+    if (schedule) {
+        scheduleIdInput.value = schedule.id;
+        scheduleReportNameInput.value = schedule.report_name || '';
+        scheduleReportTypeInput.value = schedule.report_type || 'driver_performance';
+        scheduleFrequencyInput.value = schedule.frequency || 'daily';
+        scheduleRecipientsInput.value = JSON.stringify(schedule.recipients || [], null, 2);
+        scheduleStatusInput.value = schedule.status || 'active';
+    }
+    reportScheduleModal.classList.remove('hidden');
+}
+
+function closeReportScheduleModal() {
+    reportScheduleModal.classList.add('hidden');
+}
+
+async function handleReportScheduleSubmit(event) {
+    event.preventDefault();
+
+    const scheduleId = scheduleIdInput.value;
+    let recipientsParsed;
+    try {
+        recipientsParsed = JSON.parse(scheduleRecipientsInput.value);
+        if (!Array.isArray(recipientsParsed)) {
+            throw new Error('Recipients must be a valid JSON array.');
+        }
+    } catch (e) {
+        alert(`Invalid Recipients JSON: ${e.message}`);
+        return;
+    }
+
+    const scheduleData = {
+        report_name: scheduleReportNameInput.value,
+        report_type: scheduleReportTypeInput.value,
+        frequency: scheduleFrequencyInput.value,
+        recipients: recipientsParsed,
+        status: scheduleStatusInput.value,
+        updated_at: new Date().toISOString()
+        // next_generation_at should be calculated by backend
+    };
+
+    try {
+        let error = null;
+        if (scheduleId) {
+            ({ error } = await supabase.from('report_schedules').update(scheduleData).eq('id', scheduleId));
+        } else {
+            scheduleData.created_at = new Date().toISOString();
+            ({ error } = await supabase.from('report_schedules').insert([scheduleData]));
+        }
+
+        if (error) throw error;
+
+        alert(`Report schedule ${scheduleId ? 'updated' : 'created'} successfully!`);
+        closeReportScheduleModal();
+        loadReportSchedules();
+    } catch (error) {
+        console.error('Error saving report schedule:', error);
+        alert(`Failed to save report schedule: ${error.message}`);
+    }
+}
+
+async function handleDeleteReportSchedule(scheduleId) {
+    if (!confirm('Are you sure you want to delete this report schedule?')) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase
+            .from('report_schedules')
+            .delete()
+            .eq('id', scheduleId);
+
+        if (error) throw error;
+
+        alert('Report schedule deleted successfully!');
+        loadReportSchedules();
+    } catch (error) {
+        console.error('Error deleting report schedule:', error);
+        alert(`Failed to delete report schedule: ${error.message}`);
+    }
+}
+
+
+// --- Log Viewer Functions ---
 async function loadLogs() {
     logsTableBody.innerHTML = '<tr><td colspan="6">Loading logs...</td></tr>';
     try {
