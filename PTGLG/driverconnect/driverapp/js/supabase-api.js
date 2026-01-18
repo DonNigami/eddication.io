@@ -59,40 +59,56 @@ async function enrichStopsWithCoordinates(stops, route = null) {
   try {
     console.log('🔍 Enriching coordinates for', stops.length, 'stops');
 
-    // Step 1: Get origin coordinate if route is provided
+    // Step 1: Get origin coordinate
+    let originData = null;
     let originLat = null;
     let originLng = null;
 
+    // 1a: Try to find by route
     if (route) {
       const routePrefix = route.substring(0, 3).toUpperCase();
-      
       try {
-        // ตาราง origin ใช้ originKey, name, lat, lng, radiusMeters, routeCode
-        const { data: originData } = await supabase
+        const { data } = await supabase
           .from('origin')
           .select('originKey, name, lat, lng, radiusMeters, routeCode')
           .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
           .limit(1)
           .maybeSingle();
-
-        if (originData) {
-          originLat = parseFloat(originData.lat);
-          originLng = parseFloat(originData.lng);
-          
-          if (!isNaN(originLat) && !isNaN(originLng)) {
-            console.log(`✅ Found origin: ${originData.name} (${originLat}, ${originLng})`);
-          } else {
-            originLat = null;
-            originLng = null;
-          }
-        }
+        if (data) originData = data;
       } catch (error) {
-        console.warn('⚠️ Error fetching origin:', error.message);
+        console.warn('⚠️ Error fetching origin by route:', error.message);
+      }
+    }
+
+    // 1b: If not found by route, get default origin (first row in table)
+    if (!originData) {
+      console.log('... route-based origin not found, trying default origin.');
+      try {
+        const { data } = await supabase
+          .from('origin')
+          .select('originKey, name, lat, lng, radiusMeters, routeCode')
+          .order('id', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (data) originData = data;
+      } catch (error) {
+        console.warn('⚠️ Error fetching default origin:', error.message);
+      }
+    }
+
+    // 1c: Parse final origin data
+    if (originData) {
+      originLat = parseFloat(originData.lat);
+      originLng = parseFloat(originData.lng);
+      if (!isNaN(originLat) && !isNaN(originLng)) {
+        console.log(`✅ Found origin: ${originData.name} (${originLat}, ${originLng})`);
+      } else {
+        originLat = null;
+        originLng = null;
       }
     }
 
     // Step 2: Get all customer coordinates
-    // ตาราง customer ใช้ stationKey เป็น primary key (เช่น 1102, 1202)
     const shipToCodes = stops
       .filter(s => s.shipToCode && !s.isOriginStop)
       .map(s => s.shipToCode)
@@ -124,7 +140,6 @@ async function enrichStopsWithCoordinates(stops, route = null) {
     }
 
     // Step 3: Get all station coordinates
-    // ตาราง station ใช้ stationKey เป็น primary key (เช่น ZS184, ZS185)
     const stationMap = new Map();
 
     if (shipToCodes.length > 0) {
