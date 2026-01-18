@@ -32,6 +32,11 @@
                     <li><a href="#" class="nav-link" data-target="scheduled-reports">📄 Scheduled Reports</a></li>
                     <li><a href="#" class="nav-link" data-target="alerts">🚨 Alerts <span id="alerts-badge" class="badge hidden">0</span></a></li>
                     <li><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
+                    <li><a href="#" class="nav-link" data-target="holiday-work">🎌 Holiday Work</a></li>
+                    <li><a href="#" class="nav-link" data-target="vehicle-breakdown">🔧 Vehicle Breakdown</a></li>
+                    <li><a href="#" class="nav-link" data-target="fuel-siphoning">⛽ Fuel Siphoning</a></li>
+                    <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ B100 Jobs</a></li>
+                    <li><a href="#" class="nav-link" data-target="b100-outstanding">💰 B100 Outstanding</a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -399,6 +404,310 @@
                             <!-- Log rows will be inserted here -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Holiday Work Section -->
+            <section id="holiday-work" class="content-section hidden">
+                <h1>Holiday Work Management</h1>
+                <div class="holiday-work-controls">
+                    <input type="text" id="holiday-work-search" placeholder="Search by Reference, Driver...">
+                    <label style="display: flex; align-items: center; gap: 5px;">
+                        <input type="checkbox" id="holiday-work-filter-only"> Show Holiday Work Only
+                    </label>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="holiday-work-table">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Driver</th>
+                                <th>Date</th>
+                                <th>Holiday Work</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Holiday Work Edit Modal -->
+                <div id="holiday-work-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <span class="close-button" id="holiday-work-modal-close">&times;</span>
+                        <h2>Edit Holiday Work Status</h2>
+                        <form id="holiday-work-form">
+                            <input type="hidden" id="holiday-work-job-id">
+                            <p><strong>Reference:</strong> <span id="holiday-work-reference-display"></span></p>
+                            <p><strong>Driver:</strong> <span id="holiday-work-driver-display"></span></p>
+
+                            <label for="holiday-work-checkbox">
+                                <input type="checkbox" id="holiday-work-checkbox"> This is Holiday Work
+                            </label>
+
+                            <label for="holiday-work-notes">Notes:</label>
+                            <textarea id="holiday-work-notes" rows="4" placeholder="Enter notes about holiday work..."></textarea>
+
+                            <button type="submit">Save</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Vehicle Breakdown Section -->
+            <section id="vehicle-breakdown" class="content-section hidden">
+                <h1>Vehicle Breakdown Management</h1>
+                <div class="breakdown-controls">
+                    <input type="text" id="breakdown-search" placeholder="Search by Reference, Driver...">
+                    <button id="process-breakdown-btn">Process New Breakdown</button>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <h3>Breakdown Records</h3>
+                    <table id="breakdown-table">
+                        <thead>
+                            <tr>
+                                <th>Original Ref</th>
+                                <th>New Ref</th>
+                                <th>Driver</th>
+                                <th>Reason</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Vehicle Breakdown Process Modal -->
+                <div id="breakdown-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <span class="close-button" id="breakdown-modal-close">&times;</span>
+                        <h2>Process Vehicle Breakdown</h2>
+                        <form id="breakdown-form">
+                            <label for="breakdown-job-select">Select Active Job:</label>
+                            <select id="breakdown-job-select" required>
+                                <option value="">-- Select Job --</option>
+                            </select>
+
+                            <div id="breakdown-job-details" class="hidden">
+                                <p><strong>Reference:</strong> <span id="breakdown-original-ref"></span></p>
+                                <p><strong>Driver:</strong> <span id="breakdown-driver"></span></p>
+                                <p><strong>Vehicle:</strong> <span id="breakdown-vehicle"></span></p>
+                            </div>
+
+                            <label for="breakdown-reason">Breakdown Reason:</label>
+                            <textarea id="breakdown-reason" rows="3" placeholder="Describe the breakdown reason..." required></textarea>
+
+                            <label for="breakdown-new-vehicle">New Vehicle Plate (optional):</label>
+                            <input type="text" id="breakdown-new-vehicle" placeholder="Enter new vehicle plate if changing">
+
+                            <div class="breakdown-preview hidden" id="breakdown-preview">
+                                <p><strong>New Reference will be:</strong> <span id="breakdown-new-ref-preview"></span></p>
+                            </div>
+
+                            <button type="submit">Process Breakdown & Create New Job</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Fuel Siphoning Section -->
+            <section id="fuel-siphoning" class="content-section hidden">
+                <h1>Fuel Siphoning Records</h1>
+                <div class="siphoning-controls">
+                    <input type="text" id="siphoning-search" placeholder="Search by Station, Driver, Vehicle...">
+                    <input type="date" id="siphoning-date-filter">
+                    <button id="create-siphoning-btn">Record New Siphoning</button>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="siphoning-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Station</th>
+                                <th>Driver</th>
+                                <th>Vehicle</th>
+                                <th>Liters</th>
+                                <th>Evidence</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Fuel Siphoning Create/Edit Modal -->
+                <div id="siphoning-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <span class="close-button" id="siphoning-modal-close">&times;</span>
+                        <h2 id="siphoning-modal-title">Record Fuel Siphoning</h2>
+                        <form id="siphoning-form">
+                            <input type="hidden" id="siphoning-id">
+
+                            <label for="siphoning-station">Station:</label>
+                            <select id="siphoning-station" required>
+                                <option value="">-- Select Station --</option>
+                            </select>
+
+                            <label for="siphoning-driver">Driver:</label>
+                            <select id="siphoning-driver" required>
+                                <option value="">-- Select Driver --</option>
+                            </select>
+
+                            <label for="siphoning-vehicle">Vehicle Plate:</label>
+                            <input type="text" id="siphoning-vehicle" required placeholder="e.g., กข-1234">
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                <div>
+                                    <label for="siphoning-date">Date:</label>
+                                    <input type="date" id="siphoning-date" required>
+                                </div>
+                                <div>
+                                    <label for="siphoning-time">Time:</label>
+                                    <input type="time" id="siphoning-time">
+                                </div>
+                            </div>
+
+                            <label for="siphoning-liters">Liters:</label>
+                            <input type="number" id="siphoning-liters" step="0.01" min="0" required placeholder="Enter amount in liters">
+
+                            <label for="siphoning-evidence">Evidence Image:</label>
+                            <input type="file" id="siphoning-evidence" accept="image/*">
+                            <div id="siphoning-evidence-preview" class="evidence-preview hidden">
+                                <img id="siphoning-evidence-img" src="" alt="Evidence Preview">
+                            </div>
+
+                            <label for="siphoning-notes">Notes:</label>
+                            <textarea id="siphoning-notes" rows="3" placeholder="Additional notes..."></textarea>
+
+                            <button type="submit">Save Record</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- B100 Jobs Section -->
+            <section id="b100-jobs" class="content-section hidden">
+                <h1>B100 Jobs Management</h1>
+                <div class="b100-controls">
+                    <input type="text" id="b100-search" placeholder="Search by Reference, Driver...">
+                    <select id="b100-status-filter">
+                        <option value="">All Statuses</option>
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                        <option value="outstanding">Outstanding</option>
+                    </select>
+                    <button id="create-b100-btn">Create B100 Job</button>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="b100-jobs-table">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Driver</th>
+                                <th>Date</th>
+                                <th>Vehicle</th>
+                                <th>Amount (฿)</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- B100 Job Create Modal -->
+                <div id="b100-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <span class="close-button" id="b100-modal-close">&times;</span>
+                        <h2>Create B100 Job</h2>
+                        <form id="b100-form">
+                            <input type="hidden" id="b100-job-id">
+
+                            <label for="b100-reference">Reference:</label>
+                            <input type="text" id="b100-reference" required placeholder="e.g., B100-20260119-001">
+
+                            <label for="b100-driver">Driver:</label>
+                            <select id="b100-driver" required>
+                                <option value="">-- Select Driver --</option>
+                            </select>
+
+                            <label for="b100-vehicle">Vehicle Plate:</label>
+                            <input type="text" id="b100-vehicle" placeholder="e.g., กข-1234">
+
+                            <label for="b100-amount">B100 Amount (฿):</label>
+                            <input type="number" id="b100-amount" step="0.01" min="0" required placeholder="Enter amount">
+
+                            <label for="b100-notes">Notes:</label>
+                            <textarea id="b100-notes" rows="3" placeholder="Additional notes..."></textarea>
+
+                            <button type="submit">Create B100 Job</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- B100 Outstanding Section -->
+            <section id="b100-outstanding" class="content-section hidden">
+                <h1>B100 Outstanding Summary</h1>
+
+                <!-- Summary Cards -->
+                <div class="b100-summary-cards">
+                    <div class="summary-card">
+                        <h3>Total Outstanding Jobs</h3>
+                        <p id="b100-total-jobs">0</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Total Outstanding Amount</h3>
+                        <p id="b100-total-amount">฿0.00</p>
+                    </div>
+                    <div class="summary-card">
+                        <h3>Drivers with Outstanding</h3>
+                        <p id="b100-driver-count">0</p>
+                    </div>
+                </div>
+
+                <!-- Outstanding by Driver Table -->
+                <div class="table-container" style="margin-top: 20px;">
+                    <h3>Outstanding by Driver</h3>
+                    <table id="b100-outstanding-table">
+                        <thead>
+                            <tr>
+                                <th>Driver</th>
+                                <th>Outstanding Jobs</th>
+                                <th>Total Amount (฿)</th>
+                                <th>Last Job Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Driver Outstanding Detail Modal -->
+                <div id="b100-detail-modal" class="modal hidden">
+                    <div class="modal-content large-modal">
+                        <span class="close-button" id="b100-detail-modal-close">&times;</span>
+                        <h2>Outstanding Jobs: <span id="b100-detail-driver-name"></span></h2>
+                        <div class="table-container">
+                            <table id="b100-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Reference</th>
+                                        <th>Date</th>
+                                        <th>Amount (฿)</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="b100-detail-summary" style="margin-top: 15px; text-align: right;">
+                            <strong>Total: ฿<span id="b100-detail-total">0.00</span></strong>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>

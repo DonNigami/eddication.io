@@ -116,6 +116,83 @@ const logSearchUserIdInput = document.getElementById('log-search-user-id');
 // Real-time Notifications
 const notificationContainer = document.getElementById('notification-container');
 
+// Holiday Work
+const holidayWorkTableBody = document.querySelector('#holiday-work-table tbody');
+const holidayWorkSearch = document.getElementById('holiday-work-search');
+const holidayWorkFilterOnly = document.getElementById('holiday-work-filter-only');
+const holidayWorkModal = document.getElementById('holiday-work-modal');
+const holidayWorkModalClose = document.getElementById('holiday-work-modal-close');
+const holidayWorkForm = document.getElementById('holiday-work-form');
+const holidayWorkJobIdInput = document.getElementById('holiday-work-job-id');
+const holidayWorkReferenceDisplay = document.getElementById('holiday-work-reference-display');
+const holidayWorkDriverDisplay = document.getElementById('holiday-work-driver-display');
+const holidayWorkCheckbox = document.getElementById('holiday-work-checkbox');
+const holidayWorkNotesInput = document.getElementById('holiday-work-notes');
+
+// Vehicle Breakdown
+const breakdownTableBody = document.querySelector('#breakdown-table tbody');
+const breakdownSearch = document.getElementById('breakdown-search');
+const processBreakdownBtn = document.getElementById('process-breakdown-btn');
+const breakdownModal = document.getElementById('breakdown-modal');
+const breakdownModalClose = document.getElementById('breakdown-modal-close');
+const breakdownForm = document.getElementById('breakdown-form');
+const breakdownJobSelect = document.getElementById('breakdown-job-select');
+const breakdownJobDetails = document.getElementById('breakdown-job-details');
+const breakdownOriginalRef = document.getElementById('breakdown-original-ref');
+const breakdownDriver = document.getElementById('breakdown-driver');
+const breakdownVehicle = document.getElementById('breakdown-vehicle');
+const breakdownReason = document.getElementById('breakdown-reason');
+const breakdownNewVehicle = document.getElementById('breakdown-new-vehicle');
+const breakdownPreview = document.getElementById('breakdown-preview');
+const breakdownNewRefPreview = document.getElementById('breakdown-new-ref-preview');
+
+// Fuel Siphoning
+const siphoningTableBody = document.querySelector('#siphoning-table tbody');
+const siphoningSearch = document.getElementById('siphoning-search');
+const siphoningDateFilter = document.getElementById('siphoning-date-filter');
+const createSiphoningBtn = document.getElementById('create-siphoning-btn');
+const siphoningModal = document.getElementById('siphoning-modal');
+const siphoningModalClose = document.getElementById('siphoning-modal-close');
+const siphoningModalTitle = document.getElementById('siphoning-modal-title');
+const siphoningForm = document.getElementById('siphoning-form');
+const siphoningIdInput = document.getElementById('siphoning-id');
+const siphoningStation = document.getElementById('siphoning-station');
+const siphoningDriver = document.getElementById('siphoning-driver');
+const siphoningVehicleInput = document.getElementById('siphoning-vehicle');
+const siphoningDateInput = document.getElementById('siphoning-date');
+const siphoningTimeInput = document.getElementById('siphoning-time');
+const siphoningLitersInput = document.getElementById('siphoning-liters');
+const siphoningEvidenceInput = document.getElementById('siphoning-evidence');
+const siphoningEvidencePreview = document.getElementById('siphoning-evidence-preview');
+const siphoningEvidenceImg = document.getElementById('siphoning-evidence-img');
+const siphoningNotesInput = document.getElementById('siphoning-notes');
+
+// B100 Jobs
+const b100JobsTableBody = document.querySelector('#b100-jobs-table tbody');
+const b100Search = document.getElementById('b100-search');
+const b100StatusFilter = document.getElementById('b100-status-filter');
+const createB100Btn = document.getElementById('create-b100-btn');
+const b100Modal = document.getElementById('b100-modal');
+const b100ModalClose = document.getElementById('b100-modal-close');
+const b100Form = document.getElementById('b100-form');
+const b100JobIdInput = document.getElementById('b100-job-id');
+const b100ReferenceInput = document.getElementById('b100-reference');
+const b100DriverSelect = document.getElementById('b100-driver');
+const b100VehicleInput = document.getElementById('b100-vehicle');
+const b100AmountInput = document.getElementById('b100-amount');
+const b100NotesInput = document.getElementById('b100-notes');
+
+// B100 Outstanding
+const b100TotalJobs = document.getElementById('b100-total-jobs');
+const b100TotalAmount = document.getElementById('b100-total-amount');
+const b100DriverCount = document.getElementById('b100-driver-count');
+const b100OutstandingTableBody = document.querySelector('#b100-outstanding-table tbody');
+const b100DetailModal = document.getElementById('b100-detail-modal');
+const b100DetailModalClose = document.getElementById('b100-detail-modal-close');
+const b100DetailDriverName = document.getElementById('b100-detail-driver-name');
+const b100DetailTableBody = document.querySelector('#b100-detail-table tbody');
+const b100DetailTotal = document.getElementById('b100-detail-total');
+
 
 // --- Utility Functions ---
 
@@ -1194,6 +1271,770 @@ async function loadLogs() {
     }
 }
 
+
+// --- Holiday Work Functions ---
+async function loadHolidayWorkJobs(searchTerm = '', filterHolidayOnly = false) {
+    holidayWorkTableBody.innerHTML = '<tr><td colspan="6">Loading jobs...</td></tr>';
+    try {
+        let query = supabase.from('driver_jobs').select('*').order('created_at', { ascending: false });
+
+        if (searchTerm) {
+            query = query.or(`reference.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
+        }
+
+        if (filterHolidayOnly) {
+            query = query.eq('is_holiday_work', true);
+        }
+
+        const { data: jobs, error } = await query;
+
+        if (error) throw error;
+
+        holidayWorkTableBody.innerHTML = '';
+        if (jobs.length === 0) {
+            holidayWorkTableBody.innerHTML = '<tr><td colspan="6">No jobs found.</td></tr>';
+            return;
+        }
+
+        jobs.forEach(job => {
+            const row = document.createElement('tr');
+            const isHoliday = job.is_holiday_work;
+            const badgeClass = isHoliday ? 'badge-holiday' : 'badge-normal';
+            const badgeText = isHoliday ? 'Yes' : 'No';
+
+            row.innerHTML = `
+                <td>${job.reference || 'N/A'}</td>
+                <td>${job.drivers || 'N/A'}</td>
+                <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
+                <td><span class="status-badge ${badgeClass}">${badgeText}</span></td>
+                <td>${job.holiday_work_notes || '-'}</td>
+                <td>
+                    <button class="edit-holiday-btn" data-job-id="${job.id}">Edit</button>
+                </td>
+            `;
+            holidayWorkTableBody.appendChild(row);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('.edit-holiday-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const jobId = e.target.dataset.jobId;
+                const job = jobs.find(j => j.id == jobId);
+                openHolidayWorkModal(job);
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading holiday work jobs:', error);
+        holidayWorkTableBody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`;
+    }
+}
+
+function openHolidayWorkModal(job) {
+    holidayWorkJobIdInput.value = job.id;
+    holidayWorkReferenceDisplay.textContent = job.reference || 'N/A';
+    holidayWorkDriverDisplay.textContent = job.drivers || 'N/A';
+    holidayWorkCheckbox.checked = job.is_holiday_work || false;
+    holidayWorkNotesInput.value = job.holiday_work_notes || '';
+    holidayWorkModal.classList.remove('hidden');
+}
+
+function closeHolidayWorkModal() {
+    holidayWorkModal.classList.add('hidden');
+    holidayWorkForm.reset();
+}
+
+async function handleHolidayWorkSubmit(event) {
+    event.preventDefault();
+    const jobId = holidayWorkJobIdInput.value;
+    const isHoliday = holidayWorkCheckbox.checked;
+    const notes = holidayWorkNotesInput.value;
+
+    try {
+        const { error } = await supabase
+            .from('driver_jobs')
+            .update({
+                is_holiday_work: isHoliday,
+                holiday_work_notes: notes,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+
+        if (error) throw error;
+
+        showNotification('Holiday work status updated successfully!', 'info');
+        closeHolidayWorkModal();
+        loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked);
+    } catch (error) {
+        console.error('Error updating holiday work:', error);
+        showNotification(`Failed to update: ${error.message}`, 'error');
+    }
+}
+
+
+// --- Vehicle Breakdown Functions ---
+let activeJobsCache = [];
+
+async function loadVehicleBreakdowns(searchTerm = '') {
+    breakdownTableBody.innerHTML = '<tr><td colspan="6">Loading breakdown records...</td></tr>';
+    try {
+        let query = supabase
+            .from('driver_jobs')
+            .select('*')
+            .eq('is_vehicle_breakdown', true)
+            .order('created_at', { ascending: false });
+
+        if (searchTerm) {
+            query = query.or(`reference.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
+        }
+
+        const { data: breakdowns, error } = await query;
+
+        if (error) throw error;
+
+        breakdownTableBody.innerHTML = '';
+        if (breakdowns.length === 0) {
+            breakdownTableBody.innerHTML = '<tr><td colspan="6">No breakdown records found.</td></tr>';
+            return;
+        }
+
+        // For each breakdown, fetch the replacement job info
+        for (const bd of breakdowns) {
+            const row = document.createElement('tr');
+            let newRef = '-';
+            if (bd.replacement_job_id) {
+                const { data: replacement } = await supabase
+                    .from('driver_jobs')
+                    .select('reference')
+                    .eq('id', bd.replacement_job_id)
+                    .single();
+                if (replacement) newRef = replacement.reference;
+            }
+
+            row.innerHTML = `
+                <td>${bd.reference || 'N/A'}</td>
+                <td>${newRef}</td>
+                <td>${bd.drivers || 'N/A'}</td>
+                <td>${bd.breakdown_reason || 'N/A'}</td>
+                <td>${bd.created_at ? new Date(bd.created_at).toLocaleDateString() : 'N/A'}</td>
+                <td><span class="status-badge badge-breakdown">Breakdown</span></td>
+            `;
+            breakdownTableBody.appendChild(row);
+        }
+
+    } catch (error) {
+        console.error('Error loading breakdowns:', error);
+        breakdownTableBody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`;
+    }
+}
+
+async function openBreakdownModal() {
+    breakdownForm.reset();
+    breakdownJobDetails.classList.add('hidden');
+    breakdownPreview.classList.add('hidden');
+
+    // Load active jobs for selection
+    try {
+        const { data: jobs, error } = await supabase
+            .from('driver_jobs')
+            .select('*')
+            .eq('trip_ended', false)
+            .eq('is_vehicle_breakdown', false)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        activeJobsCache = jobs;
+        breakdownJobSelect.innerHTML = '<option value="">-- Select Job --</option>';
+        jobs.forEach(job => {
+            const option = document.createElement('option');
+            option.value = job.id;
+            option.textContent = `${job.reference} - ${job.drivers || 'Unknown Driver'}`;
+            breakdownJobSelect.appendChild(option);
+        });
+
+        breakdownModal.classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading active jobs:', error);
+        showNotification(`Failed to load jobs: ${error.message}`, 'error');
+    }
+}
+
+function closeBreakdownModal() {
+    breakdownModal.classList.add('hidden');
+    breakdownForm.reset();
+}
+
+function handleBreakdownJobSelect() {
+    const jobId = breakdownJobSelect.value;
+    if (!jobId) {
+        breakdownJobDetails.classList.add('hidden');
+        breakdownPreview.classList.add('hidden');
+        return;
+    }
+
+    const job = activeJobsCache.find(j => j.id == jobId);
+    if (job) {
+        breakdownOriginalRef.textContent = job.reference || 'N/A';
+        breakdownDriver.textContent = job.drivers || 'N/A';
+        breakdownVehicle.textContent = job.vehicle_plate || 'N/A';
+        breakdownJobDetails.classList.remove('hidden');
+
+        // Generate new reference preview
+        const newRef = generateBreakdownReference(job.reference);
+        breakdownNewRefPreview.textContent = newRef;
+        breakdownPreview.classList.remove('hidden');
+    }
+}
+
+function generateBreakdownReference(originalRef) {
+    // Add -B suffix for breakdown replacement
+    if (!originalRef) return 'NEW-B';
+    if (originalRef.includes('-B')) {
+        // Already has breakdown suffix, increment
+        const match = originalRef.match(/-B(\d*)$/);
+        if (match) {
+            const num = match[1] ? parseInt(match[1]) + 1 : 2;
+            return originalRef.replace(/-B\d*$/, `-B${num}`);
+        }
+    }
+    return `${originalRef}-B`;
+}
+
+async function handleBreakdownSubmit(event) {
+    event.preventDefault();
+    const jobId = breakdownJobSelect.value;
+    const reason = breakdownReason.value;
+    const newVehicle = breakdownNewVehicle.value;
+
+    if (!jobId) {
+        showNotification('Please select a job', 'error');
+        return;
+    }
+
+    const originalJob = activeJobsCache.find(j => j.id == jobId);
+    if (!originalJob) {
+        showNotification('Job not found', 'error');
+        return;
+    }
+
+    try {
+        // Create new replacement job
+        const newRef = generateBreakdownReference(originalJob.reference);
+        const newJobData = {
+            reference: newRef,
+            shipment_no: originalJob.shipment_no,
+            drivers: originalJob.drivers,
+            vehicle_plate: newVehicle || originalJob.vehicle_plate,
+            status: 'active',
+            trip_ended: false,
+            original_job_id: originalJob.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        const { data: newJob, error: createError } = await supabase
+            .from('driver_jobs')
+            .insert([newJobData])
+            .select()
+            .single();
+
+        if (createError) throw createError;
+
+        // Update original job as breakdown
+        const { error: updateError } = await supabase
+            .from('driver_jobs')
+            .update({
+                is_vehicle_breakdown: true,
+                breakdown_reason: reason,
+                replacement_job_id: newJob.id,
+                status: 'cancelled',
+                trip_ended: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+
+        if (updateError) throw updateError;
+
+        showNotification(`Breakdown processed! New job created: ${newRef}`, 'info');
+        closeBreakdownModal();
+        loadVehicleBreakdowns();
+    } catch (error) {
+        console.error('Error processing breakdown:', error);
+        showNotification(`Failed to process breakdown: ${error.message}`, 'error');
+    }
+}
+
+
+// --- Fuel Siphoning Functions ---
+async function loadFuelSiphoning(searchTerm = '', dateFilter = '') {
+    siphoningTableBody.innerHTML = '<tr><td colspan="8">Loading records...</td></tr>';
+    try {
+        let query = supabase
+            .from('fuel_siphoning')
+            .select('*')
+            .order('siphon_date', { ascending: false });
+
+        if (searchTerm) {
+            query = query.or(`station_name.ilike.%${searchTerm}%,driver_name.ilike.%${searchTerm}%,vehicle_plate.ilike.%${searchTerm}%`);
+        }
+
+        if (dateFilter) {
+            query = query.eq('siphon_date', dateFilter);
+        }
+
+        const { data: records, error } = await query;
+
+        if (error) throw error;
+
+        siphoningTableBody.innerHTML = '';
+        if (!records || records.length === 0) {
+            siphoningTableBody.innerHTML = '<tr><td colspan="8">No siphoning records found.</td></tr>';
+            return;
+        }
+
+        records.forEach(record => {
+            const row = document.createElement('tr');
+            const statusClass = `badge-siphoning-${record.status}`;
+
+            row.innerHTML = `
+                <td>${record.siphon_date || 'N/A'}</td>
+                <td>${record.station_name || 'N/A'}</td>
+                <td>${record.driver_name || 'N/A'}</td>
+                <td>${record.vehicle_plate || 'N/A'}</td>
+                <td>${record.liters ? record.liters.toFixed(2) : '0.00'}</td>
+                <td>${record.evidence_image_url ? `<a href="${record.evidence_image_url}" target="_blank">View</a>` : 'N/A'}</td>
+                <td><span class="status-badge ${statusClass}">${record.status}</span></td>
+                <td>
+                    <button class="edit-siphoning-btn" data-id="${record.id}">Edit</button>
+                </td>
+            `;
+            siphoningTableBody.appendChild(row);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('.edit-siphoning-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                const record = records.find(r => r.id === id);
+                await openSiphoningModal(record);
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading fuel siphoning:', error);
+        siphoningTableBody.innerHTML = `<tr><td colspan="8">Error: ${error.message}</td></tr>`;
+    }
+}
+
+async function openSiphoningModal(record = null) {
+    siphoningForm.reset();
+    siphoningEvidencePreview.classList.add('hidden');
+
+    // Load stations from driver_stop for dropdown
+    try {
+        const { data: stops } = await supabase
+            .from('driver_stop')
+            .select('destination_name, customer_code')
+            .order('destination_name');
+
+        const uniqueStations = [...new Map(stops?.map(s => [s.destination_name, s]) || []).values()];
+        siphoningStation.innerHTML = '<option value="">-- Select Station --</option>';
+        uniqueStations.forEach(stop => {
+            const option = document.createElement('option');
+            option.value = JSON.stringify({ name: stop.destination_name, code: stop.customer_code });
+            option.textContent = stop.destination_name;
+            siphoningStation.appendChild(option);
+        });
+    } catch (e) {
+        console.warn('Could not load stations:', e);
+    }
+
+    // Load drivers
+    try {
+        const { data: drivers } = await supabase
+            .from('user_profiles')
+            .select('user_id, display_name')
+            .eq('user_type', 'DRIVER')
+            .order('display_name');
+
+        siphoningDriver.innerHTML = '<option value="">-- Select Driver --</option>';
+        drivers?.forEach(driver => {
+            const option = document.createElement('option');
+            option.value = JSON.stringify({ id: driver.user_id, name: driver.display_name });
+            option.textContent = driver.display_name || driver.user_id;
+            siphoningDriver.appendChild(option);
+        });
+    } catch (e) {
+        console.warn('Could not load drivers:', e);
+    }
+
+    if (record) {
+        siphoningModalTitle.textContent = 'Edit Fuel Siphoning Record';
+        siphoningIdInput.value = record.id;
+        siphoningVehicleInput.value = record.vehicle_plate || '';
+        siphoningDateInput.value = record.siphon_date || '';
+        siphoningTimeInput.value = record.siphon_time || '';
+        siphoningLitersInput.value = record.liters || '';
+        siphoningNotesInput.value = record.notes || '';
+
+        if (record.evidence_image_url) {
+            siphoningEvidenceImg.src = record.evidence_image_url;
+            siphoningEvidencePreview.classList.remove('hidden');
+        }
+    } else {
+        siphoningModalTitle.textContent = 'Record Fuel Siphoning';
+        siphoningIdInput.value = '';
+        siphoningDateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    siphoningModal.classList.remove('hidden');
+}
+
+function closeSiphoningModal() {
+    siphoningModal.classList.add('hidden');
+    siphoningForm.reset();
+    siphoningEvidencePreview.classList.add('hidden');
+}
+
+async function uploadSiphoningEvidence(file) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}.${fileExt}`;
+    const filePath = `evidence/${fileName}`;
+
+    const { data, error } = await supabase.storage
+        .from('fuel-siphoning-evidence')
+        .upload(filePath, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+        .from('fuel-siphoning-evidence')
+        .getPublicUrl(filePath);
+
+    return publicUrl;
+}
+
+async function handleSiphoningSubmit(event) {
+    event.preventDefault();
+    const id = siphoningIdInput.value;
+
+    try {
+        // Parse station and driver selections
+        let stationData = { name: '', code: '' };
+        let driverData = { id: '', name: '' };
+
+        try {
+            if (siphoningStation.value) stationData = JSON.parse(siphoningStation.value);
+            if (siphoningDriver.value) driverData = JSON.parse(siphoningDriver.value);
+        } catch (e) {
+            console.warn('Error parsing selection:', e);
+        }
+
+        let evidenceUrl = null;
+        const evidenceFile = siphoningEvidenceInput.files[0];
+        if (evidenceFile) {
+            evidenceUrl = await uploadSiphoningEvidence(evidenceFile);
+        }
+
+        const recordData = {
+            station_name: stationData.name,
+            station_code: stationData.code,
+            driver_user_id: driverData.id,
+            driver_name: driverData.name,
+            vehicle_plate: siphoningVehicleInput.value,
+            siphon_date: siphoningDateInput.value,
+            siphon_time: siphoningTimeInput.value || null,
+            liters: parseFloat(siphoningLitersInput.value),
+            notes: siphoningNotesInput.value,
+            updated_at: new Date().toISOString()
+        };
+
+        if (evidenceUrl) {
+            recordData.evidence_image_url = evidenceUrl;
+        }
+
+        let error;
+        if (id) {
+            ({ error } = await supabase.from('fuel_siphoning').update(recordData).eq('id', id));
+        } else {
+            recordData.reported_by = adminUsername.textContent || 'Admin';
+            recordData.status = 'reported';
+            recordData.created_at = new Date().toISOString();
+            ({ error } = await supabase.from('fuel_siphoning').insert([recordData]));
+        }
+
+        if (error) throw error;
+
+        showNotification(`Fuel siphoning record ${id ? 'updated' : 'created'} successfully!`, 'info');
+        closeSiphoningModal();
+        loadFuelSiphoning(siphoningSearch.value, siphoningDateFilter.value);
+    } catch (error) {
+        console.error('Error saving fuel siphoning:', error);
+        showNotification(`Failed to save: ${error.message}`, 'error');
+    }
+}
+
+
+// --- B100 Jobs Functions ---
+async function loadB100Jobs(searchTerm = '', statusFilter = '') {
+    b100JobsTableBody.innerHTML = '<tr><td colspan="7">Loading B100 jobs...</td></tr>';
+    try {
+        let query = supabase
+            .from('driver_jobs')
+            .select('*')
+            .eq('is_b100', true)
+            .order('created_at', { ascending: false });
+
+        if (searchTerm) {
+            query = query.or(`reference.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
+        }
+
+        if (statusFilter) {
+            query = query.eq('b100_status', statusFilter);
+        }
+
+        const { data: jobs, error } = await query;
+
+        if (error) throw error;
+
+        b100JobsTableBody.innerHTML = '';
+        if (!jobs || jobs.length === 0) {
+            b100JobsTableBody.innerHTML = '<tr><td colspan="7">No B100 jobs found.</td></tr>';
+            return;
+        }
+
+        jobs.forEach(job => {
+            const row = document.createElement('tr');
+            const statusClass = `badge-b100-${job.b100_status}`;
+
+            row.innerHTML = `
+                <td>${job.reference || 'N/A'}</td>
+                <td>${job.drivers || 'N/A'}</td>
+                <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
+                <td>${job.vehicle_plate || 'N/A'}</td>
+                <td>${job.b100_amount ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '0.00'}</td>
+                <td><span class="status-badge ${statusClass}">${job.b100_status || 'pending'}</span></td>
+                <td>
+                    ${job.b100_status !== 'paid' ? `<button class="mark-paid-btn" data-job-id="${job.id}">Mark Paid</button>` : ''}
+                    ${job.b100_status === 'pending' ? `<button class="mark-outstanding-btn" data-job-id="${job.id}">Outstanding</button>` : ''}
+                </td>
+            `;
+            b100JobsTableBody.appendChild(row);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('.mark-paid-btn').forEach(button => {
+            button.addEventListener('click', (e) => updateB100Status(e.target.dataset.jobId, 'paid'));
+        });
+        document.querySelectorAll('.mark-outstanding-btn').forEach(button => {
+            button.addEventListener('click', (e) => updateB100Status(e.target.dataset.jobId, 'outstanding'));
+        });
+
+    } catch (error) {
+        console.error('Error loading B100 jobs:', error);
+        b100JobsTableBody.innerHTML = `<tr><td colspan="7">Error: ${error.message}</td></tr>`;
+    }
+}
+
+async function openB100Modal() {
+    b100Form.reset();
+    b100JobIdInput.value = '';
+
+    // Generate default reference
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const { count } = await supabase.from('driver_jobs').select('*', { count: 'exact', head: true }).eq('is_b100', true);
+    b100ReferenceInput.value = `B100-${today}-${String((count || 0) + 1).padStart(3, '0')}`;
+
+    // Load drivers
+    try {
+        const { data: drivers } = await supabase
+            .from('user_profiles')
+            .select('user_id, display_name')
+            .eq('user_type', 'DRIVER')
+            .order('display_name');
+
+        b100DriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
+        drivers?.forEach(driver => {
+            const option = document.createElement('option');
+            option.value = driver.display_name || driver.user_id;
+            option.textContent = driver.display_name || driver.user_id;
+            b100DriverSelect.appendChild(option);
+        });
+    } catch (e) {
+        console.warn('Could not load drivers:', e);
+    }
+
+    b100Modal.classList.remove('hidden');
+}
+
+function closeB100Modal() {
+    b100Modal.classList.add('hidden');
+    b100Form.reset();
+}
+
+async function handleB100Submit(event) {
+    event.preventDefault();
+
+    try {
+        const jobData = {
+            reference: b100ReferenceInput.value,
+            drivers: b100DriverSelect.value,
+            vehicle_plate: b100VehicleInput.value,
+            is_b100: true,
+            b100_amount: parseFloat(b100AmountInput.value),
+            b100_status: 'pending',
+            status: 'active',
+            trip_ended: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        const { error } = await supabase.from('driver_jobs').insert([jobData]);
+
+        if (error) throw error;
+
+        showNotification('B100 job created successfully!', 'info');
+        closeB100Modal();
+        loadB100Jobs(b100Search.value, b100StatusFilter.value);
+    } catch (error) {
+        console.error('Error creating B100 job:', error);
+        showNotification(`Failed to create: ${error.message}`, 'error');
+    }
+}
+
+async function updateB100Status(jobId, newStatus) {
+    try {
+        const { error } = await supabase
+            .from('driver_jobs')
+            .update({
+                b100_status: newStatus,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', jobId);
+
+        if (error) throw error;
+
+        showNotification(`B100 status updated to ${newStatus}!`, 'info');
+        loadB100Jobs(b100Search.value, b100StatusFilter.value);
+    } catch (error) {
+        console.error('Error updating B100 status:', error);
+        showNotification(`Failed to update: ${error.message}`, 'error');
+    }
+}
+
+
+// --- B100 Outstanding Functions ---
+async function loadB100Outstanding() {
+    b100OutstandingTableBody.innerHTML = '<tr><td colspan="5">Loading outstanding summary...</td></tr>';
+
+    try {
+        // Fetch outstanding jobs
+        const { data: outstandingJobs, error } = await supabase
+            .from('driver_jobs')
+            .select('*')
+            .eq('is_b100', true)
+            .eq('b100_status', 'outstanding')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Calculate summaries
+        const totalJobs = outstandingJobs?.length || 0;
+        const totalAmount = outstandingJobs?.reduce((sum, job) => sum + (parseFloat(job.b100_amount) || 0), 0) || 0;
+
+        // Group by driver
+        const byDriver = {};
+        outstandingJobs?.forEach(job => {
+            const driver = job.drivers || 'Unknown';
+            if (!byDriver[driver]) {
+                byDriver[driver] = { jobs: [], total: 0, lastDate: null };
+            }
+            byDriver[driver].jobs.push(job);
+            byDriver[driver].total += parseFloat(job.b100_amount) || 0;
+            const jobDate = new Date(job.created_at);
+            if (!byDriver[driver].lastDate || jobDate > byDriver[driver].lastDate) {
+                byDriver[driver].lastDate = jobDate;
+            }
+        });
+
+        const driverCount = Object.keys(byDriver).length;
+
+        // Update summary cards
+        b100TotalJobs.textContent = totalJobs;
+        b100TotalAmount.textContent = `฿${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
+        b100DriverCount.textContent = driverCount;
+
+        // Populate table
+        b100OutstandingTableBody.innerHTML = '';
+        if (driverCount === 0) {
+            b100OutstandingTableBody.innerHTML = '<tr><td colspan="5">No outstanding B100 records.</td></tr>';
+            return;
+        }
+
+        Object.entries(byDriver).forEach(([driver, data]) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${driver}</td>
+                <td>${data.jobs.length}</td>
+                <td>${data.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                <td>${data.lastDate ? data.lastDate.toLocaleDateString() : 'N/A'}</td>
+                <td>
+                    <button class="view-driver-outstanding-btn" data-driver="${driver}">View Details</button>
+                </td>
+            `;
+            b100OutstandingTableBody.appendChild(row);
+        });
+
+        // Add event listeners
+        document.querySelectorAll('.view-driver-outstanding-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const driver = e.target.dataset.driver;
+                openB100DetailModal(driver, byDriver[driver]);
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading B100 outstanding:', error);
+        b100OutstandingTableBody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`;
+    }
+}
+
+function openB100DetailModal(driver, data) {
+    b100DetailDriverName.textContent = driver;
+    b100DetailTotal.textContent = data.total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+
+    b100DetailTableBody.innerHTML = '';
+    data.jobs.forEach(job => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${job.reference || 'N/A'}</td>
+            <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
+            <td>${job.b100_amount ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '0.00'}</td>
+            <td>
+                <button class="mark-paid-detail-btn" data-job-id="${job.id}">Mark Paid</button>
+            </td>
+        `;
+        b100DetailTableBody.appendChild(row);
+    });
+
+    // Add event listeners for detail modal
+    document.querySelectorAll('.mark-paid-detail-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            await updateB100Status(e.target.dataset.jobId, 'paid');
+            closeB100DetailModal();
+            loadB100Outstanding();
+        });
+    });
+
+    b100DetailModal.classList.remove('hidden');
+}
+
+function closeB100DetailModal() {
+    b100DetailModal.classList.add('hidden');
+}
+
+
 // Function to load data for a given section
 function loadSectionData(targetId) {
     switch (targetId) {
@@ -1224,6 +2065,21 @@ function loadSectionData(targetId) {
             break;
         case 'logs':
             loadLogs();
+            break;
+        case 'holiday-work':
+            loadHolidayWorkJobs();
+            break;
+        case 'vehicle-breakdown':
+            loadVehicleBreakdowns();
+            break;
+        case 'fuel-siphoning':
+            loadFuelSiphoning();
+            break;
+        case 'b100-jobs':
+            loadB100Jobs();
+            break;
+        case 'b100-outstanding':
+            loadB100Outstanding();
             break;
         default:
             console.warn('Unknown section:', targetId);
@@ -1322,6 +2178,62 @@ function setupEventListeners() {
     logSearchReferenceInput.addEventListener('keyup', () => loadLogs());
     logSearchActionInput.addEventListener('keyup', () => loadLogs());
     logSearchUserIdInput.addEventListener('keyup', () => loadLogs());
+
+    // Holiday Work Event Listeners
+    holidayWorkSearch.addEventListener('keyup', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked));
+    holidayWorkFilterOnly.addEventListener('change', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked));
+    holidayWorkModalClose.addEventListener('click', closeHolidayWorkModal);
+    holidayWorkModal.addEventListener('click', (e) => {
+        if (e.target === holidayWorkModal) closeHolidayWorkModal();
+    });
+    holidayWorkForm.addEventListener('submit', handleHolidayWorkSubmit);
+
+    // Vehicle Breakdown Event Listeners
+    breakdownSearch.addEventListener('keyup', () => loadVehicleBreakdowns(breakdownSearch.value));
+    processBreakdownBtn.addEventListener('click', openBreakdownModal);
+    breakdownModalClose.addEventListener('click', closeBreakdownModal);
+    breakdownModal.addEventListener('click', (e) => {
+        if (e.target === breakdownModal) closeBreakdownModal();
+    });
+    breakdownJobSelect.addEventListener('change', handleBreakdownJobSelect);
+    breakdownForm.addEventListener('submit', handleBreakdownSubmit);
+
+    // Fuel Siphoning Event Listeners
+    siphoningSearch.addEventListener('keyup', () => loadFuelSiphoning(siphoningSearch.value, siphoningDateFilter.value));
+    siphoningDateFilter.addEventListener('change', () => loadFuelSiphoning(siphoningSearch.value, siphoningDateFilter.value));
+    createSiphoningBtn.addEventListener('click', () => openSiphoningModal());
+    siphoningModalClose.addEventListener('click', closeSiphoningModal);
+    siphoningModal.addEventListener('click', (e) => {
+        if (e.target === siphoningModal) closeSiphoningModal();
+    });
+    siphoningForm.addEventListener('submit', handleSiphoningSubmit);
+    siphoningEvidenceInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                siphoningEvidenceImg.src = e.target.result;
+                siphoningEvidencePreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // B100 Jobs Event Listeners
+    b100Search.addEventListener('keyup', () => loadB100Jobs(b100Search.value, b100StatusFilter.value));
+    b100StatusFilter.addEventListener('change', () => loadB100Jobs(b100Search.value, b100StatusFilter.value));
+    createB100Btn.addEventListener('click', openB100Modal);
+    b100ModalClose.addEventListener('click', closeB100Modal);
+    b100Modal.addEventListener('click', (e) => {
+        if (e.target === b100Modal) closeB100Modal();
+    });
+    b100Form.addEventListener('submit', handleB100Submit);
+
+    // B100 Outstanding Event Listeners
+    b100DetailModalClose.addEventListener('click', closeB100DetailModal);
+    b100DetailModal.addEventListener('click', (e) => {
+        if (e.target === b100DetailModal) closeB100DetailModal();
+    });
 }
 
 // Function to set up real-time subscriptions

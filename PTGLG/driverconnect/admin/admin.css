@@ -682,6 +682,384 @@ td button:hover {
 }
 
 
+/* ======================== */
+/* New Features Styles      */
+/* ======================== */
+
+/* Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: bold;
+    text-transform: capitalize;
+}
+
+.badge-holiday {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+.badge-normal {
+    background-color: #95a5a6;
+    color: #fff;
+}
+
+.badge-breakdown {
+    background-color: #e67e22;
+    color: #fff;
+}
+
+.badge-b100-pending {
+    background-color: #f1c40f;
+    color: #333;
+}
+
+.badge-b100-paid {
+    background-color: #27ae60;
+    color: #fff;
+}
+
+.badge-b100-outstanding {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+.badge-siphoning-reported {
+    background-color: #3498db;
+    color: #fff;
+}
+
+.badge-siphoning-verified {
+    background-color: #27ae60;
+    color: #fff;
+}
+
+.badge-siphoning-resolved {
+    background-color: #95a5a6;
+    color: #fff;
+}
+
+.badge-siphoning-cancelled {
+    background-color: #7f8c8d;
+    color: #fff;
+}
+
+/* Controls Styling (Holiday Work, Breakdown, Siphoning, B100) */
+.holiday-work-controls,
+.breakdown-controls,
+.siphoning-controls,
+.b100-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: var(--card-bg);
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.holiday-work-controls input[type="text"],
+.breakdown-controls input[type="text"],
+.siphoning-controls input[type="text"],
+.siphoning-controls input[type="date"],
+.b100-controls input[type="text"],
+.b100-controls select {
+    flex-grow: 1;
+    min-width: 200px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: #333;
+    color: var(--text-color);
+}
+
+.holiday-work-controls label,
+.breakdown-controls label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-color);
+}
+
+.holiday-work-controls button,
+.breakdown-controls button,
+.siphoning-controls button,
+.b100-controls button {
+    padding: 10px 15px;
+    background-color: var(--primary-color);
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.holiday-work-controls button:hover,
+.breakdown-controls button:hover,
+.siphoning-controls button:hover,
+.b100-controls button:hover {
+    opacity: 0.9;
+}
+
+/* Holiday Work Modal Form */
+#holiday-work-form label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#holiday-work-form label[for="holiday-work-checkbox"] {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+#holiday-work-form textarea {
+    width: calc(100% - 22px);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: #333;
+    color: var(--text-color);
+    resize: vertical;
+}
+
+#holiday-work-form button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* Breakdown Modal Form */
+#breakdown-form label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#breakdown-form select,
+#breakdown-form textarea,
+#breakdown-form input[type="text"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: #333;
+    color: var(--text-color);
+}
+
+#breakdown-form textarea {
+    resize: vertical;
+}
+
+#breakdown-form button[type="submit"] {
+    background-color: #e67e22;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+#breakdown-job-details {
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+#breakdown-job-details p {
+    margin: 5px 0;
+}
+
+.breakdown-preview {
+    background-color: #2c5530;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 15px;
+    border: 1px solid #27ae60;
+}
+
+/* Fuel Siphoning Modal Form */
+#siphoning-form label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#siphoning-form select,
+#siphoning-form textarea,
+#siphoning-form input[type="text"],
+#siphoning-form input[type="date"],
+#siphoning-form input[type="time"],
+#siphoning-form input[type="number"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: #333;
+    color: var(--text-color);
+}
+
+#siphoning-form textarea {
+    resize: vertical;
+}
+
+#siphoning-form input[type="file"] {
+    width: 100%;
+    padding: 10px 0;
+    color: var(--text-color);
+}
+
+#siphoning-form button[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.evidence-preview {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.evidence-preview img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 5px;
+    border: 2px solid var(--border-color);
+}
+
+/* B100 Modal Form */
+#b100-form label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#b100-form select,
+#b100-form textarea,
+#b100-form input[type="text"],
+#b100-form input[type="number"] {
+    width: calc(100% - 22px);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: #333;
+    color: var(--text-color);
+}
+
+#b100-form textarea {
+    resize: vertical;
+}
+
+#b100-form button[type="submit"] {
+    background-color: #9b59b6;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+/* B100 Outstanding Summary Cards */
+.b100-summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background-color: var(--card-bg);
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-left: 4px solid var(--primary-color);
+}
+
+.summary-card h3 {
+    color: var(--text-muted);
+    margin-top: 0;
+    font-size: 0.95em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.summary-card p {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 10px 0 0;
+    color: var(--primary-color);
+}
+
+#b100-total-amount {
+    color: #e74c3c;
+}
+
+/* Table Action Buttons */
+.edit-holiday-btn,
+.edit-siphoning-btn,
+.view-driver-outstanding-btn,
+.view-details-btn {
+    background-color: #3498db !important;
+}
+
+.mark-paid-btn,
+.mark-paid-detail-btn {
+    background-color: #27ae60 !important;
+}
+
+.mark-outstanding-btn {
+    background-color: #e74c3c !important;
+}
+
+/* B100 Detail Modal */
+.b100-detail-summary {
+    background-color: #3a3a3a;
+    padding: 15px;
+    border-radius: 5px;
+    font-size: 1.2em;
+}
+
+/* Table header for nested tables */
+.table-container h3 {
+    color: var(--primary-color);
+    margin: 0 0 15px 0;
+    padding: 15px 15px 0 15px;
+}
+
+
 
 
 
