@@ -29,6 +29,8 @@
                     <li><a href="#" class="nav-link" data-target="jobs">🚚 Job Management</a></li>
                     <li><a href="#" class="nav-link" data-target="driver-reports">📊 Driver Reports</a></li>
                     <li><a href="#" class="nav-link" data-target="settings">⚙️ Settings</a></li>
+                    <li><a href="#" class="nav-link" data-target="scheduled-reports">📄 Scheduled Reports</a></li>
+                    <li><a href="#" class="nav-link" data-target="alerts">🚨 Alerts <span id="alerts-badge" class="badge hidden">0</span></a></li>
                     <li><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
                 </ul>
             </nav>
@@ -55,6 +57,32 @@
                     </div>
                 </div>
                 <div id="map" style="height: 400px; width: 100%; margin-top: 20px;"></div>
+
+                <div class="map-playback-controls" style="margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 8px;">
+                    <h3>Driver History Playback</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
+                        <div style="flex-grow: 1;">
+                            <label for="playback-driver-select">Driver:</label>
+                            <select id="playback-driver-select" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);"></select>
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <label for="playback-start-datetime">Start:</label>
+                            <input type="datetime-local" id="playback-start-datetime" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <div style="flex-grow: 1;">
+                            <label for="playback-end-datetime">End:</label>
+                            <input type="datetime-local" id="playback-end-datetime" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <div>
+                            <label for="playback-speed">Speed (x):</label>
+                            <input type="number" id="playback-speed" value="1" min="0.1" step="0.1" style="width: 80px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <button id="load-playback-data-btn" class="control-btn" style="padding: 8px 12px; background-color: var(--primary-color); color: #fff; border: none; border-radius: 5px; cursor: pointer;">Load Data</button>
+                        <button id="play-button" class="control-btn" style="padding: 8px 12px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer;">▶ Play</button>
+                        <button id="pause-button" class="control-btn" style="padding: 8px 12px; background-color: #ffc107; color: #fff; border: none; border-radius: 5px; cursor: pointer;">⏸ Pause</button>
+                        <button id="stop-button" class="control-btn" style="padding: 8px 12px; background-color: #dc3545; color: #fff; border: none; border-radius: 5px; cursor: pointer;">⏹ Stop</button>
+                    </div>
+                </div>
             </section>
             <section id="users" class="content-section hidden">
                 <h1>User Management</h1>
@@ -265,6 +293,88 @@
                     </div>
                     <button type="submit">Save Settings</button>
                 </form>
+            </section>
+            <section id="scheduled-reports" class="content-section hidden">
+                <h1>Scheduled Reports Management</h1>
+                <div class="report-schedule-controls">
+                    <button id="create-report-schedule-btn">Create New Schedule</button>
+                </div>
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="report-schedules-table">
+                        <thead>
+                            <tr>
+                                <th>Report Name</th>
+                                <th>Type</th>
+                                <th>Frequency</th>
+                                <th>Next Run</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Report schedules will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Report Schedule Modal (for Create/Edit) -->
+                <div id="report-schedule-modal" class="modal hidden">
+                    <div class="modal-content">
+                        <span class="close-button">&times;</span>
+                        <h2>Report Schedule Details</h2>
+                        <form id="report-schedule-form">
+                            <input type="hidden" id="schedule-id">
+                            <label for="schedule-report-name">Report Name:</label>
+                            <input type="text" id="schedule-report-name" required>
+
+                            <label for="schedule-report-type">Report Type:</label>
+                            <select id="schedule-report-type" required>
+                                <option value="driver_performance">Driver Performance</option>
+                                <option value="job_summary">Job Summary</option>
+                            </select>
+
+                            <label for="schedule-frequency">Frequency:</label>
+                            <select id="schedule-frequency" required>
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+
+                            <label for="schedule-recipients">Recipients (JSON, e.g., [{"type":"email", "address":"a@b.com"}] or [{"type":"line", "id":"Uxxx"}]):</label>
+                            <textarea id="schedule-recipients" rows="3"></textarea>
+                            <p class="setting-description">JSON array of recipient objects. e.g., `[{"type":"email", "address":"a@b.com"}, {"type":"line", "id":"Uxxx"}]`</p>
+
+                            <label for="schedule-status">Status:</label>
+                            <select id="schedule-status">
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                            </select>
+
+                            <button type="submit">Save Schedule</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+            <section id="alerts" class="content-section hidden">
+                <h1>Triggered Alerts</h1>
+                <div class="table-container">
+                    <table id="alerts-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Rule Name</th>
+                                <th>Driver ID</th>
+                                <th>Trip ID</th>
+                                <th>Message</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Alert rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
             </section>
             <section id="logs" class="content-section hidden">
                 <h1>Log Viewer</h1>

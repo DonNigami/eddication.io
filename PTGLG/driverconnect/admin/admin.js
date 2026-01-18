@@ -1,6 +1,6 @@
 // Supabase & LIFF Configuration
 const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
 const LIFF_ID = '2007705394-Fgx9wdHu'; // Using driver app LIFF ID for now
 
 // DOM Elements - General
@@ -62,6 +62,33 @@ const driverAppAutoRefreshInput = document.getElementById('driver_app_auto_refre
 const adminPanelMapZoomInput = document.getElementById('admin_panel_map_zoom');
 const adminPanelMapCenterLatInput = document.getElementById('admin_panel_map_center_lat');
 const adminPanelMapCenterLngInput = document.getElementById('admin_panel_map_center_lng');
+
+// DOM elements for Map Playback
+const playbackDriverSelect = document.getElementById('playback-driver-select');
+const playbackStartDatetime = document.getElementById('playback-start-datetime');
+const playbackEndDatetime = document.getElementById('playback-end-datetime');
+const playbackSpeed = document.getElementById('playback-speed');
+const loadPlaybackDataBtn = document.getElementById('load-playback-data-btn');
+const playButton = document.getElementById('play-button');
+const pauseButton = document.getElementById('pause-button');
+const stopButton = document.getElementById('stop-button');
+
+// DOM elements for Alerts
+const alertsBadge = document.getElementById('alerts-badge');
+const alertsTableBody = document.querySelector('#alerts-table tbody');
+
+// DOM elements for Scheduled Reports
+const createReportScheduleBtn = document.getElementById('create-report-schedule-btn');
+const reportSchedulesTableBody = document.querySelector('#report-schedules-table tbody');
+const reportScheduleModal = document.getElementById('report-schedule-modal');
+const reportScheduleModalCloseButton = reportScheduleModal.querySelector('.close-button');
+const reportScheduleForm = document.getElementById('report-schedule-form');
+const scheduleIdInput = document.getElementById('schedule-id');
+const scheduleReportNameInput = document.getElementById('schedule-report-name');
+const scheduleReportTypeInput = document.getElementById('schedule-report-type');
+const scheduleFrequencyInput = document.getElementById('schedule-frequency');
+const scheduleRecipientsInput = document.getElementById('schedule-recipients');
+const scheduleStatusInput = document.getElementById('schedule-status');
 
 
 // DOM elements for Log Viewer
@@ -126,6 +153,7 @@ function showAdminPanel(profile) {
     setupEventListeners();
     // Default to dashboard view
     navigateTo('dashboard');
+    updateAlertsBadge(); // Load initial alert count
 }
 
 function showAccessDenied() {
@@ -171,9 +199,25 @@ function setupEventListeners() {
 
     // Driver Reports Event Listeners
     generateReportBtn.addEventListener('click', generateDriverReport);
-
+    
     // Settings Event Listeners
     settingsForm.addEventListener('submit', saveSettings);
+
+    // Map Playback Event Listeners
+    loadPlaybackDataBtn.addEventListener('click', loadPlaybackData);
+    playButton.addEventListener('click', startPlayback);
+    pauseButton.addEventListener('click', pausePlayback);
+    stopButton.addEventListener('click', stopPlayback);
+
+    // Scheduled Reports Event Listeners
+    createReportScheduleBtn.addEventListener('click', () => openReportScheduleModal());
+    reportScheduleForm.addEventListener('submit', handleReportScheduleSubmit);
+    reportScheduleModalCloseButton.addEventListener('click', closeReportScheduleModal);
+    reportScheduleModal.addEventListener('click', (e) => {
+        if (e.target === reportScheduleModal) {
+            closeReportScheduleModal();
+        }
+    });
 
     // Log Viewer Event Listeners
     logSearchReferenceInput.addEventListener('keyup', () => loadLogs());
@@ -212,6 +256,7 @@ function loadSectionData(sectionId) {
         case 'dashboard':
             initMap();
             loadDashboardAnalytics();
+            loadPlaybackDrivers(); // Load drivers for playback
             break;
         case 'users':
             loadUsers();
@@ -224,6 +269,12 @@ function loadSectionData(sectionId) {
             break;
         case 'settings':
             loadSettings();
+            break;
+        case 'alerts':
+            loadAlerts();
+            break;
+        case 'scheduled-reports':
+            loadReportSchedules();
             break;
         case 'logs':
             loadLogs();
@@ -245,7 +296,25 @@ function setupRealtimeSubscriptions() {
                 if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
                     loadUsers();
                 }
+                updateAlertsBadge(); // New pending user also affects alerts badge
             }
+        })
+        .subscribe();
+    
+    // Realtime for triggered_alerts
+    supabase
+        .channel('triggered_alerts_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'triggered_alerts' }, payload => {
+            const newAlert = payload.new;
+            showNotification(`New Alert: ${newAlert.message} (Driver: ${newAlert.driver_user_id})`, 'error');
+            // Refresh dashboard KPIs and user list
+            if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                loadDashboardAnalytics();
+            }
+            if (document.querySelector('.nav-link[data-target="alerts"]').classList.contains('active')) {
+                loadAlerts();
+            }
+            updateAlertsBadge();
         })
         .subscribe();
 }
@@ -272,6 +341,11 @@ let markers = L.featureGroup(); // Group to manage markers
 let mapCenterLat = 13.736717; // Default to Bangkok
 let mapCenterLng = 100.523186;
 let mapZoom = 10;
+let playbackPath = null;
+let playbackMarker = null;
+let playbackData = []; // Stores [{lat, lng, created_at}, ...]
+let playbackIndex = 0;
+let playbackInterval = null;
 
 async function loadMapSettings() {
     try {
@@ -365,6 +439,125 @@ async function updateMapMarkers() {
         console.error('Error updating map markers:', error);
     }
 }
+
+// Map Playback Functions
+async function loadPlaybackData() {
+    const driverId = playbackDriverSelect.value;
+    const startDatetime = playbackStartDatetime.value;
+    const endDatetime = playbackEndDatetime.value;
+
+    if (!driverId) {
+        showNotification('Please select a driver for playback.', 'error');
+        return;
+    }
+    if (!startDatetime || !endDatetime) {
+        showNotification('Please select a start and end date/time for playback.', 'error');
+        return;
+    }
+
+    stopPlayback(); // Stop any ongoing playback and clear map
+
+    try {
+        // Fetch location data from driver_logs. For more granular data, a dedicated table would be better.
+        const { data: logs, error } = await supabase
+            .from('driver_logs')
+            .select('location, created_at')
+            .eq('user_id', driverId)
+            .not('location', 'is', null)
+            .gte('created_at', startDatetime)
+            .lte('created_at', endDatetime)
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        playbackData = logs.filter(log => log.location && log.location.lat && log.location.lng)
+                           .map(log => ({ lat: log.location.lat, lng: log.location.lng, created_at: log.created_at }));
+
+        if (playbackData.length < 2) {
+            showNotification('Not enough location data for playback in the selected period.', 'info');
+            return;
+        }
+
+        // Draw entire path
+        const pathCoordinates = playbackData.map(point => [point.lat, point.lng]);
+        playbackPath = L.polyline(pathCoordinates, { color: 'blue', weight: 3 }).addTo(map);
+        map.fitBounds(playbackPath.getBounds());
+
+        // Create animated marker
+        const driverIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3356/3356611.png', // Generic car icon
+            iconSize: [32, 32],
+            iconAnchor: [16, 32]
+        });
+        playbackMarker = L.marker([playbackData[0].lat, playbackData[0].lng], { icon: driverIcon }).addTo(map)
+                           .bindPopup(`Driver: ${playbackDriverSelect.options[playbackDriverSelect.selectedIndex].text}<br>Time: ${new Date(playbackData[0].created_at).toLocaleString()}`);
+
+        showNotification(`Loaded ${playbackData.length} points for playback.`, 'info');
+
+    } catch (error) {
+        console.error('Error loading playback data:', error);
+        showNotification(`Failed to load playback data: ${error.message}`, 'error');
+    }
+}
+
+function startPlayback() {
+    if (playbackData.length < 2 || !playbackMarker) {
+        showNotification('Please load playback data first.', 'error');
+        return;
+    }
+
+    if (playbackInterval) clearInterval(playbackInterval); // Clear any existing interval
+
+    // Ensure playback starts from current index or beginning if stopped
+    if (playbackIndex >= playbackData.length - 1) {
+        playbackIndex = 0; // Reset to start if already at end
+        playbackMarker.setLatLng([playbackData[0].lat, playbackData[0].lng]);
+        playbackMarker.getPopup().setContent(`Driver: ${playbackDriverSelect.options[playbackDriverSelect.selectedIndex].text}<br>Time: ${new Date(playbackData[0].created_at).toLocaleString()}`);
+    }
+
+    const speed = parseFloat(playbackSpeed.value) || 1;
+    const intervalTime = 500 / speed; // Base interval 500ms, faster for higher speed
+
+    playbackInterval = setInterval(() => {
+        if (playbackIndex < playbackData.length - 1) {
+            playbackIndex++;
+            const currentPoint = playbackData[playbackIndex];
+            playbackMarker.setLatLng([currentPoint.lat, currentPoint.lng]);
+            playbackMarker.getPopup().setContent(`Driver: ${playbackDriverSelect.options[playbackDriverSelect.selectedIndex].text}<br>Time: ${new Date(currentPoint.created_at).toLocaleString()}`);
+            map.panTo([currentPoint.lat, currentPoint.lng]); // Keep marker centered
+        } else {
+            stopPlayback();
+            showNotification('Playback finished.', 'info');
+        }
+    }, intervalTime);
+}
+
+function pausePlayback() {
+    if (playbackInterval) {
+        clearInterval(playbackInterval);
+        playbackInterval = null;
+        showNotification('Playback paused.', 'info');
+    }
+}
+
+function stopPlayback() {
+    if (playbackInterval) clearInterval(playbackInterval);
+    playbackInterval = null;
+    playbackIndex = 0;
+
+    if (playbackPath) {
+        map.removeLayer(playbackPath);
+        playbackPath = null;
+    }
+    if (playbackMarker) {
+        map.removeLayer(playbackMarker);
+        playbackMarker = null;
+    }
+    markers.clearLayers(); // Clear active job markers too for cleaner view
+    updateMapMarkers(); // Re-add active job markers
+    showNotification('Playback stopped and map cleared.', 'info');
+}
+
 
 // Dashboard Analytics Functions
 async function loadDashboardAnalytics() {
@@ -771,13 +964,45 @@ async function loadDriverReports() {
         const startDate = new Date();
         startDate.setDate(endDate.getDate() - 30);
         reportEndDate.value = startDate.toISOString().split('T')[0];
-        reportStartDate.value = startDate.toISOString().split('T')[0]; // Fixed: start date should be startDate
+        reportStartDate.value = startDate.toISOString().split('T')[0];
         reportEndDate.value = endDate.toISOString().split('T')[0];
 
 
     } catch (error) {
         console.error('Error loading drivers for report:', error);
         reportDriverSelect.innerHTML = '<option value="">Error loading drivers</option>';
+    }
+}
+
+// Playback Driver selection and default dates
+async function loadPlaybackDrivers() {
+    playbackDriverSelect.innerHTML = '<option value="">Loading drivers...</option>';
+    try {
+        const { data: drivers, error } = await supabase
+            .from('user_profiles')
+            .select('user_id, display_name')
+            .eq('user_type', 'DRIVER')
+            .order('display_name', { ascending: true });
+
+        if (error) throw error;
+
+        playbackDriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
+        drivers.forEach(driver => {
+            const option = document.createElement('option');
+            option.value = driver.user_id;
+            option.textContent = driver.display_name || driver.user_id;
+            playbackDriverSelect.appendChild(option);
+        });
+
+        // Set default date/time for playback (today from 00:00 to now)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        playbackStartDatetime.value = startOfDay.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+        playbackEndDatetime.value = now.toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+
+    } catch (error) {
+        console.error('Error loading drivers for playback:', error);
+        playbackDriverSelect.innerHTML = '<option value="">Error loading drivers</option>';
     }
 }
 
@@ -919,6 +1144,98 @@ async function saveSettings(event) {
         saveButton.disabled = false;
         // Reload map settings if they were updated
         loadMapSettings();
+    }
+}
+
+
+// Alerts Functions
+async function loadAlerts() {
+    alertsTableBody.innerHTML = '<tr><td colspan="7">Loading alerts...</td></tr>';
+    try {
+        const { data: alerts, error } = await supabase
+            .from('triggered_alerts')
+            .select('*')
+            .order('triggered_at', { ascending: false });
+        if (error) throw error;
+
+        alertsTableBody.innerHTML = '';
+        if (alerts.length === 0) {
+            alertsTableBody.innerHTML = '<tr><td colspan="7">No alerts found.</td></tr>';
+            return;
+        }
+
+        alerts.forEach(alert => {
+            const row = document.createElement('tr');
+            row.dataset.alertId = alert.id;
+            const statusClass = alert.status === 'pending' ? 'status-pending' : 'status-resolved';
+            const resolveButton = alert.status === 'pending' ? `<button class="resolve-alert-btn" data-alert-id="${alert.id}">Resolve</button>` : '';
+
+            row.innerHTML = `
+                <td>${new Date(alert.triggered_at).toLocaleString()}</td>
+                <td>${alert.rule_name || 'N/A'}</td>
+                <td>${alert.driver_user_id || 'N/A'}</td>
+                <td>${alert.trip_id || 'N/A'}</td>
+                <td>${alert.message || 'N/A'}</td>
+                <td class="${statusClass}">${alert.status}</td>
+                <td>${resolveButton}</td>
+            `;
+            alertsTableBody.appendChild(row);
+        });
+
+        document.querySelectorAll('.resolve-alert-btn').forEach(button => {
+            button.addEventListener('click', handleResolveAlert);
+        });
+
+    } catch (error) {
+        console.error('Error loading alerts:', error);
+        alertsTableBody.innerHTML = `<tr><td colspan="7">Error loading alerts: ${error.message}</td></tr>`;
+    }
+}
+
+async function updateAlertsBadge() {
+    try {
+        const { count, error } = await supabase
+            .from('triggered_alerts')
+            .select('*', { count: 'exact' })
+            .eq('status', 'pending');
+
+        if (error) throw error;
+
+        if (count > 0) {
+            alertsBadge.textContent = count;
+            alertsBadge.classList.remove('hidden');
+        } else {
+            alertsBadge.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error updating alerts badge:', error);
+    }
+}
+
+async function handleResolveAlert(event) {
+    const button = event.currentTarget;
+    const alertId = button.dataset.alertId;
+
+    button.textContent = 'Resolving...';
+    button.disabled = true;
+
+    try {
+        const { error } = await supabase
+            .from('triggered_alerts')
+            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+            .eq('id', alertId);
+
+        if (error) throw error;
+
+        showNotification('Alert resolved successfully!', 'info');
+        loadAlerts(); // Refresh alerts list
+        updateAlertsBadge(); // Update badge count
+    } catch (error) {
+        console.error('Error resolving alert:', error);
+        showNotification(`Failed to resolve alert: ${error.message}`, 'error');
+    } finally {
+        button.textContent = 'Resolve';
+        button.disabled = false;
     }
 }
 

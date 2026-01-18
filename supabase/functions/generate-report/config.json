@@ -1,0 +1,7 @@
+{
+  "name": "generate-report",
+  "edge_function": true,
+  "entrypoint": "index.ts",
+  "installation_command": "npm install",
+  "build_command": "npx --no-install supabase functions build --esbuild-loader=deno --import-map=./import_map.json"
+}
