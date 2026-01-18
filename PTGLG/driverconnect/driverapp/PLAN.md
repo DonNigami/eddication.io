@@ -22,13 +22,17 @@
 PTGLG/driverconnect/driverapp/
 ├── index-supabase-modular.html    ✅ Main application (ACTIVE)
 ├── index-supabase-v2.html         ⚠️  Old version (DEPRECATED)
-├── index-test-20260115.html       📚 Reference version (original features)
+├── index-test-20260115.html       📚 Reference version (for feature comparison)
 ├── js/
-│   ├── app.js                     ✅ Main app logic + LIFF init + User tracking
-│   ├── supabase-api.js            ✅ Database API layer (trips, trip_stops, alcohol_checks)
-│   ├── enhanced-ux.js             ✅ UX features (PTR, toast, quick actions, syncing bar)
-│   ├── config.js                  ✅ Configuration (LIFF ID, Supabase credentials)
-│   └── supabase-api-helper.js     ⚠️  Not actively used
+│   ├── app.js                     ✅ Main app logic, state management, event handling
+│   ├── supabase-api.js            ✅ Supabase API wrapper (CRUD, auth, realtime)
+│   ├── config.js                  ✅ App configuration (LIFF ID, Supabase keys, retry settings)
+│   ├── ui.js                      ✅ UI helpers (modals, loaders, toasts, themes)
+│   ├── gps.js                     ✅ GPS & location services (geolocation, geofencing)
+│   ├── offline-queue.js           ✅ Offline mode action queueing and syncing
+│   ├── utils.js                   ✅ Utility functions (validation, sanitization, etc.)
+│   ├── enhanced-ux.js             ✅ Standalone UX features (Pull-to-Refresh)
+│   └── ... (other helper/unused scripts)
 └── css/
     └── styles.css                 ✅ All styling
 
@@ -203,6 +207,13 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 - [x] Last searched reference tracking
 - [x] Auto-save on LIFF init
 - [x] Update on each search
+
+### Advanced Features ✅ NEW
+- [x] **Geofencing:** Automatically verifies driver's location against destination coordinates before allowing Check-in, ensuring they are within the allowed radius (e.g., 200m).
+- [x] **Admin Mode:** A hidden mode for administrators (`user_type = 'ADMIN'`) that bypasses the geofencing check for testing and debugging purposes.
+- [x] **User Approval Workflow:** App prevents usage until a user's profile status is set to 'APPROVED' in the `user_profiles` table by an admin.
+- [x] **Robust Offline Mode:** Actions (check-in, alcohol tests, etc.) are queued locally when offline and synced automatically with retry logic when the connection is restored.
+- [x] **Realtime Data Sync:** Subscribes to Supabase realtime updates for the current job, automatically refreshing the data on the screen when changes occur in the database.
 
 ---
 
@@ -441,32 +452,25 @@ Application is considered "production-ready" when:
 ```
 [User opens LIFF URL]
         ↓
-[Check if LINE LIFF SDK loaded]
+[liff.init({liffId})]
         ↓
-    ┌───┴───┐
-    │ No    │ Yes
-    ↓       ↓
-[Error]  [liff.init({liffId})]
-            ↓
-        [liff.isLoggedIn()?]
-            ↓
-        ┌───┴───┐
-        │ No    │ Yes
-        ↓       ↓
-    [liff.login()] [Get Profile: liff.getProfile()]
-                        ↓
-                [Save to user_profiles table]
-                        ↓
-                [Display: "สวัสดี {displayName}"]
-                        ↓
-                [Initialize GPS Monitor]
-                        ↓
-                [Check localStorage for cached job]
-                        ↓
-                    ┌───┴───┐
-                    │ No    │ Yes
-                    ↓       ↓
-                [Wait]   [Auto-load cached job]
+[liff.isLoggedIn()?]
+        ├─── No ──> [liff.login()]
+        ↓ Yes
+[Get Profile: liff.getProfile()]
+        ↓
+[Save/Update user_profiles table (Supabase)]
+        ↓
+[Fetch full user profile from Supabase]
+        ↓
+[Is user_profile.status === 'APPROVED'?]
+        ├─── No ──> [Display 'Waiting for Approval' & block UI]
+        ↓ Yes
+[Display: "สวัสดี {displayName}"]
+        ↓
+[Initialize GPS, Admin Mode (if applicable), Offline Queue]
+        ↓
+[Auto-load last searched job from localStorage]
 ```
 
 ### 2. Search Job Flow
@@ -530,20 +534,29 @@ Application is considered "production-ready" when:
 ```
 [Click "Check-in" button on timeline stop]
         ↓
-[Get current GPS location]
-        ↓
-[Confirm with SweetAlert2]
-        ↓
-[Update trip_stops:
- - status: 'checked_in'
- - checkin_time: now()
- - checkin_location: {lat, lng}]
-        ↓
-[Insert driver_logs: action='checkin']
-        ↓
-[Show inline flex notification]
-        ↓
-[Refresh timeline]
+[Is it an Origin stop?]
+        ├─── Yes ────────────────────────────────┐
+        ↓                                        ↓
+[Check if alcohol test is done]            [SweetAlert2: Input ODO, Receiver Name & Type]
+        ↓                                        ↓
+    ┌───┴───┐                                [Validate Inputs]
+    │ No    │ Yes                              ↓
+    ↓       ↓                             [User Confirms]
+[Show Error] [SweetAlert2: Input Start ODO]     ↓
+            ↓                             [Get current GPS location]
+        [User Confirms]                       ↓
+            ↓                             [Geofence Check: Is user within radius?]
+[Get current GPS location]                     ↓
+            ↓                               ┌───┴───┐
+        [Execute or Queue Update]           │ No    │ Yes
+            ↓                               ↓       ↓
+    [Update trips: ODO_start]           [Show Error] [Execute or Queue Update]
+            ↓                                           ↓
+    [Update trip_stops: status, time, location] [Update trip_stops: status, time, ODO, receiver]
+            ↓                                           ↓
+    [Insert driver_logs: action='checkin']      [Insert driver_logs: action='checkin']
+            ↓                                           ↓
+    [Show Notification & Refresh]               [Show Notification & Refresh]
 ```
 
 #### 4.2 Fuel Stop Flow
@@ -660,15 +673,17 @@ Application is considered "production-ready" when:
 
 #### 7.2 Auto-Refresh
 ```
-[Timer: every 30 seconds]
+[Job is successfully loaded via Search]
         ↓
-[Check if job is loaded]
+[Subscribe to Supabase Realtime Channel for the job]
         ↓
-[Check if page is visible (not background)]
+[Database change detected for the job]
         ↓
-[Fetch latest data from Supabase]
+[Receive update payload]
         ↓
-[Update UI if changes detected]
+[Trigger a silent refresh: search(true)]
+        ↓
+[UI updates with new data]
 ```
 
 #### 7.3 Pull-to-Refresh (PTR)
