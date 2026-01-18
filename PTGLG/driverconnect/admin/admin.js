@@ -178,7 +178,7 @@ async function updateMapMarkers() {
     try {
         // Fetch active jobs (or all jobs for now) to get relevant driver_logs
         const { data: activeJobs, error: jobsError } = await supabase
-            .from('driver_jobs') // Changed from jobdata to driver_jobs
+            .from('jobdata') // Use jobdata for trip_ended/status fields
             .select('reference, drivers')
             .not('trip_ended', 'is', true); // Only jobs not ended
 
@@ -361,7 +361,7 @@ async function loadDashboardAnalytics() {
 
         // Active Jobs (e.g., status 'active' and trip_ended is false)
         const { count: activeJobs, error: jobsError } = await supabase
-            .from('driver_jobs') // Changed from jobdata to driver_jobs
+            .from('jobdata') // Use jobdata for trip_ended/status fields
             .select('*', { count: 'exact' })
             .eq('status', 'active')
             .eq('trip_ended', false);
