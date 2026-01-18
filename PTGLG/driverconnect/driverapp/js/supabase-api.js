@@ -427,6 +427,7 @@ export const SupabaseAPI = {
       const originStop = {
         rowIndex: 'origin_0', // Synthetic ID
         seq: 1,
+        shipmentNo: jobHeader.shipment_no || '',
         shipToCode: originConfig.originKey,
         shipToName: originConfig.name,
         address: originConfig.name,
@@ -434,7 +435,7 @@ export const SupabaseAPI = {
         isOriginStop: true,
         destLat: parseFloat(originConfig.lat) || null,
         destLng: parseFloat(originConfig.lng) || null,
-        // other fields null/default
+        radiusM: parseFloat(originConfig.radiusMeters) || 200,
         checkInTime: null, checkOutTime: null, fuelingTime: null, unloadDoneTime: null,
         totalQty: null, materials: 'จุดต้นทาง'
       };
@@ -452,6 +453,7 @@ export const SupabaseAPI = {
         destinationStops = stopsData.map(row => ({
           rowIndex: String(row.id), // Ensure rowIndex is a string
           seq: row.sequence || row.stop_number,
+          shipmentNo: jobHeader.shipment_no || '', // Inherit shipment_no from header
           shipToCode: row.ship_to_code || (row.sequence || row.stop_number).toString(),
           shipToName: row.destination_name || row.stop_name,
           address: row.address,
@@ -466,6 +468,7 @@ export const SupabaseAPI = {
         destinationStops = jobs.map((jobRow) => ({
           rowIndex: String(jobRow.id), // Ensure rowIndex is a string
           seq: 0, // Will be re-sequenced later
+          shipmentNo: jobRow.shipment_no || '', // Each row is a shipment
           shipToCode: jobRow.ship_to || '',
           shipToName: jobRow.ship_to_name,
           address: jobRow.ship_to_address || '',
