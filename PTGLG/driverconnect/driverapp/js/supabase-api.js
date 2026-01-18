@@ -813,7 +813,6 @@ export const SupabaseAPI = {
         .from(TABLES.TRIPS)
         .update({
           status: 'completed',
-          end_time: new Date().toISOString(),
           end_odo: endOdo ? parseInt(endOdo) : null,
           end_location: { lat, lng },
           updated_at: new Date().toISOString(),
