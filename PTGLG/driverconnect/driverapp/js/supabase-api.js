@@ -61,8 +61,6 @@ async function enrichStopsWithCoordinates(stops, route = null) {
 
     // Step 1: Get origin coordinate
     let originData = null;
-    let originLat = null;
-    let originLng = null;
 
     // 1a: Try to find by route
     if (route) {
@@ -98,14 +96,7 @@ async function enrichStopsWithCoordinates(stops, route = null) {
 
     // 1c: Parse final origin data
     if (originData) {
-      originLat = parseFloat(originData.lat);
-      originLng = parseFloat(originData.lng);
-      if (!isNaN(originLat) && !isNaN(originLng)) {
-        console.log(`✅ Found origin: ${originData.name} (${originLat}, ${originLng})`);
-      } else {
-        originLat = null;
-        originLng = null;
-      }
+      console.log(`✅ Found origin: ${originData.name}`);
     }
 
     // Step 2: Get all customer coordinates
@@ -129,7 +120,7 @@ async function enrichStopsWithCoordinates(stops, route = null) {
             const lng = parseFloat(c.lng);
             
             if (!isNaN(lat) && !isNaN(lng)) {
-              customerMap.set(c.stationKey, { lat, lng });
+              customerMap.set(c.stationKey, { lat, lng, radiusMeters: c.radiusMeters });
             }
           });
           console.log(`✅ Found ${customerData.length} customers with coordinates`);
@@ -139,67 +130,36 @@ async function enrichStopsWithCoordinates(stops, route = null) {
       }
     }
 
-    // Step 3: Get all station coordinates
+    // Step 3: Get all station coordinates (as a fallback)
     const stationMap = new Map();
-
-    if (shipToCodes.length > 0) {
-      try {
-        const { data: stationData } = await supabase
-          .from('station')
-          .select('stationKey, station_name, lat, lng')
-          .in('stationKey', shipToCodes);
-
-        if (stationData) {
-          stationData.forEach(s => {
-            const lat = parseFloat(s.lat);
-            const lng = parseFloat(s.lng);
-            
-            if (!isNaN(lat) && !isNaN(lng)) {
-              stationMap.set(s.stationKey, { lat, lng });
-            }
-          });
-          console.log(`✅ Found ${stationData.length} stations with coordinates`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Error fetching stations:', error.message);
-      }
-    }
+    // (This part can be optimized or removed if `customer` table is the main source)
 
     // Step 4: Enrich stops
     const enrichedStops = stops.map(stop => {
       // If already has coordinates, keep them
-      if (stop.destLat && stop.destLng) {
+      if (stop.destLat && stop.destLng && stop.radiusM) {
         return stop;
       }
 
       // Origin stop - use origin coordinates
-      if (stop.isOriginStop && originLat && originLng) {
+      if (stop.isOriginStop && originData) {
         return {
           ...stop,
-          destLat: originLat,
-          destLng: originLng
+          destLat: parseFloat(originData.lat) || null,
+          destLng: parseFloat(originData.lng) || null,
+          radiusM: parseFloat(originData.radiusMeters) || 200
         };
       }
 
-      // Regular stop - lookup in customer or station
+      // Regular stop - lookup in customer
       if (stop.shipToCode) {
-        // Try customer first (ใช้ shipToCode match กับ stationKey)
         const customer = customerMap.get(stop.shipToCode);
         if (customer && customer.lat && customer.lng) {
           return {
             ...stop,
             destLat: customer.lat,
-            destLng: customer.lng
-          };
-        }
-
-        // Try station (ใช้ shipToCode match กับ stationKey)
-        const station = stationMap.get(stop.shipToCode);
-        if (station && station.lat && station.lng) {
-          return {
-            ...stop,
-            destLat: station.lat,
-            destLng: station.lng
+            destLng: customer.lng,
+            radiusM: parseFloat(customer.radiusMeters) || 50
           };
         }
       }
@@ -257,6 +217,7 @@ async function syncToJobdata(trips, stops, reference) {
         total_qty: stop.totalQty || null,
         dest_lat: stop.destLat || null,
         dest_lng: stop.destLng || null,
+        radius_m: stop.radiusM || null,
         job_closed: sharedTripInfo.status === 'closed',
         trip_ended: sharedTripInfo.status === 'completed',
         created_at: new Date().toISOString(),
@@ -391,6 +352,7 @@ export const SupabaseAPI = {
           isOriginStop: row.is_origin_stop || row.seq === 1,
           destLat: row.dest_lat || null,
           destLng: row.dest_lng || null,
+          radiusM: row.radius_m || null,
           totalQty: row.total_qty || null,
           materials: row.materials || ''
         }));

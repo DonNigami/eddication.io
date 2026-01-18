@@ -482,7 +482,7 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
     const stop = lastStops.find(s => s.rowIndex === rowIndex);
     // Only check if destination coordinates are available
     if (stop && stop.destLat && stop.destLng) {
-      const radiusM = 200; // Using a default 200m radius for now, as specified in the plan.
+      const radiusM = stop.radiusM || 200; // Use radius from data, with 200m fallback
       const distance = haversineDistanceMeters(stop.destLat, stop.destLng, lat, lng);
       
       if (distance > radiusM) {
