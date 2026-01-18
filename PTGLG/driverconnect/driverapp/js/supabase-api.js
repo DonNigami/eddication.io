@@ -745,7 +745,7 @@ export const SupabaseAPI = {
       const tripIdForLog = tripsData[0].id;
 
       // Update jobdata table (primary writable table for status)
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from(TABLES.JOBDATA)
         .update({
           status: 'closed',
@@ -755,11 +755,9 @@ export const SupabaseAPI = {
           closed_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('reference', reference)
-        .select(); // <--- ADDED .select()
+        .eq('reference', reference);
 
       if (error) throw error;
-      if (!data || data.length === 0) throw new Error("Jobdata not found or failed to update.");
 
       // Log action
       await supabase
@@ -798,7 +796,7 @@ export const SupabaseAPI = {
       const tripIdForLog = tripsData[0].id;
 
       // Update jobdata table (primary writable table for status)
-      await supabase
+      const { error } = await supabase
         .from(TABLES.JOBDATA)
         .update({
           status: 'completed',
@@ -811,8 +809,9 @@ export const SupabaseAPI = {
           ended_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('reference', reference)
-        .select();
+        .eq('reference', reference);
+
+      if (error) throw error;
 
       // Log action
       await supabase
