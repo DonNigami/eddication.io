@@ -772,15 +772,17 @@ async function initApp() {
       document.getElementById('status').textContent = 'สวัสดี ' + profile.displayName;
       
       // Save user profile to Supabase
-      await SupabaseAPI.saveUserProfile({
-        userId: profile.userId,
-        displayName: profile.displayName,
-        pictureUrl: profile.pictureUrl,
-        statusMessage: profile.statusMessage
-      });
+      // Only save real LINE users
+      if (profile.userId && profile.userId.startsWith('U')) {
+        await SupabaseAPI.saveUserProfile({
+          userId: profile.userId,
+          displayName: profile.displayName,
+          pictureUrl: profile.pictureUrl,
+          statusMessage: profile.statusMessage
+        });
+      }
     } else {
-      currentUserId = 'test_user_' + Date.now();
-      document.getElementById('status').textContent = 'กำลังใช้งานแบบทดสอบ';
+      liff.login(); // Enforce login
     }
   } catch (err) {
     console.error('LIFF init error:', err);
