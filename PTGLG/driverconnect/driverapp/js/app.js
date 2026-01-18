@@ -20,6 +20,7 @@ import {
 // ============================================
 let currentUserId = '';
 let currentUserProfile = null;
+let isAdminMode = false;
 let currentReference = '';
 let currentVehicleDesc = '';
 let lastStops = [];
@@ -482,17 +483,21 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
     const lng = pos.coords.longitude;
 
     // --- GEOFENCING LOGIC ---
-    const stop = lastStops.find(s => s.rowIndex === rowIndex);
-    // Only check if destination coordinates are available
-    if (stop && stop.destLat && stop.destLng) {
-      const radiusM = stop.radiusM || 200; // Use radius from data, with 200m fallback
-      const distance = haversineDistanceMeters(stop.destLat, stop.destLng, lat, lng);
-      
-      if (distance > radiusM) {
-        closeLoading(); // Ensure loading indicator is hidden
-        showError(`คุณอยู่นอกพื้นที่ (ห่าง ${Math.round(distance)} ม. / รัศมี ${radiusM} ม.)`);
-        return;
+    if (!isAdminMode) {
+      const stop = lastStops.find(s => s.rowIndex === rowIndex);
+      // Only check if destination coordinates are available
+      if (stop && stop.destLat && stop.destLng) {
+        const radiusM = stop.radiusM || 200; // Use radius from data, with 200m fallback
+        const distance = haversineDistanceMeters(stop.destLat, stop.destLng, lat, lng);
+        
+        if (distance > radiusM) {
+          closeLoading(); // Ensure loading indicator is hidden
+          showError(`คุณอยู่นอกพื้นที่ (ห่าง ${Math.round(distance)} ม. / รัศมี ${radiusM} ม.)`);
+          return;
+        }
       }
+    } else {
+      console.log('👑 Admin mode: Bypassing geofence check.');
     }
     // --- END GEOFENCING LOGIC ---
 
@@ -813,12 +818,35 @@ function navigateToStop(rowIndex) {
   navigateToCoords(stop.destLat, stop.destLng);
 }
 
+function toggleAdminMode() {
+    isAdminMode = !isAdminMode;
+    const adminToggleBtn = document.getElementById('adminToggle');
+    if (isAdminMode) {
+        adminToggleBtn.style.backgroundColor = 'var(--accent-color)';
+        adminToggleBtn.style.color = 'white';
+        showInfo('เปิดโหมดแอดมิน', 'ปิดการตรวจสอบระยะห่าง');
+    } else {
+        adminToggleBtn.style.backgroundColor = 'transparent';
+        adminToggleBtn.style.color = 'var(--text-main)';
+        showInfo('ปิดโหมดแอดมิน', 'เปิดการตรวจสอบระยะห่าง');
+    }
+}
+
 // ============================================
 // INITIALIZATION
 // ============================================
 async function initApp() {
   // Initialize Supabase
   initSupabase();
+
+  // Create Admin Button and prepend it to the header
+  const adminToggleBtn = document.createElement('button');
+  adminToggleBtn.id = 'adminToggle';
+  adminToggleBtn.className = 'theme-toggle';
+  adminToggleBtn.setAttribute('aria-label', 'สลับโหมดแอดมิน');
+  adminToggleBtn.innerHTML = '👑';
+  adminToggleBtn.style.display = 'none'; // Hidden by default
+  document.querySelector('.header > div:last-child').prepend(adminToggleBtn);
 
   // Load theme
   ThemeManager.load();
@@ -834,10 +862,7 @@ async function initApp() {
   window.addEventListener('online', () => {
     document.getElementById('offlineBar').classList.remove('show');
     showInlineFlexCustom('success', 'กลับมาออนไลน์แล้ว', 'กำลังซิงค์ข้อมูลที่ค้างอยู่...');
-
-    setTimeout(() => {
-      OfflineQueue.sync();
-    }, 1000);
+    setTimeout(() => { OfflineQueue.sync(); }, 1000);
   });
 
   window.addEventListener('offline', () => {
@@ -853,7 +878,6 @@ async function initApp() {
       const profile = await liff.getProfile();
       currentUserId = profile.userId;
 
-      // Ensure user exists in DB, then fetch their full profile
       if (currentUserId.startsWith('U')) {
         await SupabaseAPI.saveUserProfile(profile);
         currentUserProfile = await SupabaseAPI.getUserProfile(currentUserId);
@@ -863,6 +887,10 @@ async function initApp() {
       if (currentUserProfile?.status === 'APPROVED') {
         statusEl.textContent = 'สวัสดี ' + (currentUserProfile.display_name || profile.displayName);
         statusEl.style.color = 'var(--text-main)';
+        // Show admin button if user is admin
+        if (currentUserProfile.role === 'ADMIN') {
+          document.getElementById('adminToggle').style.display = 'block';
+        }
       } else if (currentUserProfile?.status === 'PENDING') {
         statusEl.textContent = 'สถานะ: รอการอนุมัติ';
         statusEl.style.color = 'orange';
@@ -890,10 +918,9 @@ async function initApp() {
   }
 
   // Bind events
+  document.getElementById('adminToggle').addEventListener('click', toggleAdminMode);
   document.getElementById('btnSearch').addEventListener('click', () => search());
-  document.getElementById('keyword').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') search();
-  });
+  document.getElementById('keyword').addEventListener('keypress', (e) => { if (e.key === 'Enter') search(); });
   document.getElementById('btnCloseJob').addEventListener('click', closeJob);
   document.getElementById('btnEndTrip').addEventListener('click', openEndTripDialog);
   document.getElementById('themeToggle').addEventListener('click', () => ThemeManager.toggle());
