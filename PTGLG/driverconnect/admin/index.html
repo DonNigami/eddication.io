@@ -32,7 +32,7 @@
                     <li><a href="#" class="nav-link" data-target="scheduled-reports">📄 Scheduled Reports</a></li>
                     <li><a href="#" class="nav-link" data-target="alerts">🚨 Alerts <span id="alerts-badge" class="badge hidden">0</span></a></li>
                     <li><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
-                    <li><a href="debug-import.html" class="nav-link">🔍 Debug Import</a></li>
+                    <li><a href="#" class="nav-link" data-target="debug-import-tool">🔍 Debug Import</a></li>
                     <li><a href="#" class="nav-link" data-target="holiday-work">🎌 Holiday Work</a></li>
                     <li><a href="#" class="nav-link" data-target="vehicle-breakdown">🔧 Vehicle Breakdown</a></li>
                     <li><a href="#" class="nav-link" data-target="fuel-siphoning">⛽ Fuel Siphoning</a></li>
@@ -408,6 +408,11 @@
                 </div>
             </section>
 
+            <!-- NEW: Debug Import Section -->
+            <section id="debug-import-tool" class="content-section hidden">
+                <!-- Content will be loaded dynamically from debug-import-content.html -->
+            </section>
+
             <!-- Holiday Work Section -->
             <section id="holiday-work" class="content-section hidden">
                 <h1>Holiday Work Management</h1>
@@ -723,5 +728,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <!-- Admin App Logic -->
     <script type="module" src="admin.js"></script>
+    <!-- Debug Import Logic -->
+    <script type="module" src="debug-import.js"></script>
 </body>
 </html>

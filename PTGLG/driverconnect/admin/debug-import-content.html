@@ -1,0 +1,124 @@
+<style>
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #4ec9b0;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background: #0e639c;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+    pre {
+      background: #252526;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+      border-left: 3px solid #4ec9b0;
+    }
+    .success { color: #4ec9b0; }
+    .error { color: #f48771; }
+    .warning { color: #dcdcaa; }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #252526;
+      border-radius: 5px;
+    }
+    input, select {
+      padding: 8px;
+      margin: 5px;
+      background: #3c3c3c;
+      border: 1px solid #555;
+      color: #d4d4d4;
+      font-family: monospace;
+    }
+  </style>
+  <div class="container">
+    <h1>🔍 Debug Import Tool</h1>
+    
+    <div class="section">
+      <h3>1. Fetch Data from Google Sheets</h3>
+      <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; color: #4ec9b0;">Sheet ID:</label>
+        <input type="text" id="sheetId" value="1iwPr3RSBUT4frRfyFJxW5C2qP-TPseEBW_80CDitbuE" style="width: 400px;">
+      </div>
+      <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; color: #4ec9b0;">Sheet Name:</label>
+        <select id="sheetName" style="width: 250px; padding: 8px; font-size: 14px;">
+          <option value="">Loading sheets...</option>
+        </select>
+        <button onclick="loadSheetNames()" style="padding: 8px 15px;">🔄 Refresh Sheets</button>
+      </div>
+      <button onclick="fetchSheetData()">Fetch Sheet Data</button>
+      <pre id="fetchResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>2. Check Database Schema</h3>
+      <button onclick="checkSchema()">Check driver_jobs Columns</button>
+      <pre id="schemaResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>3. Test Row Mapping</h3>
+      <label>Select Row: <select id="rowSelect"></select></label>
+      <button onclick="testMapping()">Test Mapping</button>
+      <pre id="mappingResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>4. Test Single Insert</h3>
+      <button onclick="testInsert()">Insert Selected Row</button>
+      <pre id="insertResult">Waiting...</pre>
+    </div>
+
+    <div class="section">
+      <h3>5. Import All Rows</h3>
+      <div style="margin-bottom: 15px; background: #3c3c3c; padding: 15px; border-radius: 5px;">
+        <label style="display: block; margin-bottom: 10px;">
+          <input type="radio" name="importMode" value="upsert" checked>
+          <strong style="color: #4ec9b0;">Upsert Mode</strong> - Update if reference exists, Insert if new
+        </label>
+        <label style="display: block;">
+          <input type="radio" name="importMode" value="insert">
+          <strong style="color: #dcdcaa;">Insert All Mode</strong> - Import every row (allow duplicate references)
+        </label>
+      </div>
+      <button onclick="importAllRows()" style="background: #0e7490; font-weight: bold;">📥 Import ALL Rows</button>
+      <button onclick="stopImport()" style="background: #991b1b;">⏹ Stop Import</button>
+      <div style="margin-top: 10px;">
+        <label>
+          <input type="checkbox" id="skipErrors" checked>
+          Skip errors and continue
+        </label>
+      </div>
+      <pre id="importAllResult">Waiting...</pre>
+      <div id="progressBar" style="display: none; margin-top: 10px;">
+        <div style="background: #3c3c3c; height: 30px; border-radius: 5px; overflow: hidden;">
+          <div id="progressFill" style="background: linear-gradient(90deg, #0e7490, #06b6d4); height: 100%; width: 0%; transition: width 0.3s; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>6. Check Existing Data</h3>
+      <button onclick="checkData()">List All Jobs</button>
+      <pre id="dataResult">Waiting...</pre>
+    </div>
+  </div>

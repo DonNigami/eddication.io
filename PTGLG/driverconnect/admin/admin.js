@@ -2130,9 +2130,33 @@ function loadSectionData(targetId) {
         case 'b100-outstanding':
             loadB100Outstanding();
             break;
+        // NEW: Debug Import Tool
+        case 'debug-import-tool':
+            loadDebugImportTool();
+            break;
         default:
             console.warn('Unknown section:', targetId);
             break;
+    }
+}
+
+// NEW: Function to load debug import tool
+async function loadDebugImportTool() {
+    const debugImportSection = document.getElementById('debug-import-tool');
+    try {
+        const response = await fetch('debug-import-content.html');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const content = await response.text();
+        debugImportSection.innerHTML = content;
+        // Initialize the script functions after content is loaded
+        if (window.initDebugImport) {
+            window.initDebugImport();
+        } else {
+            console.error('initDebugImport function not found in debug-import.js');
+        }
+    } catch (error) {
+        console.error('Error loading debug import tool:', error);
+        debugImportSection.innerHTML = `<p class="error">Failed to load Debug Import Tool: ${error.message}</p>`;
     }
 }
 
