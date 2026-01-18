@@ -652,24 +652,45 @@ async function closeJob() {
     icon: 'question',
     title: 'ปิดงาน',
     html: `
-      <div style="text-align:left;">
-        <label><input type="radio" name="vehicleStatus" value="ready" checked> พร้อมรับงาน</label><br>
-        <label><input type="radio" name="vehicleStatus" value="maintenance"> เข้าซ่อมบำรุง</label><br><br>
-        <label><input type="checkbox" id="hillFee"> มีค่าขึ้นเขา</label><br>
-        <label><input type="checkbox" id="bkkFee"> มีค่าเข้า กทม</label><br>
-        <label><input type="checkbox" id="repairFee"> นำรถเข้าซ่อม</label>
+      <div style="text-align:left; font-size: 0.9rem;">
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight:bold; display:block; margin-bottom: 5px;">จำนวนคนขับเที่ยวนี้</label>
+          <label style="margin-right: 20px;"><input type="radio" name="driverCount" value="1" checked> 1 คน</label>
+          <label><input type="radio" name="driverCount" value="2"> 2 คน</label>
+        </div>
+        <hr style="border:none; border-top: 1px solid #eee; margin: 15px 0;">
+        <div style="margin-bottom: 12px;">
+          <label style="font-weight:bold; display:block; margin-bottom: 5px;">สถานะรถ</label>
+          <label style="margin-right: 20px;"><input type="radio" name="vehicleStatus" value="ready" checked> พร้อมรับงาน</label>
+          <label><input type="radio" name="vehicleStatus" value="maintenance"> เข้าซ่อมบำรุง</label>
+        </div>
+        <hr style="border:none; border-top: 1px solid #eee; margin: 15px 0;">
+        <div>
+          <label style="font-weight:bold; display:block; margin-bottom: 5px;">ค่าใช้จ่ายพิเศษ (ถ้ามี)</label>
+          <label style="display:block; margin-bottom: 5px;"><input type="checkbox" id="hillFee"> มีค่าขึ้นเขา</label>
+          <label style="display:block; margin-bottom: 5px;"><input type="checkbox" id="bkkFee"> มีค่าเข้า กทม</label>
+          <label style="display:block;"><input type="checkbox" id="repairFee"> นำรถเข้าซ่อม</label>
+        </div>
       </div>
     `,
     showCancelButton: true,
     confirmButtonText: 'ยืนยันปิดงาน',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#1abc9c',
-    preConfirm: () => ({
-      vehicleStatus: document.querySelector('input[name="vehicleStatus"]:checked').value,
-      hillFee: document.getElementById('hillFee').checked ? 'yes' : 'no',
-      bkkFee: document.getElementById('bkkFee').checked ? 'yes' : 'no',
-      repairFee: document.getElementById('repairFee').checked ? 'yes' : 'no'
-    })
+    preConfirm: () => {
+      const driverCount = document.querySelector('input[name="driverCount"]:checked').value;
+      if (!driverCount) {
+        Swal.showValidationMessage('กรุณาเลือกจำนวนคนขับ');
+        return false;
+      }
+      return {
+        driverCount: parseInt(driverCount, 10),
+        vehicleStatus: document.querySelector('input[name="vehicleStatus"]:checked').value,
+        hillFee: document.getElementById('hillFee').checked ? 'yes' : 'no',
+        bkkFee: document.getElementById('bkkFee').checked ? 'yes' : 'no',
+        repairFee: document.getElementById('repairFee').checked ? 'yes' : 'no'
+      }
+    }
   });
 
   if (!formValues) return;
@@ -680,6 +701,7 @@ async function closeJob() {
     const closeJobData = {
       reference: currentReference,
       userId: currentUserId,
+      driverCount: formValues.driverCount,
       vehicleStatus: formValues.vehicleStatus,
       vehicleDesc: currentVehicleDesc,
       hillFee: formValues.hillFee,

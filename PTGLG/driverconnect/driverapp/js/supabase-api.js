@@ -759,7 +759,7 @@ export const SupabaseAPI = {
    * Close job
    * Schema aligned with app/PLAN.md: trips table with job_closed flag
    */
-  async closeJob({ reference, userId, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee }) {
+  async closeJob({ reference, userId, driverCount, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee }) {
     console.log('📋 Supabase: Closing job', reference);
 
     try {
@@ -786,6 +786,7 @@ export const SupabaseAPI = {
           status: 'closed',
           job_closed: true, // This field is in jobdata, not driver_jobs
           job_closed_at: new Date().toISOString(),
+          driver_count: driverCount,
           vehicle_status: vehicleStatus,
           closed_by: userId,
           updated_at: new Date().toISOString(),
@@ -802,7 +803,7 @@ export const SupabaseAPI = {
           job_id: tripIdForLog, // Use ID fetched from TABLES.TRIPS
           reference: reference,
           action: 'close',
-          details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee },
+          details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee, driverCount },
           user_id: userId
         });
 
