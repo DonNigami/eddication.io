@@ -3,104 +3,6 @@ const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_Nmy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
 const LIFF_ID = '2007705394-Fgx9wdHu'; // Using driver app LIFF ID for now
 
-// DOM Elements - General
-const authContainer = document.getElementById('auth-container');
-const authStatus = document.getElementById('auth-status');
-const adminContainer = document.getElementById('admin-container');
-const adminUsername = document.getElementById('admin-username');
-const logoutButton = document.getElementById('logout-button');
-const navLinks = document.querySelectorAll('.nav-link');
-
-// DOM elements for Dashboard Analytics
-const kpiTotalUsers = document.getElementById('kpi-total-users');
-const kpiActiveJobs = document.getElementById('kpi-active-jobs');
-const kpiPendingApprovals = document.getElementById('kpi-pending-approvals');
-
-// DOM elements for Job Management (Edit/Create Modal)
-const jobsTableBody = document.querySelector('#jobs-table tbody');
-const jobSearchInput = document.getElementById('job-search-input');
-const createJobButton = document.getElementById('create-job-btn');
-const jobModal = document.getElementById('job-modal');
-const jobModalCloseButton = jobModal.querySelector('.close-button');
-const jobForm = document.getElementById('job-form');
-const jobIdInput = document.getElementById('job-id');
-const jobReferenceInput = document.getElementById('job-reference');
-const jobShipmentNoInput = document.getElementById('job-shipment-no');
-const jobDriverInput = document.getElementById('job-driver');
-const jobStatusInput = document.getElementById('job-status');
-const jobTripEndedInput = document.getElementById('job-trip-ended');
-
-// DOM elements for Job Details Modal
-const jobDetailsModal = document.getElementById('job-details-modal');
-const jobDetailsCloseButton = document.getElementById('job-details-close');
-const jobDetailsReferenceTitle = document.getElementById('job-details-reference');
-const detailJobReference = document.getElementById('detail-job-reference');
-const detailJobShipmentNo = document.getElementById('detail-job-shipment-no');
-const detailJobDriver = document.getElementById('detail-job-driver');
-const detailJobStatus = document.getElementById('detail-job-status');
-const detailJobTripEnded = document.getElementById('detail-job-trip-ended');
-const detailJobCreatedAt = document.getElementById('detail-job-created-at');
-const detailJobUpdatedAt = document.getElementById('detail-job-updated-at');
-const jobDetailsStopsTableBody = document.querySelector('#job-details-stops-table tbody');
-const jobDetailsAlcoholTableBody = document.querySelector('#job-details-alcohol-table tbody');
-const jobDetailsLogsTableBody = document.querySelector('#job-details-logs-table tbody');
-
-// DOM elements for Driver Reports
-const reportDriverSelect = document.getElementById('report-driver-select');
-const reportStartDate = document.getElementById('report-start-date');
-const reportEndDate = document.getElementById('report-end-date');
-const generateReportBtn = document.getElementById('generate-report-btn');
-const reportTotalJobs = document.getElementById('report-total-jobs');
-const reportCompletedJobs = document.getElementById('report-completed-jobs');
-const reportAlcoholChecks = document.getElementById('report-alcohol-checks');
-const driverJobsTableBody = document.querySelector('#driver-jobs-table tbody');
-
-// DOM elements for Settings
-const settingsForm = document.getElementById('settings-form');
-const geofencingRadiusInput = document.getElementById('geofencing_radius_m');
-const driverAppAutoRefreshInput = document.getElementById('driver_app_auto_refresh_interval_s');
-const adminPanelMapZoomInput = document.getElementById('admin_panel_map_zoom');
-const adminPanelMapCenterLatInput = document.getElementById('admin_panel_map_center_lat');
-const adminPanelMapCenterLngInput = document.getElementById('admin_panel_map_center_lng');
-
-// DOM elements for Map Playback
-const playbackDriverSelect = document.getElementById('playback-driver-select');
-const playbackStartDatetime = document.getElementById('playback-start-datetime');
-const playbackEndDatetime = document.getElementById('playback-end-datetime');
-const playbackSpeed = document.getElementById('playback-speed');
-const loadPlaybackDataBtn = document.getElementById('load-playback-data-btn');
-const playButton = document.getElementById('play-button');
-const pauseButton = document.getElementById('pause-button');
-const stopButton = document.getElementById('stop-button');
-
-// DOM elements for Alerts
-const alertsBadge = document.getElementById('alerts-badge');
-const alertsTableBody = document.querySelector('#alerts-table tbody');
-
-// DOM elements for Scheduled Reports
-const createReportScheduleBtn = document.getElementById('create-report-schedule-btn');
-const reportSchedulesTableBody = document.querySelector('#report-schedules-table tbody');
-const reportScheduleModal = document.getElementById('report-schedule-modal');
-const reportScheduleModalCloseButton = reportScheduleModal.querySelector('.close-button');
-const reportScheduleForm = document.getElementById('report-schedule-form');
-const scheduleIdInput = document.getElementById('schedule-id');
-const scheduleReportNameInput = document.getElementById('schedule-report-name');
-const scheduleReportTypeInput = document.getElementById('schedule-report-type');
-const scheduleFrequencyInput = document.getElementById('schedule-frequency');
-const scheduleRecipientsInput = document.getElementById('schedule-recipients');
-const scheduleStatusInput = document.getElementById('schedule-status');
-
-
-// DOM elements for Log Viewer
-const logsTableBody = document.querySelector('#logs-table tbody');
-const logSearchReferenceInput = document.getElementById('log-search-reference');
-const logSearchActionInput = document.getElementById('log-search-action');
-const logSearchUserIdInput = document.getElementById('log-search-user-id');
-
-// DOM elements for Real-time Notifications
-const notificationContainer = document.getElementById('notification-container');
-
-
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -115,6 +17,104 @@ let playbackMarker = null;
 let playbackData = []; // Stores [{lat, lng, created_at}, ...]
 let playbackIndex = 0;
 let playbackInterval = null;
+
+
+// --- DOM Elements ---
+// General
+const authContainer = document.getElementById('auth-container');
+const authStatus = document.getElementById('auth-status');
+const adminContainer = document.getElementById('admin-container');
+const adminUsername = document.getElementById('admin-username');
+const logoutButton = document.getElementById('logout-button');
+const navLinks = document.querySelectorAll('.nav-link');
+
+// Dashboard Analytics
+const kpiTotalUsers = document.getElementById('kpi-total-users');
+const kpiActiveJobs = document.getElementById('kpi-active-jobs');
+const kpiPendingApprovals = document.getElementById('kpi-pending-approvals');
+
+// Job Management (Edit/Create Modal)
+const jobsTableBody = document.querySelector('#jobs-table tbody');
+const jobSearchInput = document.getElementById('job-search-input');
+const createJobButton = document.getElementById('create-job-btn');
+const jobModal = document.getElementById('job-modal');
+const jobModalCloseButton = jobModal.querySelector('.close-button');
+const jobForm = document.getElementById('job-form');
+const jobIdInput = document.getElementById('job-id');
+const jobReferenceInput = document.getElementById('job-reference');
+const jobShipmentNoInput = document.getElementById('job-shipment-no');
+const jobDriverInput = document.getElementById('job-driver');
+const jobStatusInput = document.getElementById('job-status');
+const jobTripEndedInput = document.getElementById('job-trip-ended');
+
+// Job Details Modal
+const jobDetailsModal = document.getElementById('job-details-modal');
+const jobDetailsCloseButton = document.getElementById('job-details-close');
+const jobDetailsReferenceTitle = document.getElementById('job-details-reference');
+const detailJobReference = document.getElementById('detail-job-reference');
+const detailJobShipmentNo = document.getElementById('detail-job-shipment-no');
+const detailJobDriver = document.getElementById('detail-job-driver');
+const detailJobStatus = document.getElementById('detail-job-status');
+const detailJobTripEnded = document.getElementById('detail-job-trip-ended');
+const detailJobCreatedAt = document.getElementById('detail-job-created-at');
+const detailJobUpdatedAt = document.getElementById('detail-job-updated-at');
+const jobDetailsStopsTableBody = document.querySelector('#job-details-stops-table tbody');
+const jobDetailsAlcoholTableBody = document.querySelector('#job-details-alcohol-table tbody');
+const jobDetailsLogsTableBody = document.querySelector('#job-details-logs-table tbody');
+
+// Driver Reports
+const reportDriverSelect = document.getElementById('report-driver-select');
+const reportStartDate = document.getElementById('report-start-date');
+const reportEndDate = document.getElementById('report-end-date');
+const generateReportBtn = document.getElementById('generate-report-btn');
+const reportTotalJobs = document.getElementById('report-total-jobs');
+const reportCompletedJobs = document.getElementById('report-completed-jobs');
+const reportAlcoholChecks = document.getElementById('report-alcohol-checks');
+const driverJobsTableBody = document.querySelector('#driver-jobs-table tbody');
+
+// Settings
+const settingsForm = document.getElementById('settings-form');
+const geofencingRadiusInput = document.getElementById('geofencing_radius_m');
+const driverAppAutoRefreshInput = document.getElementById('driver_app_auto_refresh_interval_s');
+const adminPanelMapZoomInput = document.getElementById('admin_panel_map_zoom');
+const adminPanelMapCenterLatInput = document.getElementById('admin_panel_map_center_lat');
+const adminPanelMapCenterLngInput = document.getElementById('admin_panel_map_center_lng');
+
+// Map Playback
+const playbackDriverSelect = document.getElementById('playback-driver-select');
+const playbackStartDatetime = document.getElementById('playback-start-datetime');
+const playbackEndDatetime = document.getElementById('playback-end-datetime');
+const playbackSpeed = document.getElementById('playback-speed');
+const loadPlaybackDataBtn = document.getElementById('load-playback-data-btn');
+const playButton = document.getElementById('play-button');
+const pauseButton = document.getElementById('pause-button');
+const stopButton = document.getElementById('stop-button');
+
+// Alerts
+const alertsBadge = document.getElementById('alerts-badge');
+const alertsTableBody = document.querySelector('#alerts-table tbody');
+
+// Scheduled Reports
+const createReportScheduleBtn = document.getElementById('create-report-schedule-btn');
+const reportSchedulesTableBody = document.querySelector('#report-schedules-table tbody');
+const reportScheduleModal = document.getElementById('report-schedule-modal');
+const reportScheduleModalCloseButton = reportScheduleModal.querySelector('.close-button');
+const reportScheduleForm = document.getElementById('report-schedule-form');
+const scheduleIdInput = document.getElementById('schedule-id');
+const scheduleReportNameInput = document.getElementById('schedule-report-name');
+const scheduleReportTypeInput = document.getElementById('schedule-report-type');
+const scheduleFrequencyInput = document.getElementById('schedule-frequency');
+const scheduleRecipientsInput = document.getElementById('schedule-recipients');
+const scheduleStatusInput = document.getElementById('schedule-status');
+
+// Log Viewer
+const logsTableBody = document.querySelector('#logs-table tbody');
+const logSearchReferenceInput = document.getElementById('log-search-reference');
+const logSearchActionInput = document.getElementById('log-search-action');
+const logSearchUserIdInput = document.getElementById('log-search-user-id');
+
+// Real-time Notifications
+const notificationContainer = document.getElementById('notification-container');
 
 
 // --- Utility Functions ---
@@ -575,7 +575,7 @@ async function handleJobSubmit(event) {
         } else {
             // Create new job
             jobData.created_at = new Date().toISOString();
-            ({ error } = await supabase.from('jobdata').insert([jobData]));
+            ({ error } = await supabase.from('driver_jobs').insert([jobData]));
         }
 
         if (error) throw error;
@@ -800,7 +800,7 @@ async function generateDriverReport() {
 
         // Fetch alcohol checks for the driver within the date range
         const { count: alcoholChecksCount, error: alcoholError } = await supabase
-            .from('alcohol_checks')
+            .from('driver_alcohol_checks') // Changed from alcohol_checks to driver_alcohol_checks
             .select('id', { count: 'exact' })
             .eq('driver_user_id', driverId)
             .gte('checked_at', startDate + 'T00:00:00Z')
@@ -1194,44 +1194,71 @@ async function loadLogs() {
     }
 }
 
-// --- Real-time Subscriptions ---
-function setupRealtimeSubscriptions() {
-    supabase
-        .channel('user_profiles_changes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
-            if (payload.new.status === 'PENDING') {
-                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
-                // Refresh dashboard KPIs and user list
-                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
-                    loadDashboardAnalytics();
-                }
-                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
-                    loadUsers();
-                }
-                updateAlertsBadge(); // New pending user also affects alerts badge
-            }
-        })
-        .subscribe();
-    
-    // Realtime for triggered_alerts
-    supabase
-        .channel('triggered_alerts_changes')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'triggered_alerts' }, payload => {
-            const newAlert = payload.new;
-            showNotification(`New Alert: ${newAlert.message} (Driver: ${newAlert.driver_user_id})`, 'error');
-            // Refresh dashboard KPIs and user list
-            if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
-                loadDashboardAnalytics();
-            }
-            if (document.querySelector('.nav-link[data-target="alerts"]').classList.contains('active')) {
-                loadAlerts();
-            }
-            updateAlertsBadge();
-        })
-        .subscribe();
+// Function to load data for a given section
+function loadSectionData(targetId) {
+    switch (targetId) {
+        case 'dashboard':
+            loadDashboardAnalytics();
+            initMap();
+            break;
+        case 'users':
+            loadUsers();
+            break;
+        case 'jobs':
+            loadJobs();
+            break;
+        case 'reports':
+            loadDriverReports();
+            break;
+        case 'settings':
+            loadSettings();
+            break;
+        case 'alerts':
+            loadAlerts();
+            break;
+        case 'playback':
+            loadDriverReports(); // Reusing the function to populate driver select
+            break;
+        case 'schedules':
+            loadReportSchedules();
+            break;
+        case 'logs':
+            loadLogs();
+            break;
+        default:
+            console.warn('Unknown section:', targetId);
+            break;
+    }
 }
 
-// --- Event Listeners Setup ---
+// Function to navigate between sections
+function navigateTo(targetId) {
+    // Hide all sections
+    document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.add('hidden');
+    });
+
+    // Deactivate all nav links
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+    });
+
+    // Show target section and activate nav link
+    const targetSection = document.getElementById(targetId);
+    const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
+
+    if (targetSection) {
+        targetSection.classList.remove('hidden');
+    }
+    if (targetLink) {
+        targetLink.classList.add('active');
+    }
+
+    // Load data for the section if needed
+    loadSectionData(targetId);
+}
+
+// Function to set up all event listeners
 function setupEventListeners() {
     // Sidebar navigation
     navLinks.forEach(link => {
@@ -1297,65 +1324,99 @@ function setupEventListeners() {
     logSearchUserIdInput.addEventListener('keyup', () => loadLogs());
 }
 
-function navigateTo(targetId) {
-    // Hide all sections
-    document.querySelectorAll('.content-section').forEach(section => {
-        section.classList.add('hidden');
-    });
-
-    // Deactivate all nav links
-    navLinks.forEach(link => {
-        link.classList.remove('active');
-    });
-
-    // Show target section and activate nav link
-    const targetSection = document.getElementById(targetId);
-    const targetLink = document.querySelector(`.nav-link[data-target="${targetId}"]`);
-
-    if (targetSection) {
-        targetSection.classList.remove('hidden');
-    }
-    if (targetLink) {
-        targetLink.classList.add('active');
-    }
-
-    // Load data for the section if needed
-    loadSectionData(targetId);
+// Function to set up real-time subscriptions
+function setupRealtimeSubscriptions() {
+    supabase
+        .channel('user_profiles_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
+            if (payload.new.status === 'PENDING') {
+                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
+                // Refresh dashboard KPIs and user list
+                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                    loadDashboardAnalytics();
+                }
+                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
+                    loadUsers();
+                }
+                updateAlertsBadge(); // New pending user also affects alerts badge
+            }
+        })
+        .subscribe();
+    
+    // Realtime for triggered_alerts
+    supabase
+        .channel('triggered_alerts_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'triggered_alerts' }, payload => {
+            const newAlert = payload.new;
+            showNotification(`New Alert: ${newAlert.message} (Driver: ${newAlert.driver_user_id})`, 'error');
+            // Refresh dashboard KPIs and user list
+            if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                loadDashboardAnalytics();
+            }
+            if (document.querySelector('.nav-link[data-target="alerts"]').classList.contains('active')) {
+                loadAlerts();
+            }
+            updateAlertsBadge();
+        })
+        .subscribe();
 }
 
-function loadSectionData(targetId) {
-    switch (targetId) {
-        case 'dashboard':
-            loadDashboardAnalytics();
-            initMap();
-            break;
-        case 'users':
-            loadUsers();
-            break;
-        case 'jobs':
-            loadJobs();
-            break;
-        case 'reports':
-            loadDriverReports();
-            break;
-        case 'settings':
-            loadSettings();
-            break;
-        case 'alerts':
-            loadAlerts();
-            break;
-        case 'playback':
-            // Populate driver select for playback
-            loadDriverReports(); // Reusing the function to populate driver select
-            break;
-        case 'schedules':
-            loadReportSchedules();
-            break;
-        case 'logs':
-            loadLogs();
-            break;
-        default:
-            console.warn('Unknown section:', targetId);
-            break;
+// Function to show the admin panel
+function showAdminPanel(profile) {
+    authContainer.classList.add('hidden');
+    adminContainer.classList.remove('hidden');
+    adminUsername.textContent = profile.displayName;
+
+    setupEventListeners();
+    // Default to dashboard view
+    navigateTo('dashboard');
+    updateAlertsBadge(); // Load initial alert count
+}
+
+// Function to initialize the application
+async function initializeApp() {
+    try {
+        await liff.init({ liffId: LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+            authStatus.textContent = 'กรุณา Login...';
+            liff.login({ redirectUri: window.location.href });
+            return;
+        }
+
+        const lineProfile = await liff.getProfile();
+
+        // Check user profile for admin status
+        const { data: userProfile, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            // Using user_id (LINE ID) for lookup as per corrected schema assumption
+            .eq('user_id', lineProfile.userId) 
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+            throw new Error(`Supabase error: ${error.message}`);
+        }
+
+        if (userProfile && userProfile.user_type === 'ADMIN' && userProfile.status === 'APPROVED') {
+            showAdminPanel(lineProfile);
+        } else {
+            showAccessDenied();
+        }
+
+    } catch (error) {
+        console.error('Initialization failed:', error);
+        authStatus.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
     }
 }
+
+function showAccessDenied() {
+    authStatus.innerHTML = 'คุณไม่มีสิทธิ์เข้าถึงหน้านี้<br>กรุณาติดต่อผู้ดูแลระบบ';
+}
+
+
+// --- Main App Initialization ---
+document.addEventListener('DOMContentLoaded', async () => {
+    await initializeApp();
+    setupRealtimeSubscriptions(); // Setup real-time listeners
+});
