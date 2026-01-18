@@ -1,7 +1,7 @@
 // Supabase & LIFF Configuration
 const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
-const LIFF_ID = '2007705394-Fgx9wdHu'; // Using driver app LIFF ID for now
+const LIFF_ID = '2007705394-Lq3mMYKA'; // Admin panel LIFF ID
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
