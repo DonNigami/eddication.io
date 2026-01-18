@@ -647,11 +647,11 @@ async function openJobDetailsModal(jobId) {
         detailJobCreatedAt.textContent = new Date(job.created_at).toLocaleString();
         detailJobUpdatedAt.textContent = new Date(job.updated_at).toLocaleString();
 
-        // Fetch Trip Stops
+        // Fetch Trip Stops (using reference since driver_stop.trip_id is bigint referencing jobdata, not driver_jobs)
         const { data: driverStops, error: stopsError } = await supabase
-            .from('driver_stop') // Changed from trip_stops to driver_stop
+            .from('driver_stop')
             .select('*')
-            .eq('trip_id', jobId)
+            .eq('reference', job.reference)
             .order('sequence', { ascending: true });
         if (stopsError) throw stopsError;
 
@@ -700,7 +700,7 @@ async function openJobDetailsModal(jobId) {
         const { data: driverLogs, error: logsError } = await supabase
             .from('driver_logs')
             .select('*')
-            .eq('trip_id', jobId) // Assuming driver_logs uses trip_id now
+            .eq('job_id', jobId)
             .order('created_at', { ascending: false });
         if (logsError) throw logsError;
 
