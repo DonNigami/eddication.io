@@ -697,13 +697,13 @@ export const SupabaseAPI = {
       const { data, error } = await supabase
         .from(TABLES.ALCOHOL_CHECKS)
         .insert({
-          trip_id: tripId,
+          job_id: tripId, // Corrected from trip_id to job_id
           reference: reference,
           driver_name: driverName,
-          checked_by: userId, // Corrected column name based on user feedback
+          checked_by: userId,
           alcohol_value: parseFloat(alcoholValue),
           image_url: imageUrl,
-          location: { lat, lng }, // Corrected to use JSONB
+          location: { lat, lng },
           checked_at: new Date().toISOString()
         })
         .select();
