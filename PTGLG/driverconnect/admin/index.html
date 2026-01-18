@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 </head>
 <body>
-
+    <div id="notification-container"></div>
     <div id="auth-container">
         <div class="auth-box">
             <h1>DriverConnect Admin</h1>
@@ -27,6 +27,8 @@
                     <li><a href="#" class="nav-link active" data-target="dashboard">📈 Dashboard</a></li>
                     <li><a href="#" class="nav-link" data-target="users">👥 User Management</a></li>
                     <li><a href="#" class="nav-link" data-target="jobs">🚚 Job Management</a></li>
+                    <li><a href="#" class="nav-link" data-target="driver-reports">📊 Driver Reports</a></li>
+                    <li><a href="#" class="nav-link" data-target="settings">⚙️ Settings</a></li>
                     <li><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
                 </ul>
             </nav>
@@ -38,7 +40,21 @@
         <main class="main-content">
             <section id="dashboard" class="content-section active">
                 <h1>Dashboard</h1>
-                <div id="map" style="height: 400px; width: 100%;"></div>
+                <div class="kpi-cards">
+                    <div class="kpi-card">
+                        <h3>Total Users</h3>
+                        <p id="kpi-total-users">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Active Jobs</h3>
+                        <p id="kpi-active-jobs">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Pending Approvals</h3>
+                        <p id="kpi-pending-approvals">0</p>
+                    </div>
+                </div>
+                <div id="map" style="height: 400px; width: 100%; margin-top: 20px;"></div>
             </section>
             <section id="users" class="content-section hidden">
                 <h1>User Management</h1>
@@ -114,6 +130,141 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Job Details Modal -->
+                <div id="job-details-modal" class="modal hidden">
+                    <div class="modal-content large-modal">
+                        <span class="close-button" id="job-details-close">&times;</span>
+                        <h2>Job Details: <span id="job-details-reference"></span></h2>
+                        <div class="job-details-sections">
+                            <div class="job-details-section">
+                                <h3>Basic Info</h3>
+                                <p><strong>Reference:</strong> <span id="detail-job-reference"></span></p>
+                                <p><strong>Shipment No.:</strong> <span id="detail-job-shipment-no"></span></p>
+                                <p><strong>Driver:</strong> <span id="detail-job-driver"></span></p>
+                                <p><strong>Status:</strong> <span id="detail-job-status"></span></p>
+                                <p><strong>Trip Ended:</strong> <span id="detail-job-trip-ended"></span></p>
+                                <p><strong>Created At:</strong> <span id="detail-job-created-at"></span></p>
+                                <p><strong>Updated At:</strong> <span id="detail-job-updated-at"></span></p>
+                            </div>
+                            <div class="job-details-section">
+                                <h3>Trip Stops</h3>
+                                <div class="table-container">
+                                    <table id="job-details-stops-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Seq</th>
+                                                <th>Destination</th>
+                                                <th>Status</th>
+                                                <th>Check-in Time</th>
+                                                <th>Check-out Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="job-details-section">
+                                <h3>Alcohol Checks</h3>
+                                <div class="table-container">
+                                    <table id="job-details-alcohol-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Driver</th>
+                                                <th>Value</th>
+                                                <th>Checked At</th>
+                                                <th>Image</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="job-details-section">
+                                <h3>Driver Logs</h3>
+                                <div class="table-container">
+                                    <table id="job-details-logs-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Time</th>
+                                                <th>Action</th>
+                                                <th>User</th>
+                                                <th>Location</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section id="driver-reports" class="content-section hidden">
+                <h1>Driver Performance Reports</h1>
+                <div class="report-controls">
+                    <label for="report-driver-select">Select Driver:</label>
+                    <select id="report-driver-select"></select>
+
+                    <label for="report-start-date">Start Date:</label>
+                    <input type="date" id="report-start-date">
+
+                    <label for="report-end-date">End Date:</label>
+                    <input type="date" id="report-end-date">
+
+                    <button id="generate-report-btn">Generate Report</button>
+                </div>
+                <div id="driver-report-results" class="table-container" style="margin-top: 20px;">
+                    <h3>Summary</h3>
+                    <p><strong>Total Jobs:</strong> <span id="report-total-jobs">0</span></p>
+                    <p><strong>Completed Jobs:</strong> <span id="report-completed-jobs">0</span></p>
+                    <p><strong>Alcohol Checks:</strong> <span id="report-alcohol-checks">0</span></p>
+                    
+                    <h3>Jobs in Period</h3>
+                    <table id="driver-jobs-table">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Shipment No.</th>
+                                <th>Status</th>
+                                <th>Trip Ended</th>
+                                <th>Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+            <section id="settings" class="content-section hidden">
+                <h1>Application Settings</h1>
+                <form id="settings-form">
+                    <div class="settings-group">
+                        <label for="geofencing_radius_m">Geofencing Radius (meters):</label>
+                        <input type="number" id="geofencing_radius_m" min="1" required>
+                        <p class="setting-description">Radius around destination for driver check-in validation.</p>
+                    </div>
+                    <div class="settings-group">
+                        <label for="driver_app_auto_refresh_interval_s">Driver App Auto-Refresh Interval (seconds):</label>
+                        <input type="number" id="driver_app_auto_refresh_interval_s" min="5" required>
+                        <p class="setting-description">How often the driver app refreshes job data.</p>
+                    </div>
+                    <div class="settings-group">
+                        <label for="admin_panel_map_zoom">Admin Panel Map Default Zoom:</label>
+                        <input type="number" id="admin_panel_map_zoom" min="1" max="18" required>
+                        <p class="setting-description">Default zoom level for the map on the admin dashboard.</p>
+                    </div>
+                    <div class="settings-group">
+                        <label for="admin_panel_map_center_lat">Admin Panel Map Center Latitude:</label>
+                        <input type="number" id="admin_panel_map_center_lat" step="any" required>
+                        <p class="setting-description">Default latitude for the map center on the admin dashboard.</p>
+                    </div>
+                    <div class="settings-group">
+                        <label for="admin_panel_map_center_lng">Admin Panel Map Center Longitude:</label>
+                        <input type="number" id="admin_panel_map_center_lng" step="any" required>
+                        <p class="setting-description">Default longitude for the map center on the admin dashboard.</p>
+                    </div>
+                    <button type="submit">Save Settings</button>
+                </form>
             </section>
             <section id="logs" class="content-section hidden">
                 <h1>Log Viewer</h1>

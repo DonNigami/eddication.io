@@ -11,7 +11,12 @@ const adminUsername = document.getElementById('admin-username');
 const logoutButton = document.getElementById('logout-button');
 const navLinks = document.querySelectorAll('.nav-link');
 
-// DOM elements for Job Management
+// DOM elements for Dashboard Analytics
+const kpiTotalUsers = document.getElementById('kpi-total-users');
+const kpiActiveJobs = document.getElementById('kpi-active-jobs');
+const kpiPendingApprovals = document.getElementById('kpi-pending-approvals');
+
+// DOM elements for Job Management (Edit/Create Modal)
 const jobsTableBody = document.querySelector('#jobs-table tbody');
 const jobSearchInput = document.getElementById('job-search-input');
 const createJobButton = document.getElementById('create-job-btn');
@@ -25,11 +30,48 @@ const jobDriverInput = document.getElementById('job-driver');
 const jobStatusInput = document.getElementById('job-status');
 const jobTripEndedInput = document.getElementById('job-trip-ended');
 
+// DOM elements for Job Details Modal
+const jobDetailsModal = document.getElementById('job-details-modal');
+const jobDetailsCloseButton = document.getElementById('job-details-close');
+const jobDetailsReferenceTitle = document.getElementById('job-details-reference');
+const detailJobReference = document.getElementById('detail-job-reference');
+const detailJobShipmentNo = document.getElementById('detail-job-shipment-no');
+const detailJobDriver = document.getElementById('detail-job-driver');
+const detailJobStatus = document.getElementById('detail-job-status');
+const detailJobTripEnded = document.getElementById('detail-job-trip-ended');
+const detailJobCreatedAt = document.getElementById('detail-job-created-at');
+const detailJobUpdatedAt = document.getElementById('detail-job-updated-at');
+const jobDetailsStopsTableBody = document.querySelector('#job-details-stops-table tbody');
+const jobDetailsAlcoholTableBody = document.querySelector('#job-details-alcohol-table tbody');
+const jobDetailsLogsTableBody = document.querySelector('#job-details-logs-table tbody');
+
+// DOM elements for Driver Reports
+const reportDriverSelect = document.getElementById('report-driver-select');
+const reportStartDate = document.getElementById('report-start-date');
+const reportEndDate = document.getElementById('report-end-date');
+const generateReportBtn = document.getElementById('generate-report-btn');
+const reportTotalJobs = document.getElementById('report-total-jobs');
+const reportCompletedJobs = document.getElementById('report-completed-jobs');
+const reportAlcoholChecks = document.getElementById('report-alcohol-checks');
+const driverJobsTableBody = document.querySelector('#driver-jobs-table tbody');
+
+// DOM elements for Settings
+const settingsForm = document.getElementById('settings-form');
+const geofencingRadiusInput = document.getElementById('geofencing_radius_m');
+const driverAppAutoRefreshInput = document.getElementById('driver_app_auto_refresh_interval_s');
+const adminPanelMapZoomInput = document.getElementById('admin_panel_map_zoom');
+const adminPanelMapCenterLatInput = document.getElementById('admin_panel_map_center_lat');
+const adminPanelMapCenterLngInput = document.getElementById('admin_panel_map_center_lng');
+
+
 // DOM elements for Log Viewer
 const logsTableBody = document.querySelector('#logs-table tbody');
 const logSearchReferenceInput = document.getElementById('log-search-reference');
 const logSearchActionInput = document.getElementById('log-search-action');
 const logSearchUserIdInput = document.getElementById('log-search-user-id');
+
+// DOM elements for Real-time Notifications
+const notificationContainer = document.getElementById('notification-container');
 
 
 // Initialize Supabase client
@@ -38,7 +80,9 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Main App Logic
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
+    setupRealtimeSubscriptions(); // Setup real-time listeners
 });
+
 
 async function initializeApp() {
     try {
@@ -106,7 +150,7 @@ function setupEventListeners() {
         }
     });
 
-    // Job Management Event Listeners
+    // Job Management (Edit/Create) Event Listeners
     jobSearchInput.addEventListener('keyup', (e) => loadJobs(e.target.value));
     createJobButton.addEventListener('click', () => openJobModal());
     jobModalCloseButton.addEventListener('click', closeJobModal);
@@ -116,6 +160,20 @@ function setupEventListeners() {
         }
     });
     jobForm.addEventListener('submit', handleJobSubmit);
+
+    // Job Details Event Listeners
+    jobDetailsCloseButton.addEventListener('click', closeJobDetailsModal);
+    jobDetailsModal.addEventListener('click', (e) => {
+        if (e.target === jobDetailsModal) {
+            closeJobDetailsModal();
+        }
+    });
+
+    // Driver Reports Event Listeners
+    generateReportBtn.addEventListener('click', generateDriverReport);
+    
+    // Settings Event Listeners
+    settingsForm.addEventListener('submit', saveSettings);
 
     // Log Viewer Event Listeners
     logSearchReferenceInput.addEventListener('keyup', () => loadLogs());
@@ -153,12 +211,19 @@ function loadSectionData(sectionId) {
     switch (sectionId) {
         case 'dashboard':
             initMap();
+            loadDashboardAnalytics();
             break;
         case 'users':
             loadUsers();
             break;
         case 'jobs':
             loadJobs();
+            break;
+        case 'driver-reports':
+            loadDriverReports();
+            break;
+        case 'settings':
+            loadSettings();
             break;
         case 'logs':
             loadLogs();
@@ -169,13 +234,36 @@ function loadSectionData(sectionId) {
 // Map Functions
 let map;
 let markers = L.featureGroup(); // Group to manage markers
+let mapCenterLat = 13.736717; // Default to Bangkok
+let mapCenterLng = 100.523186;
+let mapZoom = 10;
 
-function initMap() {
+async function loadMapSettings() {
+    try {
+        const { data: settings, error } = await supabase
+            .from('app_settings')
+            .select('*')
+            .in('id', ['admin_panel_map_zoom', 'admin_panel_map_center_lat', 'admin_panel_map_center_lng']);
+        if (error) throw error;
+
+        settings.forEach(setting => {
+            if (setting.id === 'admin_panel_map_zoom') mapZoom = parseInt(setting.value);
+            if (setting.id === 'admin_panel_map_center_lat') mapCenterLat = parseFloat(setting.value);
+            if (setting.id === 'admin_panel_map_center_lng') mapCenterLng = parseFloat(setting.value);
+        });
+    } catch (error) {
+        console.error('Error loading map settings, using defaults:', error);
+    }
+}
+
+async function initMap() {
     if (map) {
         map.remove(); // Remove existing map if it was already initialized
     }
 
-    map = L.map('map').setView([13.736717, 100.523186], 10); // Default to Bangkok
+    await loadMapSettings(); // Load map settings before initializing
+
+    map = L.map('map').setView([mapCenterLat, mapCenterLng], mapZoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -241,6 +329,80 @@ async function updateMapMarkers() {
     } catch (error) {
         console.error('Error updating map markers:', error);
     }
+}
+
+// Dashboard Analytics Functions
+async function loadDashboardAnalytics() {
+    try {
+        // Total Users
+        const { count: totalUsers, error: usersError } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact' });
+        if (usersError) throw usersError;
+        kpiTotalUsers.textContent = totalUsers;
+
+        // Active Jobs (e.g., status 'active' and trip_ended is false)
+        const { count: activeJobs, error: jobsError } = await supabase
+            .from('jobdata')
+            .select('*', { count: 'exact' })
+            .eq('status', 'active')
+            .eq('trip_ended', false);
+        if (jobsError) throw jobsError;
+        kpiActiveJobs.textContent = activeJobs;
+
+        // Pending Approvals
+        const { count: pendingApprovals, error: pendingError } = await supabase
+            .from('user_profiles')
+            .select('*', { count: 'exact' })
+            .eq('status', 'PENDING');
+        if (pendingError) throw pendingError;
+        kpiPendingApprovals.textContent = pendingApprovals;
+
+    } catch (error) {
+        console.error('Error loading dashboard analytics:', error);
+        kpiTotalUsers.textContent = 'Error';
+        kpiActiveJobs.textContent = 'Error';
+        kpiPendingApprovals.textContent = 'Error';
+    }
+}
+
+
+    }
+}
+
+// Real-time Subscriptions
+function setupRealtimeSubscriptions() {
+    supabase
+        .channel('user_profiles_changes')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_profiles' }, payload => {
+            if (payload.new.status === 'PENDING') {
+                showNotification(`New user "${payload.new.display_name || payload.new.user_id}" is awaiting approval.`, 'info');
+                // Refresh dashboard KPIs and user list
+                if (document.querySelector('.nav-link[data-target="dashboard"]').classList.contains('active')) {
+                    loadDashboardAnalytics();
+                }
+                if (document.querySelector('.nav-link[data-target="users"]').classList.contains('active')) {
+                    loadUsers();
+                }
+            }
+        })
+        .subscribe();
+}
+
+// Notification Helper
+function showNotification(message, type = 'info') {
+    const notificationItem = document.createElement('div');
+    notificationItem.classList.add('notification-item', type);
+    notificationItem.innerHTML = `
+        <span class="icon">${type === 'error' ? '!' : 'ℹ️'}</span>
+        <span class="message">${message}</span>
+    `;
+    notificationContainer.prepend(notificationItem); // Add to top
+
+    // Automatically remove after 5 seconds
+    setTimeout(() => {
+        notificationItem.remove();
+    }, 5000);
 }
 
 // User Management Functions
@@ -358,6 +520,7 @@ async function loadJobs(searchTerm = '') {
                 <td>
                     <button class="edit-job-btn">Edit</button>
                     <button class="delete-job-btn" style="background-color: #e74c3c;">Delete</button>
+                    <button class="view-details-btn" data-job-id="${job.id}">Details</button>
                 </td>
             `;
             jobsTableBody.appendChild(row);
@@ -375,6 +538,13 @@ async function loadJobs(searchTerm = '') {
             button.addEventListener('click', (e) => {
                 const jobId = e.target.closest('tr').dataset.jobId;
                 handleDeleteJob(jobId);
+            });
+        });
+        
+        document.querySelectorAll('.view-details-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const jobId = e.target.dataset.jobId;
+                openJobDetailsModal(jobId);
             });
         });
 
@@ -454,11 +624,304 @@ async function handleDeleteJob(jobId) {
 
         alert('Job deleted successfully!');
         loadJobs(); // Refresh job list
-    } catch (error) {
-        console.error('Error deleting job:', error);
-        alert(`Failed to delete job: ${error.message}`);
     }
 }
+
+// Job Details Functions
+async function openJobDetailsModal(jobId) {
+    jobDetailsModal.classList.remove('hidden');
+    
+    // Clear previous data
+    jobDetailsReferenceTitle.textContent = 'Loading...';
+    detailJobReference.textContent = 'Loading...';
+    detailJobShipmentNo.textContent = 'Loading...';
+    detailJobDriver.textContent = 'Loading...';
+    detailJobStatus.textContent = 'Loading...';
+    detailJobTripEnded.textContent = 'Loading...';
+    detailJobCreatedAt.textContent = 'Loading...';
+    detailJobUpdatedAt.textContent = 'Loading...';
+    jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="5">Loading stops...</td></tr>';
+    jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">Loading alcohol checks...</td></tr>';
+    jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="4">Loading driver logs...</td></tr>';
+
+    try {
+        // Fetch Job Data
+        const { data: job, error: jobError } = await supabase
+            .from('jobdata')
+            .select('*')
+            .eq('id', jobId)
+            .single();
+        if (jobError) throw jobError;
+
+        jobDetailsReferenceTitle.textContent = job.reference || 'N/A';
+        detailJobReference.textContent = job.reference || 'N/A';
+        detailJobShipmentNo.textContent = job.shipment_no || 'N/A';
+        detailJobDriver.textContent = job.drivers || 'N/A';
+        detailJobStatus.textContent = job.status || 'N/A';
+        detailJobTripEnded.textContent = job.trip_ended ? 'Yes' : 'No';
+        detailJobCreatedAt.textContent = new Date(job.created_at).toLocaleString();
+        detailJobUpdatedAt.textContent = new Date(job.updated_at).toLocaleString();
+
+        // Fetch Trip Stops
+        const { data: tripStops, error: stopsError } = await supabase
+            .from('trip_stops') // Assuming 'trip_stops' table has 'trip_id' matching 'jobdata.id'
+            .select('*')
+            .eq('trip_id', jobId)
+            .order('sequence', { ascending: true });
+        if (stopsError) throw stopsError;
+
+        jobDetailsStopsTableBody.innerHTML = '';
+        if (tripStops.length === 0) {
+            jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="5">No stops found.</td></tr>';
+        } else {
+            tripStops.forEach(stop => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${stop.sequence || 'N/A'}</td>
+                    <td>${stop.destination_name || 'N/A'}</td>
+                    <td>${stop.status || 'N/A'}</td>
+                    <td>${stop.check_in_time ? new Date(stop.check_in_time).toLocaleString() : 'N/A'}</td>
+                    <td>${stop.check_out_time ? new Date(stop.check_out_time).toLocaleString() : 'N/A'}</td>
+                `;
+                jobDetailsStopsTableBody.appendChild(row);
+            });
+        }
+
+        // Fetch Alcohol Checks
+        const { data: alcoholChecks, error: alcoholError } = await supabase
+            .from('alcohol_checks')
+            .select('*')
+            .eq('trip_id', jobId)
+            .order('checked_at', { ascending: false });
+        if (alcoholError) throw alcoholError;
+
+        jobDetailsAlcoholTableBody.innerHTML = '';
+        if (alcoholChecks.length === 0) {
+            jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">No alcohol checks found.</td></tr>';
+        } else {
+            alcoholChecks.forEach(check => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${check.driver_name || 'N/A'}</td>
+                    <td>${check.alcohol_value || 'N/A'}</td>
+                    <td>${new Date(check.checked_at).toLocaleString()}</td>
+                    <td>${check.image_url ? `<a href="${check.image_url}" target="_blank">View Image</a>` : 'N/A'}</td>
+                `;
+                jobDetailsAlcoholTableBody.appendChild(row);
+            });
+        }
+
+        // Fetch Driver Logs
+        const { data: driverLogs, error: logsError } = await supabase
+            .from('driver_logs')
+            .select('*')
+            .eq('trip_id', jobId) // Assuming driver_logs uses trip_id now
+            .order('created_at', { ascending: false });
+        if (logsError) throw logsError;
+
+        jobDetailsLogsTableBody.innerHTML = '';
+        if (driverLogs.length === 0) {
+            jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="4">No driver logs found.</td></tr>';
+        } else {
+            driverLogs.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${new Date(log.created_at).toLocaleString()}</td>
+                    <td>${log.action || 'N/A'}</td>
+                    <td>${log.user_id || 'N/A'}</td>
+                    <td>${log.location ? `Lat: ${log.location.lat}, Lng: ${log.location.lng}` : 'N/A'}</td>
+                `;
+                jobDetailsLogsTableBody.appendChild(row);
+            });
+        }
+
+    } catch (error) {
+        console.error('Error loading job details:', error);
+        alert(`Failed to load job details: ${error.message}`);
+        closeJobDetailsModal();
+    }
+}
+
+function closeJobDetailsModal() {
+    jobDetailsModal.classList.add('hidden');
+}
+
+// Driver Reports Functions
+async function loadDriverReports() {
+    reportDriverSelect.innerHTML = '<option value="">Loading drivers...</option>';
+    try {
+        const { data: drivers, error } = await supabase
+            .from('user_profiles')
+            .select('user_id, display_name')
+            .eq('user_type', 'DRIVER')
+            .order('display_name', { ascending: true });
+
+        if (error) throw error;
+
+        reportDriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
+        drivers.forEach(driver => {
+            const option = document.createElement('option');
+            option.value = driver.user_id;
+            option.textContent = driver.display_name || driver.user_id;
+            reportDriverSelect.appendChild(option);
+        });
+
+        // Set default dates (last 30 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 30);
+        reportEndDate.value = startDate.toISOString().split('T')[0];
+        reportStartDate.value = startDate.toISOString().split('T')[0]; // Fixed: start date should be startDate
+        reportEndDate.value = endDate.toISOString().split('T')[0];
+
+
+    } catch (error) {
+        console.error('Error loading drivers for report:', error);
+        reportDriverSelect.innerHTML = '<option value="">Error loading drivers</option>';
+    }
+}
+
+async function generateDriverReport() {
+    const driverId = reportDriverSelect.value;
+    const startDate = reportStartDate.value;
+    const endDate = reportEndDate.value;
+
+    if (!driverId) {
+        alert('Please select a driver.');
+        return;
+    }
+    if (!startDate || !endDate) {
+        alert('Please select a date range.');
+        return;
+    }
+
+    // Clear previous results
+    reportTotalJobs.textContent = '...';
+    reportCompletedJobs.textContent = '...';
+    reportAlcoholChecks.textContent = '...';
+    driverJobsTableBody.innerHTML = '<tr><td colspan="5">Generating report...</td></tr>';
+
+    try {
+        // Fetch jobs for the driver within the date range
+        const { data: jobs, error: jobsError } = await supabase
+            .from('jobdata')
+            .select('*')
+            .ilike('drivers', `%${driverId}%`) // Assuming 'drivers' column contains driver_id or name
+            .gte('created_at', startDate + 'T00:00:00Z')
+            .lte('created_at', endDate + 'T23:59:59Z')
+            .order('created_at', { ascending: false });
+        if (jobsError) throw jobsError;
+
+        // Fetch alcohol checks for the driver within the date range
+        const { count: alcoholChecksCount, error: alcoholError } = await supabase
+            .from('alcohol_checks')
+            .select('id', { count: 'exact' })
+            .eq('driver_user_id', driverId)
+            .gte('checked_at', startDate + 'T00:00:00Z')
+            .lte('checked_at', endDate + 'T23:59:59Z');
+        if (alcoholError) throw alcoholError;
+
+        // Update Summary
+        reportTotalJobs.textContent = jobs.length;
+        reportCompletedJobs.textContent = jobs.filter(job => job.status === 'completed' || job.trip_ended).length;
+        reportAlcoholChecks.textContent = alcoholChecksCount;
+
+        // Display Jobs in Period
+        driverJobsTableBody.innerHTML = '';
+        if (jobs.length === 0) {
+            driverJobsTableBody.innerHTML = '<tr><td colspan="5">No jobs found for this driver in the selected period.</td></tr>';
+        } else {
+            jobs.forEach(job => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${job.reference || 'N/A'}</td>
+                    <td>${job.shipment_no || 'N/A'}</td>
+                    <td>${job.status || 'N/A'}</td>
+                    <td>${job.trip_ended ? 'Yes' : 'No'}</td>
+                    <td>${new Date(job.created_at).toLocaleString()}</td>
+                `;
+                driverJobsTableBody.appendChild(row);
+            });
+        }
+
+    } catch (error) {
+        console.error('Error generating driver report:', error);
+        alert(`Failed to generate report: ${error.message}`);
+        reportTotalJobs.textContent = 'Error';
+        reportCompletedJobs.textContent = 'Error';
+        reportAlcoholChecks.textContent = 'Error';
+        driverJobsTableBody.innerHTML = '<tr><td colspan="5">Error generating report.</td></tr>';
+    }
+}
+
+// Settings Functions
+async function loadSettings() {
+    try {
+        const { data: settings, error } = await supabase
+            .from('app_settings')
+            .select('*');
+        if (error) throw error;
+
+        settings.forEach(setting => {
+            const inputElement = document.getElementById(setting.id);
+            if (inputElement) {
+                if (setting.type === 'number') {
+                    inputElement.value = parseFloat(setting.value);
+                } else if (setting.type === 'boolean') {
+                    inputElement.checked = (setting.value === 'true');
+                } else {
+                    inputElement.value = setting.value;
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        alert('Failed to load settings.');
+    }
+}
+
+async function saveSettings(event) {
+    event.preventDefault();
+
+    const saveButton = settingsForm.querySelector('button[type="submit"]');
+    saveButton.textContent = 'Saving...';
+    saveButton.disabled = true;
+
+    try {
+        const settingsToUpdate = [];
+        const inputs = settingsForm.querySelectorAll('input, select');
+        inputs.forEach(input => {
+            let value;
+            let type = input.type;
+            if (input.type === 'checkbox') {
+                value = input.checked ? 'true' : 'false';
+                type = 'boolean';
+            } else {
+                value = input.value;
+            }
+            settingsToUpdate.push({ id: input.id, value: value, type: type });
+        });
+
+        for (const setting of settingsToUpdate) {
+            const { error } = await supabase
+                .from('app_settings')
+                .update({ value: setting.value, updated_at: new Date().toISOString() })
+                .eq('id', setting.id);
+            if (error) throw error;
+        }
+
+        alert('Settings saved successfully!');
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        alert(`Failed to save settings: ${error.message}`);
+    } finally {
+        saveButton.textContent = 'Save Settings';
+        saveButton.disabled = false;
+        // Reload map settings if they were updated
+        loadMapSettings();
+    }
+}
+
 
 // Log Viewer Functions
 async function loadLogs() {
