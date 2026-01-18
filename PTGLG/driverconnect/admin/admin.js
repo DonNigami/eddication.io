@@ -1207,7 +1207,7 @@ function loadSectionData(targetId) {
         case 'jobs':
             loadJobs();
             break;
-        case 'reports':
+        case 'driver-reports':
             loadDriverReports();
             break;
         case 'settings':
@@ -1219,7 +1219,7 @@ function loadSectionData(targetId) {
         case 'playback':
             loadDriverReports(); // Reusing the function to populate driver select
             break;
-        case 'schedules':
+        case 'scheduled-reports':
             loadReportSchedules();
             break;
         case 'logs':
