@@ -755,7 +755,8 @@ export const SupabaseAPI = {
           closed_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('reference', reference);
+        .eq('reference', reference)
+        .select(); // <--- ADDED .select()
 
       if (error) throw error;
       if (!data || data.length === 0) throw new Error("Jobdata not found or failed to update.");
@@ -810,7 +811,8 @@ export const SupabaseAPI = {
           ended_by: userId,
           updated_at: new Date().toISOString()
         })
-        .eq('reference', reference);
+        .eq('reference', reference)
+        .select();
 
       // Log action
       await supabase
