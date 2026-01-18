@@ -7,7 +7,7 @@ import { LIFF_ID, APP_CONFIG } from './config.js';
 import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64 } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
 import { initSupabase, SupabaseAPI } from './supabase-api.js';
-import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords } from './gps.js';
+import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords, haversineDistanceMeters } from './gps.js';
 import {
   showLoading, closeLoading, showError, showSuccess, showInfo,
   showInlineFlex, showInlineFlexCustom, showInputError, clearInputError,
@@ -19,6 +19,7 @@ import {
 // GLOBAL STATE
 // ============================================
 let currentUserId = '';
+let currentUserProfile = null;
 let currentReference = '';
 let currentVehicleDesc = '';
 let lastStops = [];
@@ -32,6 +33,12 @@ let tripEnded = false;
 // SEARCH FUNCTION
 // ============================================
 async function search(isSilent = false) {
+  // User Approval Check
+  if (currentUserProfile?.status !== 'APPROVED') {
+    showError('คุณยังไม่ได้รับอนุมัติให้ใช้งานระบบ', 'กรุณาติดต่อผู้ดูแล');
+    return;
+  }
+
   const keywordRaw = document.getElementById('keyword').value;
   const btn = document.getElementById('btnSearch');
 
@@ -318,42 +325,105 @@ async function startCheckin(rowIndex, seq, shipToCode) {
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;
 
+  // --- Origin Stop Check-in ---
   if (isOrigin) {
-    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode);
+    // 1. Alcohol Check
+    const hasAlcohol = await SupabaseAPI.hasAtLeastOneAlcoholChecked(currentReference);
+    if (!hasAlcohol) {
+      showError("กรุณาเป่าแอลกอฮอล์อย่างน้อย 1 คนก่อนเช็คอินต้นทาง");
+      return;
+    }
+
+    // 2. Get Odometer reading
+    const { value: formValues } = await Swal.fire({
+      icon: 'question',
+      title: 'Check-in ต้นทาง',
+      html: `<label style="font-size:0.8rem;color:#555;">เลขไมล์รถ</label>
+             <input id="swalOdo" type="number" class="swal2-input" placeholder="เลขไมล์ ณ จุดต้นทาง">`,
+      showCancelButton: true,
+      confirmButtonText: 'Check-in',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#1abc9c',
+      preConfirm: () => {
+        const odo = document.getElementById('swalOdo').value;
+        if (!odo) {
+          Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+          return false;
+        }
+        const odoValidation = validateInput(odo, 'odo');
+        if (!odoValidation.valid) {
+          Swal.showValidationMessage(odoValidation.message);
+          return false;
+        }
+        return { odo: odoValidation.value };
+      }
+    });
+
+    if (!formValues) return;
+
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, formValues.odo);
+
+  // --- Destination Stop Check-in ---
   } else {
     const { value: formValues } = await Swal.fire({
       icon: 'question',
-      title: 'Check-in พร้อมบันทึกข้อมูล',
+      title: 'Check-in ปลายทาง',
       html: `
         <div style="text-align:left;">
           <label style="font-size:0.8rem;color:#555;">เลขไมล์รถ</label>
           <input id="swalOdo" type="number" class="swal2-input" placeholder="เลขไมล์">
-          <label style="font-size:0.8rem;color:#555;">ชื่อผู้รับน้ำมัน</label>
+
+          <label style="font-size:0.8rem;color:#555;margin-top:10px;display:block;">ชื่อผู้รับน้ำมัน</label>
           <input id="swalReceiverName" type="text" class="swal2-input" placeholder="ชื่อผู้รับ">
+
+          <label style="font-size:0.8rem;color:#555;margin-top:10px;display:block;">ประเภทผู้รับน้ำมัน</label>
+          <select id="swalReceiverType" class="swal2-select">
+            <option value="">-- เลือกประเภท --</option>
+            <option value="manager">ผู้จัดการปั๊ม</option>
+            <option value="frontHasCard">พนักงานหน้าลาน (มีบัตร)</option>
+            <option value="frontNoCard">พนักงานหน้าลาน (ไม่มีบัตร)</option>
+          </select>
         </div>
       `,
       showCancelButton: true,
       confirmButtonText: 'Check-in',
       cancelButtonText: 'ยกเลิก',
       confirmButtonColor: '#1abc9c',
-      preConfirm: () => ({
-        odo: document.getElementById('swalOdo').value,
-        receiverName: document.getElementById('swalReceiverName').value
-      })
+      preConfirm: () => {
+        const odo = document.getElementById('swalOdo').value;
+        const receiverName = document.getElementById('swalReceiverName').value;
+        const receiverType = document.getElementById('swalReceiverType').value;
+
+        if (!odo) {
+          Swal.showValidationMessage('กรุณากรอกเลขไมล์รถ');
+          return false;
+        }
+        if (!receiverName) {
+          Swal.showValidationMessage('กรุณากรอกชื่อผู้รับน้ำมัน');
+          return false;
+        }
+        if (!receiverType) {
+          Swal.showValidationMessage('กรุณาเลือกประเภทผู้รับน้ำมัน');
+          return false;
+        }
+        
+        const odoValidation = validateInput(odo, 'odo');
+        if (!odoValidation.valid) {
+          Swal.showValidationMessage(odoValidation.message);
+          return false;
+        }
+
+        return { 
+          odo: odoValidation.value, 
+          receiverName: receiverName,
+          receiverType: receiverType
+        };
+      }
     });
 
     if (!formValues) return;
 
-    // Validate odo if provided
-    if (formValues.odo) {
-      const odoValidation = validateInput(formValues.odo, 'odo');
-      if (!odoValidation.valid) {
-        showError(odoValidation.message);
-        return;
-      }
-    }
-
-    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, formValues.odo, formValues.receiverName);
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, formValues.odo, formValues.receiverName, formValues.receiverType);
   }
 }
 
@@ -407,6 +477,21 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
     const pos = await getCurrentPositionAsync();
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
+
+    // --- GEOFENCING LOGIC ---
+    const stop = lastStops.find(s => s.rowIndex === rowIndex);
+    // Only check if destination coordinates are available
+    if (stop && stop.destLat && stop.destLng) {
+      const radiusM = 200; // Using a default 200m radius for now, as specified in the plan.
+      const distance = haversineDistanceMeters(stop.destLat, stop.destLng, lat, lng);
+      
+      if (distance > radiusM) {
+        closeLoading(); // Ensure loading indicator is hidden
+        showError(`คุณอยู่นอกพื้นที่ (ห่าง ${Math.round(distance)} ม. / รัศมี ${radiusM} ม.)`);
+        return;
+      }
+    }
+    // --- END GEOFENCING LOGIC ---
 
     const stopData = {
       reference: currentReference,
@@ -769,18 +854,27 @@ async function initApp() {
     if (liff.isLoggedIn()) {
       const profile = await liff.getProfile();
       currentUserId = profile.userId;
-      document.getElementById('status').textContent = 'สวัสดี ' + profile.displayName;
-      
-      // Save user profile to Supabase
-      // Only save real LINE users
-      if (profile.userId && profile.userId.startsWith('U')) {
-        await SupabaseAPI.saveUserProfile({
-          userId: profile.userId,
-          displayName: profile.displayName,
-          pictureUrl: profile.pictureUrl,
-          statusMessage: profile.statusMessage
-        });
+
+      // Ensure user exists in DB, then fetch their full profile
+      if (currentUserId.startsWith('U')) {
+        await SupabaseAPI.saveUserProfile(profile);
+        currentUserProfile = await SupabaseAPI.getUserProfile(currentUserId);
       }
+      
+      const statusEl = document.getElementById('status');
+      if (currentUserProfile?.status === 'APPROVED') {
+        statusEl.textContent = 'สวัสดี ' + (currentUserProfile.display_name || profile.displayName);
+        statusEl.style.color = 'var(--text-main)';
+      } else if (currentUserProfile?.status === 'PENDING') {
+        statusEl.textContent = 'สถานะ: รอการอนุมัติ';
+        statusEl.style.color = 'orange';
+      } else if (currentUserProfile?.status === 'REJECTED') {
+        statusEl.textContent = 'สถานะ: คุณถูกปฏิเสธการเข้าใช้งาน';
+        statusEl.style.color = 'red';
+      } else {
+        statusEl.textContent = 'สวัสดี ' + profile.displayName;
+      }
+      
     } else {
       liff.login(); // Enforce login
     }

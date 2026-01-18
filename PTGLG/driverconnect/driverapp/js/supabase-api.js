@@ -742,6 +742,29 @@ export const SupabaseAPI = {
   },
 
   /**
+   * Helper: Check if at least one alcohol test has been recorded for a reference
+   * Replicates logic from driverjob.js
+   */
+  async hasAtLeastOneAlcoholChecked(reference) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.ALCOHOL_CHECKS)
+        .select('id') // Just need to know if *any* exist
+        .eq('reference', reference)
+        .limit(1); // Optimize: only fetch one
+
+      if (error) throw error;
+      return data && data.length > 0;
+    } catch (err) {
+      console.error('❌ Supabase hasAtLeastOneAlcoholChecked error:', err);
+      // Default to true to not block if there's an API error
+      // This might need re-evaluation if the error should strictly block the action.
+      // For now, fail-safe to allow, to avoid infinite blocking on API issues.
+      return true; 
+    }
+  },
+
+  /**
    * Close job
    * Schema aligned with app/PLAN.md: trips table with job_closed flag
    */
@@ -889,7 +912,7 @@ export const SupabaseAPI = {
         if (error) throw error;
         console.log('✅ User profile updated (visit #' + ((existing.total_visits || 0) + 1) + ')');
       } else {
-        // Insert new user
+        // Insert new user with PENDING status
         const { error } = await supabase
           .from(TABLES.USER_PROFILES)
           .insert({
@@ -899,17 +922,38 @@ export const SupabaseAPI = {
             status_message: profile.statusMessage || null,
             first_seen_at: new Date().toISOString(),
             last_seen_at: new Date().toISOString(),
-            total_visits: 1
+            total_visits: 1,
+            status: 'PENDING'
           });
 
         if (error) throw error;
-        console.log('✅ New user profile created');
+        console.log('✅ New user profile created with PENDING status');
       }
 
       return { success: true };
     } catch (err) {
       console.error('❌ Supabase saveUserProfile error:', err);
       return { success: false, message: err.message };
+    }
+  },
+
+  /**
+   * Get a user's full profile from Supabase
+   */
+  async getUserProfile(userId) {
+    if (!userId) return null;
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.USER_PROFILES)
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch(err) {
+      console.error('❌ Supabase getUserProfile error:', err);
+      return null;
     }
   },
 
