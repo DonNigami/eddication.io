@@ -700,11 +700,10 @@ export const SupabaseAPI = {
           trip_id: tripId,
           reference: reference,
           driver_name: driverName,
-          user_id: userId, // Corrected column name
+          checked_by: userId, // Corrected column name based on user feedback
           alcohol_value: parseFloat(alcoholValue),
           image_url: imageUrl,
-          lat: lat,
-          lng: lng,
+          location: { lat, lng }, // Corrected to use JSONB
           checked_at: new Date().toISOString()
         })
         .select();
