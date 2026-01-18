@@ -2287,6 +2287,16 @@ function showAdminPanel(profile) {
 
 // Function to initialize the application
 async function initializeApp() {
+    // Check for dev mode bypass (add ?dev=1 to URL for testing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const devMode = urlParams.get('dev') === '1';
+
+    if (devMode) {
+        console.warn('DEV MODE: Bypassing LINE authentication');
+        showAdminPanel({ displayName: 'Dev Admin', userId: 'dev-user' });
+        return;
+    }
+
     try {
         await liff.init({ liffId: LIFF_ID });
 
