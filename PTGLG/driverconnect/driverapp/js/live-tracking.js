@@ -58,16 +58,35 @@ class LiveTracking {
         const maxAge = 24 * 60 * 60 * 1000; // 24 hours in ms
         const age = Date.now() - new Date(data.timestamp).getTime();
         
-        if (age < maxAge && data.lat && data.lng && data.lat !== 0 && data.lng !== 0) {
-          this.lastPosition = { lat: data.lat, lng: data.lng };
-          console.log('LiveTracking: Loaded last position from storage:', this.lastPosition, `(${Math.round(age/1000/60)} mins old)`);
+        if (age < maxAge) {
+          // Validate coordinates before using
+          const { lat, lng } = data;
+          
+          if (!lat || !lng || lat === 0 || lng === 0) {
+            console.warn('LiveTracking: Stored position is invalid (0,0), ignoring');
+            this.lastPosition = null;
+            localStorage.removeItem(this.localStorageKey);
+            return;
+          }
+          
+          if (lat < 5 || lat > 21 || lng < 97 || lng > 106) {
+            console.warn('LiveTracking: Stored position out of Thailand bounds, ignoring');
+            this.lastPosition = null;
+            localStorage.removeItem(this.localStorageKey);
+            return;
+          }
+          
+          this.lastPosition = { lat, lng };
+          console.log('LiveTracking: Loaded last position from storage:', this.lastPosition);
         } else {
-          console.log('LiveTracking: Stored position too old or invalid, ignoring');
+          console.log('LiveTracking: Stored position is too old, ignoring');
+          this.lastPosition = null;
           localStorage.removeItem(this.localStorageKey);
         }
       }
     } catch (error) {
       console.error('LiveTracking: Error loading position from storage:', error);
+      this.lastPosition = null;
     }
   }
 
@@ -246,6 +265,19 @@ class LiveTracking {
     }
 
     if (this.lastPosition) {
+      // Validate fallback position is not 0,0 and within Thailand
+      const { lat, lng } = this.lastPosition;
+      
+      if (!lat || !lng || lat === 0 || lng === 0) {
+        console.warn('LiveTracking: Fallback position is invalid (0,0), skipping');
+        return;
+      }
+      
+      if (lat < 5 || lat > 21 || lng < 97 || lng > 106) {
+        console.warn('LiveTracking: Fallback position out of Thailand bounds, skipping');
+        return;
+      }
+      
       console.log('LiveTracking: Using fallback position:', this.lastPosition);
       
       try {
@@ -254,8 +286,8 @@ class LiveTracking {
           .upsert({
             driver_user_id: this.userId,
             trip_id: this.tripId,
-            lat: this.lastPosition.lat,
-            lng: this.lastPosition.lng,
+            lat: lat,
+            lng: lng,
             last_updated: new Date().toISOString()
           }, {
             onConflict: 'driver_user_id'

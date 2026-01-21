@@ -130,6 +130,9 @@
   
   <div class="info-panel" id="infoPanel" style="display: none;">
     <h3>🚛 ติดตามตำแหน่ง</h3>
+    <div class="info-item" id="statusMessage" style="color: #FF9800; font-weight: bold; margin-bottom: 10px;">
+      ⏳ รอข้อมูล GPS จากคนขับ...
+    </div>
     <div class="info-item">
       <strong>คนขับ:</strong> <span id="driverName">-</span>
     </div>
@@ -356,6 +359,18 @@
 
     // Update info panel
     async function updateInfoPanel(data) {
+      const statusMessageEl = document.getElementById('statusMessage');
+      
+      // Hide status message if we have valid coordinates
+      if (data.lat && data.lng && data.lat !== 0 && data.lng !== 0) {
+        if (statusMessageEl) statusMessageEl.style.display = 'none';
+      } else {
+        if (statusMessageEl) {
+          statusMessageEl.style.display = 'block';
+          statusMessageEl.textContent = '⏳ รอพิกัด GPS ที่ถูกต้อง...';
+        }
+      }
+      
       document.getElementById('driverName').textContent = data.driver_name || driverUserId;
       
       const statusBadge = document.getElementById('statusBadge');
@@ -496,13 +511,21 @@
           // Initialize map at Thailand center
           initMap(13.7563, 100.5018);
           document.getElementById('loadingPanel').style.display = 'none';
-          document.getElementById('statusMessage').textContent = '⏳ รอข้อมูล GPS จากคนขับ...';
+          const statusMsg = document.getElementById('statusMessage');
+          if (statusMsg) {
+            statusMsg.style.display = 'block';
+            statusMsg.textContent = '⏳ รอข้อมูล GPS จากคนขับ...';
+          }
         } else if (!data.lat || !data.lng || data.lat === 0 || data.lng === 0) {
           // Invalid coordinates - show waiting state
           console.log('Invalid coordinates (0,0), waiting for valid GPS...');
           initMap(13.7563, 100.5018);
           document.getElementById('loadingPanel').style.display = 'none';
-          document.getElementById('statusMessage').textContent = '⏳ รอพิกัด GPS ที่ถูกต้อง...';
+          const statusMsg = document.getElementById('statusMessage');
+          if (statusMsg) {
+            statusMsg.style.display = 'block';
+            statusMsg.textContent = '⏳ รอพิกัด GPS ที่ถูกต้อง...';
+          }
         } else {
           // Initialize map with driver's location
           initMap(data.lat, data.lng);
