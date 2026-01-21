@@ -269,15 +269,26 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 ## ⏳ Pending Tasks
 
 ### High Priority
+- [x] **Update to use index-supabase-modular.html** ✅ DONE
+  - ตอนนี้ใช้ `index-supabase-modular.html` เป็น base หลักแล้ว
+  - Status: **ACTIVE IN USE**
+
 - [ ] **Apply user_profiles migration SQL**
   - File: `supabase/migrations/20260117_update_user_profiles.sql`
   - Action: Run in Supabase SQL Editor
   - URL: https://supabase.com/dashboard/project/myplpshpcordggbbtblg/sql/new
 
-- [ ] **Update LINE LIFF Endpoint URL**
-  - Current: index-supabase-v2.html
-  - Target: index-supabase-modular.html
+- [ ] **Apply driver_live_locations migration SQL**
+  - File: `supabase/migrations/20260120134241_create_driver_live_locations_table.sql`
+  - Action: Run in Supabase SQL Editor
+  - Priority: **HIGH** - Required for live tracking to work
+  - See "Database Migration" section below for SQL
+
+- [ ] **Update LINE LIFF Endpoint URL (Optional)**
+  - Current: May still point to old version
+  - Recommended: Point to index-supabase-modular.html
   - URL: https://developers.line.biz/console/
+  - Note: Can be done later if testing via direct URL
 
 - [ ] **Commit and push all changes**
   ```cmd
@@ -473,9 +484,9 @@ Job Reference: 2512S08072
 - **User tracking** - Only save users with ID starting with 'U' (real LINE users)
 
 ### File Naming
-- `index-supabase-modular.html` - ACTIVE production file
-- `index-supabase-v2.html` - Old version, keep for reference
-- `index-test-20260115.html` - Original with all features, keep for reference
+- `index-supabase-modular.html` - ✅ **ACTIVE** production file (currently in use)
+- `index-supabase-v2.html` - 📦 Old version, keep for reference
+- `index-test-20260115.html` - 📚 Original with all features, keep for reference
 
 ### Debugging
 - Use `test-supabase-debug.html` for connection troubleshooting
