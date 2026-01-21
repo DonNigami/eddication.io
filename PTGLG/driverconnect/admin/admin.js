@@ -1730,6 +1730,8 @@ function subscribeToJobActivityUpdates() {
                 if (!oldData.checkin_time && newData.checkin_time) {
                     const message = `📍 Check-in: ${newData.reference} - ${newData.ship_to_name || 'จุดส่ง'}`;
                     showNotification(message, 'info', 5000);
+                    // Add to notification bell
+                    addNotificationToBell('checkin', 'Check-in สำเร็จ', message, { reference: newData.reference });
                     console.log('✅ Driver checked in at:', newData.ship_to_name);
                 }
                 
@@ -1737,6 +1739,8 @@ function subscribeToJobActivityUpdates() {
                 if (!oldData.checkout_time && newData.checkout_time) {
                     const message = `✅ Check-out: ${newData.reference} - ${newData.ship_to_name || 'จุดส่ง'}`;
                     showNotification(message, 'success', 5000);
+                    // Add to notification bell
+                    addNotificationToBell('checkout', 'Check-out สำเร็จ', message, { reference: newData.reference });
                     console.log('✅ Driver checked out from:', newData.ship_to_name);
                 }
                 
@@ -1744,6 +1748,8 @@ function subscribeToJobActivityUpdates() {
                 if (!oldData.trip_ended && newData.trip_ended) {
                     const message = `🎉 Trip จบแล้ว: ${newData.reference}`;
                     showNotification(message, 'success', 7000);
+                    // Add to notification bell
+                    addNotificationToBell('trip-end', 'Trip เสร็จสมบูรณ์', message, { reference: newData.reference });
                     console.log('🎉 Trip ended:', newData.reference);
                 }
             }
@@ -2838,8 +2844,197 @@ function showAccessDenied() {
 }
 
 
+// --- Notification Bell Management ---
+let notificationBellData = [];
+let notificationBell, notificationBadge, notificationDropdown, notificationList, markAllReadBtn;
+
+function initNotificationBell() {
+    notificationBell = document.getElementById('notificationBell');
+    notificationBadge = document.getElementById('notificationBadge');
+    notificationDropdown = document.getElementById('notificationDropdown');
+    notificationList = document.getElementById('notificationList');
+    markAllReadBtn = document.getElementById('markAllRead');
+
+    if (!notificationBell) {
+        console.warn('Notification bell not found in DOM');
+        return;
+    }
+
+    // Load from localStorage
+    const saved = localStorage.getItem('adminNotifications');
+    if (saved) {
+        try {
+            notificationBellData = JSON.parse(saved);
+            updateNotificationUI();
+        } catch (e) {
+            console.error('Failed to parse notifications', e);
+            notificationBellData = [];
+        }
+    }
+
+    // Event listeners
+    notificationBell.addEventListener('click', toggleNotificationDropdown);
+    markAllReadBtn?.addEventListener('click', markAllNotificationsAsRead);
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!notificationBell.contains(e.target) && !notificationDropdown.contains(e.target)) {
+            notificationDropdown.classList.remove('show');
+        }
+    });
+
+    console.log('✅ Notification bell initialized');
+}
+
+function toggleNotificationDropdown(e) {
+    e.stopPropagation();
+    notificationDropdown.classList.toggle('show');
+}
+
+function addNotificationToBell(type, title, message, data = {}) {
+    const notification = {
+        id: Date.now(),
+        type, // 'checkin', 'checkout', 'trip-end', 'holiday-work'
+        title,
+        message,
+        data,
+        timestamp: new Date().toISOString(),
+        read: false
+    };
+
+    notificationBellData.unshift(notification);
+    
+    // Keep only last 100 notifications
+    if (notificationBellData.length > 100) {
+        notificationBellData = notificationBellData.slice(0, 100);
+    }
+
+    saveNotifications();
+    updateNotificationUI();
+    playNotificationSound();
+    
+    console.log('🔔 Added notification:', notification);
+}
+
+function markNotificationAsRead(notificationId) {
+    const notification = notificationBellData.find(n => n.id === notificationId);
+    if (notification) {
+        notification.read = true;
+        saveNotifications();
+        updateNotificationUI();
+    }
+}
+
+function markAllNotificationsAsRead() {
+    notificationBellData.forEach(n => n.read = true);
+    saveNotifications();
+    updateNotificationUI();
+}
+
+function saveNotifications() {
+    localStorage.setItem('adminNotifications', JSON.stringify(notificationBellData));
+}
+
+function updateNotificationUI() {
+    const unreadCount = notificationBellData.filter(n => !n.read).length;
+    
+    // Update badge
+    if (unreadCount > 0) {
+        notificationBadge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        notificationBadge.style.display = 'block';
+    } else {
+        notificationBadge.style.display = 'none';
+    }
+
+    // Render list
+    renderNotificationList();
+}
+
+function renderNotificationList() {
+    if (notificationBellData.length === 0) {
+        notificationList.innerHTML = `
+            <div class="notification-empty">
+                <div class="notification-empty-icon">🔕</div>
+                <p>ยังไม่มีการแจ้งเตือน</p>
+            </div>
+        `;
+        return;
+    }
+
+    notificationList.innerHTML = notificationBellData.map(n => {
+        const icon = getNotificationIcon(n.type);
+        const timeAgo = getTimeAgo(new Date(n.timestamp));
+        
+        return `
+            <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick(${n.id})">
+                <div class="notification-icon">${icon}</div>
+                <div class="notification-content">
+                    <div class="title">${n.title}</div>
+                    <div class="message">${n.message}</div>
+                    <div class="time">${timeAgo}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function handleNotificationClick(notificationId) {
+    markNotificationAsRead(notificationId);
+    const notification = notificationBellData.find(n => n.id === notificationId);
+    
+    if (notification && notification.data.reference) {
+        console.log('📍 Clicked notification for:', notification.data.reference);
+        // Could navigate to specific section or show details
+    }
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'checkin': '📍',
+        'checkout': '✅',
+        'trip-end': '🎉',
+        'holiday-work': '🎊',
+        'alcohol-check': '🍺',
+        'alert': '⚠️'
+    };
+    return icons[type] || '🔔';
+}
+
+function getTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    
+    if (seconds < 60) return 'เมื่อสักครู่';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} นาทีที่แล้ว`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ชั่วโมงที่แล้ว`;
+    return `${Math.floor(seconds / 86400)} วันที่แล้ว`;
+}
+
+function playNotificationSound() {
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (e) {
+        console.log('Could not play sound', e);
+    }
+}
+
+
 // --- Main App Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
+    initNotificationBell(); // Initialize notification bell
     setupRealtimeSubscriptions(); // Setup real-time listeners
 });
