@@ -295,7 +295,7 @@ async function updateMapMarkers() {
                 .not('location', 'is', null)
                 .order('created_at', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 or 1 result
 
             if (logError && logError.code !== 'PGRST116') { // PGRST116 = no rows found
                 console.error(`Error fetching latest log for job ${job.reference}:`, logError);
@@ -534,10 +534,16 @@ async function loadUsers() {
 
 async function handleUserUpdate(event) {
     const button = event.currentTarget;
+    const userId = button.dataset.id; // Get ID from button's data-id
     const row = button.closest('tr');
-    const userId = row.dataset.id; // UserProfile ID (serial)
     const status = row.querySelector('.status-select').value;
     const userType = row.querySelector('.role-select').value;
+
+    // Validate userId
+    if (!userId || userId === 'undefined') {
+        alert('ไม่สามารถอัพเดทได้: ไม่พบ User ID');
+        return;
+    }
 
     button.textContent = 'Saving...';
     button.disabled = true;
