@@ -903,12 +903,6 @@ async function initApp() {
   // Check GPS
   checkGpsStatus();
 
-  // Initialize live tracking if enabled
-  if (APP_CONFIG.LIVE_TRACKING.enableAutoTracking && currentUserId) {
-    console.log('🌍 Initializing live tracking for user:', currentUserId);
-    liveTracking.init(currentUserId);
-  }
-
   // Initialize offline queue
   OfflineQueue.load();
   initOfflineQueue(SupabaseAPI, search, () => currentReference);
@@ -965,6 +959,14 @@ async function initApp() {
         // Show admin button if user's type is admin
         if (currentUserProfile.user_type === 'ADMIN') {
           document.getElementById('adminToggle').style.display = 'block';
+        }
+        
+        // Initialize live tracking after successful login
+        if (APP_CONFIG.LIVE_TRACKING.enableAutoTracking) {
+          console.log('🌍 Initializing live tracking for user:', currentUserId);
+          liveTracking.init(currentUserId);
+          // Expose to window for debugging
+          window.liveTracking = liveTracking;
         }
       } else {
         statusEl.innerHTML = `<span>สถานะ: รอการอนุมัติใช้งาน</span>`;
