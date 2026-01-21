@@ -1059,9 +1059,17 @@ td button:hover {
     padding: 15px 15px 0 15px;
 }
 
-
-
-
+/* Pulse Animation for Badge */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.15);
+        opacity: 0.9;
+    }
+}
 
 
 

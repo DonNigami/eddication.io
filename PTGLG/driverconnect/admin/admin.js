@@ -6,6 +6,9 @@ const LIFF_ID = '2007705394-Lq3mMYKA'; // Admin panel LIFF ID
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Global state for realtime
+let holidayWorkRealtimeChannel = null;
+
 // Global state for map playback
 let map;
 let markers = L.featureGroup(); // Group to manage markers
@@ -1458,8 +1461,112 @@ async function updateHolidaySummary() {
 
         // Update dashboard KPI
         kpiPendingApprovals.textContent = pendingCount || 0;
+        
+        // Update navigation badge
+        updateHolidayNavBadge(pendingCount || 0);
     } catch (error) {
         console.error('Error updating summary:', error);
+    }
+}
+
+function updateHolidayNavBadge(count) {
+    const navLink = document.querySelector('[data-target="holiday-work"]');
+    if (!navLink) return;
+    
+    let badge = navLink.querySelector('.badge');
+    
+    if (count > 0) {
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.style.cssText = 'background: #ff9800; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; margin-left: 5px; font-weight: bold;';
+            navLink.appendChild(badge);
+        }
+        badge.textContent = count;
+        badge.classList.remove('hidden');
+        
+        // Animate badge
+        badge.style.animation = 'none';
+        setTimeout(() => {
+            badge.style.animation = 'pulse 0.5s ease-in-out';
+        }, 10);
+    } else {
+        if (badge) {
+            badge.classList.add('hidden');
+        }
+    }
+}
+
+// Subscribe to realtime updates for holiday work
+function subscribeToHolidayWorkUpdates() {
+    // Unsubscribe existing channel if any
+    if (holidayWorkRealtimeChannel) {
+        supabase.removeChannel(holidayWorkRealtimeChannel);
+    }
+
+    console.log('🔔 Subscribing to holiday work realtime updates...');
+
+    holidayWorkRealtimeChannel = supabase
+        .channel('holiday-work-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'jobdata',
+                filter: 'is_holiday_work=eq.true'
+            },
+            (payload) => {
+                console.log('🔔 Holiday work change detected:', payload);
+                
+                // Show notification
+                const eventType = payload.eventType;
+                let message = '';
+                
+                if (eventType === 'INSERT') {
+                    message = `🆕 มีคำขอทำงานวันหยุดใหม่: ${payload.new.reference}`;
+                    showNotification(message, 'info');
+                } else if (eventType === 'UPDATE') {
+                    if (payload.new.holiday_work_approved !== payload.old.holiday_work_approved) {
+                        const status = payload.new.holiday_work_approved ? 'อนุมัติ' : 'ปฏิเสธ';
+                        message = `✅ อัพเดท: ${payload.new.reference} - ${status}`;
+                    }
+                }
+                
+                // Refresh data if on holiday work page
+                const activeSection = document.querySelector('.content-section.active');
+                if (activeSection && activeSection.id === 'holiday-work') {
+                    setTimeout(() => {
+                        loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value);
+                    }, 500);
+                } else {
+                    // Just update the badge
+                    updateHolidaySummary();
+                }
+            }
+        )
+        .subscribe((status) => {
+            console.log('🔔 Realtime subscription status:', status);
+            
+            if (status === 'SUBSCRIBED') {
+                console.log('✅ Successfully subscribed to holiday work updates');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.error('❌ Failed to subscribe to realtime updates');
+                // Retry after 5 seconds
+                setTimeout(() => {
+                    console.log('🔄 Retrying subscription...');
+                    subscribeToHolidayWorkUpdates();
+                }, 5000);
+            }
+        });
+}
+
+// Unsubscribe from realtime updates
+function unsubscribeFromHolidayWorkUpdates() {
+    if (holidayWorkRealtimeChannel) {
+        console.log('👋 Unsubscribing from holiday work updates...');
+        supabase.removeChannel(holidayWorkRealtimeChannel);
+        holidayWorkRealtimeChannel = null;
     }
 }
 
@@ -2281,6 +2388,8 @@ function loadSectionData(targetId) {
             break;
         case 'holiday-work':
             loadHolidayWorkJobs();
+            // Subscribe to realtime updates when viewing holiday work section
+            subscribeToHolidayWorkUpdates();
             break;
         case 'vehicle-breakdown':
             loadVehicleBreakdowns();
@@ -2537,6 +2646,10 @@ function setupRealtimeSubscriptions() {
             updateAlertsBadge();
         })
         .subscribe();
+    
+    // Start holiday work realtime subscription
+    console.log('🔔 Starting holiday work realtime subscription...');
+    subscribeToHolidayWorkUpdates();
 }
 
 // Function to show the admin panel
