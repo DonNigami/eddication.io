@@ -1459,38 +1459,46 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
 
 async function updateHolidaySummary() {
     try {
+        // Query all holiday work jobs (not just count)
         // Pending
-        const { count: pendingCount } = await supabase
+        const { data: pendingJobs } = await supabase
             .from('jobdata')
-            .select('*', { count: 'exact', head: true })
+            .select('reference')
             .eq('is_holiday_work', true)
             .or('holiday_work_approved.is.null,holiday_work_approved.eq.false')
             .is('holiday_work_approved_at', null);
 
         // Approved
-        const { count: approvedCount } = await supabase
+        const { data: approvedJobs } = await supabase
             .from('jobdata')
-            .select('*', { count: 'exact', head: true })
+            .select('reference')
             .eq('is_holiday_work', true)
             .eq('holiday_work_approved', true);
 
         // Rejected
-        const { count: rejectedCount } = await supabase
+        const { data: rejectedJobs } = await supabase
             .from('jobdata')
-            .select('*', { count: 'exact', head: true })
+            .select('reference')
             .eq('is_holiday_work', true)
             .eq('holiday_work_approved', false)
             .not('holiday_work_approved_at', 'is', null);
 
-        pendingHolidayCount.textContent = pendingCount || 0;
-        approvedHolidayCount.textContent = approvedCount || 0;
-        rejectedHolidayCount.textContent = rejectedCount || 0;
+        // Count unique references
+        const pendingCount = new Set((pendingJobs || []).map(j => j.reference)).size;
+        const approvedCount = new Set((approvedJobs || []).map(j => j.reference)).size;
+        const rejectedCount = new Set((rejectedJobs || []).map(j => j.reference)).size;
+        
+        console.log('📊 Summary counts (unique references):', { pendingCount, approvedCount, rejectedCount });
+
+        pendingHolidayCount.textContent = pendingCount;
+        approvedHolidayCount.textContent = approvedCount;
+        rejectedHolidayCount.textContent = rejectedCount;
 
         // Update dashboard KPI
-        kpiPendingApprovals.textContent = pendingCount || 0;
+        kpiPendingApprovals.textContent = pendingCount;
         
         // Update navigation badge
-        updateHolidayNavBadge(pendingCount || 0);
+        updateHolidayNavBadge(pendingCount);
     } catch (error) {
         console.error('Error updating summary:', error);
     }
