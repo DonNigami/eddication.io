@@ -17,6 +17,7 @@ class LiveTracking {
     this.trackingInterval = null;
     this.realtimeChannel = null;
     this.lastPosition = null;
+    this.localStorageKey = 'live_tracking_last_position';
   }
 
   /**
@@ -35,11 +36,56 @@ class LiveTracking {
 
     console.log(`LiveTracking: Initializing for user ${userId}, trip ${tripId || 'N/A'}`);
 
+    // Load last position from localStorage
+    this.loadLastPositionFromStorage();
+
     // Subscribe to realtime changes for tracking flag
     this.subscribeToRealtimeUpdates();
 
     // Start tracking in normal mode
     this.startTracking();
+  }
+
+  /**
+   * Load last position from localStorage
+   */
+  loadLastPositionFromStorage() {
+    try {
+      const stored = localStorage.getItem(this.localStorageKey);
+      if (stored) {
+        const data = JSON.parse(stored);
+        // Check if data is not too old (max 24 hours)
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours in ms
+        const age = Date.now() - new Date(data.timestamp).getTime();
+        
+        if (age < maxAge && data.lat && data.lng && data.lat !== 0 && data.lng !== 0) {
+          this.lastPosition = { lat: data.lat, lng: data.lng };
+          console.log('LiveTracking: Loaded last position from storage:', this.lastPosition, `(${Math.round(age/1000/60)} mins old)`);
+        } else {
+          console.log('LiveTracking: Stored position too old or invalid, ignoring');
+          localStorage.removeItem(this.localStorageKey);
+        }
+      }
+    } catch (error) {
+      console.error('LiveTracking: Error loading position from storage:', error);
+    }
+  }
+
+  /**
+   * Save position to localStorage
+   */
+  saveLastPositionToStorage(lat, lng) {
+    try {
+      const data = {
+        lat,
+        lng,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(this.localStorageKey, JSON.stringify(data));
+      console.log('LiveTracking: Saved position to storage');
+    } catch (error) {
+      console.error('LiveTracking: Error saving position to storage:', error);
+    }
   }
 
   /**
@@ -150,13 +196,15 @@ class LiveTracking {
 
       // Validate coordinates
       if (!latitude || !longitude || latitude === 0 || longitude === 0) {
-        console.warn('LiveTracking: Invalid coordinates, skipping send:', { latitude, longitude });
+        console.warn('LiveTracking: Invalid coordinates from GPS, trying fallback');
+        await this.sendFallbackLocation();
         return;
       }
 
       // Check if coordinates are realistic (Thailand bounds: 5-21 lat, 97-106 lng)
       if (latitude < 5 || latitude > 21 || longitude < 97 || longitude > 106) {
-        console.warn('LiveTracking: Coordinates out of Thailand bounds, skipping:', { latitude, longitude });
+        console.warn('LiveTracking: Coordinates out of Thailand bounds, trying fallback');
+        await this.sendFallbackLocation();
         return;
       }
 
@@ -178,39 +226,51 @@ class LiveTracking {
         console.error('LiveTracking: Error sending location:', error);
       } else {
         console.log('LiveTracking: Location sent successfully');
+        // Update both memory and localStorage
         this.lastPosition = { lat: latitude, lng: longitude };
+        this.saveLastPositionToStorage(latitude, longitude);
       }
     } catch (error) {
-      console.error('LiveTracking: Failed to get position:', error);
+      console.error('LiveTracking: Failed to get GPS position:', error);
+      await this.sendFallbackLocation();
+    }
+  }
+
+  /**
+   * Send fallback location (from memory or localStorage)
+   */
+  async sendFallbackLocation() {
+    // If no lastPosition in memory, try loading from localStorage again
+    if (!this.lastPosition) {
+      this.loadLastPositionFromStorage();
+    }
+
+    if (this.lastPosition) {
+      console.log('LiveTracking: Using fallback position:', this.lastPosition);
       
-      // If we have a last known position, use it as fallback
-      if (this.lastPosition) {
-        console.log('LiveTracking: Using last known position as fallback:', this.lastPosition);
+      try {
+        const { data, error } = await this.supabase
+          .from('driver_live_locations')
+          .upsert({
+            driver_user_id: this.userId,
+            trip_id: this.tripId,
+            lat: this.lastPosition.lat,
+            lng: this.lastPosition.lng,
+            last_updated: new Date().toISOString()
+          }, {
+            onConflict: 'driver_user_id'
+          });
         
-        try {
-          const { data, error } = await this.supabase
-            .from('driver_live_locations')
-            .upsert({
-              driver_user_id: this.userId,
-              trip_id: this.tripId,
-              lat: this.lastPosition.lat,
-              lng: this.lastPosition.lng,
-              last_updated: new Date().toISOString()
-            }, {
-              onConflict: 'driver_user_id'
-            });
-          
-          if (error) {
-            console.error('LiveTracking: Error sending fallback location:', error);
-          } else {
-            console.log('LiveTracking: Fallback location sent successfully');
-          }
-        } catch (fallbackError) {
-          console.error('LiveTracking: Failed to send fallback location:', fallbackError);
+        if (error) {
+          console.error('LiveTracking: Error sending fallback location:', error);
+        } else {
+          console.log('LiveTracking: Fallback location sent successfully');
         }
-      } else {
-        console.warn('LiveTracking: No last position available, skipping this update');
+      } catch (fallbackError) {
+        console.error('LiveTracking: Failed to send fallback location:', fallbackError);
       }
+    } else {
+      console.warn('LiveTracking: No fallback position available, skipping this update');
     }
   }
 

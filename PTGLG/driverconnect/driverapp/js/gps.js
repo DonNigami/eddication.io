@@ -6,6 +6,7 @@ import { APP_CONFIG } from './config.js';
 
 /**
  * Get current position as Promise
+ * Automatically saves to localStorage for tracking fallback
  */
 export function getCurrentPositionAsync() {
   return new Promise((resolve, reject) => {
@@ -13,11 +14,38 @@ export function getCurrentPositionAsync() {
       reject(new Error('Geolocation not supported'));
       return;
     }
-    navigator.geolocation.getCurrentPosition(resolve, reject, {
-      enableHighAccuracy: APP_CONFIG.GPS.enableHighAccuracy,
-      timeout: APP_CONFIG.GPS.timeout,
-      maximumAge: APP_CONFIG.GPS.maximumAge
-    });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        // Auto-save GPS position to localStorage for live tracking fallback
+        if (lat && lng && lat !== 0 && lng !== 0) {
+          // Check if position is within Thailand bounds
+          if (lat >= 5 && lat <= 21 && lng >= 97 && lng <= 106) {
+            try {
+              const data = {
+                lat,
+                lng,
+                timestamp: new Date().toISOString()
+              };
+              localStorage.setItem('live_tracking_last_position', JSON.stringify(data));
+              console.log('📍 GPS: Auto-saved position to storage', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+            } catch (error) {
+              console.error('GPS: Failed to save position to storage:', error);
+            }
+          }
+        }
+        
+        resolve(position);
+      },
+      reject,
+      {
+        enableHighAccuracy: APP_CONFIG.GPS.enableHighAccuracy,
+        timeout: APP_CONFIG.GPS.timeout,
+        maximumAge: APP_CONFIG.GPS.maximumAge
+      }
+    );
   });
 }
 
