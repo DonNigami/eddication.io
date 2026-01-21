@@ -8,6 +8,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Global state for realtime
 let holidayWorkRealtimeChannel = null;
+let jobActivityRealtimeChannel = null;
 
 // Global state for map playback
 let map;
@@ -1294,7 +1295,7 @@ async function loadLogs() {
 // --- Holiday Work Functions ---
 async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
     const tbody = document.getElementById('holiday-work-tbody');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;"><div style="font-size:24px;">⏳</div><p>กำลังโหลดข้อมูล...</p></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;"><div style="font-size:24px;">⏳</div><p>กำลังโหลดข้อมูล...</p></td></tr>';
     
     try {
         // Query from jobdata table
@@ -1331,7 +1332,7 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
 
         tbody.innerHTML = '';
         if (jobs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-sub);">
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-sub);">
                 <div style="font-size:48px; margin-bottom:10px;">📭</div>
                 <p>ไม่พบรายการ${statusFilter === 'pending' ? 'ที่รออนุมัติ' : statusFilter === 'approved' ? 'ที่อนุมัติแล้ว' : 'ที่ปฏิเสธ'}</p>
             </td></tr>`;
@@ -1350,11 +1351,27 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
         }
 
         if (filteredJobs.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px;">ไม่พบผลลัพธ์สำหรับ "${searchTerm}"</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 20px;">ไม่พบผลลัพธ์สำหรับ "${searchTerm}"</td></tr>`;
             return;
         }
 
+        // Group by reference (แสดงแค่ 1 reference แต่นับจำนวน stops)
+        const groupedJobs = {};
         filteredJobs.forEach(job => {
+            if (!groupedJobs[job.reference]) {
+                groupedJobs[job.reference] = {
+                    ...job,
+                    stop_count: 1,
+                    all_seqs: [job.seq]
+                };
+            } else {
+                groupedJobs[job.reference].stop_count++;
+                groupedJobs[job.reference].all_seqs.push(job.seq);
+            }
+        });
+
+        // Convert to array and display
+        Object.values(groupedJobs).forEach(job => {
             const row = document.createElement('tr');
             
             // Status badge
@@ -1370,10 +1387,10 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
             } else {
                 statusBadge = '<span style="background:#ff9800; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">⏳ รอดำเนินการ</span>';
                 actionButtons = `
-                    <button class="approve-holiday-btn" data-reference="${job.reference}" style="background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; margin-right:5px;">
+                    <button class="approve-holiday-btn" data-reference="${job.reference}" data-stop-count="${job.stop_count}" style="background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; margin-right:5px;">
                         ✅ อนุมัติ
                     </button>
-                    <button class="reject-holiday-btn" data-reference="${job.reference}" style="background:#f44336; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">
+                    <button class="reject-holiday-btn" data-reference="${job.reference}" data-stop-count="${job.stop_count}" style="background:#f44336; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">
                         ❌ ปฏิเสธ
                     </button>
                 `;
@@ -1396,6 +1413,7 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
                 <td style="font-size:0.9rem;">${closedDate}</td>
                 <td>${job.drivers || '-'}</td>
                 <td style="font-size:0.9rem;">${job.vehicle_desc || '-'}</td>
+                <td style="text-align:center;"><span style="background:#2196f3;color:white;padding:2px 8px;border-radius:10px;font-size:0.85rem;">${job.stop_count} จุด</span></td>
                 <td style="max-width:200px; font-size:0.85rem; line-height:1.4;">${job.holiday_work_notes || '<span style="color:var(--text-sub);">-</span>'}</td>
                 <td>${statusBadge}</td>
                 <td style="font-size:0.85rem;">${approvedBy}</td>
@@ -1409,7 +1427,8 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
         document.querySelectorAll('.approve-holiday-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const reference = e.target.dataset.reference;
-                const job = filteredJobs.find(j => j.reference === reference);
+                const stopCount = e.target.dataset.stopCount;
+                const job = groupedJobs[reference];
                 openHolidayApprovalModal(job, 'approve');
             });
         });
@@ -1417,7 +1436,8 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
         document.querySelectorAll('.reject-holiday-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const reference = e.target.dataset.reference;
-                const job = filteredJobs.find(j => j.reference === reference);
+                const stopCount = e.target.dataset.stopCount;
+                const job = groupedJobs[reference];
                 openHolidayApprovalModal(job, 'reject');
             });
         });
@@ -1572,7 +1592,11 @@ function unsubscribeFromHolidayWorkUpdates() {
 
 function openHolidayApprovalModal(job, action) {
     approvalReferenceInput.value = job.reference;
-    approvalReference.textContent = job.reference;
+    
+    // Show stop count if available
+    const stopInfo = job.stop_count > 1 ? ` (${job.stop_count} จุด)` : '';
+    approvalReference.textContent = `${job.reference}${stopInfo}`;
+    
     approvalDriver.textContent = job.drivers || '-';
     approvalVehicle.textContent = job.vehicle_desc || '-';
     approvalDate.textContent = job.job_closed_at ? 
@@ -1632,16 +1656,18 @@ async function handleHolidayApprovalSubmit(event) {
             updateData.holiday_work_notes = (approvalNotes.textContent || '') + `\n\n[${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'} โดย ${adminName}]\n${comment}`;
         }
 
-        const { error } = await supabase
+        // Update ALL rows with the same reference (not just one)
+        const { error, count } = await supabase
             .from('jobdata')
             .update(updateData)
-            .eq('reference', reference);
+            .eq('reference', reference)
+            .eq('is_holiday_work', true);
 
         if (error) throw error;
 
         const successMsg = action === 'approve' ? 
-            `✅ อนุมัติการทำงานวันหยุดสำเร็จ: ${reference}` : 
-            `❌ ปฏิเสธการทำงานวันหยุดแล้ว: ${reference}`;
+            `✅ อนุมัติการทำงานวันหยุดสำเร็จ: ${reference} (${count || 'ทุก'} จุด)` : 
+            `❌ ปฏิเสธการทำงานวันหยุดแล้ว: ${reference} (${count || 'ทุก'} จุด)`;
         
         showNotification(successMsg, 'info');
         closeHolidayApprovalModal();
@@ -1652,6 +1678,77 @@ async function handleHolidayApprovalSubmit(event) {
     }
 }
 
+
+// --- Vehicle Breakdown Functions ---
+
+// Subscribe to job activity updates (checkin/checkout)
+function subscribeToJobActivityUpdates() {
+    // Unsubscribe existing channel if any
+    if (jobActivityRealtimeChannel) {
+        supabase.removeChannel(jobActivityRealtimeChannel);
+    }
+
+    console.log('🔔 Subscribing to job activity updates (checkin/checkout)...');
+
+    jobActivityRealtimeChannel = supabase
+        .channel('job-activity-changes')
+        .on(
+            'postgres_changes',
+            {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'jobdata'
+            },
+            (payload) => {
+                console.log('🔔 Job activity detected:', payload);
+                
+                const oldData = payload.old;
+                const newData = payload.new;
+                
+                // Check for checkin
+                if (!oldData.checkin_time && newData.checkin_time) {
+                    const message = `📍 Check-in: ${newData.reference} - ${newData.ship_to_name || 'จุดส่ง'}`;
+                    showNotification(message, 'info', 5000);
+                    console.log('✅ Driver checked in at:', newData.ship_to_name);
+                }
+                
+                // Check for checkout
+                if (!oldData.checkout_time && newData.checkout_time) {
+                    const message = `✅ Check-out: ${newData.reference} - ${newData.ship_to_name || 'จุดส่ง'}`;
+                    showNotification(message, 'success', 5000);
+                    console.log('✅ Driver checked out from:', newData.ship_to_name);
+                }
+                
+                // Check for trip completion
+                if (!oldData.trip_ended && newData.trip_ended) {
+                    const message = `🎉 Trip จบแล้ว: ${newData.reference}`;
+                    showNotification(message, 'success', 7000);
+                    console.log('🎉 Trip ended:', newData.reference);
+                }
+            }
+        )
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('✅ Subscribed to job activity updates');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.error('❌ Failed to subscribe to job activity updates');
+                // Retry after 5 seconds
+                setTimeout(() => {
+                    console.log('🔄 Retrying job activity subscription...');
+                    subscribeToJobActivityUpdates();
+                }, 5000);
+            }
+        });
+}
+
+// Unsubscribe from job activity updates
+function unsubscribeFromJobActivityUpdates() {
+    if (jobActivityRealtimeChannel) {
+        console.log('👋 Unsubscribing from job activity updates...');
+        supabase.removeChannel(jobActivityRealtimeChannel);
+        jobActivityRealtimeChannel = null;
+    }
+}
 
 // --- Vehicle Breakdown Functions ---
 let activeJobsCache = [];
@@ -2650,6 +2747,10 @@ function setupRealtimeSubscriptions() {
     // Start holiday work realtime subscription
     console.log('🔔 Starting holiday work realtime subscription...');
     subscribeToHolidayWorkUpdates();
+    
+    // Start job activity realtime subscription (checkin/checkout)
+    console.log('🔔 Starting job activity realtime subscription...');
+    subscribeToJobActivityUpdates();
 }
 
 // Function to show the admin panel
