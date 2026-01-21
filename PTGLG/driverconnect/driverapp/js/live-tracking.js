@@ -110,7 +110,7 @@ class LiveTracking {
   /**
    * Start tracking in normal mode
    */
-  startTracking() {
+  async startTracking() {
     if (this.isTracking) {
       console.log('LiveTracking: Already tracking');
       return;
@@ -119,8 +119,25 @@ class LiveTracking {
     this.isTracking = true;
     console.log('LiveTracking: Started in NORMAL mode');
     
-    // Start with normal interval
-    this.switchMode(false);
+    // Wait for GPS to get first valid position before starting interval
+    try {
+      console.log('LiveTracking: Waiting for first GPS lock...');
+      const position = await getCurrentPositionAsync();
+      const { latitude, longitude } = position.coords;
+      
+      if (latitude && longitude && latitude !== 0 && longitude !== 0) {
+        console.log(`LiveTracking: First GPS lock successful (${latitude}, ${longitude})`);
+        // Start with normal interval
+        this.switchMode(false);
+      } else {
+        console.warn('LiveTracking: Invalid first GPS position, will retry on interval');
+        this.switchMode(false);
+      }
+    } catch (error) {
+      console.error('LiveTracking: Failed to get first GPS position:', error);
+      // Start interval anyway, will retry on each send
+      this.switchMode(false);
+    }
   }
 
   /**
@@ -130,6 +147,18 @@ class LiveTracking {
     try {
       const position = await getCurrentPositionAsync();
       const { latitude, longitude } = position.coords;
+
+      // Validate coordinates
+      if (!latitude || !longitude || latitude === 0 || longitude === 0) {
+        console.warn('LiveTracking: Invalid coordinates, skipping send:', { latitude, longitude });
+        return;
+      }
+
+      // Check if coordinates are realistic (Thailand bounds: 5-21 lat, 97-106 lng)
+      if (latitude < 5 || latitude > 21 || longitude < 97 || longitude > 106) {
+        console.warn('LiveTracking: Coordinates out of Thailand bounds, skipping:', { latitude, longitude });
+        return;
+      }
 
       console.log(`LiveTracking: Sending location (${latitude}, ${longitude})`);
 
