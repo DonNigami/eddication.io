@@ -1,6 +1,6 @@
 # 📋 PLAN - Driver Tracking App Development Plan
 
-> **Last Updated:** 2026-01-17
+> **Last Updated:** 2026-01-18
 > **Project:** Driver Tracking App (LINE LIFF + Supabase)
 > **Status:** ✅ Core Features Working | 🔄 Schema Aligned with app/PLAN.md
 
@@ -174,6 +174,14 @@ supabase/
 - created_at, updated_at (timestamp)
 ```
 
+#### 7. **system_settings** (Key-Value Store for App Configs) (NEW)
+```sql
+- key (text, PK) -- e.g., "enable_live_tracking"
+- value (jsonb) -- The setting's value, e.g., true, 15, "some string"
+- description (text)
+- updated_at (timestamptz)
+```
+
 ### Storage Buckets
 - `alcohol-evidence` - Store alcohol test images (per app/PLAN.md)
 - ~~`alcohol-checks`~~ - Old bucket name (deprecated)
@@ -252,6 +260,7 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 - [x] **Robust Offline Mode:** Actions (check-in, alcohol tests, etc.) are queued locally when offline and synced automatically with retry logic when the connection is restored.
 - [x] **Realtime Data Sync:** Subscribes to Supabase realtime updates for the current job, automatically refreshing the data on the screen when changes occur in the database.
 - [x] **Stop Filtering:** Automatically filters out any destination stop containing "คลังศรีราชา" from being displayed in the timeline or synced to the `jobdata` table.
+- [x] **Live Tracking (Smart Model):** ✨ NEW - Automatically sends driver location every 5 minutes in normal mode. When an admin opens the tracking page, switches to high-frequency mode (every 15 seconds) for real-time monitoring, then returns to normal when the page closes.
 
 ---
 
@@ -275,6 +284,36 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
   git push
   ```
 
+### Google Chat Notification Feature (REVISED)
+- [ ] **(ผู้ใช้) กำหนดเหตุการณ์ (Trigger Event):** ตัดสินใจว่าจะให้ส่งการแจ้งเตือนเมื่อใด (เช่น เมื่อ `job_closed` เป็น true)
+- [ ] **(ผู้ใช้) ตั้งค่า Google Service Account:** (สำหรับส่ง DM) ดำเนินการตาม "ขั้นตอนการตั้งค่าที่ต้องทำเพิ่ม" และบันทึก Key เป็น Secret ใน Supabase
+- [ ] **(ผู้ใช้) สร้าง Secret สำหรับ Admin-Mode:** สร้าง Secret ใหม่ชื่อ `ADMIN_NOTIFICATION_WEBHOOK` พร้อมใส่ URL/Email สำหรับรับการแจ้งเตือนตอนทดสอบ
+- [x] **(Database)** สร้าง/แก้ไขไฟล์ SQL migration สำหรับตาราง `google_chat_webhooks` ให้มีคอลัมน์ `notification_type` และ `target_address`
+- [ ] **(Backend)** เพิ่ม Logic ตรวจสอบ `user_type` ใน Edge Function `send-google-chat-notification` เพื่อเปลี่ยนเส้นทางการส่งถ้าเป็น 'ADMIN'
+- [ ] **(Backend)** พัฒนา Logic ส่วน **Webhook** ใน Edge Function `send-google-chat-notification`
+- [ ] **(Backend)** พัฒนา Logic ส่วน **Direct Message (DM)** ใน Edge Function โดยใช้ Google Auth Library และ Service Account Key
+- [ ] **(Integration)** ติดตั้ง Database Trigger หรือแก้ไขโค้ดเดิมเพื่อเรียกใช้ Edge Function
+- [ ] **(Admin UI - Optional)** พัฒนาหน้าจอในส่วน Admin เพื่อให้จัดการเป้าหมายการแจ้งเตือน (webhook/dm) ได้
+- [ ] **(Testing)** ทดสอบการส่งแจ้งเตือนทั้ง 2 รูปแบบ (Webhook และ DM) และทดสอบ Admin Mode Override
+
+### Live Tracking Feature (Smart Tracking Model) ✅ IMPLEMENTED
+- [x] **(Database)** สร้างไฟล์ SQL migration สำหรับตาราง `driver_live_locations` และเพิ่มคอลัมน์ `is_tracked_in_realtime` (boolean)
+- [x] **(Backend)** สร้าง Edge Function `start-live-tracking` และ `stop-live-tracking` - **DEPLOYED**
+- [x] **(Driver App)** Implement Supabase Realtime subscription เพื่อ "ฟัง" การเปลี่ยนแปลงของ `is_tracked_in_realtime` ในแถวของตัวเอง
+- [x] **(Driver App)** Implement Logic การสลับโหมดส่งข้อมูล (15 วินาที vs 5 นาที) ตาม event ที่ได้รับจาก Realtime
+- [x] **(Tracking Page)** สร้างหน้า `track/index.html` พร้อมแผนที่ Leaflet.js - **COMPLETE**
+- [x] **(Tracking Page)** Implement Logic การเรียก `start-live-tracking` เมื่อเปิดหน้า และ `stop-live-tracking` เมื่อปิดหน้า (on unload)
+- [x] **(Documentation)** สร้างเอกสาร LIVE_TRACKING_GUIDE.md, QUICKSTART.md, และ SUMMARY.md
+- [ ] **(Database)** Apply migration ใน Supabase SQL Editor
+- [ ] **(Integration)** ปรับปรุง Flow การส่ง Notification ให้สร้าง `tracking_id` ที่ไม่ซ้ำกัน และแนบลิงก์ไปยังหน้า Tracking Page
+- [ ] **(Testing)** ทดสอบกระบวนการทั้งหมดแบบ End-to-End เพื่อให้แน่ใจว่าการสลับโหมดทำงานถูกต้อง
+  
+**Files Created:**
+- `js/live-tracking.js` - Core tracking module
+- `track/index.html` - Interactive map tracking page
+- Edge Functions: `start-live-tracking`, `stop-live-tracking`
+- Documentation: Full guides and deployment scripts
+
 ### Testing Needed
 - [ ] Test user profile tracking in production
 - [ ] Verify total_visits increments correctly
@@ -284,6 +323,7 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 - [ ] Test offline behavior and error handling
 
 ### Future Enhancements
+- [x] **(COMPLETED)** Live Tracking with Smart Tracking Model - See LIVE_TRACKING_GUIDE.md
 - [ ] Enable RLS with proper auth policies for production
 - [ ] Add user device info to user_profiles (device type, browser, OS)
 - [ ] Add app version tracking
@@ -294,6 +334,28 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 - [ ] Add earnings/salary calculation
 - [ ] Export job reports to PDF
 - [ ] Multi-language support (TH/EN)
+
+### Admin Panel Enhancements (Recommended)
+- [ ] **Unified Settings Page (หน้าจอตั้งค่าระบบแบบรวม)**
+  - **คำอธิบาย:** สร้างหน้าเว็บ `admin/settings.html` ที่รวมการตั้งค่าทั้งหมดของระบบไว้ในที่เดียว โดยแต่ละการตั้งค่าจะมี "ปุ่มเปิด/ปิด" (Toggle Switch) หรือช่องให้กรอกข้อมูลได้อย่างอิสระ
+  - **ฐานข้อมูล:** ต้องสร้างตาราง `system_settings` (key-value store) เพื่อเก็บค่าเหล่านี้ และ Edge Function ต่างๆ จะต้องอ่านค่าจากตารางนี้ก่อนทำงาน
+  - **รายการ Settings ที่จะแสดงใน UI:**
+    - **Live Tracking Settings:**
+        -   `[Toggle]` เปิด/ปิด ระบบติดตามรถแบบสด (`enable_live_tracking`)
+        -   `[Input]` ความถี่โหมดไลฟ์ (วินาที) (`live_tracking_interval_seconds`)
+        -   `[Input]` ความถี่โหมดปกติ (วินาที) (`normal_tracking_interval_seconds`)
+        -   `[Input]` อายุของลิงก์ติดตาม (ชั่วโมง) (`tracking_link_ttl_hours`)
+    - **Notification Settings:**
+        -   `[Toggle]` เปิด/ปิด ระบบแจ้งเตือนทั้งหมด (`enable_all_notifications`)
+        -   `[Toggle]` เปิด/ปิด การแจ้งเตือน "ปิดงาน" (Job Closed)
+        -   `[Toggle]` เปิด/ปิด การแจ้งเตือน "สิ้นสุดทริป" (Trip Ended)
+- [ ] **Notification Target Management**
+    - **รายละเอียด:** สร้างหน้าจอ CRUD สำหรับจัดการ `notification_targets` เพื่อให้ Admin เพิ่ม/ลบ/แก้ไข ปลายทางของการแจ้งเตือนได้ (ทั้ง Google Chat Webhook และ LINE User ID)
+- [ ] **Driver Tracking (Live Location with History Playback)**
+- [ ] **Alerts & Anomaly Detection (การแจ้งเตือนและตรวจจับความผิดปกติ)**
+- [ ] **Actionable Notifications (การแจ้งเตือนที่สั่งการได้)**
+- [ ] **Analytics Dashboard (แดชบอร์ดสรุปผลเชิงวิเคราะห์)**
+- [ ] **Visual Geofence Management (การจัดการ Geofence บนแผนที่)**
 
 ---
 
@@ -426,11 +488,51 @@ Application is considered "production-ready" when:
 **Supabase Dashboard:** https://supabase.com/dashboard/project/myplpshpcordggbbtblg  
 **LINE Developers:** https://developers.line.biz/console/  
 **GitHub Pages:** https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverapp/index-supabase-modular.html  
-**LIFF Direct:** https://liff.line.me/2007705394-Fgx9wdHu
+**LIFF Direct:** https://liff.line.me/2007705394-Fgx9wdHu  
+**Live Tracking Page:** https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverapp/track/?driver_user_id=YOUR_USER_ID ✨ NEW
+
+**Documentation:**
+- Live Tracking Guide: `LIVE_TRACKING_GUIDE.md`
+- Quick Start: `LIVE_TRACKING_QUICKSTART.md`
+- Deployment Status: `DEPLOYMENT_STATUS.md`
 
 ---
 
 ## 📚 Change Log
+
+### 2026-01-21 - Live Tracking Feature Implementation ✨ NEW
+- **Objective:** Add real-time GPS tracking with Smart Model (auto-switching intervals)
+- **Changes:**
+  - Created `live-tracking.js` module with Realtime subscription
+  - Added LIVE_TRACKING config to config.js (5min/15s intervals)
+  - Integrated live tracking auto-init in app.js on LIFF login
+  - Created Edge Functions: `start-live-tracking`, `stop-live-tracking`
+  - Created `track/index.html` tracking page with Leaflet.js map
+  - Created `cors.ts` helper for Edge Functions
+  - Fixed `edge_runtime.port` config error in config.toml
+- **Features:**
+  - Normal mode: Send location every 5 minutes (battery-efficient)
+  - LIVE mode: Send location every 15 seconds (real-time)
+  - Auto-switch based on tracking page open/close
+  - Interactive map with real-time updates
+  - Status indicator (LIVE/Normal mode)
+- **Files Created:**
+  - `js/live-tracking.js`
+  - `track/index.html`
+  - `supabase/functions/start-live-tracking/index.ts`
+  - `supabase/functions/stop-live-tracking/index.ts`
+  - `supabase/functions/_shared/cors.ts`
+  - `LIVE_TRACKING_GUIDE.md`
+  - `LIVE_TRACKING_QUICKSTART.md`
+  - `LIVE_TRACKING_SUMMARY.md`
+  - `deploy-live-tracking.bat`
+- **Files Modified:**
+  - `js/config.js` - Added LIVE_TRACKING config
+  - `js/app.js` - Added live tracking initialization
+  - `PLAN.md` - Updated flows and documentation
+  - `supabase/config.toml` - Fixed edge_runtime config
+- **Migrations:** 20260120134241_create_driver_live_locations_table.sql (pending)
+- **Status:** Edge Functions deployed ✅ | Code pushed to GitHub ✅ | Migration pending
 
 ### 2026-01-17 - Schema Alignment with app/PLAN.md
 - **Objective:** Align driverapp schema with migration plan in `PTGLG/driverconnect/app/PLAN.md`
@@ -586,8 +688,10 @@ Application is considered "production-ready" when:
             ↓                             [Geofence Check: Is user within radius?]
 [Get current GPS location]                     ↓
             ↓                               ┌───┴───┐
-        [Execute or Queue Update]           │ No    │ Yes
-            ↓                               ↓       ↓
+    │ No    │ Yes
+    ↓       ↓
+[Show Error] [Execute or Queue Update]
+            ↓                                           ↓
     [Update trips: ODO_start]           [Show Error] [Execute or Queue Update]
             ↓                                           ↓
     [Update trip_stops: status, time, location] [Update trip_stops: status, time, ODO, receiver]
@@ -814,6 +918,10 @@ Application is considered "production-ready" when:
 │  │  (Main UI)  │  │   ux.js     │  │   (API Layer)       │ │
 │  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘ │
 │         │                │                     │            │
+│         │    ┌───────────────────────┐         │            │
+│         │    │  live-tracking.js     │◄────────┤            │
+│         │    │  (GPS Tracking)       │         │            │
+│         │    └───────────┬───────────┘         │            │
 │         └────────────────┼─────────────────────┘            │
 │                          │                                  │
 └──────────────────────────┼──────────────────────────────────┘
@@ -825,15 +933,147 @@ Application is considered "production-ready" when:
 │  │    trips     │  │  trip_stops  │  │ driver_logs  │       │
 │  │  (Headers)   │  │   (Items)    │  │   (Audit)    │       │
 │  └──────────────┘  └──────────────┘  └──────────────┘       │
-│  ┌──────────────────┐  ┌─────────────────┐                  │
-│  │  alcohol_checks  │  │  user_profiles  │                  │
-│  │                  │  │   (Tracking)    │                  │
-│  └──────────────────┘  └─────────────────┘                  │
+│  ┌──────────────────┐  ┌─────────────────────────────┐      │
+│  │  alcohol_checks  │  │  user_profiles              │      │
+│  │                  │  │   (User Tracking)           │      │
+│  └──────────────────┘  └─────────────────────────────┘      │
+│  ┌──────────────────────────────────────────────────┐       │
+│  │  driver_live_locations ✨ NEW                    │       │
+│  │  (Real-time GPS Tracking)                        │       │
+│  └──────────────────────────────────────────────────┘       │
 │  ┌──────────────────────────────────────────┐               │
 │  │         Storage: 'alcohol-evidence'      │               │
 │  │              (Image uploads)             │               │
 │  └──────────────────────────────────────────┘               │
+│                                                              │
+│  Edge Functions:                                            │
+│  - start-live-tracking ✨ NEW                               │
+│  - stop-live-tracking ✨ NEW                                │
 └──────────────────────────────────────────────────────────────┘
+                           ▲
+                           │
+┌──────────────────────────┴───────────────────────────────────┐
+│                   Tracking Page (track/index.html)           │
+│  - Leaflet.js map                                            │
+│  - Real-time location display                                │
+│  - Status indicator (LIVE/Normal)                            │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 9. Live Tracking Flow (Smart Model) ✨ NEW
+
+```
+[Driver opens LIFF App]
+         ↓
+[LIFF Init & Login]
+         ↓
+[liveTracking.init(userId, tripId)]
+         ↓
+[Subscribe to Realtime channel: 'live-tracking-{userId}']
+         ↓
+[Start sending location in NORMAL mode (every 5 minutes)]
+         ↓
+┌────────────────────────────────────────────────────┐
+│  NORMAL MODE - Battery Efficient                  │
+│  🔋 Send location every 5 minutes (300,000ms)      │
+│  📊 ~12 updates/hour, ~2% battery/hour            │
+└────────────────────────────────────────────────────┘
+         ↓
+    [Background GPS tracking...]
+         ↓
+         │
+         ├──────────────────────────────────┐
+         │                                  │
+         ↓                                  ↓
+[Admin opens Tracking Page]        [Driver continues working]
+         ↓
+[GET driver_live_locations WHERE driver_user_id = ?]
+         ↓
+[Display map with current location]
+         ↓
+[Call Edge Function: start-live-tracking]
+  POST /functions/v1/start-live-tracking
+  Body: { driver_user_id, trip_id }
+         ↓
+[Edge Function: UPDATE driver_live_locations]
+  SET is_tracked_in_realtime = true
+         ↓
+[Supabase Realtime broadcasts change]
+         ↓
+[Driver App receives Realtime event]
+         ↓
+[liveTracking.switchMode(true)]
+         ↓
+┌────────────────────────────────────────────────────┐
+│  LIVE MODE - Real-time Tracking                   │
+│  ⚡ Send location every 15 seconds (15,000ms)      │
+│  📊 ~240 updates/hour, ~8% battery/hour           │
+└────────────────────────────────────────────────────┘
+         ↓
+[High-frequency GPS updates...]
+         ↓
+[Tracking Page subscribes to Realtime updates]
+         ↓
+[Map updates in real-time with each location change]
+         ↓
+         │
+         ↓
+[Admin closes Tracking Page]
+         ↓
+[beforeunload event fires]
+         ↓
+[Call Edge Function: stop-live-tracking]
+  POST /functions/v1/stop-live-tracking
+  Body: { driver_user_id }
+         ↓
+[Edge Function: UPDATE driver_live_locations]
+  SET is_tracked_in_realtime = false
+         ↓
+[Supabase Realtime broadcasts change]
+         ↓
+[Driver App receives Realtime event]
+         ↓
+[liveTracking.switchMode(false)]
+         ↓
+[Return to NORMAL MODE (5 minutes interval)]
+```
+
+### 10. Google Chat Notification Flow (REVISED)
+
+```
+[Event Triggered: e.g., 'job_closed' or 'trip_ended']
+                  ↓
+[Invoke Supabase Edge Function: 'send-google-chat-notification']
+(Payload: { "job_id": 123, "event_type": "job_closed", "user_id": "U123..." })
+                  ↓
+[Edge Function: 'send-google-chat-notification' starts]
+  1. Get user_id from payload and query 'user_profiles' table.
+                  ↓
+  ┌─────────────┴─────────────┐
+  │ Is user_profile.user_type │ Is user_profile.user_type
+  │      == 'ADMIN'?          │      != 'ADMIN'?
+  ↓                           ↓
+[PATH A: ADMIN/TEST MODE]     [PATH B: NORMAL MODE]
+  1. Fetch 'ADMIN_NOTIFICATION_WEBHOOK' from Supabase Secrets.
+  2. Format a special [TEST] message.
+  3. Send notification ONLY to the admin webhook.
+  4. End.
+                              ↓
+                            [Edge Function continues with normal logic]
+                              1. Fetch job details from 'jobdata'.
+                              2. Query 'google_chat_webhooks' for customer/station targets.
+                              ↓
+                              For each 'target' found:
+                                - Get 'notification_type' and 'target_address'
+                                ↓
+                                ┌───────────┴───────────┐
+                                │ type=='webhook'       │ type=='dm'
+                                ↓                       ↓
+                              [Send to Webhook]       [Send to DM via API]
+                                ↓                       ↓
+                              [Log success/failure]   [Log success/failure]
+                                          ↓
+[Message appears ONLY in Admin's Chat]    [Message appears in Customer/Station Chat]
 ```
 
 ---
