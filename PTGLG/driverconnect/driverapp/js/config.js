@@ -32,8 +32,8 @@ export const APP_CONFIG = {
   // GPS settings
   GPS: {
     enableHighAccuracy: true,
-    timeout: 15000,
-    maximumAge: 0,
+    timeout: 60000,      // 60 seconds - increased for better reliability
+    maximumAge: 30000,   // Allow 30s cached position
     accuracyThresholds: {
       excellent: 20,
       good: 50,

@@ -182,6 +182,35 @@ class LiveTracking {
       }
     } catch (error) {
       console.error('LiveTracking: Failed to get position:', error);
+      
+      // If we have a last known position, use it as fallback
+      if (this.lastPosition) {
+        console.log('LiveTracking: Using last known position as fallback:', this.lastPosition);
+        
+        try {
+          const { data, error } = await this.supabase
+            .from('driver_live_locations')
+            .upsert({
+              driver_user_id: this.userId,
+              trip_id: this.tripId,
+              lat: this.lastPosition.lat,
+              lng: this.lastPosition.lng,
+              last_updated: new Date().toISOString()
+            }, {
+              onConflict: 'driver_user_id'
+            });
+          
+          if (error) {
+            console.error('LiveTracking: Error sending fallback location:', error);
+          } else {
+            console.log('LiveTracking: Fallback location sent successfully');
+          }
+        } catch (fallbackError) {
+          console.error('LiveTracking: Failed to send fallback location:', fallbackError);
+        }
+      } else {
+        console.warn('LiveTracking: No last position available, skipping this update');
+      }
     }
   }
 
