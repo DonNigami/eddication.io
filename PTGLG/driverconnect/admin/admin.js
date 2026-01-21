@@ -119,15 +119,31 @@ const notificationContainer = document.getElementById('notification-container');
 // Holiday Work
 const holidayWorkTableBody = document.querySelector('#holiday-work-table tbody');
 const holidayWorkSearch = document.getElementById('holiday-work-search');
-const holidayWorkFilterOnly = document.getElementById('holiday-work-filter-only');
-const holidayWorkModal = document.getElementById('holiday-work-modal');
-const holidayWorkModalClose = document.getElementById('holiday-work-modal-close');
-const holidayWorkForm = document.getElementById('holiday-work-form');
-const holidayWorkJobIdInput = document.getElementById('holiday-work-job-id');
-const holidayWorkReferenceDisplay = document.getElementById('holiday-work-reference-display');
-const holidayWorkDriverDisplay = document.getElementById('holiday-work-driver-display');
-const holidayWorkCheckbox = document.getElementById('holiday-work-checkbox');
-const holidayWorkNotesInput = document.getElementById('holiday-work-notes');
+const holidayStatusFilter = document.getElementById('holiday-status-filter');
+const holidayDateFrom = document.getElementById('holiday-date-from');
+const holidayDateTo = document.getElementById('holiday-date-to');
+const holidayRefreshBtn = document.getElementById('holiday-refresh-btn');
+const pendingHolidayCount = document.getElementById('pending-holiday-count');
+const approvedHolidayCount = document.getElementById('approved-holiday-count');
+const rejectedHolidayCount = document.getElementById('rejected-holiday-count');
+
+// Holiday Approval Modal
+const holidayApprovalModal = document.getElementById('holiday-approval-modal');
+const holidayApprovalModalClose = document.getElementById('holiday-approval-modal-close');
+const holidayApprovalForm = document.getElementById('holiday-approval-form');
+const approvalJobId = document.getElementById('approval-job-id');
+const approvalReference = document.getElementById('approval-reference');
+const approvalReferenceInput = document.getElementById('approval-reference-input');
+const approvalDriver = document.getElementById('approval-driver');
+const approvalVehicle = document.getElementById('approval-vehicle');
+const approvalDate = document.getElementById('approval-date');
+const approvalNotes = document.getElementById('approval-notes');
+const approvalComment = document.getElementById('approval-comment');
+const approvalCommentRequired = document.getElementById('approval-comment-required');
+const approvalAction = document.getElementById('approval-action');
+const approvalModalTitle = document.getElementById('approval-modal-title');
+const approveBtnModal = document.getElementById('approve-btn');
+const rejectBtnModal = document.getElementById('reject-btn');
 
 // Vehicle Breakdown
 const breakdownTableBody = document.querySelector('#breakdown-table tbody');
@@ -1273,111 +1289,259 @@ async function loadLogs() {
 
 
 // --- Holiday Work Functions ---
-async function loadHolidayWorkJobs(searchTerm = '', filterHolidayOnly = false) {
-    holidayWorkTableBody.innerHTML = '<tr><td colspan="7">Loading jobs...</td></tr>';
+async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
+    const tbody = document.getElementById('holiday-work-tbody');
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px;"><div style="font-size:24px;">⏳</div><p>กำลังโหลดข้อมูล...</p></td></tr>';
+    
     try {
-        // Always filter for is_holiday_work = true and not yet approved
-        let query = supabase.from('driver_jobs')
+        // Query from jobdata table
+        let query = supabase.from('jobdata')
             .select('*')
             .eq('is_holiday_work', true)
-            .eq('holiday_work_approved', false)
-            .order('created_at', { ascending: false });
+            .order('job_closed_at', { ascending: false });
 
-        if (searchTerm) {
-            query = query.or(`reference.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
+        // Filter by status
+        if (statusFilter === 'pending') {
+            query = query.is('holiday_work_approved', null).is('holiday_work_approved', false);
+        } else if (statusFilter === 'approved') {
+            query = query.eq('holiday_work_approved', true);
+        } else if (statusFilter === 'rejected') {
+            query = query.eq('holiday_work_approved', false).not('holiday_work_approved_at', 'is', null);
+        }
+
+        // Filter by date range
+        if (holidayDateFrom.value) {
+            query = query.gte('job_closed_at', holidayDateFrom.value);
+        }
+        if (holidayDateTo.value) {
+            const endDate = new Date(holidayDateTo.value);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.lt('job_closed_at', endDate.toISOString().split('T')[0]);
         }
 
         const { data: jobs, error } = await query;
 
         if (error) throw error;
 
-        holidayWorkTableBody.innerHTML = '';
+        // Update summary counts
+        await updateHolidaySummary();
+
+        tbody.innerHTML = '';
         if (jobs.length === 0) {
-            holidayWorkTableBody.innerHTML = '<tr><td colspan="7">No pending holiday work jobs found.</td></tr>';
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                <div style="font-size:48px; margin-bottom:10px;">📭</div>
+                <p>ไม่พบรายการ${statusFilter === 'pending' ? 'ที่รออนุมัติ' : statusFilter === 'approved' ? 'ที่อนุมัติแล้ว' : 'ที่ปฏิเสธ'}</p>
+            </td></tr>`;
             return;
         }
 
-        jobs.forEach(job => {
+        // Filter by search term
+        let filteredJobs = jobs;
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filteredJobs = jobs.filter(job => 
+                (job.reference && job.reference.toLowerCase().includes(term)) ||
+                (job.drivers && job.drivers.toLowerCase().includes(term)) ||
+                (job.vehicle_desc && job.vehicle_desc.toLowerCase().includes(term))
+            );
+        }
+
+        if (filteredJobs.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px;">ไม่พบผลลัพธ์สำหรับ "${searchTerm}"</td></tr>`;
+            return;
+        }
+
+        filteredJobs.forEach(job => {
             const row = document.createElement('tr');
-            const isHoliday = job.is_holiday_work;
-            const isApproved = job.holiday_work_approved;
-            const badgeClass = isHoliday ? 'badge-holiday' : 'badge-normal';
-            const badgeText = isHoliday ? 'Yes' : 'No';
-            const approvedBadge = isApproved ? '<span class="status-badge badge-success">Approved</span>' : '<span class="status-badge badge-warning">Pending</span>';
+            
+            // Status badge
+            let statusBadge = '';
+            let actionButtons = '';
+            
+            if (job.holiday_work_approved === true) {
+                statusBadge = '<span style="background:#4caf50; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">✅ อนุมัติแล้ว</span>';
+                actionButtons = '<button disabled style="opacity:0.5; cursor:not-allowed;">อนุมัติแล้ว</button>';
+            } else if (job.holiday_work_approved === false && job.holiday_work_approved_at) {
+                statusBadge = '<span style="background:#f44336; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">❌ ปฏิเสธ</span>';
+                actionButtons = '<button disabled style="opacity:0.5; cursor:not-allowed;">ปฏิเสธแล้ว</button>';
+            } else {
+                statusBadge = '<span style="background:#ff9800; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">⏳ รอดำเนินการ</span>';
+                actionButtons = `
+                    <button class="approve-holiday-btn" data-reference="${job.reference}" style="background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; margin-right:5px;">
+                        ✅ อนุมัติ
+                    </button>
+                    <button class="reject-holiday-btn" data-reference="${job.reference}" style="background:#f44336; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">
+                        ❌ ปฏิเสธ
+                    </button>
+                `;
+            }
+
+            const closedDate = job.job_closed_at ? new Date(job.job_closed_at).toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '-';
+
+            const approvedBy = job.holiday_work_approved_by ? 
+                `<div>${job.holiday_work_approved_by}</div><small style="color:var(--text-sub);">${job.holiday_work_approved_at ? new Date(job.holiday_work_approved_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : ''}</small>` : 
+                '-';
 
             row.innerHTML = `
-                <td>${job.reference || 'N/A'}</td>
-                <td>${job.drivers || 'N/A'}</td>
-                <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
-                <td><span class="status-badge ${badgeClass}">${badgeText}</span></td>
-                <td>${approvedBadge}</td>
-                <td>${job.holiday_work_notes || '-'}</td>
-                <td>
-                    <button class="edit-holiday-btn" data-job-id="${job.id}">Approve</button>
-                </td>
+                <td><strong>${job.reference || '-'}</strong></td>
+                <td style="font-size:0.9rem;">${closedDate}</td>
+                <td>${job.drivers || '-'}</td>
+                <td style="font-size:0.9rem;">${job.vehicle_desc || '-'}</td>
+                <td style="max-width:200px; font-size:0.85rem; line-height:1.4;">${job.holiday_work_notes || '<span style="color:var(--text-sub);">-</span>'}</td>
+                <td>${statusBadge}</td>
+                <td style="font-size:0.85rem;">${approvedBy}</td>
+                <td>${actionButtons}</td>
             `;
-            holidayWorkTableBody.appendChild(row);
+            
+            tbody.appendChild(row);
         });
 
         // Add event listeners
-        document.querySelectorAll('.edit-holiday-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const jobId = e.target.dataset.jobId;
-                const job = jobs.find(j => j.id == jobId);
-                openHolidayWorkModal(job);
+        document.querySelectorAll('.approve-holiday-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const reference = e.target.dataset.reference;
+                const job = filteredJobs.find(j => j.reference === reference);
+                openHolidayApprovalModal(job, 'approve');
+            });
+        });
+
+        document.querySelectorAll('.reject-holiday-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const reference = e.target.dataset.reference;
+                const job = filteredJobs.find(j => j.reference === reference);
+                openHolidayApprovalModal(job, 'reject');
             });
         });
 
     } catch (error) {
         console.error('Error loading holiday work jobs:', error);
-        holidayWorkTableBody.innerHTML = `<tr><td colspan="7">Error: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: #f44336;">
+            ❌ เกิดข้อผิดพลาด: ${error.message}
+        </td></tr>`;
     }
 }
 
-function openHolidayWorkModal(job) {
-    holidayWorkJobIdInput.value = job.id;
-    holidayWorkReferenceDisplay.textContent = job.reference || 'N/A';
-    holidayWorkDriverDisplay.textContent = job.drivers || 'N/A';
-    holidayWorkCheckbox.checked = job.is_holiday_work || false;
-    holidayWorkNotesInput.value = job.holiday_work_notes || '';
-    holidayWorkModal.classList.remove('hidden');
+async function updateHolidaySummary() {
+    try {
+        // Pending
+        const { count: pendingCount } = await supabase
+            .from('jobdata')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_holiday_work', true)
+            .or('holiday_work_approved.is.null,holiday_work_approved.eq.false')
+            .is('holiday_work_approved_at', null);
+
+        // Approved
+        const { count: approvedCount } = await supabase
+            .from('jobdata')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_holiday_work', true)
+            .eq('holiday_work_approved', true);
+
+        // Rejected
+        const { count: rejectedCount } = await supabase
+            .from('jobdata')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_holiday_work', true)
+            .eq('holiday_work_approved', false)
+            .not('holiday_work_approved_at', 'is', null);
+
+        pendingHolidayCount.textContent = pendingCount || 0;
+        approvedHolidayCount.textContent = approvedCount || 0;
+        rejectedHolidayCount.textContent = rejectedCount || 0;
+
+        // Update dashboard KPI
+        kpiPendingApprovals.textContent = pendingCount || 0;
+    } catch (error) {
+        console.error('Error updating summary:', error);
+    }
 }
 
-function closeHolidayWorkModal() {
-    holidayWorkModal.classList.add('hidden');
-    holidayWorkForm.reset();
+function openHolidayApprovalModal(job, action) {
+    approvalReferenceInput.value = job.reference;
+    approvalReference.textContent = job.reference;
+    approvalDriver.textContent = job.drivers || '-';
+    approvalVehicle.textContent = job.vehicle_desc || '-';
+    approvalDate.textContent = job.job_closed_at ? 
+        new Date(job.job_closed_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }) : '-';
+    approvalNotes.textContent = job.holiday_work_notes || '(ไม่มีหมายเหตุ)';
+    approvalComment.value = '';
+    approvalAction.value = action;
+
+    if (action === 'reject') {
+        approvalModalTitle.textContent = '❌ ปฏิเสธการทำงานวันหยุด';
+        approvalCommentRequired.style.display = 'inline';
+        approveBtnModal.style.display = 'none';
+        rejectBtnModal.style.display = 'block';
+    } else {
+        approvalModalTitle.textContent = '✅ อนุมัติการทำงานวันหยุด';
+        approvalCommentRequired.style.display = 'none';
+        approveBtnModal.style.display = 'block';
+        rejectBtnModal.style.display = 'block';
+    }
+
+    holidayApprovalModal.classList.remove('hidden');
 }
 
-async function handleHolidayWorkSubmit(event) {
+function closeHolidayApprovalModal() {
+    holidayApprovalModal.classList.add('hidden');
+    holidayApprovalForm.reset();
+}
+
+async function handleHolidayApprovalSubmit(event) {
     event.preventDefault();
-    const jobId = holidayWorkJobIdInput.value;
-    const isHoliday = holidayWorkCheckbox.checked;
-    const notes = holidayWorkNotesInput.value;
+    
+    const reference = approvalReferenceInput.value;
+    const action = approvalAction.value;
+    const comment = approvalComment.value.trim();
+
+    // Validate
+    if (action === 'reject' && !comment) {
+        showNotification('กรุณาระบุเหตุผลในการปฏิเสธ', 'error');
+        return;
+    }
 
     try {
         // Get current admin user info
         const lineProfile = await liff.getProfile();
+        const adminId = lineProfile.userId;
+        const adminName = lineProfile.displayName;
         
+        const updateData = {
+            holiday_work_approved: action === 'approve',
+            holiday_work_approved_by: adminId,
+            holiday_work_approved_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        // Add comment to notes if provided
+        if (comment) {
+            updateData.holiday_work_notes = (approvalNotes.textContent || '') + `\n\n[${action === 'approve' ? 'อนุมัติ' : 'ปฏิเสธ'} โดย ${adminName}]\n${comment}`;
+        }
+
         const { error } = await supabase
-            .from('driver_jobs')
-            .update({
-                is_holiday_work: isHoliday,
-                holiday_work_notes: notes,
-                holiday_work_approved: true,
-                holiday_work_approved_by: lineProfile.userId,
-                holiday_work_approved_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', jobId);
+            .from('jobdata')
+            .update(updateData)
+            .eq('reference', reference);
 
         if (error) throw error;
 
-        showNotification('Holiday work approved successfully!', 'info');
-        closeHolidayWorkModal();
-        loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked);
+        const successMsg = action === 'approve' ? 
+            `✅ อนุมัติการทำงานวันหยุดสำเร็จ: ${reference}` : 
+            `❌ ปฏิเสธการทำงานวันหยุดแล้ว: ${reference}`;
+        
+        showNotification(successMsg, 'info');
+        closeHolidayApprovalModal();
+        loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value);
     } catch (error) {
-        console.error('Error updating holiday work:', error);
-        showNotification(`Failed to update: ${error.message}`, 'error');
+        console.error('Error updating holiday approval:', error);
+        showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
 }
 
@@ -2253,13 +2417,42 @@ function setupEventListeners() {
     logSearchUserIdInput.addEventListener('keyup', () => loadLogs());
 
     // Holiday Work Event Listeners
-    holidayWorkSearch.addEventListener('keyup', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked));
-    holidayWorkFilterOnly.addEventListener('change', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayWorkFilterOnly.checked));
-    holidayWorkModalClose.addEventListener('click', closeHolidayWorkModal);
-    holidayWorkModal.addEventListener('click', (e) => {
-        if (e.target === holidayWorkModal) closeHolidayWorkModal();
+    holidayWorkSearch.addEventListener('keyup', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value));
+    holidayStatusFilter.addEventListener('change', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value));
+    holidayDateFrom.addEventListener('change', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value));
+    holidayDateTo.addEventListener('change', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value));
+    holidayRefreshBtn.addEventListener('click', () => loadHolidayWorkJobs(holidayWorkSearch.value, holidayStatusFilter.value));
+    
+    holidayApprovalModalClose.addEventListener('click', closeHolidayApprovalModal);
+    holidayApprovalModal.addEventListener('click', (e) => {
+        if (e.target === holidayApprovalModal) closeHolidayApprovalModal();
     });
-    holidayWorkForm.addEventListener('submit', handleHolidayWorkSubmit);
+    
+    // Handle approve button click
+    approveBtnModal.addEventListener('click', (e) => {
+        e.preventDefault();
+        approvalAction.value = 'approve';
+        holidayApprovalForm.dispatchEvent(new Event('submit'));
+    });
+    
+    // Handle reject button click
+    rejectBtnModal.addEventListener('click', (e) => {
+        e.preventDefault();
+        const comment = approvalComment.value.trim();
+        if (!comment) {
+            showNotification('กรุณาระบุเหตุผลในการปฏิเสธ', 'error');
+            return;
+        }
+        approvalAction.value = 'reject';
+        holidayApprovalForm.dispatchEvent(new Event('submit'));
+    });
+    
+    // Cancel buttons
+    document.querySelectorAll('.cancel-btn').forEach(btn => {
+        btn.addEventListener('click', closeHolidayApprovalModal);
+    });
+    
+    holidayApprovalForm.addEventListener('submit', handleHolidayApprovalSubmit);
 
     // Vehicle Breakdown Event Listeners
     breakdownSearch.addEventListener('keyup', () => loadVehicleBreakdowns(breakdownSearch.value));

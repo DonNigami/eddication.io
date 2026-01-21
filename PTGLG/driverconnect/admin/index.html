@@ -415,48 +415,105 @@
 
             <!-- Holiday Work Section -->
             <section id="holiday-work" class="content-section hidden">
-                <h1>Holiday Work Management</h1>
-                <div class="holiday-work-controls">
-                    <input type="text" id="holiday-work-search" placeholder="Search by Reference, Driver...">
-                    <label style="display: flex; align-items: center; gap: 5px;">
-                        <input type="checkbox" id="holiday-work-filter-only"> Show Holiday Work Only
-                    </label>
+                <h1>🎊 Holiday Work Approval</h1>
+                
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>รอการอนุมัติ</h3>
+                        <p id="pending-holiday-count" style="color: #ff9800;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>อนุมัติแล้ว</h3>
+                        <p id="approved-holiday-count" style="color: #4caf50;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ปฏิเสธ</h3>
+                        <p id="rejected-holiday-count" style="color: #f44336;">0</p>
+                    </div>
                 </div>
+                
+                <!-- Filters -->
+                <div class="holiday-work-controls" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="holiday-work-search" placeholder="🔍 ค้นหา Reference, คนขับ..." style="flex: 1; min-width: 200px; padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
+                    
+                    <select id="holiday-status-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
+                        <option value="all">📋 ทั้งหมด</option>
+                        <option value="pending" selected>⏳ รอการอนุมัติ</option>
+                        <option value="approved">✅ อนุมัติแล้ว</option>
+                        <option value="rejected">❌ ปฏิเสธ</option>
+                    </select>
+                    
+                    <input type="date" id="holiday-date-from" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
+                    <input type="date" id="holiday-date-to" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
+                    
+                    <button id="holiday-refresh-btn" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🔄 Refresh
+                    </button>
+                </div>
+                
+                <!-- Table -->
                 <div class="table-container" style="margin-top: 20px;">
                     <table id="holiday-work-table">
                         <thead>
                             <tr>
                                 <th>Reference</th>
-                                <th>Driver</th>
-                                <th>Date</th>
-                                <th>Holiday Work</th>
-                                <th>Approved Status</th>
-                                <th>Notes</th>
+                                <th>วันที่ปิดงาน</th>
+                                <th>คนขับ</th>
+                                <th>รถ</th>
+                                <th>เหตุผล/หมายเหตุ</th>
+                                <th>สถานะ</th>
+                                <th>ผู้อนุมัติ</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody></tbody>
+                        <tbody id="holiday-work-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                    <p>กำลังโหลดข้อมูล...</p>
+                                </td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
 
-                <!-- Holiday Work Edit Modal -->
-                <div id="holiday-work-modal" class="modal hidden">
-                    <div class="modal-content">
-                        <span class="close-button" id="holiday-work-modal-close">&times;</span>
-                        <h2>Edit Holiday Work Status</h2>
-                        <form id="holiday-work-form">
-                            <input type="hidden" id="holiday-work-job-id">
-                            <p><strong>Reference:</strong> <span id="holiday-work-reference-display"></span></p>
-                            <p><strong>Driver:</strong> <span id="holiday-work-driver-display"></span></p>
-
-                            <label for="holiday-work-checkbox">
-                                <input type="checkbox" id="holiday-work-checkbox"> This is Holiday Work
-                            </label>
-
-                            <label for="holiday-work-notes">Notes:</label>
-                            <textarea id="holiday-work-notes" rows="4" placeholder="Enter notes about holiday work..."></textarea>
-
-                            <button type="submit">Save</button>
+                <!-- Approve/Reject Modal -->
+                <div id="holiday-approval-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <span class="close-button" id="holiday-approval-modal-close">&times;</span>
+                        <h2 id="approval-modal-title">อนุมัติการทำงานวันหยุด</h2>
+                        
+                        <div style="background: var(--bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <p><strong>Reference:</strong> <span id="approval-reference"></span></p>
+                            <p><strong>คนขับ:</strong> <span id="approval-driver"></span></p>
+                            <p><strong>รถ:</strong> <span id="approval-vehicle"></span></p>
+                            <p><strong>วันที่:</strong> <span id="approval-date"></span></p>
+                            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px;">
+                                <strong>เหตุผลจากคนขับ:</strong>
+                                <p id="approval-notes" style="margin: 5px 0; color: var(--text-main);"></p>
+                            </div>
+                        </div>
+                        
+                        <form id="holiday-approval-form">
+                            <input type="hidden" id="approval-job-id">
+                            <input type="hidden" id="approval-reference-input">
+                            <input type="hidden" id="approval-action">
+                            
+                            <label for="approval-comment">ความคิดเห็น/หมายเหตุ: <span id="approval-comment-required" style="color: red; display: none;">*</span></label>
+                            <textarea id="approval-comment" rows="3" placeholder="ระบุความคิดเห็นหรือเหตุผล..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border); resize: vertical;"></textarea>
+                            
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button type="submit" id="approve-btn" style="flex: 1; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    ✅ อนุมัติ
+                                </button>
+                                <button type="button" id="reject-btn" style="flex: 1; padding: 12px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    ❌ ปฏิเสธ
+                                </button>
+                                <button type="button" class="cancel-btn" style="padding: 12px 20px; background: var(--border); color: var(--text-main); border: none; border-radius: 5px; cursor: pointer;">
+                                    ยกเลิก
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
