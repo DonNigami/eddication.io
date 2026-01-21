@@ -297,17 +297,26 @@
           .from('driver_live_locations')
           .select('*')
           .eq('driver_user_id', driverUserId)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
-
-        if (!data) {
-          throw new Error('ไม่พบข้อมูลตำแหน่ง');
+        if (error) {
+          console.error('Error fetching location:', error);
+          throw error;
         }
 
-        // Initialize map with driver's location
-        initMap(data.lat, data.lng);
-        updateInfoPanel(data);
+        if (!data) {
+          // No location yet - show waiting state
+          console.log('No location data yet, waiting for first GPS update...');
+          // Initialize map at Thailand center
+          initMap(13.7563, 100.5018);
+          document.getElementById('loadingPanel').style.display = 'none';
+          document.getElementById('statusMessage').textContent = '⏳ รอข้อมูล GPS จากคนขับ...';
+        } else {
+          // Initialize map with driver's location
+          initMap(data.lat, data.lng);
+          updateInfoPanel(data);
+          document.getElementById('loadingPanel').style.display = 'none';
+        }
 
         // Show info panel
         document.getElementById('loadingPanel').style.display = 'none';
