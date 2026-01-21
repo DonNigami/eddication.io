@@ -1306,7 +1306,8 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
 
         // Filter by status
         if (statusFilter === 'pending') {
-            query = query.is('holiday_work_approved', null).is('holiday_work_approved', false);
+            query = query.or('holiday_work_approved.is.null,holiday_work_approved.eq.false')
+                        .or('holiday_work_approved_at.is.null');
         } else if (statusFilter === 'approved') {
             query = query.eq('holiday_work_approved', true);
         } else if (statusFilter === 'rejected') {
@@ -1326,6 +1327,9 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
         const { data: jobs, error } = await query;
 
         if (error) throw error;
+        
+        console.log('📊 Holiday work jobs loaded:', jobs.length);
+        console.log('📊 Sample job:', jobs[0]);
 
         // Update summary counts
         await updateHolidaySummary();
@@ -1369,6 +1373,9 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
                 groupedJobs[job.reference].all_seqs.push(job.seq);
             }
         });
+        
+        console.log('📊 Grouped jobs:', Object.keys(groupedJobs).length, 'unique references');
+        console.log('📊 Grouped data:', groupedJobs);
 
         // Convert to array and display
         Object.values(groupedJobs).forEach(job => {
