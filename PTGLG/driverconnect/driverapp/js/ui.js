@@ -216,7 +216,9 @@ export async function showTripSummary(tripData) {
     endTime,
     totalDistance = 0,
     vehicle,
-    drivers = []
+    drivers = [],
+    isHolidayWork = false,
+    holidayWorkNotes = ''
   } = tripData;
 
   // Calculate duration
@@ -226,6 +228,13 @@ export async function showTripSummary(tripData) {
   if (navigator.vibrate) {
     navigator.vibrate([100, 50, 100, 50, 100]); // Triple tap celebration
   }
+  
+  // Holiday work badge
+  const holidayBadge = isHolidayWork ? `
+    <div style="background:#ff9800; color:white; padding:8px 12px; border-radius:8px; margin-top:12px; font-size:0.9rem;">
+      <span style="font-size:1.2rem;">🎊</span> <strong>ทำงานวันหยุด</strong> - รอการอนุมัติ
+    </div>
+  ` : '';
 
   const html = `
     <div class="trip-summary-modal">
@@ -233,6 +242,7 @@ export async function showTripSummary(tripData) {
         <span class="trip-summary-icon">🎉</span>
         <h2 class="trip-summary-title">ทริปเสร็จสมบูรณ์!</h2>
         <p class="trip-summary-subtitle">เลขอ้างอิง: ${reference}</p>
+        ${holidayBadge}
       </div>
 
       <div class="trip-summary-stats">
@@ -278,6 +288,12 @@ export async function showTripSummary(tripData) {
           <span class="trip-summary-detail-value">${drivers.join(', ')}</span>
         </div>
         ` : ''}
+        ${isHolidayWork && holidayWorkNotes ? `
+        <div class="trip-summary-detail-row" style="border-top: 2px solid #ff9800; padding-top: 12px; margin-top: 8px;">
+          <span class="trip-summary-detail-label" style="color: #ff9800; font-weight: bold;">หมายเหตุวันหยุด</span>
+          <span class="trip-summary-detail-value" style="font-size: 0.8rem; line-height: 1.4;">${holidayWorkNotes}</span>
+        </div>
+        ` : ''}
       </div>
     </div>
   `;
@@ -286,8 +302,8 @@ export async function showTripSummary(tripData) {
     html,
     icon: null,
     showConfirmButton: true,
-    confirmButtonText: '✨ ดีมาก!',
-    confirmButtonColor: '#1abc9c',
+    confirmButtonText: isHolidayWork ? '📋 รับทราบ - รอการอนุมัติ' : '✨ ดีมาก!',
+    confirmButtonColor: isHolidayWork ? '#ff9800' : '#1abc9c',
     width: '90%',
     maxWidth: '500px'
   });

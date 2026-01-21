@@ -772,8 +772,12 @@ export const SupabaseAPI = {
    * Close job
    * Schema aligned with app/PLAN.md: trips table with job_closed flag
    */
-  async closeJob({ reference, userId, driverCount, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee, isHolidayWork }) {
+  async closeJob({ reference, userId, driverCount, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee, isHolidayWork, holidayWorkNotes }) {
     console.log('📋 Supabase: Closing job', reference);
+    
+    if (isHolidayWork) {
+      console.log('🎊 Holiday work detected with notes:', holidayWorkNotes);
+    }
 
     try {
       const totalFees = (
@@ -792,36 +796,68 @@ export const SupabaseAPI = {
       if (!tripsData || tripsData.length === 0) throw new Error("Trip not found for logging.");
       const tripIdForLog = tripsData[0].id;
 
+      // Prepare update data
+      const updateData = {
+        status: 'closed',
+        job_closed: true,
+        job_closed_at: new Date().toISOString(),
+        driver_count: driverCount,
+        vehicle_status: vehicleStatus,
+        closed_by: userId,
+        updated_at: new Date().toISOString(),
+        processdata_time: new Date().toISOString(),
+        is_holiday_work: isHolidayWork
+      };
+      
+      // Add holiday work notes if provided
+      if (isHolidayWork && holidayWorkNotes) {
+        updateData.holiday_work_notes = holidayWorkNotes;
+        updateData.holiday_work_approved = false; // Default to not approved
+        updateData.holiday_work_approved_by = null;
+        updateData.holiday_work_approved_at = null;
+      }
+
       // Update jobdata table (primary writable table for status)
       const { error } = await supabase
         .from(TABLES.JOBDATA)
-        .update({
-          status: 'closed',
-          job_closed: true, // This field is in jobdata, not driver_jobs
-          job_closed_at: new Date().toISOString(),
-          driver_count: driverCount,
-          vehicle_status: vehicleStatus,
-          closed_by: userId,
-          updated_at: new Date().toISOString(),
-          processdata_time: new Date().toISOString(),
-          is_holiday_work: isHolidayWork
-        })
+        .update(updateData)
         .eq('reference', reference);
 
       if (error) throw error;
 
       // Log action
+      const logDetails = { 
+        vehicleStatus, 
+        fees: totalFees, 
+        hillFee, 
+        bkkFee, 
+        repairFee, 
+        driverCount, 
+        isHolidayWork 
+      };
+      
+      // Add notes if holiday work
+      if (isHolidayWork && holidayWorkNotes) {
+        logDetails.holidayWorkNotes = holidayWorkNotes;
+        logDetails.holidayWorkApproved = false; // Pending approval
+      }
+      
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
           job_id: tripIdForLog, // Use ID fetched from TABLES.TRIPS
           reference: reference,
           action: 'close',
-          details: { vehicleStatus, fees: totalFees, hillFee, bkkFee, repairFee, driverCount, isHolidayWork },
+          details: logDetails,
           user_id: userId
         });
 
-      return { success: true, message: 'ปิดงานสำเร็จ' };
+      return { 
+        success: true, 
+        message: isHolidayWork 
+          ? 'ปิดงานสำเร็จ - รอการอนุมัติงานวันหยุด' 
+          : 'ปิดงานสำเร็จ' 
+      };
     } catch (err) {
       console.error('❌ Supabase closeJob error:', err);
       return { success: false, message: 'ปิดงานไม่สำเร็จ: ' + err.message };

@@ -720,20 +720,49 @@ async function closeJob() {
 
   // Add extra confirmation step if holiday work is checked
   if (formValues.isHolidayWork) {
-    const { isConfirmed } = await Swal.fire({
+    const { value: notes } = await Swal.fire({
       title: 'ยืนยันทำงานวันหยุด',
-      text: 'คุณแน่ใจหรือไม่ว่าต้องการบันทึกเป็นการทำงานในวันหยุด?',
+      html: `
+        <div style="text-align:left;">
+          <p style="margin-bottom:15px; color:#e74c3c; font-weight:bold;">
+            ⚠️ การทำงานในวันหยุดต้องได้รับการอนุมัติจากหัวหน้างาน
+          </p>
+          <p style="margin-bottom:15px;">กรุณาระบุรายละเอียด:</p>
+          <textarea id="holidayNotes" class="swal2-textarea" 
+            placeholder="เช่น: งานเร่งด่วน, ส่งของนอกเวลา, ลูกค้าขอเพิ่มเติม..." 
+            style="width:100%; min-height:100px; font-size:14px; resize:vertical;"
+            required></textarea>
+          <small style="color:#666; display:block; margin-top:8px;">
+            * ข้อมูลนี้จะส่งไปยังหัวหน้างานเพื่อพิจารณาอนุมัติ
+          </small>
+        </div>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
       cancelButtonColor: '#d33',
-      confirmButtonText: 'ยืนยัน',
-      cancelButtonText: 'ยกเลิก'
+      confirmButtonText: '✅ ยืนยันและส่งขออนุมัติ',
+      cancelButtonText: 'ยกเลิก',
+      preConfirm: () => {
+        const notes = document.getElementById('holidayNotes').value;
+        if (!notes || notes.trim() === '') {
+          Swal.showValidationMessage('⚠️ กรุณากรอกเหตุผล/รายละเอียด');
+          return false;
+        }
+        if (notes.trim().length < 10) {
+          Swal.showValidationMessage('⚠️ กรุณากรอกรายละเอียดอย่างน้อย 10 ตัวอักษร');
+          return false;
+        }
+        return notes.trim();
+      }
     });
 
-    if (!isConfirmed) {
-      return; // Abort if user cancels the holiday confirmation
+    if (!notes) {
+      return; // User cancelled
     }
+    
+    // Add notes to formValues
+    formValues.holidayWorkNotes = notes;
   }
 
   try {
@@ -748,7 +777,8 @@ async function closeJob() {
       hillFee: formValues.hillFee,
       bkkFee: formValues.bkkFee,
       repairFee: formValues.repairFee,
-      isHolidayWork: formValues.isHolidayWork
+      isHolidayWork: formValues.isHolidayWork,
+      holidayWorkNotes: formValues.holidayWorkNotes || null
     };
 
     const result = await executeOrQueue(
@@ -784,7 +814,9 @@ async function closeJob() {
       startTime: lastStops.find(s => s.checkInFlag === 'Y')?.checkinTime,
       endTime: lastStops[lastStops.length - 1]?.checkoutTime || new Date(),
       vehicle: currentVehicleDesc,
-      drivers: currentDrivers
+      drivers: currentDrivers,
+      isHolidayWork: formValues.isHolidayWork,
+      holidayWorkNotes: formValues.holidayWorkNotes
     };
     
     await showTripSummary(tripData);
