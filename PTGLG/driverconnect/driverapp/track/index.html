@@ -141,7 +141,16 @@
       <strong>อัพเดตล่าสุด:</strong> <span id="lastUpdate">-</span>
     </div>
     <div class="info-item">
-      <strong>ความเร็ว:</strong> <span id="speed">-</span> km/h
+      <strong>จุดปัจจุบัน:</strong> <span id="currentLocation">-</span>
+    </div>
+    <div class="info-item">
+      <strong>จุดถัดไป:</strong> <span id="nextStop">-</span>
+    </div>
+    <div class="info-item">
+      <strong>ระยะทาง:</strong> <span id="distance">-</span> km
+    </div>
+    <div class="info-item">
+      <strong>เวลาคาดว่าถึง:</strong> <span id="eta">-</span>
     </div>
   </div>
 
@@ -170,10 +179,94 @@
     const urlParams = new URLSearchParams(window.location.search);
     const driverUserId = urlParams.get('driver_user_id');
 
-    let map, marker, realtimeChannel;
+    let map, marker, destinationMarker, realtimeChannel;
+    let nextStopData = null;
+
+    // Haversine distance calculation (in kilometers)
+    function calculateDistance(lat1, lng1, lat2, lng2) {
+      const toRad = (x) => (x * Math.PI) / 180;
+      const R = 6371; // Earth radius in km
+
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lng2 - lng1);
+
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c; // Distance in km
+    }
+
+    // Calculate ETA based on distance and average speed
+    function calculateETA(distanceKm) {
+      const avgSpeedKmH = 52.5; // Average speed: 45-60 km/h
+      const hoursNeeded = distanceKm / avgSpeedKmH;
+      const minutesNeeded = Math.round(hoursNeeded * 60);
+      
+      const now = new Date();
+      const eta = new Date(now.getTime() + minutesNeeded * 60000);
+      
+      return {
+        minutes: minutesNeeded,
+        eta: eta,
+        etaString: eta.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+      };
+    }
+
+    // Fetch next stop information
+    async function fetchNextStop(driverUserId) {
+      try {
+        // First, try to get current trip from driver_live_locations
+        const { data: locationData } = await supabase
+          .from('driver_live_locations')
+          .select('trip_id')
+          .eq('driver_user_id', driverUserId)
+          .maybeSingle();
+
+        if (!locationData || !locationData.trip_id) {
+          console.log('No active trip found');
+          return null;
+        }
+
+        // Get next pending stop from jobdata
+        const { data: stops, error } = await supabase
+          .from('jobdata')
+          .select('*')
+          .eq('reference', locationData.trip_id)
+          .eq('status', 'pending')
+          .order('seq', { ascending: true })
+          .limit(1);
+
+        if (error) {
+          console.error('Error fetching next stop:', error);
+          return null;
+        }
+
+        if (stops && stops.length > 0) {
+          return stops[0];
+        }
+
+        return null;
+      } catch (error) {
+        console.error('Error fetching next stop:', error);
+        return null;
+      }
+    }
 
     // Initialize map
     function initMap(lat, lng) {
+      // Validate coordinates
+      if (!lat || !lng || lat === 0 || lng === 0) {
+        console.warn('Invalid coordinates, using Bangkok as default');
+        lat = 13.7563;
+        lng = 100.5018;
+      }
+
       map = L.map('map').setView([lat, lng], 15);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -188,18 +281,81 @@
       });
 
       marker = L.marker([lat, lng], { icon: truckIcon }).addTo(map);
+      marker.bindPopup('ตำแหน่งปัจจุบัน');
+    }
+
+    // Add destination marker
+    function addDestinationMarker(lat, lng, name) {
+      if (destinationMarker) {
+        map.removeLayer(destinationMarker);
+      }
+
+      const destIcon = L.divIcon({
+        html: '📍',
+        className: 'destination-marker',
+        iconSize: [30, 30]
+      });
+
+      destinationMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map);
+      destinationMarker.bindPopup(`จุดหมาย: ${name}`);
+
+      // Draw line between current position and destination
+      if (marker) {
+        const polyline = L.polyline([
+          marker.getLatLng(),
+          [lat, lng]
+        ], {
+          color: '#3498db',
+          weight: 3,
+          dashArray: '10, 10'
+        }).addTo(map);
+
+        // Fit map to show both markers
+        map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+      }
     }
 
     // Update marker position
     function updateMarker(lat, lng) {
+      // Validate coordinates
+      if (!lat || !lng || lat === 0 || lng === 0) {
+        console.warn('Invalid coordinates received, skipping update');
+        return;
+      }
+
       if (marker) {
         marker.setLatLng([lat, lng]);
         map.panTo([lat, lng]);
+
+        // Update ETA if we have a destination
+        if (nextStopData && nextStopData.dest_lat && nextStopData.dest_lng) {
+          updateETAInfo(lat, lng);
+        }
       }
     }
 
+    // Update ETA information
+    function updateETAInfo(currentLat, currentLng) {
+      if (!nextStopData || !nextStopData.dest_lat || !nextStopData.dest_lng) {
+        return;
+      }
+
+      const distance = calculateDistance(
+        currentLat,
+        currentLng,
+        nextStopData.dest_lat,
+        nextStopData.dest_lng
+      );
+
+      const etaInfo = calculateETA(distance);
+
+      document.getElementById('distance').textContent = distance.toFixed(1);
+      document.getElementById('eta').textContent = 
+        `~${etaInfo.minutes} นาที (${etaInfo.etaString})`;
+    }
+
     // Update info panel
-    function updateInfoPanel(data) {
+    async function updateInfoPanel(data) {
       document.getElementById('driverName').textContent = data.driver_name || driverUserId;
       
       const statusBadge = document.getElementById('statusBadge');
@@ -214,7 +370,37 @@
       const lastUpdate = new Date(data.last_updated);
       document.getElementById('lastUpdate').textContent = lastUpdate.toLocaleTimeString('th-TH');
       
-      document.getElementById('speed').textContent = data.speed || '0';
+      // Show current coordinates
+      if (data.lat && data.lng && data.lat !== 0 && data.lng !== 0) {
+        document.getElementById('currentLocation').textContent = 
+          `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
+
+        // Fetch and display next stop
+        nextStopData = await fetchNextStop(driverUserId);
+        
+        if (nextStopData) {
+          document.getElementById('nextStop').textContent = 
+            nextStopData.ship_to_name || `จุดที่ ${nextStopData.seq}`;
+          
+          // Add destination marker
+          if (nextStopData.dest_lat && nextStopData.dest_lng) {
+            addDestinationMarker(
+              nextStopData.dest_lat,
+              nextStopData.dest_lng,
+              nextStopData.ship_to_name || `จุดที่ ${nextStopData.seq}`
+            );
+
+            // Calculate and display ETA
+            updateETAInfo(data.lat, data.lng);
+          }
+        } else {
+          document.getElementById('nextStop').textContent = 'ไม่มีจุดรอดำเนินการ';
+          document.getElementById('distance').textContent = '-';
+          document.getElementById('eta').textContent = '-';
+        }
+      } else {
+        document.getElementById('currentLocation').textContent = 'รอข้อมูล GPS...';
+      }
     }
 
     // Start live tracking
@@ -311,10 +497,16 @@
           initMap(13.7563, 100.5018);
           document.getElementById('loadingPanel').style.display = 'none';
           document.getElementById('statusMessage').textContent = '⏳ รอข้อมูล GPS จากคนขับ...';
+        } else if (!data.lat || !data.lng || data.lat === 0 || data.lng === 0) {
+          // Invalid coordinates - show waiting state
+          console.log('Invalid coordinates (0,0), waiting for valid GPS...');
+          initMap(13.7563, 100.5018);
+          document.getElementById('loadingPanel').style.display = 'none';
+          document.getElementById('statusMessage').textContent = '⏳ รอพิกัด GPS ที่ถูกต้อง...';
         } else {
           // Initialize map with driver's location
           initMap(data.lat, data.lng);
-          updateInfoPanel(data);
+          await updateInfoPanel(data);
           document.getElementById('loadingPanel').style.display = 'none';
         }
 
