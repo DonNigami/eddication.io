@@ -522,7 +522,7 @@
           <div class="field">
             <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
             <div class="field-inline">
-              <input type="time" id="arriveDcTime" name="arriveDcTime" required />
+              <input type="datetime-local" id="arriveDcTime" name="arriveDcTime" required />
               <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
                 ตอนนี้
               </button>
@@ -533,7 +533,7 @@
             <div class="field">
               <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
               <div class="field-inline">
-                <input type="time" id="loadStartTime" name="loadStartTime" />
+                <input type="datetime-local" id="loadStartTime" name="loadStartTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
                   ตอนนี้
                 </button>
@@ -542,7 +542,7 @@
             <div class="field">
               <label for="loadEndTime">ขึ้นสินค้า (เสร็จ)</label>
               <div class="field-inline">
-                <input type="time" id="loadEndTime" name="loadEndTime" />
+                <input type="datetime-local" id="loadEndTime" name="loadEndTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
                   ตอนนี้
                 </button>
@@ -554,7 +554,7 @@
             <div class="field">
               <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
               <div class="field-inline">
-                <input type="time" id="docStartTime" name="docStartTime" />
+                <input type="datetime-local" id="docStartTime" name="docStartTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
                   ตอนนี้
                 </button>
@@ -563,7 +563,7 @@
             <div class="field">
               <label for="docEndTime">ยื่นเอกสาร (เสร็จ)</label>
               <div class="field-inline">
-                <input type="time" id="docEndTime" name="docEndTime" />
+                <input type="datetime-local" id="docEndTime" name="docEndTime" />
                 <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
                   ตอนนี้
                 </button>
@@ -574,7 +574,7 @@
           <div class="field">
             <label for="departTime">ออกจาก DC</label>
             <div class="field-inline">
-              <input type="time" id="departTime" name="departTime" />
+              <input type="datetime-local" id="departTime" name="departTime" />
               <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
                 ตอนนี้
               </button>
@@ -764,9 +764,12 @@
       const el = document.getElementById(fieldId);
       if (!el) return;
       const now = new Date();
+      const yyyy = now.getFullYear();
+      const MM = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
       const hh = String(now.getHours()).padStart(2, "0");
       const mm = String(now.getMinutes()).padStart(2, "0");
-      el.value = `${hh}:${mm}`;
+      el.value = `${yyyy}-${MM}-${dd}T${hh}:${mm}`;
       validateTimeSteps(false);
     }
     window.setNow = setNow;
@@ -782,13 +785,14 @@
 
     function timeToMinutes(t) {
       if (!t) return null;
-      const [h, m] = t.split(":").map(Number);
-      return h * 60 + m;
+      // t is in format YYYY-MM-DDTHH:MM, convert to timestamp for comparison
+      const dt = new Date(t);
+      return dt.getTime();
     }
 
-    function isValidCrossDay(prevMin, nextMin) {
-      return (prevMin >= 23 * 60 && prevMin <= 23 * 60 + 59) &&
-        (nextMin >= 0 && nextMin <= 5 * 60);
+    function isValidCrossDay(prevTimestamp, nextTimestamp) {
+      // Not needed anymore since we're comparing full datetime timestamps
+      return false;
     }
 
     function clearTimeErrors() {
@@ -826,7 +830,7 @@
       const steps = timeInputsConfig.map(({ id, label }) => {
         const el = document.getElementById(id);
         const val = el ? el.value.trim() : "";
-        return { id, label, minutes: timeToMinutes(val), hasValue: !!val };
+        return { id, label, timestamp: timeToMinutes(val), hasValue: !!val };
       });
 
       for (let i = 0; i < steps.length - 1; i++) {
@@ -844,12 +848,10 @@
 
         if (!prev.hasValue || !next.hasValue) continue;
 
-        const prevMin = prev.minutes;
-        const nextMin = next.minutes;
+        const prevTimestamp = prev.timestamp;
+        const nextTimestamp = next.timestamp;
 
-        if (isValidCrossDay(prevMin, nextMin)) continue;
-
-        if (nextMin < prevMin) {
+        if (nextTimestamp < prevTimestamp) {
           showTimeError(
             `"${next.label}" ต้องมีเวลามากกว่า "${prev.label}"`,
             next.id,
@@ -923,7 +925,17 @@
 
     function formatTimeForPayload(value) {
       if (!value) return "";
-      return `${value} น.`;
+      // value is in format: YYYY-MM-DDTHH:MM
+      const dt = new Date(value);
+      if (isNaN(dt.getTime())) return value;
+      
+      const yyyy = dt.getFullYear();
+      const MM = String(dt.getMonth() + 1).padStart(2, "0");
+      const dd = String(dt.getDate()).padStart(2, "0");
+      const hh = String(dt.getHours()).padStart(2, "0");
+      const mm = String(dt.getMinutes()).padStart(2, "0");
+      
+      return `${dd}/${MM}/${yyyy} ${hh}:${mm} น.`;
     }
 
     /* -------- Submit: DC Form -------- */
