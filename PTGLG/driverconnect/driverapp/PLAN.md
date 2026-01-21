@@ -1,8 +1,8 @@
 # 📋 PLAN - Driver Tracking App Development Plan
 
-> **Last Updated:** 2026-01-21
+> **Last Updated:** 2026-01-21 (Added Holiday Work Approval System)
 > **Project:** Driver Tracking App (LINE LIFF + Supabase)
-> **Status:** ✅ Core Features Working | ✅ Live Tracking with ETA | ✅ Quick Wins Implemented!
+> **Status:** ✅ Core Features Working | ✅ Live Tracking with ETA | ✅ Quick Wins Implemented! | ✅ Holiday Work Approval System!
 
 ---
 
@@ -264,6 +264,37 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 - [x] **GPS Stability with localStorage Fallback:** ✨ NEW - Auto-saves GPS position on every read to localStorage with 24hr TTL. Uses fallback chain (GPS → Memory → localStorage) to ensure position data is never lost even when GPS timeout occurs.
 - [x] **ETA Calculation:** ✨ NEW - Tracking page calculates estimated time of arrival to next stop based on Haversine distance formula and average speed (45-60 km/h). Displays distance, travel time, and arrival time with visual route line on map.
 
+### UX Quick Wins ✅ NEW (Jan 21, 2026)
+- [x] **Haptic Feedback:** ✨ - Vibration on success/error actions (double-tap for success, long vibration for error, triple-tap for celebration)
+- [x] **Loading Skeletons:** ✨ - Beautiful animated loading states for timeline and summary (replaces blank screens)
+- [x] **Empty States:** ✨ - User-friendly messages with icons for no data, errors, and no results scenarios
+- [x] **Trip Summary Modal:** ✨ - Celebration modal with trip statistics (duration, stops, distance) shown on job completion with confetti animation
+
+### Holiday Work Approval System ✅ NEW (Jan 21, 2026)
+**Driver App (Phase 1):**
+- [x] Required textarea for holiday work notes (min 10 characters)
+- [x] Validation with warning about supervisor approval
+- [x] Save to `holiday_work_notes` field in jobdata table
+- [x] Set `holiday_work_approved = false` (pending)
+- [x] Show orange badge in Trip Summary "รอการอนุมัติ"
+- [x] Append notes to audit log in driver_logs
+
+**Admin Dashboard (Phase 2):**
+- [x] Full-featured approval dashboard in admin/index.html
+- [x] Real-time KPI cards (pending/approved/rejected counts)
+- [x] Advanced filtering (status, date range, search)
+- [x] Approve/Reject workflow with admin comments
+- [x] Save approver ID (LINE userId) and timestamp
+- [x] Update holiday_work_approved, holiday_work_approved_by, holiday_work_approved_at
+
+**Real-time Updates (Phase 3):**
+- [x] Supabase Realtime subscription to jobdata table
+- [x] Auto-update navigation badge with pending count
+- [x] Live notifications for new requests and approvals
+- [x] Auto-refresh table when viewing holiday-work page
+- [x] Pulse animation on badge updates
+- [x] Auto-reconnect on connection failure
+
 ---
 
 ## ⏳ Pending Tasks
@@ -382,6 +413,10 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
   - [x] Loading Skeletons (timeline & summary)
   - [x] Empty States (no jobs, no stops, errors)
   - [x] Trip Summary Modal (celebration with stats)
+- [x] **Holiday Work Approval System (Jan 21, 2026)** 🎊
+  - [x] Phase 1: Driver notes with validation (30 min)
+  - [x] Phase 2: Admin approval dashboard (1-2 hrs)
+  - [x] Phase 3: Real-time updates + badge (30 min)
 
 #### 🔄 In Progress
 - [ ] Database migration completion
@@ -1463,6 +1498,347 @@ Application is considered "production-ready" when:
                                           ↓
 [Message appears ONLY in Admin's Chat]    [Message appears in Customer/Station Chat]
 ```
+
+---
+
+## 🎊 Holiday Work Approval System (Implementation Details)
+
+> **Implemented:** 2026-01-21  
+> **Total Time:** ~2-3 hours (3 phases)  
+> **Status:** ✅ Production Ready
+
+### **Overview**
+ระบบอนุมัติการทำงานวันหยุดที่สมบูรณ์แบบ ประกอบด้วย 3 ส่วนหลัก:
+1. **Driver App:** คนขับกรอกเหตุผลเมื่อทำงานวันหยุด
+2. **Admin Dashboard:** ผู้จัดการอนุมัติ/ปฏิเสธคำขอ
+3. **Real-time Updates:** อัพเดทสถานะแบบ real-time
+
+---
+
+### **Phase 1: Driver App (30 minutes)**
+
+#### **Files Modified:**
+- `driverapp/js/app.js` - closeJob dialog enhancement
+- `driverapp/js/supabase-api.js` - closeJob API update
+- `driverapp/js/ui.js` - Trip Summary with holiday badge
+
+#### **Features:**
+```javascript
+// 1. Required textarea for holiday work notes
+if (formValues.isHolidayWork) {
+  const { value: notes } = await Swal.fire({
+    title: 'ยืนยันทำงานวันหยุด',
+    html: '<textarea required minlength="10">...</textarea>',
+    preConfirm: () => validateNotes() // Min 10 chars
+  });
+  formValues.holidayWorkNotes = notes;
+}
+
+// 2. Save to database
+await SupabaseAPI.closeJob({
+  ...closeJobData,
+  isHolidayWork: true,
+  holidayWorkNotes: notes
+});
+
+// 3. Show badge in Trip Summary
+showTripSummary({
+  ...tripData,
+  isHolidayWork: true,
+  holidayWorkNotes: notes
+});
+// Displays: 🎊 ทำงานวันหยุด - รอการอนุมัติ
+```
+
+#### **Database Fields (jobdata table):**
+```sql
+holiday_work_notes         TEXT    -- Driver's reason (required)
+holiday_work_approved      BOOLEAN -- null = pending, true = approved, false = rejected
+holiday_work_approved_by   TEXT    -- LINE userId of approver
+holiday_work_approved_at   TIMESTAMP
+```
+
+#### **Validation:**
+- Notes required (min 10 characters)
+- Warning message shown
+- Appended to driver_logs for audit
+
+---
+
+### **Phase 2: Admin Dashboard (1-2 hours)**
+
+#### **Files Modified:**
+- `admin/index.html` - Complete UI redesign
+- `admin/admin.js` - New approval functions
+
+#### **Dashboard Features:**
+
+**1. KPI Cards (Real-time)**
+```
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ รอการอนุมัติ    │ │ อนุมัติแล้ว     │ │ ปฏิเสธ          │
+│      5          │ │      23         │ │      2          │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+**2. Advanced Filters**
+- Status: All / Pending / Approved / Rejected
+- Date Range: From - To
+- Search: Reference, Driver, Vehicle
+
+**3. Table View**
+| Reference | Date | Driver | Vehicle | Notes | Status | Approver | Actions |
+|-----------|------|--------|---------|-------|--------|----------|---------|
+| 2601M01944 | 21/01 13:45 | ส.ชาย | รถ 1 | ลูกค้าขอ... | ⏳ รอ | - | [✅][❌] |
+
+**4. Approval Modal**
+```javascript
+// Open modal
+openHolidayApprovalModal(job, 'approve');
+
+// Show job details
+- Reference: 2601M01944
+- Driver: ส.ชาย
+- Vehicle: รถ 1
+- Date: 21 ม.ค. 2026
+- Reason: "ลูกค้าขอส่งของเพิ่มเติมเร่งด่วน"
+
+// Admin adds comment (optional for approve, required for reject)
+Comment: "อนุมัติตามคำขอ"
+
+// Save approval
+await supabase.from('jobdata').update({
+  holiday_work_approved: true,
+  holiday_work_approved_by: adminUserId,
+  holiday_work_approved_at: new Date().toISOString(),
+  holiday_work_notes: originalNotes + '\n[อนุมัติ โดย Admin]\n' + comment
+});
+```
+
+**5. Functions Added:**
+```javascript
+// admin.js
+async function loadHolidayWorkJobs(searchTerm, statusFilter)
+async function updateHolidaySummary()
+function openHolidayApprovalModal(job, action)
+function closeHolidayApprovalModal()
+async function handleHolidayApprovalSubmit(event)
+```
+
+---
+
+### **Phase 3: Real-time Updates (30 minutes)**
+
+#### **Files Modified:**
+- `admin/admin.js` - Realtime subscription
+- `admin/admin.css` - Pulse animation
+
+#### **Features:**
+
+**1. Supabase Realtime Subscription**
+```javascript
+holidayWorkRealtimeChannel = supabase
+  .channel('holiday-work-changes')
+  .on('postgres_changes', {
+    event: '*',
+    schema: 'public',
+    table: 'jobdata',
+    filter: 'is_holiday_work=eq.true'
+  }, (payload) => {
+    // Handle INSERT/UPDATE/DELETE
+    if (payload.eventType === 'INSERT') {
+      showNotification(`🆕 มีคำขอใหม่: ${payload.new.reference}`);
+    }
+    // Auto-refresh if viewing holiday-work page
+    if (currentPage === 'holiday-work') {
+      loadHolidayWorkJobs();
+    }
+  })
+  .subscribe();
+```
+
+**2. Navigation Badge**
+```javascript
+function updateHolidayNavBadge(count) {
+  const badge = document.createElement('span');
+  badge.textContent = count;
+  badge.style.cssText = `
+    background: #ff9800;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    animation: pulse 0.5s ease-in-out;
+  `;
+  navLink.appendChild(badge);
+}
+
+// CSS Animation
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+```
+
+**3. Auto-reconnect**
+```javascript
+.subscribe((status) => {
+  if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+    setTimeout(() => {
+      subscribeToHolidayWorkUpdates(); // Retry after 5s
+    }, 5000);
+  }
+});
+```
+
+---
+
+### **Complete Workflow**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. DRIVER APP (Phase 1)                                     │
+├─────────────────────────────────────────────────────────────┤
+│ Driver closes job → Checks "ทำงานในวันหยุด"               │
+│        ↓                                                    │
+│ Swal.fire() shows textarea (min 10 chars)                   │
+│        ↓                                                    │
+│ Validates input → Shows warning about approval              │
+│        ↓                                                    │
+│ Saves to jobdata:                                           │
+│   - holiday_work_notes = "ลูกค้าขอเพิ่มเติม..."          │
+│   - holiday_work_approved = false (pending)                 │
+│        ↓                                                    │
+│ Trip Summary shows: 🎊 ทำงานวันหยุด - รอการอนุมัติ       │
+└─────────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 2. REAL-TIME (Phase 3)                                      │
+├─────────────────────────────────────────────────────────────┤
+│ Supabase Realtime detects INSERT event                      │
+│        ↓                                                    │
+│ Admin sees toast notification:                              │
+│   "🆕 มีคำขอทำงานวันหยุดใหม่: 2601M01944"                │
+│        ↓                                                    │
+│ Navigation badge updates: 🎊 Holiday Work [5]              │
+│   (with pulse animation)                                    │
+│        ↓                                                    │
+│ If viewing holiday-work page → Table auto-refreshes         │
+└─────────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────────┐
+│ 3. ADMIN DASHBOARD (Phase 2)                                │
+├─────────────────────────────────────────────────────────────┤
+│ Admin opens Holiday Work Approval page                      │
+│        ↓                                                    │
+│ Sees list of pending requests with filters                  │
+│        ↓                                                    │
+│ Clicks "✅ อนุมัติ" on specific request                    │
+│        ↓                                                    │
+│ Modal shows:                                                │
+│   - Job details (ref, driver, vehicle, date)               │
+│   - Driver's reason                                         │
+│   - Textarea for admin comment (optional)                   │
+│        ↓                                                    │
+│ Admin clicks "✅ อนุมัติ"                                  │
+│        ↓                                                    │
+│ Updates jobdata:                                            │
+│   - holiday_work_approved = true                            │
+│   - holiday_work_approved_by = "U1234567..."               │
+│   - holiday_work_approved_at = NOW()                        │
+│   - holiday_work_notes += "\n[อนุมัติ โดย Admin]..."      │
+│        ↓                                                    │
+│ Success notification + Table refresh                        │
+│        ↓                                                    │
+│ Status badge changes: ⏳ → ✅ อนุมัติแล้ว                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### **Database Queries**
+
+```sql
+-- Get pending approvals
+SELECT * FROM jobdata 
+WHERE is_holiday_work = true 
+  AND (holiday_work_approved IS NULL OR holiday_work_approved = false)
+  AND holiday_work_approved_at IS NULL
+ORDER BY job_closed_at DESC;
+
+-- Get approved
+SELECT * FROM jobdata
+WHERE is_holiday_work = true
+  AND holiday_work_approved = true
+ORDER BY holiday_work_approved_at DESC;
+
+-- Get rejected
+SELECT * FROM jobdata
+WHERE is_holiday_work = true
+  AND holiday_work_approved = false
+  AND holiday_work_approved_at IS NOT NULL
+ORDER BY holiday_work_approved_at DESC;
+
+-- Count by status
+SELECT 
+  COUNT(*) FILTER (WHERE holiday_work_approved IS NULL) as pending,
+  COUNT(*) FILTER (WHERE holiday_work_approved = true) as approved,
+  COUNT(*) FILTER (WHERE holiday_work_approved = false AND holiday_work_approved_at IS NOT NULL) as rejected
+FROM jobdata
+WHERE is_holiday_work = true;
+```
+
+---
+
+### **Testing Checklist**
+
+**Driver App:**
+- [ ] Close job → Check "ทำงานวันหยุด"
+- [ ] Try submit without notes → See validation error
+- [ ] Enter < 10 characters → See validation error
+- [ ] Enter valid notes (10+ chars) → Success
+- [ ] See Trip Summary with orange badge
+- [ ] Check database: `holiday_work_approved = false`
+
+**Admin Dashboard:**
+- [ ] Open Holiday Work page
+- [ ] See pending count in KPI card
+- [ ] See pending count in navigation badge
+- [ ] Filter by "รอการอนุมัติ" → See only pending
+- [ ] Search by reference → Filter works
+- [ ] Select date range → Filter works
+- [ ] Click "✅ อนุมัติ" → Modal opens
+- [ ] See job details and driver notes
+- [ ] Add admin comment → Submit
+- [ ] See success notification
+- [ ] See status change to "อนุมัติแล้ว"
+- [ ] Check database: `holiday_work_approved = true`
+
+**Real-time:**
+- [ ] Keep admin panel open (different tab)
+- [ ] Driver submits new request
+- [ ] See toast notification on admin
+- [ ] See badge count increase
+- [ ] See table auto-refresh
+- [ ] Badge has pulse animation
+
+---
+
+### **Future Enhancements (Optional)**
+
+**Phase 4: LINE Notification (1-2 hrs)**
+- Notify admin via LINE when new request
+- Notify driver when approved/rejected
+
+**Phase 5: Reports & Analytics (2-3 hrs)**
+- Monthly holiday work report
+- Export to Excel
+- Statistics: Most OT drivers
+- Cost calculation
+
+**Phase 6: Approval Chain**
+- Multi-level approval (Manager → Director)
+- Approval delegation
+- Approval limits by amount
 
 ---
 
