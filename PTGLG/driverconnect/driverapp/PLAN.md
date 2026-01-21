@@ -295,6 +295,20 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
 - [x] Pulse animation on badge updates
 - [x] Auto-reconnect on connection failure
 
+**Job Activity Notifications (Phase 4):** ✅ NEW
+- [x] Real-time checkin notifications
+- [x] Real-time checkout notifications
+- [x] Trip completion notifications
+- [x] Toast notifications with auto-dismiss
+- [x] Auto-reconnect on failure
+
+**Group Holiday Approval (Phase 5):** ✅ NEW
+- [x] Group by reference in table view
+- [x] Show stop count badge (X จุด)
+- [x] Update ALL stops on approval/reject
+- [x] Modal displays stop count
+- [x] Success message shows affected count
+
 ---
 
 ## ⏳ Pending Tasks
@@ -1741,11 +1755,12 @@ function updateHolidayNavBadge(count) {
 │        ↓                                                    │
 │ Admin clicks "✅ อนุมัติ"                                  │
 │        ↓                                                    │
-│ Updates jobdata:                                            │
+│ Updates ALL stops in reference (not just one):             │
 │   - holiday_work_approved = true                            │
 │   - holiday_work_approved_by = "U1234567..."               │
 │   - holiday_work_approved_at = NOW()                        │
 │   - holiday_work_notes += "\n[อนุมัติ โดย Admin]..."      │
+│   WHERE reference = 'xxx' AND is_holiday_work = true        │
 │        ↓                                                    │
 │ Success notification + Table refresh                        │
 │        ↓                                                    │
@@ -1820,6 +1835,151 @@ WHERE is_holiday_work = true;
 - [ ] See badge count increase
 - [ ] See table auto-refresh
 - [ ] Badge has pulse animation
+
+---
+
+### **Phase 4: Real-time Job Activity Notifications ✅ NEW (Jan 21, 2026)**
+
+เพิ่มการแจ้งเตือนแบบ real-time สำหรับกิจกรรมการทำงานของคนขับ
+
+#### **Files Modified:**
+- `admin/admin.js` - Added subscribeToJobActivityUpdates()
+- `admin/admin.js` - Modified setupRealtimeSubscriptions()
+
+#### **Features:**
+
+**1. Subscribe to Checkin/Checkout Events**
+```javascript
+jobActivityRealtimeChannel = supabase
+  .channel('job-activity-changes')
+  .on('postgres_changes', {
+    event: 'UPDATE',
+    schema: 'public',
+    table: 'jobdata'
+  }, (payload) => {
+    const oldData = payload.old;
+    const newData = payload.new;
+    
+    // Check-in notification
+    if (!oldData.checkin_time && newData.checkin_time) {
+      showNotification(`📍 Check-in: ${newData.reference} - ${newData.ship_to_name}`, 'info');
+    }
+    
+    // Check-out notification
+    if (!oldData.checkout_time && newData.checkout_time) {
+      showNotification(`✅ Check-out: ${newData.reference} - ${newData.ship_to_name}`, 'success');
+    }
+    
+    // Trip completion notification
+    if (!oldData.trip_ended && newData.trip_ended) {
+      showNotification(`🎉 Trip จบแล้ว: ${newData.reference}`, 'success');
+    }
+  })
+  .subscribe();
+```
+
+**2. Toast Notifications:**
+- 📍 **Check-in:** `"Check-in: 2601M01944 - บริษัท ABC"` (blue, 5 sec)
+- ✅ **Check-out:** `"Check-out: 2601M01944 - บริษัท ABC"` (green, 5 sec)
+- 🎉 **Trip End:** `"Trip จบแล้ว: 2601M01944"` (green, 7 sec)
+
+**3. Auto-reconnect:**
+- Monitors connection status
+- Auto-retry after 5 seconds on failure
+- Integrated with setupRealtimeSubscriptions()
+
+**Benefits:**
+- Admin ทราบกิจกรรมแบบ real-time
+- ไม่ต้องรีเฟรชหน้าเองตลอดเวลา
+- ช่วยติดตามความคืบหน้าของงาน
+
+---
+
+### **Phase 5: Group Holiday Approval by Reference ✅ NEW (Jan 21, 2026)**
+
+แสดงแค่ 1 reference แต่อนุมัติทีละทั้ง reference (ทุก seq/จุด)
+
+#### **Files Modified:**
+- `admin/admin.js` - Modified loadHolidayWorkJobs()
+- `admin/admin.js` - Modified openHolidayApprovalModal()
+- `admin/admin.js` - Modified handleHolidayApprovalSubmit()
+- `admin/index.html` - Added 'จำนวนจุด' column
+
+#### **Changes:**
+
+**1. Group by Reference in Table**
+```javascript
+// Before: แสดงทุกแถว (1 reference มี 5 seq = 5 rows)
+// After: Group แล้วแสดงแค่ 1 row พร้อม badge จำนวนจุด
+
+const groupedJobs = {};
+filteredJobs.forEach(job => {
+  if (!groupedJobs[job.reference]) {
+    groupedJobs[job.reference] = {
+      ...job,
+      stop_count: 1,
+      all_seqs: [job.seq]
+    };
+  } else {
+    groupedJobs[job.reference].stop_count++;
+    groupedJobs[job.reference].all_seqs.push(job.seq);
+  }
+});
+```
+
+**2. Show Stop Count Badge**
+```html
+<td style="text-align:center;">
+  <span style="background:#2196f3;color:white;padding:2px 8px;border-radius:10px;">
+    5 จุด
+  </span>
+</td>
+```
+
+**3. Update ALL Stops on Approval**
+```javascript
+// Before: .eq('reference', reference) 
+// - Updates just first match (1 row)
+
+// After: .eq('reference', reference).eq('is_holiday_work', true)
+// - Updates ALL rows with same reference (5 rows)
+
+const { error, count } = await supabase
+  .from('jobdata')
+  .update(updateData)
+  .eq('reference', reference)
+  .eq('is_holiday_work', true);
+
+showNotification(`✅ อนุมัติแล้ว: ${reference} (${count} จุด)`);
+```
+
+**4. Modal Shows Stop Count**
+```javascript
+// Approval modal title
+const stopInfo = job.stop_count > 1 ? ` (${job.stop_count} จุด)` : '';
+approvalReference.textContent = `${job.reference}${stopInfo}`;
+// Result: "2601M01944 (5 จุด)"
+```
+
+**Benefits:**
+- ✅ Cleaner UI (1 reference = 1 row)
+- ✅ Easier to scan and approve
+- ✅ Prevents partial approval (all-or-nothing)
+- ✅ Better data consistency
+- ✅ Admin knows exactly how many stops affected
+
+**Before vs After:**
+```
+BEFORE (5 rows):
+2601M01944 | Seq 1 | ส.ชาย | [อนุมัติ]
+2601M01944 | Seq 2 | ส.ชาย | [อนุมัติ]
+2601M01944 | Seq 3 | ส.ชาย | [อนุมัติ]
+2601M01944 | Seq 4 | ส.ชาย | [อนุมัติ]
+2601M01944 | Seq 5 | ส.ชาย | [อนุมัติ]
+
+AFTER (1 row):
+2601M01944 | ส.ชาย | [5 จุด] | [อนุมัติ]
+```
 
 ---
 
