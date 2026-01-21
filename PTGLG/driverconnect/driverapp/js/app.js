@@ -14,6 +14,7 @@ import {
   showSkeleton, hideSkeleton, recordLastUpdated, hideLastUpdatedContainer,
   ThemeManager
 } from './ui.js';
+import { liveTracking } from './live-tracking.js';
 
 // ============================================
 // GLOBAL STATE
@@ -901,6 +902,12 @@ async function initApp() {
 
   // Check GPS
   checkGpsStatus();
+
+  // Initialize live tracking if enabled
+  if (APP_CONFIG.LIVE_TRACKING.enableAutoTracking && currentUserId) {
+    console.log('🌍 Initializing live tracking for user:', currentUserId);
+    liveTracking.init(currentUserId);
+  }
 
   // Initialize offline queue
   OfflineQueue.load();

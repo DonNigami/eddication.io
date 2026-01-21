@@ -56,4 +56,3 @@ enable_confirmations = false
 
 [edge_runtime]
 enabled = false
-port = 54328

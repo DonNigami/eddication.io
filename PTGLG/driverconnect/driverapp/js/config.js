@@ -42,7 +42,14 @@ export const APP_CONFIG = {
   },
 
   // Notification duration (ms)
-  NOTIFICATION_DURATION: 4000
+  NOTIFICATION_DURATION: 4000,
+
+  // Live Tracking settings
+  LIVE_TRACKING: {
+    normalInterval: 300000, // 5 minutes in milliseconds
+    liveInterval: 15000,    // 15 seconds in milliseconds
+    enableAutoTracking: true
+  }
 };
 
 // Validation Rules

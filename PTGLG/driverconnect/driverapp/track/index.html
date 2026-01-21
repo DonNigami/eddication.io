@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Live Tracking - ติดตามตำแหน่งรถ</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    #map {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .info-panel {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+      max-width: 300px;
+    }
+
+    .info-panel h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .info-item {
+      margin: 5px 0;
+      font-size: 14px;
+      color: #666;
+    }
+
+    .info-item strong {
+      color: #333;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+
+    .status-live {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .status-normal {
+      background: #FF9800;
+      color: white;
+    }
+
+    .status-offline {
+      background: #f44336;
+      color: white;
+    }
+
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px 40px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 2000;
+      text-align: center;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 2000;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .error-panel h2 {
+      color: #f44336;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  
+  <div class="info-panel" id="infoPanel" style="display: none;">
+    <h3>🚛 ติดตามตำแหน่ง</h3>
+    <div class="info-item">
+      <strong>คนขับ:</strong> <span id="driverName">-</span>
+    </div>
+    <div class="info-item">
+      <strong>สถานะ:</strong> 
+      <span class="status-badge" id="statusBadge">-</span>
+    </div>
+    <div class="info-item">
+      <strong>อัพเดตล่าสุด:</strong> <span id="lastUpdate">-</span>
+    </div>
+    <div class="info-item">
+      <strong>ความเร็ว:</strong> <span id="speed">-</span> km/h
+    </div>
+  </div>
+
+  <div class="loading" id="loadingPanel">
+    <div class="spinner"></div>
+    <p>กำลังโหลดข้อมูล...</p>
+  </div>
+
+  <div class="error-panel" id="errorPanel" style="display: none;">
+    <h2>❌ เกิดข้อผิดพลาด</h2>
+    <p id="errorMessage">ไม่พบข้อมูลตำแหน่ง</p>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Get driver_user_id from URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const driverUserId = urlParams.get('driver_user_id');
+
+    let map, marker, realtimeChannel;
+
+    // Initialize map
+    function initMap(lat, lng) {
+      map = L.map('map').setView([lat, lng], 15);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      // Custom marker icon
+      const truckIcon = L.divIcon({
+        html: '🚛',
+        className: 'truck-marker',
+        iconSize: [40, 40]
+      });
+
+      marker = L.marker([lat, lng], { icon: truckIcon }).addTo(map);
+    }
+
+    // Update marker position
+    function updateMarker(lat, lng) {
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
+      }
+    }
+
+    // Update info panel
+    function updateInfoPanel(data) {
+      document.getElementById('driverName').textContent = data.driver_name || driverUserId;
+      
+      const statusBadge = document.getElementById('statusBadge');
+      if (data.is_tracked_in_realtime) {
+        statusBadge.textContent = 'LIVE';
+        statusBadge.className = 'status-badge status-live';
+      } else {
+        statusBadge.textContent = 'Normal';
+        statusBadge.className = 'status-badge status-normal';
+      }
+
+      const lastUpdate = new Date(data.last_updated);
+      document.getElementById('lastUpdate').textContent = lastUpdate.toLocaleTimeString('th-TH');
+      
+      document.getElementById('speed').textContent = data.speed || '0';
+    }
+
+    // Start live tracking
+    async function startTracking() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/start-live-tracking`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ driver_user_id: driverUserId })
+        });
+
+        const result = await response.json();
+        console.log('Started live tracking:', result);
+      } catch (error) {
+        console.error('Error starting tracking:', error);
+      }
+    }
+
+    // Stop live tracking
+    async function stopTracking() {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/stop-live-tracking`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({ driver_user_id: driverUserId })
+        });
+
+        const result = await response.json();
+        console.log('Stopped live tracking:', result);
+      } catch (error) {
+        console.error('Error stopping tracking:', error);
+      }
+    }
+
+    // Subscribe to realtime updates
+    function subscribeToUpdates() {
+      const channelName = `tracking-${driverUserId}`;
+      
+      realtimeChannel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'driver_live_locations',
+            filter: `driver_user_id=eq.${driverUserId}`
+          },
+          (payload) => {
+            console.log('Location update received:', payload);
+            
+            if (payload.new) {
+              const { lat, lng } = payload.new;
+              updateMarker(lat, lng);
+              updateInfoPanel(payload.new);
+            }
+          }
+        )
+        .subscribe();
+    }
+
+    // Initialize tracking
+    async function init() {
+      if (!driverUserId) {
+        document.getElementById('loadingPanel').style.display = 'none';
+        document.getElementById('errorPanel').style.display = 'block';
+        document.getElementById('errorMessage').textContent = 'กรุณาระบุ driver_user_id ใน URL';
+        return;
+      }
+
+      try {
+        // Fetch initial location
+        const { data, error } = await supabase
+          .from('driver_live_locations')
+          .select('*')
+          .eq('driver_user_id', driverUserId)
+          .single();
+
+        if (error) throw error;
+
+        if (!data) {
+          throw new Error('ไม่พบข้อมูลตำแหน่ง');
+        }
+
+        // Initialize map with driver's location
+        initMap(data.lat, data.lng);
+        updateInfoPanel(data);
+
+        // Show info panel
+        document.getElementById('loadingPanel').style.display = 'none';
+        document.getElementById('infoPanel').style.display = 'block';
+
+        // Start live tracking
+        await startTracking();
+
+        // Subscribe to updates
+        subscribeToUpdates();
+
+      } catch (error) {
+        console.error('Error initializing:', error);
+        document.getElementById('loadingPanel').style.display = 'none';
+        document.getElementById('errorPanel').style.display = 'block';
+        document.getElementById('errorMessage').textContent = error.message;
+      }
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
+      stopTracking();
+    });
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
