@@ -1323,6 +1323,169 @@ button:disabled {
 }
 
 /* ============================================
+   Empty States
+   ============================================ */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-sub);
+}
+
+.empty-state-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+  display: block;
+}
+
+.empty-state-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.empty-state-message {
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.empty-state-action {
+  margin-top: 16px;
+}
+
+.empty-state-action button {
+  width: auto;
+  padding: 10px 24px;
+}
+
+/* Empty state variations */
+.empty-state.no-results {
+  padding: 30px 20px;
+}
+
+.empty-state.error {
+  padding: 40px 20px;
+}
+
+.empty-state-error-icon {
+  font-size: 48px;
+  color: #e74c3c;
+  margin-bottom: 12px;
+}
+
+/* ============================================
+   Trip Summary Modal (Enhanced)
+   ============================================ */
+.trip-summary-modal {
+  text-align: center;
+}
+
+.trip-summary-header {
+  margin-bottom: 24px;
+}
+
+.trip-summary-icon {
+  font-size: 64px;
+  margin-bottom: 12px;
+  animation: celebrate 0.6s ease-out;
+}
+
+@keyframes celebrate {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.2) rotate(-10deg); }
+  75% { transform: scale(1.2) rotate(10deg); }
+}
+
+.trip-summary-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+}
+
+.trip-summary-subtitle {
+  font-size: 0.9rem;
+  color: var(--text-sub);
+}
+
+.trip-summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.trip-summary-stat {
+  background: var(--input-bg);
+  border-radius: 12px;
+  padding: 16px 12px;
+  text-align: center;
+  border: 1px solid var(--timeline-border);
+}
+
+.trip-summary-stat-icon {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.trip-summary-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.trip-summary-stat-label {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  font-weight: 500;
+}
+
+.trip-summary-details {
+  background: var(--timeline-bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 20px;
+  text-align: left;
+  border: 1px solid var(--timeline-border);
+}
+
+.trip-summary-detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--timeline-border);
+}
+
+.trip-summary-detail-row:last-child {
+  border-bottom: none;
+}
+
+.trip-summary-detail-label {
+  font-size: 0.85rem;
+  color: var(--text-sub);
+}
+
+.trip-summary-detail-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.trip-summary-confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 99999;
+}
+
+/* ============================================
    Media Queries
    ============================================ */
 @media (max-width: 480px) {

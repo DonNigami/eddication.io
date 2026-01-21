@@ -4,7 +4,7 @@
  */
 
 import { LIFF_ID, APP_CONFIG } from './config.js';
-import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64 } from './utils.js';
+import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64, vibrateSuccess, vibrateError, vibrateWarning, vibrateNotification, vibrateImpact } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
 import { initSupabase, SupabaseAPI } from './supabase-api.js';
 import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords, haversineDistanceMeters } from './gps.js';
@@ -12,6 +12,7 @@ import {
   showLoading, closeLoading, showError, showSuccess, showInfo,
   showInlineFlex, showInlineFlexCustom, showInputError, clearInputError,
   showSkeleton, hideSkeleton, recordLastUpdated, hideLastUpdatedContainer,
+  showEmptyState, showLoadingSkeleton, showTripSummary,
   ThemeManager
 } from './ui.js';
 import { liveTracking } from './live-tracking.js';
@@ -64,7 +65,9 @@ async function search(isSilent = false) {
   btn.disabled = true;
 
   if (!isSilent) {
-    showSkeleton();
+    // Show loading skeleton instead of simple spinner
+    showLoadingSkeleton('timeline', 'timeline');
+    showLoadingSkeleton('summary', 'summary');
   }
 
   try {
@@ -82,7 +85,16 @@ async function search(isSilent = false) {
 
     if (!result.success) {
       clearResult();
-      showError(result.message);
+      // Show empty state with error
+      const timelineContainer = document.getElementById('timelineContainer');
+      timelineContainer.classList.remove('hidden');
+      showEmptyState('timeline', {
+        icon: '❌',
+        title: 'ไม่พบงาน',
+        message: result.message || 'ไม่พบเลขอ้างอิงงานนี้ในระบบ',
+        actionText: '🔄 ลองอีกครั้ง',
+        actionCallback: () => document.getElementById('btnSearch').click()
+      });
       return;
     }
 
@@ -216,7 +228,12 @@ function renderTimeline(stops) {
   const filteredStops = stops ? stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา')) : [];
 
   if (filteredStops.length === 0) {
-    container.classList.add('hidden');
+    container.classList.remove('hidden');
+    showEmptyState('timeline', {
+      icon: '📦',
+      title: 'ไม่มีจุดส่ง',
+      message: 'ไม่พบจุดส่งสินค้าในทริปนี้'
+    });
     return;
   }
 
@@ -758,7 +775,19 @@ async function closeJob() {
     }
 
     jobClosed = true;
-    await showSuccess('ปิดงานสำเร็จ', 'บันทึกการปิดงานเรียบร้อย');
+    
+    // Calculate and show trip summary
+    const tripData = {
+      reference: currentReference,
+      totalStops: lastStops.length,
+      completedStops: lastStops.filter(s => s.checkOutFlag === 'Y').length,
+      startTime: lastStops.find(s => s.checkInFlag === 'Y')?.checkinTime,
+      endTime: lastStops[lastStops.length - 1]?.checkoutTime || new Date(),
+      vehicle: currentVehicleDesc,
+      drivers: currentDrivers
+    };
+    
+    await showTripSummary(tripData);
     if (currentReference) search(true); // Refresh the job data to show the 'End Trip' button
 
   } catch (err) {

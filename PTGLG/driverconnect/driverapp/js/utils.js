@@ -134,3 +134,89 @@ export function formatThaiTime(date = new Date()) {
 export function formatThaiDate(date = new Date()) {
   return date.toLocaleDateString('th-TH');
 }
+
+/**
+ * Haptic Feedback (Vibration)
+ * Provides tactile feedback for user actions
+ */
+export const HapticFeedback = {
+  patterns: {
+    success: [100, 50, 100],        // Double tap
+    error: [200],                   // Single long
+    warning: [50, 50, 50, 50],      // Quick pulses
+    notification: [100],             // Single short
+    impact: [10],                    // Light tap
+    selection: [5]                   // Very light tap
+  },
+
+  /**
+   * Trigger vibration if supported and enabled
+   * @param {string} type - Pattern type (success, error, warning, etc.)
+   */
+  trigger(type = 'impact') {
+    // Check if vibration is supported
+    if (!navigator.vibrate) {
+      return false;
+    }
+
+    // Check if user has disabled haptic feedback
+    const hapticEnabled = localStorage.getItem('haptic_feedback_enabled');
+    if (hapticEnabled === 'false') {
+      return false;
+    }
+
+    const pattern = this.patterns[type] || this.patterns.impact;
+    
+    try {
+      navigator.vibrate(pattern);
+      return true;
+    } catch (error) {
+      console.warn('Vibration failed:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Enable/disable haptic feedback
+   * @param {boolean} enabled
+   */
+  setEnabled(enabled) {
+    localStorage.setItem('haptic_feedback_enabled', enabled.toString());
+  },
+
+  /**
+   * Check if haptic feedback is enabled
+   * @returns {boolean}
+   */
+  isEnabled() {
+    const value = localStorage.getItem('haptic_feedback_enabled');
+    return value !== 'false'; // Enabled by default
+  }
+};
+
+/**
+ * Convenience functions for common haptic patterns
+ */
+export function vibrateSuccess() {
+  HapticFeedback.trigger('success');
+}
+
+export function vibrateError() {
+  HapticFeedback.trigger('error');
+}
+
+export function vibrateWarning() {
+  HapticFeedback.trigger('warning');
+}
+
+export function vibrateNotification() {
+  HapticFeedback.trigger('notification');
+}
+
+export function vibrateImpact() {
+  HapticFeedback.trigger('impact');
+}
+
+export function vibrateSelection() {
+  HapticFeedback.trigger('selection');
+}
