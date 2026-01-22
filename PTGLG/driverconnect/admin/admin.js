@@ -2387,67 +2387,52 @@ async function openB100Modal() {
         console.warn('Could not load drivers:', e);
     }
 
-    // Load origins
+    // Load origins from origin table
     try {
         const { data: origins } = await supabase
-            .from('origins')
-            .select('origin_code, name, lat, lng')
+            .from('origin')
+            .select('"originKey", name, lat, lng, "radiusMeters", "routeCode"')
             .order('name');
 
         b100OriginSelect.innerHTML = '<option value="">-- Select Origin --</option>';
         origins?.forEach(origin => {
             const option = document.createElement('option');
-            option.value = JSON.stringify({ code: origin.origin_code, name: origin.name, lat: origin.lat, lng: origin.lng });
-            option.textContent = origin.name || origin.origin_code;
+            option.value = JSON.stringify({
+                code: origin.originKey,
+                name: origin.name,
+                lat: origin.lat,
+                lng: origin.lng,
+                radius: origin.radiusMeters,
+                routeCode: origin.routeCode
+            });
+            option.textContent = origin.name || origin.originKey;
             b100OriginSelect.appendChild(option);
         });
     } catch (e) {
         console.warn('Could not load origins:', e);
     }
 
-    // Load destinations (stations + customers)
+    // Load destinations from origin table (same as origins)
     try {
-        const { data: stations } = await supabase
-            .from('stations')
-            .select('station_code, name, lat, lng')
-            .order('name');
-
-        const { data: customers } = await supabase
-            .from('customer')
-            .select('stationKey, name')
+        const { data: destinations } = await supabase
+            .from('origin')
+            .select('"originKey", name, lat, lng, "radiusMeters", "routeCode"')
             .order('name');
 
         b100DestinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
-
-        // Add stations
-        if (stations && stations.length > 0) {
-            const stationGroup = document.createElement('optgroup');
-            stationGroup.label = 'Stations';
-            stations.forEach(station => {
-                if (station.name) {
-                    const option = document.createElement('option');
-                    option.value = JSON.stringify({ code: station.station_code, name: station.name, lat: station.lat, lng: station.lng, type: 'station' });
-                    option.textContent = station.name;
-                    stationGroup.appendChild(option);
-                }
+        destinations?.forEach(dest => {
+            const option = document.createElement('option');
+            option.value = JSON.stringify({
+                code: dest.originKey,
+                name: dest.name,
+                lat: dest.lat,
+                lng: dest.lng,
+                radius: dest.radiusMeters,
+                routeCode: dest.routeCode
             });
-            b100DestinationSelect.appendChild(stationGroup);
-        }
-
-        // Add customers
-        if (customers && customers.length > 0) {
-            const customerGroup = document.createElement('optgroup');
-            customerGroup.label = 'Customers';
-            customers.forEach(customer => {
-                if (customer.name) {
-                    const option = document.createElement('option');
-                    option.value = JSON.stringify({ code: customer.stationKey, name: customer.name, type: 'customer' });
-                    option.textContent = customer.name;
-                    customerGroup.appendChild(option);
-                }
-            });
-            b100DestinationSelect.appendChild(customerGroup);
-        }
+            option.textContent = dest.name || dest.originKey;
+            b100DestinationSelect.appendChild(option);
+        });
     } catch (e) {
         console.warn('Could not load destinations:', e);
     }
