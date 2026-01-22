@@ -1722,6 +1722,9 @@ function subscribeToJobActivityUpdates() {
             },
             (payload) => {
                 console.log('🔔 Job activity detected:', payload);
+                console.log('📊 Event type:', payload.eventType);
+                console.log('📊 Old data:', payload.old);
+                console.log('📊 New data:', payload.new);
                 
                 const oldData = payload.old;
                 const newData = payload.new;
@@ -1729,28 +1732,46 @@ function subscribeToJobActivityUpdates() {
                 // Check for checkin
                 if (!oldData.checkin_time && newData.checkin_time) {
                     const message = `📍 Check-in: ${newData.reference} - ${newData.ship_to_name || 'จุดส่ง'}`;
+                    console.log('✅ CHECKIN DETECTED:', message);
                     showNotification(message, 'info', 5000);
                     // Add to notification bell
                     addNotificationToBell('checkin', 'Check-in สำเร็จ', message, { reference: newData.reference });
                     console.log('✅ Driver checked in at:', newData.ship_to_name);
+                } else {
+                    console.log('❌ Not checkin:', { 
+                        oldCheckin: oldData.checkin_time, 
+                        newCheckin: newData.checkin_time 
+                    });
                 }
                 
                 // Check for checkout
                 if (!oldData.checkout_time && newData.checkout_time) {
                     const message = `✅ Check-out: ${newData.reference} - ${newData.ship_to_name || 'จุดส่ง'}`;
+                    console.log('✅ CHECKOUT DETECTED:', message);
                     showNotification(message, 'success', 5000);
                     // Add to notification bell
                     addNotificationToBell('checkout', 'Check-out สำเร็จ', message, { reference: newData.reference });
                     console.log('✅ Driver checked out from:', newData.ship_to_name);
+                } else {
+                    console.log('❌ Not checkout:', { 
+                        oldCheckout: oldData.checkout_time, 
+                        newCheckout: newData.checkout_time 
+                    });
                 }
                 
                 // Check for trip completion
                 if (!oldData.trip_ended && newData.trip_ended) {
                     const message = `🎉 Trip จบแล้ว: ${newData.reference}`;
+                    console.log('✅ TRIP END DETECTED:', message);
                     showNotification(message, 'success', 7000);
                     // Add to notification bell
                     addNotificationToBell('trip-end', 'Trip เสร็จสมบูรณ์', message, { reference: newData.reference });
                     console.log('🎉 Trip ended:', newData.reference);
+                } else {
+                    console.log('❌ Not trip end:', { 
+                        oldEnded: oldData.trip_ended, 
+                        newEnded: newData.trip_ended 
+                    });
                 }
             }
         )
