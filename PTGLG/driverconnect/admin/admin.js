@@ -2230,6 +2230,47 @@ async function handleSiphoningSubmit(event) {
             recordData.status = 'reported';
             recordData.created_at = new Date().toISOString();
             ({ error } = await supabase.from('fuel_siphoning').insert([recordData]));
+
+            // Also create a record in jobdata table
+            if (!error) {
+                const siphonDate = siphoningDateInput.value;
+                const siphonTime = siphoningTimeInput.value || '00:00';
+                const dateStr = siphonDate.replace(/-/g, '').slice(2); // YYMMDD format
+
+                // Generate reference: SIPHON-YYMMDD-XXX
+                const { count } = await supabase
+                    .from('jobdata')
+                    .select('*', { count: 'exact', head: true })
+                    .ilike('reference', `SIPHON-${dateStr}%`);
+
+                const seqNum = String((count || 0) + 1).padStart(3, '0');
+                const reference = `SIPHON-${dateStr}-${seqNum}`;
+
+                const jobdataRecord = {
+                    reference: reference,
+                    seq: 1,
+                    ship_to_code: stationData.code,
+                    ship_to_name: stationData.name,
+                    vehicle_desc: siphoningVehicleInput.value,
+                    drivers: driverData.name,
+                    materials: 'FUEL_SIPHONING',
+                    total_qty: parseFloat(siphoningLitersInput.value),
+                    status: 'COMPLETED',
+                    checkin_time: `${siphonDate}T${siphonTime}:00`,
+                    checkout_time: `${siphonDate}T${siphonTime}:00`,
+                    job_closed: true,
+                    updated_by: adminUsername.textContent || 'Admin',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                const { error: jobdataError } = await supabase.from('jobdata').insert([jobdataRecord]);
+                if (jobdataError) {
+                    console.warn('Warning: Could not create jobdata record:', jobdataError);
+                } else {
+                    console.log('✅ Created jobdata record:', reference);
+                }
+            }
         }
 
         if (error) throw error;
@@ -2345,12 +2386,19 @@ async function handleB100Submit(event) {
     event.preventDefault();
 
     try {
+        const reference = b100ReferenceInput.value;
+        const driverName = b100DriverSelect.options[b100DriverSelect.selectedIndex]?.text || b100DriverSelect.value;
+        const vehiclePlate = b100VehicleInput.value;
+        const amount = parseFloat(b100AmountInput.value);
+        const notes = b100NotesInput.value;
+
+        // Create record in driver_jobs for B100 tracking
         const jobData = {
-            reference: b100ReferenceInput.value,
-            drivers: b100DriverSelect.value,
-            vehicle_plate: b100VehicleInput.value,
+            reference: reference,
+            drivers: driverName,
+            vehicle_plate: vehiclePlate,
             is_b100: true,
-            b100_amount: parseFloat(b100AmountInput.value),
+            b100_amount: amount,
             b100_status: 'pending',
             status: 'active',
             trip_ended: false,
@@ -2361,6 +2409,31 @@ async function handleB100Submit(event) {
         const { error } = await supabase.from('driver_jobs').insert([jobData]);
 
         if (error) throw error;
+
+        // Also create a record in jobdata table
+        const jobdataRecord = {
+            reference: reference,
+            seq: 1,
+            ship_to_code: 'B100',
+            ship_to_name: 'B100 Fuel Delivery',
+            vehicle_desc: vehiclePlate,
+            drivers: driverName,
+            materials: 'B100',
+            total_qty: amount, // Use amount as quantity (in Baht, could also represent liters)
+            status: 'PENDING',
+            job_closed: false,
+            trip_ended: false,
+            updated_by: adminUsername.textContent || 'Admin',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        const { error: jobdataError } = await supabase.from('jobdata').insert([jobdataRecord]);
+        if (jobdataError) {
+            console.warn('Warning: Could not create jobdata record:', jobdataError);
+        } else {
+            console.log('✅ Created jobdata record for B100:', reference);
+        }
 
         showNotification('B100 job created successfully!', 'info');
         closeB100Modal();
@@ -2373,6 +2446,16 @@ async function handleB100Submit(event) {
 
 async function updateB100Status(jobId, newStatus) {
     try {
+        // First get the job reference
+        const { data: job, error: fetchError } = await supabase
+            .from('driver_jobs')
+            .select('reference')
+            .eq('id', jobId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        // Update driver_jobs table
         const { error } = await supabase
             .from('driver_jobs')
             .update({
@@ -2382,6 +2465,22 @@ async function updateB100Status(jobId, newStatus) {
             .eq('id', jobId);
 
         if (error) throw error;
+
+        // Also update corresponding jobdata record
+        if (job?.reference) {
+            const jobdataStatus = newStatus === 'paid' ? 'COMPLETED' : 'PENDING';
+            const jobClosed = newStatus === 'paid';
+
+            await supabase
+                .from('jobdata')
+                .update({
+                    status: jobdataStatus,
+                    job_closed: jobClosed,
+                    job_closed_at: jobClosed ? new Date().toISOString() : null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('reference', job.reference);
+        }
 
         showNotification(`B100 status updated to ${newStatus}!`, 'info');
         loadB100Jobs(b100Search.value, b100StatusFilter.value);
