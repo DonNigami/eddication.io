@@ -6,6 +6,9 @@ const LIFF_ID = '2007705394-Lq3mMYKA'; // Admin panel LIFF ID
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Export supabase for use in other modules
+export { supabase };
+
 // Global state for realtime
 let holidayWorkRealtimeChannel = null;
 let jobActivityRealtimeChannel = null;
