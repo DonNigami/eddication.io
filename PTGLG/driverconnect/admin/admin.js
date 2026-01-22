@@ -2886,7 +2886,13 @@ function initNotificationBell() {
     }
 
     // Event listeners
-    notificationBell.addEventListener('click', toggleNotificationDropdown);
+    notificationBell.addEventListener('click', (e) => {
+        toggleNotificationDropdown(e);
+        // Enable audio on first click (user gesture)
+        if (window._audioContextBlocked) {
+            window._audioContextBlocked = false;
+        }
+    });
     markAllReadBtn?.addEventListener('click', markAllNotificationsAsRead);
 
     // Close dropdown when clicking outside
@@ -3023,25 +3029,45 @@ function getTimeAgo(date) {
 }
 
 function playNotificationSound() {
+    // Skip if already tried and failed
+    if (window._audioContextBlocked) return;
+    
     try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
         
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        
-        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.2);
+        // Check if context is in suspended state (autoplay blocked)
+        if (audioContext.state === 'suspended') {
+            // Try to resume (will fail on first load, succeed after user interaction)
+            audioContext.resume().then(() => {
+                playBeep(audioContext);
+            }).catch(() => {
+                console.log('🔇 Sound blocked by browser - will work after user interaction');
+                window._audioContextBlocked = true;
+            });
+        } else {
+            playBeep(audioContext);
+        }
     } catch (e) {
         console.log('Could not play sound', e);
+        window._audioContextBlocked = true;
     }
+}
+
+function playBeep(audioContext) {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
 }
 
 
