@@ -1,8 +1,9 @@
 # 📋 PLAN - Driver Tracking App Development Plan
 
-> **Last Updated:** 2026-01-21 (Added Holiday Work Approval System)
+> **Last Updated:** 2026-01-22 (Added Driver & Owner Value Features)
 > **Project:** Driver Tracking App (LINE LIFF + Supabase)
-> **Status:** ✅ Core Features Working | ✅ Live Tracking with ETA | ✅ Quick Wins Implemented! | ✅ Holiday Work Approval System!
+> **Status:** ✅ Core Features Working | ✅ Database Ready | ✅ Live Tracking Enabled | 🚀 Ready for Production Testing!
+> **New:** 💰 Driver & Owner Value Features | 🚚 4PL Transformation Roadmap
 
 ---
 
@@ -13,6 +14,11 @@
 **Main File:** `PTGLG/driverconnect/driverapp/index-supabase-modular.html`
 
 **Schema Reference:** `PTGLG/driverconnect/app/PLAN.md` (Migration Plan)
+
+**Additional References:**
+- `4PL_TRANSFORMATION_ROADMAP.md` - แผนพัฒนาเป็น 4PL Platform (สำหรับ Fleet 800+ คัน)
+- `DRIVER_OWNER_VALUE_FEATURES.md` - ฟีเจอร์เพิ่มประสิทธิภาพและลดต้นทุน
+- `PROFESSIONAL_ENHANCEMENT_ROADMAP.md` - แผนยกระดับเป็น Professional-grade
 
 ---
 
@@ -318,16 +324,17 @@ Endpoint: https://donnigami.github.io/eddication.io/PTGLG/driverconnect/driverap
   - ตอนนี้ใช้ `index-supabase-modular.html` เป็น base หลักแล้ว
   - Status: **ACTIVE IN USE**
 
-- [ ] **Apply user_profiles migration SQL**
+- [x] **Apply user_profiles migration SQL** ✅ DONE
   - File: `supabase/migrations/20260117_update_user_profiles.sql`
   - Action: Run in Supabase SQL Editor
   - URL: https://supabase.com/dashboard/project/myplpshpcordggbbtblg/sql/new
+  - Status: **APPLIED** (Jan 22, 2026)
 
-- [ ] **Apply driver_live_locations migration SQL**
+- [x] **Apply driver_live_locations migration SQL** ✅ DONE
   - File: `supabase/migrations/20260120134241_create_driver_live_locations_table.sql`
   - Action: Run in Supabase SQL Editor
   - Priority: **HIGH** - Required for live tracking to work
-  - See "Database Migration" section below for SQL
+  - Status: **APPLIED** (Jan 22, 2026)
 
 - [ ] **Update LINE LIFF Endpoint URL (Optional)**
   - Current: May still point to old version
@@ -2424,6 +2431,2087 @@ function trackEvent(eventName, params) {
 
 ---
 
+## 🚚 4PL Supply Chain Provider Features
+
+> **Strategic Context:** เมื่อทำหน้าที่เป็น 4PL (Fourth-Party Logistics Provider) จะต้องมีความสามารถในการจัดการ Supply Chain แบบครบวงจร ไม่ใช่แค่การขนส่ง แต่รวมถึงการจัดการหลาย 3PL providers, Visibility, Optimization, และ Customer Experience
+
+### **4PL Core Capabilities Required**
+
+```
+1. Multi-Carrier Management - จัดการหลาย 3PL/Carrier
+2. End-to-End Visibility - มองเห็นทั้ง supply chain
+3. Control Tower - ศูนย์บัญชาการ real-time
+4. Analytics & BI - วิเคราะห์และพยากรณ์
+5. Customer Portal - ให้ลูกค้าเข้าถึงข้อมูล
+6. Multi-Modal Transport - บก/เรือ/อากาศ
+7. Cost Optimization - เพิ่มประสิทธิภาพต้นทุน
+8. Integration Hub - เชื่อมต่อหลายระบบ
+```
+
+---
+
+### **PHASE A: Multi-Carrier & Fleet Management** (2-3 weeks)
+
+#### A.1 Carrier Management System (1 week)
+
+**Database Schema:**
+```sql
+-- carriers table
+CREATE TABLE carriers (
+  id bigint PRIMARY KEY,
+  carrier_code text UNIQUE,
+  carrier_name text,
+  carrier_type text, -- '3PL', 'OWN_FLEET', 'PARTNER'
+  contact_info jsonb,
+  service_areas jsonb,
+  vehicle_types jsonb,
+  pricing_model jsonb,
+  performance_rating numeric(3,2),
+  status text, -- 'ACTIVE', 'INACTIVE', 'SUSPENDED'
+  created_at timestamptz DEFAULT now()
+);
+
+-- carrier_vehicles table
+CREATE TABLE carrier_vehicles (
+  id bigint PRIMARY KEY,
+  carrier_id bigint REFERENCES carriers(id),
+  vehicle_registration text,
+  vehicle_type text, -- 'TRUCK', 'VAN', 'TRAILER', 'TANKER'
+  capacity_kg numeric,
+  capacity_cbm numeric,
+  gps_device_id text,
+  driver_id text,
+  current_status text, -- 'AVAILABLE', 'IN_TRANSIT', 'MAINTENANCE', 'OFFLINE'
+  last_location jsonb,
+  last_update timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- carrier_performance table
+CREATE TABLE carrier_performance (
+  id bigint PRIMARY KEY,
+  carrier_id bigint REFERENCES carriers(id),
+  date date,
+  total_trips int,
+  completed_on_time int,
+  completed_late int,
+  cancelled int,
+  avg_delivery_time interval,
+  customer_rating numeric(3,2),
+  cost_per_trip numeric,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Features:**
+- [ ] **Carrier Profile Management**
+  - เพิ่ม/แก้ไข/ลบ carrier
+  - กำหนด service areas
+  - กำหนด pricing rules
+  - Track performance metrics
+
+- [ ] **Vehicle Fleet Overview**
+  - Real-time fleet status (all carriers)
+  - Vehicle availability
+  - Maintenance schedule
+  - Utilization rate
+
+- [ ] **Carrier Selection Algorithm**
+  ```javascript
+  // Auto-assign best carrier based on:
+  // 1. Service area coverage
+  // 2. Vehicle availability
+  // 3. Cost
+  // 4. Performance history
+  // 5. Current load
+  ```
+
+---
+
+#### A.2 Multi-Tenant Architecture (4 days)
+
+**Database Schema:**
+```sql
+-- tenants (customers/shippers)
+CREATE TABLE tenants (
+  id bigint PRIMARY KEY,
+  tenant_code text UNIQUE,
+  tenant_name text,
+  tenant_type text, -- 'SHIPPER', 'RECEIVER', 'BOTH'
+  industry text,
+  business_size text,
+  contact_info jsonb,
+  billing_info jsonb,
+  service_level text, -- 'STANDARD', 'PREMIUM', 'ENTERPRISE'
+  api_key text,
+  webhook_url text,
+  preferences jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- tenant_users (customer users)
+CREATE TABLE tenant_users (
+  id bigint PRIMARY KEY,
+  tenant_id bigint REFERENCES tenants(id),
+  user_email text,
+  user_name text,
+  user_role text, -- 'ADMIN', 'PLANNER', 'VIEWER'
+  permissions jsonb,
+  last_login timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- shipments (customer orders)
+CREATE TABLE shipments (
+  id bigint PRIMARY KEY,
+  tenant_id bigint REFERENCES tenants(id),
+  shipment_no text UNIQUE,
+  reference_no text, -- customer reference
+  order_date timestamptz,
+  pickup_location jsonb,
+  delivery_location jsonb,
+  pickup_datetime timestamptz,
+  delivery_datetime timestamptz,
+  cargo_details jsonb,
+  special_instructions text,
+  status text,
+  assigned_carrier_id bigint REFERENCES carriers(id),
+  assigned_trip_id bigint REFERENCES trips(id),
+  tracking_link text,
+  pod_url text,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Features:**
+- [ ] **Customer Onboarding Portal**
+  - Self-service registration
+  - Service level selection
+  - Integration setup
+
+- [ ] **Customer Dashboard**
+  - Active shipments overview
+  - Pending pickups
+  - In-transit tracking
+  - Delivered today
+  - Performance metrics
+
+---
+
+### **PHASE B: Control Tower & Visibility** (2-3 weeks)
+
+#### B.1 Real-Time Control Tower Dashboard (1.5 weeks)
+
+**Dashboard Components:**
+
+**1. Live Operations Map**
+```javascript
+// Real-time map showing:
+// - All active vehicles (color-coded by carrier)
+// - All shipments (in-transit, pending, completed)
+// - Geofences (pickup/delivery zones)
+// - Traffic conditions
+// - Incident markers
+// - Weather overlays
+
+class ControlTowerMap {
+  async init() {
+    this.map = L.map('control-tower-map');
+    
+    // Load all active vehicles
+    this.loadVehicleMarkers();
+    
+    // Load all shipments
+    this.loadShipmentMarkers();
+    
+    // Subscribe to real-time updates
+    this.subscribeToUpdates();
+    
+    // Auto-refresh every 30 seconds
+    setInterval(() => this.refresh(), 30000);
+  }
+  
+  loadVehicleMarkers() {
+    // Different icons for different carriers/status
+    // Clustering for dense areas
+    // Click to see vehicle details
+  }
+  
+  subscribeToUpdates() {
+    supabase
+      .channel('control-tower')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'driver_live_locations' },
+        (payload) => this.updateVehiclePosition(payload)
+      )
+      .subscribe();
+  }
+}
+```
+
+**2. Operations KPIs**
+```
+┌─────────────────────────────────────────────┐
+│ TODAY'S OPERATIONS                          │
+├─────────────────────────────────────────────┤
+│ Active Shipments:        156  ↑ +12        │
+│ Vehicles On Road:         87  ↓ -3         │
+│ Completed Today:         234  ↑ +45        │
+│ Pending Pickups:          23  ↑ +5         │
+│ Late Deliveries:           4  ↓ -2         │
+│ Average Delivery Time:  2.3h  ↓ -0.2h      │
+│ On-Time Rate:          94.2%  ↑ +1.5%      │
+└─────────────────────────────────────────────┘
+```
+
+**3. Alert Management Center**
+```javascript
+// Real-time alerts
+const ALERTS = {
+  CRITICAL: [
+    'Vehicle offline > 30 min',
+    'Delivery delayed > 2 hours',
+    'Geofence violation',
+    'Accident reported',
+    'Cargo temperature out of range'
+  ],
+  WARNING: [
+    'Traffic jam on route',
+    'Weather alert',
+    'Driver overtime threshold',
+    'Vehicle maintenance due',
+    'Low fuel alert'
+  ],
+  INFO: [
+    'Shipment picked up',
+    'Shipment delivered',
+    'Driver break started',
+    'Route deviation (minor)'
+  ]
+};
+
+class AlertManager {
+  async processAlert(alert) {
+    // Auto-classify by severity
+    const severity = this.classifyAlert(alert);
+    
+    // Notify relevant parties
+    await this.notifyStakeholders(alert, severity);
+    
+    // Trigger automation if configured
+    await this.triggerAutomation(alert);
+    
+    // Log to database
+    await this.logAlert(alert);
+  }
+  
+  async triggerAutomation(alert) {
+    if (alert.type === 'DELIVERY_DELAYED') {
+      // Auto-notify customer
+      // Suggest alternative routes
+      // Dispatch backup vehicle if available
+    }
+  }
+}
+```
+
+**Features:**
+- [ ] **Real-Time Fleet Visualization**
+  - All vehicles on one map
+  - Color-coded by status/carrier
+  - Click for details
+  - Route visualization
+
+- [ ] **Exception Management**
+  - Alert dashboard
+  - Automated workflows
+  - Escalation rules
+  - Resolution tracking
+
+- [ ] **Capacity Planning**
+  - Vehicle utilization
+  - Available capacity
+  - Peak time analysis
+  - Resource allocation
+
+---
+
+#### B.2 End-to-End Shipment Tracking (1 week)
+
+**Shipment Lifecycle:**
+```
+Created → Planned → Assigned → Picked Up → In Transit → 
+Out for Delivery → Delivered → POD Submitted → Closed
+```
+
+**Database Schema:**
+```sql
+-- shipment_events table
+CREATE TABLE shipment_events (
+  id bigint PRIMARY KEY,
+  shipment_id bigint REFERENCES shipments(id),
+  event_type text,
+  event_timestamp timestamptz,
+  location jsonb,
+  performed_by text,
+  notes text,
+  metadata jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- shipment_milestones table
+CREATE TABLE shipment_milestones (
+  id bigint PRIMARY KEY,
+  shipment_id bigint REFERENCES shipments(id),
+  milestone_type text, -- 'PICKUP_SCHEDULED', 'PICKED_UP', 'IN_TRANSIT', 'DELIVERED'
+  planned_time timestamptz,
+  actual_time timestamptz,
+  variance_minutes int,
+  status text, -- 'PENDING', 'ON_TIME', 'DELAYED', 'COMPLETED'
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Features:**
+- [ ] **Public Tracking Portal**
+  - Track by shipment number
+  - Real-time status updates
+  - ETA calculation
+  - Delivery proof
+  - No login required
+
+- [ ] **Milestone Tracking**
+  - Automatic milestone detection
+  - Planned vs Actual time
+  - Delay notifications
+  - Performance scoring
+
+- [ ] **Event Timeline**
+  - Complete shipment history
+  - Location trail
+  - Status changes
+  - Documents attached
+
+---
+
+### **PHASE C: Customer Experience & Portal** (2 weeks)
+
+#### C.1 Customer Self-Service Portal (1.5 weeks)
+
+**Portal Features:**
+
+**1. Shipment Booking**
+```javascript
+// Customer can create shipment requests
+class ShipmentBooking {
+  async createShipment(data) {
+    // Validate pickup/delivery locations
+    const isServiceable = await this.checkServiceability(
+      data.pickup_location,
+      data.delivery_location
+    );
+    
+    if (!isServiceable) {
+      throw new Error('Location not in service area');
+    }
+    
+    // Get instant quote
+    const quote = await this.calculateQuote(data);
+    
+    // Create shipment
+    const shipment = await supabase.from('shipments').insert({
+      tenant_id: this.tenantId,
+      ...data,
+      estimated_cost: quote.cost,
+      estimated_duration: quote.duration,
+      status: 'PENDING'
+    });
+    
+    return { shipment, quote };
+  }
+  
+  async calculateQuote(data) {
+    // Distance calculation
+    const distance = this.calculateDistance(
+      data.pickup_location,
+      data.delivery_location
+    );
+    
+    // Weight/volume consideration
+    const { weight, volume } = data.cargo_details;
+    
+    // Dynamic pricing based on:
+    // - Distance
+    // - Weight/volume
+    // - Service level
+    // - Current demand
+    // - Customer tier
+    
+    return {
+      cost: calculatedCost,
+      duration: estimatedDuration,
+      breakdown: {...}
+    };
+  }
+}
+```
+
+**2. Shipment Dashboard**
+```
+┌─────────────────────────────────────────────────────┐
+│ MY SHIPMENTS                                        │
+├─────────────────────────────────────────────────────┤
+│ 📦 Active (12)                                      │
+│ ⏱️  Pending Pickup (5)                              │
+│ 🚚 In Transit (7)                                   │
+│ ✅ Delivered Today (23)                             │
+├─────────────────────────────────────────────────────┤
+│ Shipment No    Status        ETA        Action      │
+│ SH-2601-0123   In Transit   14:30      🔍 Track    │
+│ SH-2601-0124   Picked Up    15:45      🔍 Track    │
+│ SH-2601-0125   Pending      -          📝 Edit     │
+└─────────────────────────────────────────────────────┘
+```
+
+**3. Analytics & Reports**
+```javascript
+// Customer can see their own performance
+const CUSTOMER_METRICS = {
+  // Volume
+  total_shipments: 1245,
+  mtd_shipments: 87,
+  ytd_shipments: 1245,
+  
+  // Performance
+  on_time_delivery_rate: 94.2,
+  avg_delivery_time: '2.3 hours',
+  
+  // Cost
+  total_spend: 450000,
+  avg_cost_per_shipment: 361,
+  cost_trend: 'decreasing',
+  
+  // Quality
+  pod_completion_rate: 98.5,
+  customer_complaints: 3,
+  carrier_rating: 4.7
+};
+```
+
+**Features:**
+- [ ] **Shipment Creation & Booking**
+  - Instant quote
+  - Schedule pickup
+  - Recurring shipments
+  - Bulk upload (CSV)
+
+- [ ] **Track & Trace**
+  - Real-time tracking
+  - Multiple shipment view
+  - ETA updates
+  - Delivery notifications
+
+- [ ] **Document Management**
+  - Upload shipping docs
+  - View POD
+  - Download invoices
+  - Compliance docs
+
+- [ ] **Reporting & Analytics**
+  - Shipment history
+  - Performance dashboard
+  - Cost analysis
+  - Export reports
+
+---
+
+#### C.2 Customer Notifications & Communication (0.5 week)
+
+**Notification Channels:**
+```javascript
+class CustomerNotifications {
+  async notifyCustomer(shipment, event) {
+    const tenant = await this.getTenant(shipment.tenant_id);
+    
+    // Email notification
+    if (tenant.preferences.email_notifications) {
+      await this.sendEmail(tenant, event);
+    }
+    
+    // SMS notification
+    if (tenant.preferences.sms_notifications) {
+      await this.sendSMS(tenant, event);
+    }
+    
+    // Webhook (for system integration)
+    if (tenant.webhook_url) {
+      await this.triggerWebhook(tenant.webhook_url, event);
+    }
+    
+    // Push notification (if mobile app)
+    if (tenant.push_token) {
+      await this.sendPush(tenant, event);
+    }
+  }
+  
+  async sendEmail(tenant, event) {
+    const templates = {
+      'SHIPMENT_CREATED': 'Your shipment {shipment_no} has been created',
+      'PICKUP_SCHEDULED': 'Pickup scheduled for {pickup_time}',
+      'PICKED_UP': 'Your shipment has been picked up',
+      'IN_TRANSIT': 'Your shipment is on the way. ETA: {eta}',
+      'DELIVERED': 'Shipment delivered successfully',
+      'DELAYED': 'Shipment delayed. New ETA: {new_eta}',
+      'EXCEPTION': 'Exception on shipment {shipment_no}: {reason}'
+    };
+    
+    // Send templated email
+  }
+}
+```
+
+**Features:**
+- [ ] **Multi-Channel Notifications**
+  - Email
+  - SMS
+  - Webhook
+  - Push notifications
+
+- [ ] **Smart Notifications**
+  - Based on preferences
+  - Event-driven
+  - Customizable templates
+  - Delivery confirmation
+
+- [ ] **Proactive Communication**
+  - Delay predictions
+  - Exception alerts
+  - ETA updates
+  - Service updates
+
+---
+
+### **PHASE D: Advanced Analytics & BI** (2 weeks)
+
+#### D.1 Business Intelligence Dashboard (1 week)
+
+**Analytics Modules:**
+
+**1. Operational Analytics**
+```sql
+-- Daily operations summary
+CREATE VIEW v_daily_operations AS
+SELECT 
+  date,
+  COUNT(*) as total_shipments,
+  COUNT(*) FILTER (WHERE status = 'DELIVERED') as completed,
+  COUNT(*) FILTER (WHERE delivered_late) as late_deliveries,
+  AVG(delivery_time) as avg_delivery_time,
+  SUM(revenue) as total_revenue,
+  AVG(customer_rating) as avg_rating
+FROM shipments
+GROUP BY date
+ORDER BY date DESC;
+
+-- Carrier performance comparison
+CREATE VIEW v_carrier_performance AS
+SELECT 
+  c.carrier_name,
+  COUNT(s.id) as total_shipments,
+  AVG(s.delivery_time) as avg_delivery_time,
+  COUNT(*) FILTER (WHERE s.delivered_late) / COUNT(*)::float * 100 as late_rate,
+  AVG(s.customer_rating) as avg_rating,
+  SUM(s.cost) as total_cost
+FROM shipments s
+JOIN carriers c ON s.assigned_carrier_id = c.id
+WHERE s.created_at > NOW() - INTERVAL '30 days'
+GROUP BY c.carrier_name;
+```
+
+**2. Customer Analytics**
+```javascript
+// Customer segmentation
+class CustomerAnalytics {
+  async segmentCustomers() {
+    // Segment by:
+    // - Shipment volume (High/Medium/Low)
+    // - Revenue contribution
+    // - Growth rate
+    // - Service level
+    
+    return {
+      platinum: [], // Top 10% revenue
+      gold: [],     // Top 11-30%
+      silver: [],   // Top 31-60%
+      bronze: []    // Rest
+    };
+  }
+  
+  async calculateCLV(tenantId) {
+    // Customer Lifetime Value
+    const history = await this.getShipmentHistory(tenantId);
+    
+    return {
+      total_revenue: history.total_revenue,
+      avg_monthly_revenue: history.avg_monthly_revenue,
+      tenure_months: history.tenure_months,
+      predicted_ltv: this.predictLTV(history)
+    };
+  }
+  
+  async getCustomerHealth(tenantId) {
+    // Health score based on:
+    // - Usage frequency
+    // - Payment history
+    // - Complaint rate
+    // - Retention risk
+    
+    return {
+      health_score: 85, // 0-100
+      risk_level: 'low',
+      recommendations: []
+    };
+  }
+}
+```
+
+**3. Predictive Analytics**
+```javascript
+class PredictiveAnalytics {
+  async predictDeliveryTime(shipment) {
+    // ML model based on historical data
+    // Factors: distance, time of day, traffic, weather, carrier
+    
+    const features = {
+      distance: this.calculateDistance(shipment),
+      hour_of_day: new Date().getHours(),
+      day_of_week: new Date().getDay(),
+      carrier_avg_speed: await this.getCarrierAvgSpeed(shipment.carrier_id),
+      traffic_index: await this.getTrafficIndex(shipment.route)
+    };
+    
+    return this.mlModel.predict(features);
+  }
+  
+  async predictCapacityShortage() {
+    // Predict if we'll run out of capacity
+    const historicalDemand = await this.getDemandPattern();
+    const upcomingBookings = await this.getUpcomingBookings();
+    const availableCapacity = await this.getAvailableCapacity();
+    
+    if (upcomingBookings > availableCapacity * 0.9) {
+      return {
+        shortage_predicted: true,
+        shortage_date: '2026-01-25',
+        shortage_amount: 15,
+        recommendation: 'Contract additional carriers'
+      };
+    }
+  }
+  
+  async optimizeRoute(shipments) {
+    // Multi-stop route optimization
+    // Using genetic algorithm or similar
+    
+    return {
+      optimized_sequence: [],
+      total_distance: 0,
+      total_time: 0,
+      fuel_saved: 0,
+      cost_saved: 0
+    };
+  }
+}
+```
+
+**Features:**
+- [ ] **Executive Dashboard**
+  - High-level KPIs
+  - Trends & forecasts
+  - Cost analysis
+  - Revenue tracking
+
+- [ ] **Operations Dashboard**
+  - Real-time operations
+  - Carrier performance
+  - Vehicle utilization
+  - Exception handling
+
+- [ ] **Financial Dashboard**
+  - Revenue by customer
+  - Cost by carrier
+  - Profit margins
+  - Invoice tracking
+
+- [ ] **Custom Reports**
+  - Report builder
+  - Scheduled reports
+  - Export to Excel/PDF
+  - Email distribution
+
+---
+
+#### D.2 Cost Optimization & Planning (1 week)
+
+**Optimization Features:**
+
+**1. Route Optimization**
+```javascript
+class RouteOptimizer {
+  async optimizeMultiStop(stops) {
+    // Given: Multiple pickup/delivery stops
+    // Find: Optimal sequence to minimize distance/time/cost
+    
+    // Constraints:
+    // - Time windows (must pickup/deliver within timeframe)
+    // - Vehicle capacity
+    // - Driver shift hours
+    // - Traffic patterns
+    
+    // Algorithms:
+    // - Traveling Salesman Problem (TSP)
+    // - Vehicle Routing Problem (VRP)
+    // - Genetic Algorithm
+    
+    return {
+      optimized_route: [],
+      total_distance: 0,
+      total_time: 0,
+      estimated_cost: 0,
+      savings_vs_current: 15.5 // percentage
+    };
+  }
+}
+```
+
+**2. Load Consolidation**
+```javascript
+class LoadConsolidation {
+  async findConsolidationOpportunities() {
+    // Find shipments that can share a vehicle
+    const pendingShipments = await this.getPendingShipments();
+    
+    const opportunities = [];
+    
+    for (let i = 0; i < pendingShipments.length; i++) {
+      for (let j = i + 1; j < pendingShipments.length; j++) {
+        const shipmentA = pendingShipments[i];
+        const shipmentB = pendingShipments[j];
+        
+        // Check if compatible
+        if (this.canConsolidate(shipmentA, shipmentB)) {
+          const savings = this.calculateSavings(shipmentA, shipmentB);
+          
+          opportunities.push({
+            shipments: [shipmentA.id, shipmentB.id],
+            savings_amount: savings.amount,
+            savings_percent: savings.percent
+          });
+        }
+      }
+    }
+    
+    return opportunities.sort((a, b) => b.savings_amount - a.savings_amount);
+  }
+  
+  canConsolidate(shipmentA, shipmentB) {
+    // Same general direction
+    // Compatible time windows
+    // Combined volume < vehicle capacity
+    // No conflicting requirements (e.g., temperature)
+    return true;
+  }
+}
+```
+
+**3. Carrier Rate Negotiation Support**
+```javascript
+class RateAnalysis {
+  async analyzeCarrierRates() {
+    // Compare carrier rates
+    const carriers = await this.getAllCarriers();
+    const lanes = await this.getCommonLanes();
+    
+    const analysis = [];
+    
+    for (const lane of lanes) {
+      const rates = await this.getCarrierRatesForLane(lane, carriers);
+      
+      analysis.push({
+        lane: lane,
+        volume: lane.shipment_count,
+        current_avg_rate: lane.avg_rate,
+        market_avg_rate: await this.getMarketRate(lane),
+        best_rate: Math.min(...rates),
+        worst_rate: Math.max(...rates),
+        recommendation: this.getRecommendation(rates)
+      });
+    }
+    
+    return analysis;
+  }
+  
+  async suggestRateNegotiation() {
+    // Identify high-volume lanes with above-market rates
+    // Suggest negotiation targets
+    
+    return {
+      lanes_to_negotiate: [],
+      potential_savings: 0,
+      negotiation_leverage: 'high' // based on volume
+    };
+  }
+}
+```
+
+**Features:**
+- [ ] **Route Optimization Engine**
+  - Multi-stop optimization
+  - Traffic consideration
+  - Time window constraints
+  - Real-time re-routing
+
+- [ ] **Load Consolidation**
+  - Auto-suggest consolidation
+  - Cost savings calculator
+  - Compatibility checker
+  - Manual override
+
+- [ ] **Carrier Rate Analysis**
+  - Rate comparison
+  - Market benchmarking
+  - Negotiation support
+  - Contract management
+
+- [ ] **Capacity Planning**
+  - Demand forecasting
+  - Capacity vs demand
+  - Peak season planning
+  - Resource allocation
+
+---
+
+### **PHASE E: Integration & API** (1.5 weeks)
+
+#### E.1 RESTful API for Customers (1 week)
+
+**API Endpoints:**
+```javascript
+// Customer API for system integration
+
+// Authentication
+POST   /api/v1/auth/token                 // Get API token
+GET    /api/v1/auth/verify                // Verify token
+
+// Shipments
+POST   /api/v1/shipments                  // Create shipment
+GET    /api/v1/shipments                  // List shipments
+GET    /api/v1/shipments/:id              // Get shipment details
+PUT    /api/v1/shipments/:id              // Update shipment
+DELETE /api/v1/shipments/:id              // Cancel shipment
+
+// Tracking
+GET    /api/v1/track/:shipment_no         // Track shipment
+GET    /api/v1/track/:shipment_no/events  // Get event history
+GET    /api/v1/track/:shipment_no/location // Get current location
+
+// Quotes
+POST   /api/v1/quotes                     // Get instant quote
+
+// Documents
+GET    /api/v1/shipments/:id/pod          // Get POD
+POST   /api/v1/shipments/:id/documents    // Upload document
+
+// Webhooks
+POST   /api/v1/webhooks                   // Register webhook
+GET    /api/v1/webhooks                   // List webhooks
+DELETE /api/v1/webhooks/:id               // Delete webhook
+
+// Reports
+GET    /api/v1/reports/performance        // Performance report
+GET    /api/v1/reports/invoices           // Invoice report
+```
+
+**API Documentation:**
+```yaml
+openapi: 3.0.0
+info:
+  title: 4PL Logistics API
+  version: 1.0.0
+  description: RESTful API for shipment management
+
+paths:
+  /api/v1/shipments:
+    post:
+      summary: Create a new shipment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reference_no:
+                  type: string
+                pickup_location:
+                  type: object
+                delivery_location:
+                  type: object
+                pickup_datetime:
+                  type: string
+                  format: date-time
+                cargo_details:
+                  type: object
+      responses:
+        201:
+          description: Shipment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shipment'
+        400:
+          description: Bad request
+        401:
+          description: Unauthorized
+```
+
+**Features:**
+- [ ] **RESTful API**
+  - Full CRUD operations
+  - Pagination
+  - Filtering & sorting
+  - Rate limiting
+
+- [ ] **Webhook System**
+  - Event subscriptions
+  - Automatic retries
+  - Delivery confirmation
+  - Payload validation
+
+- [ ] **API Documentation**
+  - Interactive docs (Swagger)
+  - Code examples
+  - Postman collection
+  - SDK libraries
+
+---
+
+#### E.2 Third-Party Integrations (0.5 week)
+
+**Integration Points:**
+
+**1. ERP Integration**
+```javascript
+// Connect with customer ERP systems
+class ERPIntegration {
+  // SAP, Oracle, Microsoft Dynamics, etc.
+  
+  async syncOrders() {
+    // Pull new orders from ERP
+    // Create shipments automatically
+    // Update ERP with shipment status
+  }
+  
+  async updateStatus(shipmentId, status) {
+    // Push status back to ERP
+    await this.erpClient.updateOrder({
+      order_id: shipment.reference_no,
+      status: this.mapStatus(status),
+      tracking_link: this.getTrackingLink(shipmentId)
+    });
+  }
+}
+```
+
+**2. E-Commerce Platform Integration**
+```javascript
+// Shopify, WooCommerce, Magento, etc.
+class EcommerceIntegration {
+  async processOrder(order) {
+    // Automatically create shipment from e-commerce order
+    const shipment = await this.createShipmentFromOrder(order);
+    
+    // Update order with tracking info
+    await this.updateOrderTracking(order.id, shipment.tracking_no);
+    
+    // Send tracking to customer
+    await this.notifyCustomer(order.customer_email, shipment);
+  }
+}
+```
+
+**3. Accounting System Integration**
+```javascript
+// QuickBooks, Xero, etc.
+class AccountingIntegration {
+  async syncInvoices() {
+    // Create invoices in accounting system
+    // Sync payment status
+    // Generate financial reports
+  }
+}
+```
+
+**Features:**
+- [ ] **ERP Connectors**
+  - SAP
+  - Oracle
+  - Microsoft Dynamics
+  - Custom ERP
+
+- [ ] **E-commerce Platforms**
+  - Shopify
+  - WooCommerce
+  - Magento
+  - Custom platforms
+
+- [ ] **Accounting Systems**
+  - QuickBooks
+  - Xero
+  - Wave
+  - Custom systems
+
+- [ ] **Mapping & Geocoding**
+  - Google Maps API
+  - Mapbox
+  - HERE Maps
+  - OpenStreetMap
+
+---
+
+### **PHASE F: Compliance & Sustainability** (1 week)
+
+#### F.1 Regulatory Compliance (0.5 week)
+
+**Compliance Features:**
+
+**1. E-POD (Electronic Proof of Delivery)**
+```sql
+-- pod_records table
+CREATE TABLE pod_records (
+  id bigint PRIMARY KEY,
+  shipment_id bigint REFERENCES shipments(id),
+  delivered_at timestamptz,
+  delivered_to text,
+  recipient_signature_url text,
+  recipient_id_photo_url text,
+  delivery_photo_url text,
+  gps_location jsonb,
+  notes text,
+  digital_signature_hash text, -- for non-repudiation
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**2. Customs & Cross-Border**
+```javascript
+class CustomsCompliance {
+  async prepareCustomsDocuments(shipment) {
+    return {
+      commercial_invoice: this.generateCommercialInvoice(shipment),
+      packing_list: this.generatePackingList(shipment),
+      certificate_of_origin: this.getCertificateOfOrigin(shipment),
+      hs_codes: this.getHSCodes(shipment.cargo_details)
+    };
+  }
+  
+  async validateCompliance(shipment) {
+    // Check all required documents
+    // Validate HS codes
+    // Check import/export restrictions
+    // Verify customs value
+    
+    return {
+      is_compliant: true,
+      missing_documents: [],
+      warnings: []
+    };
+  }
+}
+```
+
+**3. DOT/Transport Regulations**
+```javascript
+class TransportCompliance {
+  async checkDriverHOS(driverId) {
+    // Hours of Service compliance
+    const logs = await this.getDriverLogs(driverId);
+    
+    return {
+      can_drive: true,
+      hours_available: 8.5,
+      next_break_due: '2026-01-22T18:00:00Z',
+      warnings: []
+    };
+  }
+  
+  async checkVehicleCompliance(vehicleId) {
+    // Maintenance records
+    // Insurance validity
+    // Registration validity
+    
+    return {
+      is_compliant: true,
+      issues: []
+    };
+  }
+}
+```
+
+**Features:**
+- [ ] **E-POD System**
+  - Digital signature
+  - Photo proof
+  - GPS verification
+  - Timestamp proof
+
+- [ ] **Customs Documentation**
+  - Auto-generate docs
+  - HS code lookup
+  - Compliance checker
+  - Document vault
+
+- [ ] **Safety Compliance**
+  - Driver HOS tracking
+  - Vehicle inspections
+  - Insurance validation
+  - Certification tracking
+
+---
+
+#### F.2 Carbon Footprint & Sustainability (0.5 week)
+
+**Sustainability Tracking:**
+
+```sql
+-- carbon_emissions table
+CREATE TABLE carbon_emissions (
+  id bigint PRIMARY KEY,
+  shipment_id bigint REFERENCES shipments(id),
+  distance_km numeric,
+  vehicle_type text,
+  fuel_type text,
+  fuel_consumed_liters numeric,
+  co2_kg numeric,
+  calculation_method text,
+  offset_purchased boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Carbon Calculator:**
+```javascript
+class CarbonFootprint {
+  async calculateEmissions(shipment) {
+    const distance = shipment.distance_km;
+    const vehicleType = shipment.vehicle_type;
+    
+    // Emission factors (kg CO2 per km)
+    const factors = {
+      'TRUCK': 0.62,
+      'VAN': 0.35,
+      'TRAILER': 0.85,
+      'ELECTRIC_VAN': 0.12
+    };
+    
+    const co2_kg = distance * factors[vehicleType];
+    
+    // Save to database
+    await supabase.from('carbon_emissions').insert({
+      shipment_id: shipment.id,
+      distance_km: distance,
+      vehicle_type: vehicleType,
+      co2_kg: co2_kg,
+      calculation_method: 'STANDARD_FACTORS'
+    });
+    
+    return {
+      co2_kg: co2_kg,
+      trees_equivalent: co2_kg / 21, // 21kg per tree per year
+      offset_cost: co2_kg * 0.02 // $0.02 per kg
+    };
+  }
+  
+  async getSustainabilityReport(tenantId, dateRange) {
+    const emissions = await this.getTenantEmissions(tenantId, dateRange);
+    
+    return {
+      total_co2_kg: emissions.total,
+      total_distance_km: emissions.distance,
+      avg_co2_per_km: emissions.total / emissions.distance,
+      trend: emissions.trend, // 'improving', 'stable', 'worsening'
+      recommendations: [
+        'Consider electric vehicles for urban routes',
+        'Optimize routes to reduce distance by 15%',
+        'Consolidate shipments to reduce trips'
+      ]
+    };
+  }
+}
+```
+
+**Features:**
+- [ ] **Carbon Tracking**
+  - Per-shipment emissions
+  - Tenant-level reporting
+  - Industry benchmarking
+  - Trend analysis
+
+- [ ] **Green Initiatives**
+  - Electric vehicle options
+  - Route optimization for fuel efficiency
+  - Load consolidation suggestions
+  - Carbon offset program
+
+- [ ] **Sustainability Reporting**
+  - ESG reports
+  - Customer carbon reports
+  - Certification support (ISO 14001)
+  - Public sustainability page
+
+---
+
+### **PHASE G: Advanced Value-Added Services** (2 weeks)
+
+#### G.1 Warehouse Management Integration (1 week)
+
+**WMS Features:**
+```sql
+-- warehouses table
+CREATE TABLE warehouses (
+  id bigint PRIMARY KEY,
+  warehouse_code text UNIQUE,
+  warehouse_name text,
+  location jsonb,
+  type text, -- 'OWN', 'PARTNER', '3PL'
+  capacity_cbm numeric,
+  current_utilization numeric,
+  services jsonb, -- ['STORAGE', 'CROSS_DOCK', 'KITTING', 'RETURNS']
+  operating_hours jsonb,
+  created_at timestamptz DEFAULT now()
+);
+
+-- inventory table
+CREATE TABLE inventory (
+  id bigint PRIMARY KEY,
+  warehouse_id bigint REFERENCES warehouses(id),
+  tenant_id bigint REFERENCES tenants(id),
+  sku text,
+  product_name text,
+  quantity int,
+  location_in_warehouse text,
+  last_movement timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+-- warehouse_orders table
+CREATE TABLE warehouse_orders (
+  id bigint PRIMARY KEY,
+  warehouse_id bigint REFERENCES warehouses(id),
+  tenant_id bigint REFERENCES tenants(id),
+  order_type text, -- 'INBOUND', 'OUTBOUND', 'TRANSFER'
+  status text,
+  scheduled_date timestamptz,
+  completed_date timestamptz,
+  items jsonb,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Features:**
+- [ ] **Inventory Visibility**
+  - Real-time stock levels
+  - Multi-warehouse view
+  - Low stock alerts
+  - Aging inventory
+
+- [ ] **Order Fulfillment**
+  - Pick & pack
+  - Wave picking
+  - Batch processing
+  - Quality control
+
+- [ ] **Cross-Docking**
+  - Direct transfer
+  - Reduced storage time
+  - Cost savings
+
+---
+
+#### G.2 Returns Management (0.5 week)
+
+**Returns Process:**
+```sql
+-- returns table
+CREATE TABLE returns (
+  id bigint PRIMARY KEY,
+  original_shipment_id bigint REFERENCES shipments(id),
+  tenant_id bigint REFERENCES tenants(id),
+  return_reason text,
+  return_status text, -- 'REQUESTED', 'APPROVED', 'PICKED_UP', 'RECEIVED', 'PROCESSED'
+  return_shipment_id bigint REFERENCES shipments(id),
+  refund_amount numeric,
+  refund_status text,
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**Features:**
+- [ ] **Return Authorization**
+  - Customer initiates return
+  - Auto-approval rules
+  - Return labels
+  - Pickup scheduling
+
+- [ ] **Return Tracking**
+  - Return shipment tracking
+  - Receipt confirmation
+  - Inspection status
+  - Refund processing
+
+---
+
+#### G.3 Value-Added Services (0.5 week)
+
+**Additional Services:**
+```javascript
+class ValueAddedServices {
+  services = {
+    // Packaging
+    GIFT_WRAPPING: { price: 5, duration_min: 10 },
+    SPECIAL_PACKAGING: { price: 10, duration_min: 15 },
+    
+    // Assembly
+    PRODUCT_ASSEMBLY: { price: 20, duration_min: 30 },
+    KITTING: { price: 15, duration_min: 20 },
+    
+    // Inspection
+    QUALITY_CHECK: { price: 8, duration_min: 10 },
+    PHOTO_DOCUMENTATION: { price: 5, duration_min: 5 },
+    
+    // Special handling
+    WHITE_GLOVE: { price: 50, duration_min: 60 },
+    INSTALLATION: { price: 100, duration_min: 120 },
+    
+    // Documentation
+    COD_COLLECTION: { price_percent: 2, duration_min: 5 },
+    SIGNATURE_REQUIRED: { price: 3, duration_min: 2 }
+  };
+  
+  async addService(shipmentId, serviceName) {
+    const service = this.services[serviceName];
+    
+    await supabase.from('shipment_services').insert({
+      shipment_id: shipmentId,
+      service_name: serviceName,
+      service_price: service.price,
+      status: 'REQUESTED'
+    });
+  }
+}
+```
+
+**Features:**
+- [ ] **Special Handling**
+  - White glove service
+  - Installation service
+  - Temperature-controlled
+  - Fragile handling
+
+- [ ] **Documentation Services**
+  - COD collection
+  - Signature required
+  - Photo documentation
+  - Video proof
+
+- [ ] **Packaging Services**
+  - Gift wrapping
+  - Custom packaging
+  - Eco-friendly options
+  - Branded packaging
+
+---
+
+## 📊 4PL Success Metrics
+
+### **Operational KPIs**
+- ✅ **On-Time Delivery Rate:** > 95%
+- ✅ **Perfect Order Rate:** > 90%
+- ✅ **Vehicle Utilization:** > 85%
+- ✅ **Cost per Shipment:** Trending down
+- ✅ **Transit Time:** < industry average
+
+### **Customer KPIs**
+- ✅ **Customer Retention:** > 90%
+- ✅ **NPS Score:** > 50
+- ✅ **API Adoption Rate:** > 60%
+- ✅ **Self-Service Usage:** > 70%
+- ✅ **Customer Satisfaction:** > 4.5/5
+
+### **Financial KPIs**
+- ✅ **Revenue Growth:** > 20% YoY
+- ✅ **Gross Margin:** > 30%
+- ✅ **Customer Acquisition Cost:** Decreasing
+- ✅ **Customer Lifetime Value:** Increasing
+- ✅ **Days Sales Outstanding:** < 30 days
+
+### **Sustainability KPIs**
+- ✅ **Carbon Intensity:** Decreasing 5% YoY
+- ✅ **Electric Vehicle %:** Increasing
+- ✅ **Route Efficiency:** > 90%
+- ✅ **Load Consolidation Rate:** > 40%
+
+---
+
+## 🗺️ 4PL Implementation Roadmap
+
+### **Quarter 1 (Weeks 1-12): Foundation**
+- ✅ Multi-carrier management
+- ✅ Control tower dashboard
+- ✅ Customer portal MVP
+- ✅ Basic API
+
+### **Quarter 2 (Weeks 13-24): Scale**
+- ✅ Advanced analytics
+- ✅ Predictive features
+- ✅ WMS integration
+- ✅ Full API suite
+
+### **Quarter 3 (Weeks 25-36): Optimize**
+- ✅ Route optimization
+- ✅ Cost optimization
+- ✅ Sustainability tracking
+- ✅ Returns management
+
+### **Quarter 4 (Weeks 37-48): Expand**
+- ✅ International shipping
+- ✅ Customs compliance
+- ✅ Value-added services
+- ✅ Marketplace features
+
+---
+
+## 🎯 4PL Competitive Advantages
+
+1. **End-to-End Visibility** - Real-time tracking ทุก shipment
+2. **Multi-Carrier Network** - เลือก carrier ที่ดีที่สุดแบบอัตโนมัติ
+3. **Predictive Analytics** - ทำนายปัญหาก่อนเกิด
+4. **Cost Optimization** - ลดต้นทุนด้วย AI
+5. **Customer Self-Service** - ลดต้นทุนการดูแล
+6. **API-First** - เชื่อมต่อง่าย ไม่ต้องพึ่ง manual
+7. **Sustainability** - รายงาน carbon footprint
+8. **Scalable** - รองรับการเติบโต
+
+---
+
+## 🚛 Driver & Owner Value Features
+
+> **Added:** 2026-01-22  
+> **Goal:** เพิ่มประสิทธิภาพและลดต้นทุนสำหรับคนขับและเจ้าของรถ  
+> **Reference:** `DRIVER_OWNER_VALUE_FEATURES.md`
+
+### **Pain Points & Solutions**
+
+#### **สำหรับคนขับ (Driver)**
+| Pain Point | Feature Solution |
+|------------|------------------|
+| ไม่รู้ว่าทำงานได้ดีแค่ไหน | Performance Dashboard + Driver Score |
+| ไม่รู้ว่าจะได้ bonus ไหม | Incentive Calculator + Achievement System |
+| ใช้น้ำมันเยอะ | Fuel Efficiency Tracking + Comparison |
+| ทำงาน overtime แต่ไม่มีใครเห็น | Work Hours Tracker + Overtime Alert |
+| ไม่รู้ route ไหนประหยัดเวลา | Route Analytics + Best Route Suggestion |
+| รถเสียบ่อย | Maintenance Alert + Preventive Reminder |
+
+#### **สำหรับเจ้าของรถ (Truck Owner)**
+| Pain Point | Feature Solution |
+|------------|------------------|
+| ไม่รู้ต้นทุนจริงต่อเที่ยว | Cost Tracking + Profit Calculator |
+| ไม่รู้ว่ารถคันไหนทำกำไรดี | Vehicle Performance Comparison |
+| รถวิ่งไม่เต็มศักยภาพ | Utilization Dashboard + Idle Time Alert |
+| ค่าซ่อมสูง | Predictive Maintenance + Cost Analysis |
+| คนขับบางคนขับไม่ดี | Driver Performance Ranking |
+| ไม่รู้ว่าควรลงทุนซื้อรถเพิ่มไหม | Business Intelligence Dashboard |
+
+---
+
+### **Feature Roadmap**
+
+#### **QUICK WINS (Week 1-2)** 🔴 เห็นผลเร็ว
+
+**1. Fuel Efficiency Tracker**
+- [ ] เก็บข้อมูล: start_odo, end_odo, fuel_amount, fuel_price
+- [ ] คำนวณ km/L อัตโนมัติ
+- [ ] เปรียบเทียบกับค่าเฉลี่ย fleet
+- [ ] แสดง ranking + reward
+- [ ] แสดง trend 7 วัน
+- [ ] คำนวณเงินประหยัดได้
+
+**2. Trip Cost Calculator**
+- [ ] เก็บค่าใช้จ่าย: น้ำมัน, ค่าผ่านทาง, อาหาร, อื่นๆ
+- [ ] คำนวณค่าเสื่อมราคาอัตโนมัติ
+- [ ] แสดง profit margin
+- [ ] เปรียบเทียบกับเที่ยวอื่นๆ
+- [ ] ถ่ายรูปใบเสร็จ (OCR future)
+
+**3. Driver Performance Score**
+- [ ] คำนวณ score จาก:
+  - On-time delivery rate (30%)
+  - Fuel efficiency vs average (25%)
+  - Vehicle condition reports (20%)
+  - Safety score (15%)
+  - Customer ratings (10%)
+- [ ] แสดงผล 0-100
+- [ ] แสดง trend เปรียบเทียบเดือนก่อน
+- [ ] แสดงคำแนะนำการปรับปรุง
+
+---
+
+#### **CORE FEATURES (Week 3-6)** 🟡 สำคัญมาก
+
+**4. Daily Performance Dashboard (For Driver)**
+```
+Display:
+- เที่ยววันนี้
+- ระยะทาง
+- เวลา
+- รายได้
+- ประสิทธิภาพน้ำมัน
+- กำไรสุทธิ
+- Performance score + ranking
+- เป้าหมายสัปดาห์
+```
+
+**Tasks:**
+- [ ] สร้างไฟล์ `dashboard.html`
+- [ ] สร้าง view `v_driver_daily_stats`
+- [ ] สร้าง API endpoint
+- [ ] ออกแบบ UI/UX
+- [ ] เพิ่มใน navigation menu
+
+**5. Cost Breakdown System**
+- [ ] สร้างตาราง `trip_costs`
+  - fuel_total_cost
+  - toll_total
+  - meal_total
+  - parking_total
+  - maintenance_total
+  - other_costs
+  - trip_revenue
+  - net_profit (calculated)
+  - profit_margin (calculated)
+- [ ] เพิ่ม cost entry form ตอนจบเที่ยว
+- [ ] แสดง breakdown แบบ visual (pie chart)
+- [ ] Export cost report
+
+**6. Vehicle Performance Comparison (For Owner)**
+- [ ] สร้าง view `v_vehicle_monthly_performance`
+- [ ] แสดงรถทั้งหมดเปรียบเทียบกัน:
+  - Total trips
+  - Total profit
+  - Avg profit margin
+  - Fuel efficiency
+  - Uptime percentage
+  - Performance score
+- [ ] Ranking system
+- [ ] Filter by vehicle type
+- [ ] Sort by different metrics
+- [ ] Alert สำหรับรถที่มีปัญหา
+
+**7. Predictive Maintenance Alert**
+- [ ] สร้างตาราง `maintenance_schedule`
+  - Mileage-based triggers
+  - Time-based triggers
+  - Condition-based triggers
+  - Estimated cost
+- [ ] สร้างตาราง `maintenance_records`
+- [ ] Alert system (push notification)
+- [ ] แสดงค่าใช้จ่ายประมาณการ
+- [ ] แสดงประวัติการซ่อม
+- [ ] นัดหมายอู่ integration (future)
+
+---
+
+#### **ADVANCED FEATURES (Week 7-10)** 🟢 เพิ่มมูลค่า
+
+**8. Route Efficiency Analysis**
+- [ ] เก็บข้อมูล route history
+  - Origin/Destination
+  - Highway used
+  - Distance
+  - Duration
+  - Cost
+  - Profit
+- [ ] วิเคราะห์เส้นทางที่ผ่านมา
+- [ ] เปรียบเทียบ routes ต่างๆ
+- [ ] แนะนำ route ที่ดีที่สุด
+- [ ] คำนวณเงินประหยัดได้ถ้าใช้ route ที่ดีกว่า
+
+**9. Income & Expense Report Generator**
+- [ ] Daily/Weekly/Monthly/Yearly reports
+- [ ] Export to Excel
+- [ ] Export to PDF
+- [ ] Auto-send email
+- [ ] Tax-ready format
+- [ ] Charts and visualizations:
+  - Expense breakdown (pie chart)
+  - Revenue vs Expenses trend (line chart)
+  - Profit margin trend
+  - Vehicle comparison (bar chart)
+
+**10. Driver Incentive System**
+- [ ] สร้างตาราง `driver_incentives`
+- [ ] สร้างตาราง `driver_achievements`
+- [ ] สร้างตาราง `driver_rewards_redemption`
+- [ ] กำหนด incentive rules:
+  - Performance-based
+  - Volume-based
+  - Achievement-based
+- [ ] Points system
+- [ ] Leaderboard
+- [ ] Achievement badges
+- [ ] Reward redemption
+- [ ] Push notifications for achievements
+
+---
+
+### **Database Schema**
+
+#### **New Tables Required**
+
+```sql
+-- 1. Fuel records
+CREATE TABLE fuel_records (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  trip_id bigint REFERENCES trips(id),
+  driver_user_id text,
+  vehicle_id bigint,
+  fuel_amount_liters numeric,
+  fuel_price_per_liter numeric,
+  fuel_total_cost numeric,
+  odo_reading numeric,
+  fuel_efficiency_kml numeric,
+  receipt_photo_url text,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX idx_fuel_records_driver ON fuel_records(driver_user_id);
+CREATE INDEX idx_fuel_records_trip ON fuel_records(trip_id);
+
+-- 2. Trip costs
+CREATE TABLE trip_costs (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  trip_id bigint REFERENCES trips(id),
+  driver_user_id text,
+  vehicle_id bigint,
+  
+  -- Costs
+  fuel_total_cost numeric,
+  toll_total numeric,
+  toll_receipts jsonb,
+  meal_total numeric,
+  meal_receipts jsonb,
+  parking_total numeric,
+  maintenance_total numeric,
+  maintenance_notes text,
+  other_costs numeric,
+  other_notes text,
+  
+  -- Revenue
+  trip_revenue numeric,
+  
+  -- Calculated fields
+  total_costs numeric GENERATED ALWAYS AS (
+    COALESCE(fuel_total_cost, 0) +
+    COALESCE(toll_total, 0) +
+    COALESCE(meal_total, 0) +
+    COALESCE(parking_total, 0) +
+    COALESCE(maintenance_total, 0) +
+    COALESCE(other_costs, 0)
+  ) STORED,
+  
+  net_profit numeric GENERATED ALWAYS AS (
+    COALESCE(trip_revenue, 0) - (
+      COALESCE(fuel_total_cost, 0) +
+      COALESCE(toll_total, 0) +
+      COALESCE(meal_total, 0) +
+      COALESCE(parking_total, 0) +
+      COALESCE(maintenance_total, 0) +
+      COALESCE(other_costs, 0)
+    )
+  ) STORED,
+  
+  profit_margin numeric GENERATED ALWAYS AS (
+    CASE 
+      WHEN COALESCE(trip_revenue, 0) > 0 THEN
+        ((COALESCE(trip_revenue, 0) - (
+          COALESCE(fuel_total_cost, 0) +
+          COALESCE(toll_total, 0) +
+          COALESCE(meal_total, 0) +
+          COALESCE(parking_total, 0) +
+          COALESCE(maintenance_total, 0) +
+          COALESCE(other_costs, 0)
+        )) / COALESCE(trip_revenue, 0)) * 100
+      ELSE 0
+    END
+  ) STORED,
+  
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+CREATE INDEX idx_trip_costs_driver ON trip_costs(driver_user_id);
+CREATE INDEX idx_trip_costs_vehicle ON trip_costs(vehicle_id);
+
+-- 3. Maintenance schedule
+CREATE TABLE maintenance_schedule (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  vehicle_id bigint REFERENCES vehicles(id),
+  maintenance_type text, -- 'OIL_CHANGE', 'TIRE_ROTATION', 'BRAKE_CHECK', etc.
+  trigger_type text, -- 'MILEAGE', 'TIME', 'CONDITION'
+  trigger_value numeric,
+  last_done_at timestamptz,
+  last_done_odo numeric,
+  next_due_odo numeric,
+  next_due_date date,
+  estimated_cost numeric,
+  actual_cost numeric,
+  status text DEFAULT 'SCHEDULED', -- SCHEDULED, DUE, OVERDUE, COMPLETED
+  created_at timestamptz DEFAULT now()
+);
+
+-- 4. Maintenance records
+CREATE TABLE maintenance_records (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  vehicle_id bigint REFERENCES vehicles(id),
+  maintenance_type text,
+  performed_at timestamptz DEFAULT now(),
+  odo_reading numeric,
+  cost numeric,
+  parts_replaced jsonb,
+  notes text,
+  receipt_url text,
+  performed_by text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- 5. Driver performance daily
+CREATE TABLE driver_performance_daily (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  driver_user_id text,
+  date date,
+  trips_completed int,
+  total_distance_km numeric,
+  total_duration_hours numeric,
+  fuel_efficiency_kml numeric,
+  on_time_deliveries int,
+  late_deliveries int,
+  revenue_today numeric,
+  costs_today numeric,
+  net_profit numeric,
+  performance_score numeric,
+  rank_today int,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(driver_user_id, date)
+);
+
+-- 6. Driver incentives
+CREATE TABLE driver_incentives (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  driver_user_id text,
+  incentive_type text,
+  points_earned int,
+  cash_bonus numeric,
+  earned_at timestamptz DEFAULT now(),
+  reason text,
+  trip_id bigint REFERENCES trips(id)
+);
+
+-- 7. Driver achievements
+CREATE TABLE driver_achievements (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  driver_user_id text,
+  achievement_type text,
+  achievement_name text,
+  points_awarded int,
+  unlocked_at timestamptz DEFAULT now()
+);
+
+-- 8. Driver rewards redemption
+CREATE TABLE driver_rewards_redemption (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  driver_user_id text,
+  reward_name text,
+  points_spent int,
+  cash_value numeric,
+  redeemed_at timestamptz DEFAULT now(),
+  status text DEFAULT 'PENDING' -- PENDING, APPROVED, PAID
+);
+
+-- 9. Route history
+CREATE TABLE route_history (
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  trip_id bigint REFERENCES trips(id),
+  origin_lat numeric,
+  origin_lng numeric,
+  origin_province text,
+  destination_lat numeric,
+  destination_lng numeric,
+  destination_province text,
+  route_details jsonb,
+  distance_km numeric,
+  duration_hours numeric,
+  created_at timestamptz DEFAULT now()
+);
+```
+
+#### **Views for Analytics**
+
+```sql
+-- Driver monthly stats
+CREATE VIEW v_driver_monthly_stats AS
+SELECT 
+  driver_user_id,
+  DATE_TRUNC('month', date) as month,
+  SUM(trips_completed) as total_trips,
+  SUM(total_distance_km) as total_distance,
+  AVG(fuel_efficiency_kml) as avg_fuel_efficiency,
+  SUM(on_time_deliveries)::float / NULLIF(SUM(trips_completed), 0) * 100 as on_time_rate,
+  SUM(revenue_today) as total_revenue,
+  SUM(costs_today) as total_costs,
+  SUM(net_profit) as total_profit,
+  AVG(performance_score) as avg_score
+FROM driver_performance_daily
+GROUP BY driver_user_id, DATE_TRUNC('month', date);
+
+-- Vehicle efficiency ranking
+CREATE VIEW v_vehicle_efficiency_ranking AS
+SELECT 
+  v.id,
+  v.registration_no,
+  v.vehicle_type,
+  AVG(f.fuel_efficiency_kml) as avg_fuel_efficiency,
+  COUNT(t.id) as total_trips,
+  SUM(tc.net_profit) as total_profit,
+  AVG(tc.profit_margin) as avg_profit_margin,
+  RANK() OVER (ORDER BY AVG(tc.profit_margin) DESC) as profit_rank
+FROM vehicles v
+JOIN trips t ON t.vehicle_id = v.id
+JOIN fuel_records f ON f.trip_id = t.id
+JOIN trip_costs tc ON tc.trip_id = t.id
+WHERE t.created_at > NOW() - INTERVAL '30 days'
+GROUP BY v.id, v.registration_no, v.vehicle_type;
+
+-- Route analysis
+CREATE VIEW v_route_analysis AS
+SELECT 
+  CONCAT(origin_province, ' → ', destination_province) as route_name,
+  route_details->>'highway' as highway,
+  COUNT(*) as trip_count,
+  AVG(distance_km) as avg_distance,
+  AVG(duration_hours) as avg_hours,
+  AVG(tc.toll_total) as avg_toll,
+  AVG(tc.fuel_total_cost / (distance_km / 100)) as fuel_cost_per_100km,
+  AVG(tc.net_profit) as avg_profit,
+  AVG(f.fuel_efficiency_kml) as avg_fuel_efficiency
+FROM route_history rh
+JOIN trips t ON t.id = rh.trip_id
+JOIN trip_costs tc ON tc.trip_id = t.id
+JOIN fuel_records f ON f.trip_id = t.id
+WHERE t.status = 'DELIVERED'
+GROUP BY route_name, highway
+HAVING COUNT(*) >= 5
+ORDER BY avg_profit DESC;
+```
+
+---
+
+### **UI/UX Updates**
+
+#### **Navigation Menu Enhancement**
+```
+Add new menu items:
+
+Current:
+- หน้าหลัก
+- ค้นหางาน
+- ประวัติ
+- ตั้งค่า
+
+New:
+- หน้าหลัก
+- ค้นหางาน
+- 📊 Dashboard (NEW!)
+  - ภาพรวมวันนี้
+  - สถิติสัปดาห์/เดือน
+  - เปรียบเทียบประสิทธิภาพ
+- 💰 รายรับ-รายจ่าย (NEW!)
+  - บันทึกค่าใช้จ่าย
+  - รายงานรายเดือน
+  - ดาวน์โหลด Excel/PDF
+- 🏆 แต้มและรางวัล (NEW!)
+  - คะแนนสะสม
+  - ความสำเร็จ
+  - แลกรางวัล
+- 🔧 บำรุงรักษา (NEW!)
+  - ตารางบำรุงรักษา
+  - แจ้งเตือน
+  - ประวัติการซ่อม
+- ประวัติ
+- ตั้งค่า
+```
+
+---
+
+### **Business Value**
+
+#### **For Drivers (คนขับ):**
+```
+Before: รายได้ไม่แน่นอน ไม่รู้ว่าประหยัดได้หรือไม่
+After:  เห็นข้อมูลชัด → ปรับปรุงได้ → เพิ่มรายได้ 10-15%
+
+Estimated Income Increase:
+- ลดค่าซ่อม (ดูแลรถดีขึ้น):       +฿500/เดือน
+- ลดค่าน้ำมัน (ขับประหยัด):        +฿800/เดือน  
+- ได้ bonus (ทำงานมีประสิทธิภาพ):   +฿2,000/เดือน
+──────────────────────────────────────────
+Total: +฿3,300/เดือน = +฿39,600/ปี 🎉
+```
+
+#### **For Truck Owners (เจ้าของรถ 10 คัน):**
+```
+Before: กำไร ฿300,000/เดือน
+After:  กำไร ฿354,000/เดือน (+18%)
+
+Improvements:
+- Optimize fuel: +5%           = +฿15,000/เดือน
+- Reduce maintenance: +3%      = +฿9,000/เดือน
+- Increase utilization: +10%   = +฿30,000/เดือน
+────────────────────────────────────────────
+Total: +฿54,000/เดือน = +฿648,000/ปี 💰
+```
+
+#### **For Fleet Owners (800 คัน):**
+```
+Current: ฿24M/เดือน (฿30K/คัน average)
+Potential: ฿28.3M/เดือน (+18% = +฿4.3M/เดือน)
+
+Annual Profit Increase: ฿51.6M
+```
+
+---
+
+### **Implementation Priority**
+
+#### **Week 1-2: Foundation (MUST HAVE)** 🔴
+- [ ] Fuel tracking + efficiency display
+- [ ] Basic cost entry form
+- [ ] Simple daily dashboard
+
+#### **Week 3-4: Core Value (HIGH PRIORITY)** 🟡
+- [ ] Driver performance score
+- [ ] Trip cost calculator with breakdown
+- [ ] Basic reports (daily/weekly)
+
+#### **Week 5-6: Owner Value (IMPORTANT)** 🟡
+- [ ] Vehicle performance comparison
+- [ ] Maintenance alerts
+- [ ] Monthly reports with Excel export
+
+#### **Week 7-8: Advanced Features (NICE TO HAVE)** 🟢
+- [ ] Route efficiency analysis
+- [ ] Incentive system
+- [ ] Predictive analytics
+
+---
+
+### **Success Metrics**
+
+#### **Driver Engagement:**
+- ✅ Daily active users > 80%
+- ✅ Dashboard usage > 70%
+- ✅ Cost entry compliance > 90%
+- ✅ Driver satisfaction > 4.5/5
+
+#### **Operational Improvement:**
+- ✅ Fuel efficiency improvement > 5%
+- ✅ Maintenance cost reduction > 10%
+- ✅ On-time delivery rate > 95%
+- ✅ Vehicle utilization > 85%
+
+#### **Financial Impact:**
+- ✅ Driver income increase > 10%
+- ✅ Fleet profit margin increase > 15%
+- ✅ Maintenance cost reduction > 15%
+- ✅ ROI < 2 months
+
+---
+
+### **Quick Start Guide**
+
+#### **Minimum Viable Features (1 Week):**
+
+```javascript
+// Step 1: Add to existing check-out flow
+async function completeTripWithCosts() {
+  // Existing checkout code...
+  
+  // NEW: Prompt for costs
+  const costs = await Swal.fire({
+    title: '💰 บันทึกค่าใช้จ่าย',
+    html: `
+      <input id="fuel-liters" placeholder="น้ำมัน (ลิตร)" type="number" class="swal2-input">
+      <input id="fuel-price" placeholder="ราคา/ลิตร" type="number" class="swal2-input">
+      <input id="toll" placeholder="ค่าผ่านทาง" type="number" class="swal2-input">
+      <input id="meal" placeholder="ค่าอาหาร" type="number" class="swal2-input">
+    `,
+    confirmButtonText: 'บันทึก',
+    showCancelButton: true
+  });
+  
+  if (costs.isConfirmed) {
+    const fuelLiters = parseFloat(document.getElementById('fuel-liters').value);
+    const fuelPrice = parseFloat(document.getElementById('fuel-price').value);
+    const distance = endOdo - startOdo;
+    const efficiency = distance / fuelLiters;
+    
+    // Save to database
+    await supabase.from('fuel_records').insert({
+      trip_id: tripId,
+      driver_user_id: userId,
+      fuel_amount_liters: fuelLiters,
+      fuel_price_per_liter: fuelPrice,
+      fuel_total_cost: fuelLiters * fuelPrice,
+      fuel_efficiency_kml: efficiency,
+      odo_reading: endOdo
+    });
+    
+    await supabase.from('trip_costs').insert({
+      trip_id: tripId,
+      driver_user_id: userId,
+      fuel_total_cost: fuelLiters * fuelPrice,
+      toll_total: parseFloat(document.getElementById('toll').value) || 0,
+      meal_total: parseFloat(document.getElementById('meal').value) || 0,
+      trip_revenue: 3500 // from job data
+    });
+    
+    // Show feedback
+    const avgEfficiency = 4.0; // Get from database
+    const comparison = ((efficiency - avgEfficiency) / avgEfficiency * 100).toFixed(1);
+    
+    Swal.fire({
+      title: efficiency > avgEfficiency ? '🎉 เยี่ยม!' : '💡 ปรับปรุงได้',
+      html: `
+        <p>ประสิทธิภาพน้ำมัน: <strong>${efficiency.toFixed(1)} km/L</strong></p>
+        <p>${comparison > 0 ? 'ดีกว่า' : 'ต่ำกว่า'}ค่าเฉลี่ย ${Math.abs(comparison)}%</p>
+        <p>กำไรเที่ยวนี้: <strong>฿${(3500 - (fuelLiters * fuelPrice)).toFixed(0)}</strong></p>
+      `,
+      icon: efficiency > avgEfficiency ? 'success' : 'info'
+    });
+  }
+}
+```
+
+---
+
 **End of Plan Document**
 
 > 💡 **Remember:** Always read this plan before making changes!
@@ -2431,3 +4519,5 @@ function trackEvent(eventName, params) {
 > 🧪 **Always test:** Before committing to production!
 > 🚀 **Stay focused:** Prioritize high-impact, low-effort features first!
 > 📊 **Measure everything:** Track metrics to validate assumptions!
+> 🚚 **Think 4PL:** Always consider the complete supply chain, not just transportation!
+> 💰 **Value First:** Every feature should create measurable value for drivers and owners!

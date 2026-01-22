@@ -38,6 +38,7 @@
                     <li><a href="#" class="nav-link" data-target="fuel-siphoning">⛽ Fuel Siphoning</a></li>
                     <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ B100 Jobs</a></li>
                     <li><a href="#" class="nav-link" data-target="b100-outstanding">💰 B100 Outstanding</a></li>
+                    <li><a href="#" class="nav-link" data-target="logistics-performance">📊 Logistics Performance</a></li>
                 </ul>
             </nav>
             <div class="sidebar-footer">
@@ -796,6 +797,208 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Logistics Performance Section -->
+            <section id="logistics-performance" class="content-section">
+                <h1>📊 Logistics Performance Report</h1>
+                
+                <!-- Date Range Filter -->
+                <div class="filter-bar" style="margin-bottom: 20px; background: var(--card-bg); padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="perf-start-date">Start Date:</label>
+                            <input type="date" id="perf-start-date" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="perf-end-date">End Date:</label>
+                            <input type="date" id="perf-end-date" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="perf-vehicle-filter">Vehicle:</label>
+                            <select id="perf-vehicle-filter" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                <option value="">All Vehicles</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="perf-driver-filter">Driver:</label>
+                            <select id="perf-driver-filter" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                <option value="">All Drivers</option>
+                            </select>
+                        </div>
+                        <button id="perf-load-btn" class="btn btn-primary" style="padding: 8px 20px;">Load Report</button>
+                        <button id="perf-export-btn" class="btn btn-secondary" style="padding: 8px 20px;">📥 Export Excel</button>
+                    </div>
+                </div>
+
+                <!-- KPI Summary Cards -->
+                <div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>Total Trips</h3>
+                        <p id="perf-total-trips" style="font-size: 2em; font-weight: bold; color: #4CAF50;">0</p>
+                        <small id="perf-trips-trend" style="color: #888;">-</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>On-Time Delivery</h3>
+                        <p id="perf-on-time-rate" style="font-size: 2em; font-weight: bold; color: #2196F3;">0%</p>
+                        <small id="perf-on-time-trend" style="color: #888;">-</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Avg Trip Time</h3>
+                        <p id="perf-avg-trip-time" style="font-size: 2em; font-weight: bold; color: #FF9800;">0h</p>
+                        <small id="perf-time-trend" style="color: #888;">-</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Total Distance</h3>
+                        <p id="perf-total-distance" style="font-size: 2em; font-weight: bold; color: #9C27B0;">0 km</p>
+                        <small id="perf-distance-trend" style="color: #888;">-</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Fuel Efficiency</h3>
+                        <p id="perf-fuel-efficiency" style="font-size: 2em; font-weight: bold; color: #00BCD4;">- km/L</p>
+                        <small id="perf-fuel-trend" style="color: #888;">-</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>Vehicle Utilization</h3>
+                        <p id="perf-utilization" style="font-size: 2em; font-weight: bold; color: #E91E63;">0%</p>
+                        <small id="perf-util-trend" style="color: #888;">-</small>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <!-- Trips Trend Chart -->
+                    <div class="chart-card" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>📈 Trip Trend (Last 30 Days)</h3>
+                        <canvas id="trips-trend-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- On-Time Performance Chart -->
+                    <div class="chart-card" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>🎯 On-Time vs Late Deliveries</h3>
+                        <canvas id="on-time-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Vehicle Performance Chart -->
+                    <div class="chart-card" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>🚛 Top 10 Vehicles by Trips</h3>
+                        <canvas id="vehicle-performance-chart" style="max-height: 300px;"></canvas>
+                    </div>
+
+                    <!-- Driver Performance Chart -->
+                    <div class="chart-card" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>👤 Top 10 Drivers by Trips</h3>
+                        <canvas id="driver-performance-chart" style="max-height: 300px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Performance Tables -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                    <!-- Vehicle Performance Table -->
+                    <div class="table-container" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>🚛 Vehicle Performance Ranking</h3>
+                        <table id="perf-vehicle-table" style="width: 100%; font-size: 0.9em;">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Vehicle</th>
+                                    <th>Trips</th>
+                                    <th>Distance (km)</th>
+                                    <th>On-Time %</th>
+                                    <th>Avg Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 20px; color: #888;">
+                                        No data available. Please load report.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Driver Performance Table -->
+                    <div class="table-container" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>👤 Driver Performance Ranking</h3>
+                        <table id="perf-driver-table" style="width: 100%; font-size: 0.9em;">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Driver</th>
+                                    <th>Trips</th>
+                                    <th>Distance (km)</th>
+                                    <th>On-Time %</th>
+                                    <th>Avg Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 20px; color: #888;">
+                                        No data available. Please load report.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Route Analysis Table -->
+                <div class="table-container" style="background: var(--card-bg); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h3>🗺️ Route Performance Analysis</h3>
+                    <table id="perf-route-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Route</th>
+                                <th>Trips</th>
+                                <th>Avg Distance (km)</th>
+                                <th>Avg Duration (h)</th>
+                                <th>On-Time %</th>
+                                <th>Success Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 20px; color: #888;">
+                                    No data available. Please load report.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Detailed Trip List -->
+                <div class="table-container" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                    <h3>📋 Detailed Trip List</h3>
+                    <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                        <input type="text" id="perf-search" placeholder="Search by reference, vehicle, driver..." style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); flex: 1; max-width: 400px;">
+                        <span id="perf-trip-count" style="color: #888;">0 trips</span>
+                    </div>
+                    <div style="max-height: 500px; overflow-y: auto;">
+                        <table id="perf-trips-table" style="width: 100%;">
+                            <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 1;">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Reference</th>
+                                    <th>Vehicle</th>
+                                    <th>Driver</th>
+                                    <th>Route</th>
+                                    <th>Distance (km)</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                    <th>On-Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="9" style="text-align: center; padding: 20px; color: #888;">
+                                        No data available. Please load report.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -805,9 +1008,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Leaflet JS for map view -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Chart.js for performance charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
     <!-- Admin App Logic -->
     <script type="module" src="admin.js"></script>
     <!-- Debug Import Logic -->
     <script type="module" src="debug-import.js"></script>
+    <!-- Logistics Performance Logic -->
+    <script type="module" src="logistics-performance.js"></script>
 </body>
 </html>
