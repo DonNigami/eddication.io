@@ -714,10 +714,62 @@
         "=": "&#x3D;",
       }[s]));
     }
+
+    // --- Local Storage Helpers ---
+    const LOCAL_STORAGE_PREFIX = "dc_log_form_";
+
+    function saveToLocalStorage(id, value) {
+      if (id && value !== null && value !== undefined && value !== '') {
+        localStorage.setItem(LOCAL_STORAGE_PREFIX + id, value);
+      } else {
+        localStorage.removeItem(LOCAL_STORAGE_PREFIX + id); // Clear if value is empty
+      }
+    }
+
+    function loadFromLocalStorage(id) {
+      return localStorage.getItem(LOCAL_STORAGE_PREFIX + id);
+    }
+
+    function clearLocalStorageField(id) {
+      localStorage.removeItem(LOCAL_STORAGE_PREFIX + id);
+    }
     // a11y: time error as an alert
     document.addEventListener("DOMContentLoaded", () => {
       const te = document.getElementById("timeError");
       if (te) te.setAttribute("role", "alert");
+
+      // Fields to persist in localStorage
+      const persistentFields = [
+        "reference", "truckPlate", "arriveDcTime", "loadStartTime", "loadEndTime",
+        "docStartTime", "docEndTime", "departTime", "remark",
+        "problemReference", "problemTruckPlate", "problemType", "problemDetail",
+        "searchBooking"
+      ];
+
+      persistentFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          const savedValue = loadFromLocalStorage(id);
+          if (savedValue) {
+            el.value = savedValue;
+            // For datetime-local inputs, re-validate them on load to trigger any UI updates
+            if (el.type === 'datetime-local') {
+              validateTimeSteps(false);
+            }
+          }
+
+          // Save value on change/input
+          if (el.type === 'select-one' || el.type === 'checkbox' || el.type === 'radio') {
+            el.addEventListener('change', () => saveToLocalStorage(id, el.value));
+          } else {
+            el.addEventListener('input', () => saveToLocalStorage(id, el.value));
+            el.addEventListener('blur', () => saveToLocalStorage(id, el.value)); // Ensure save on blur for text fields
+          }
+        }
+      });
+
+      // Load problem topics when the page loads, in case the problem tab is opened first
+      loadProblemTopics();
     });
 
     /* -------- Tabs -------- */
@@ -1038,6 +1090,13 @@
           });
 
           dcForm.reset();
+          // Clear localStorage for DC form fields
+          const dcFormFields = [
+            "reference", "truckPlate", "arriveDcTime", "loadStartTime", "loadEndTime",
+            "docStartTime", "docEndTime", "departTime", "remark"
+          ];
+          dcFormFields.forEach(id => clearLocalStorageField(id));
+
           previewBox.style.display = "none";
           previewImage.src = "";
           clearTimeErrors();
@@ -1182,6 +1241,11 @@
             text: result.message || "ระบบบันทึกปัญหาขนส่งเรียบร้อยแล้ว",
           });
           problemForm.reset();
+          // Clear localStorage for Problem form fields
+          const problemFormFields = [
+            "problemReference", "problemTruckPlate", "problemType", "problemDetail"
+          ];
+          problemFormFields.forEach(id => clearLocalStorageField(id));
           problemPreview.innerHTML = "";
         } else {
           Swal.fire({
