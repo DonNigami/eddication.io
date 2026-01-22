@@ -457,6 +457,59 @@
       color: #374151;
       border: 1px solid #d1d5db;
     }
+
+    /* --- Timeline --- */
+    .timeline {
+      list-style: none;
+      padding: 0;
+      margin-top: 20px;
+    }
+    .timeline-item {
+      display: flex;
+      gap: 16px;
+      position: relative;
+      padding-bottom: 24px;
+    }
+    .timeline-item:last-child {
+      padding-bottom: 10px;
+    }
+    .timeline-item:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      left: 15px;
+      top: 32px;
+      width: 2px;
+      height: calc(100% - 20px);
+      background-color: var(--border-subtle);
+    }
+    .timeline-number {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 2px solid var(--accent);
+      color: var(--accent-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      z-index: 1;
+    }
+    .timeline-content {
+      flex-grow: 1;
+      padding-top: 4px;
+    }
+    .timeline-content .field {
+      margin-bottom: 12px;
+    }
+    .timeline-content .grid-2 {
+      margin-top: -4px; /* Adjust for better alignment */
+    }
+    .timeline-content .field > label {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
   </style>
 </head>
 
@@ -519,93 +572,123 @@
 
           <div id="timeError"></div>
 
+          <div class="timeline">
+            <!-- Step 1: Arrive DC -->
+            <div class="timeline-item">
+              <div class="timeline-number">1</div>
+              <div class="timeline-content">
+                <div class="field">
+                  <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
+                  <div class="field-inline">
+                    <input type="datetime-local" id="arriveDcTime" name="arriveDcTime" required />
+                    <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
+                      ตอนนี้
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 2: Loading -->
+            <div class="timeline-item">
+              <div class="timeline-number">2</div>
+              <div class="timeline-content">
+                <label>ขึ้นสินค้า</label>
+                <div class="grid-2 inline-desktop">
+                  <div class="field">
+                    <label for="loadStartTime" class="subtitle">เริ่ม</label>
+                    <div class="field-inline">
+                      <input type="datetime-local" id="loadStartTime" name="loadStartTime" />
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
+                        ตอนนี้
+                      </button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="loadEndTime" class="subtitle">เสร็จ</label>
+                    <div class="field-inline">
+                      <input type="datetime-local" id="loadEndTime" name="loadEndTime" />
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
+                        ตอนนี้
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 3: Documents -->
+            <div class="timeline-item">
+              <div class="timeline-number">3</div>
+              <div class="timeline-content">
+                <label>ยื่นเอกสาร</label>
+                <div class="grid-2 inline-desktop">
+                  <div class="field">
+                    <label for="docStartTime" class="subtitle">เริ่ม</label>
+                    <div class="field-inline">
+                      <input type="datetime-local" id="docStartTime" name="docStartTime" />
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
+                        ตอนนี้
+                      </button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="docEndTime" class="subtitle">เสร็จ</label>
+                    <div class="field-inline">
+                      <input type="datetime-local" id="docEndTime" name="docEndTime" />
+                      <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
+                        ตอนนี้
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 4: Depart DC -->
+            <div class="timeline-item">
+              <div class="timeline-number">4</div>
+              <div class="timeline-content">
+                <div class="field">
+                  <label for="departTime">ออกจาก DC</label>
+                  <div class="field-inline">
+                    <input type="datetime-local" id="departTime" name="departTime" />
+                    <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
+                      ตอนนี้
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 5: Photo -->
+            <div class="timeline-item">
+              <div class="timeline-number">5</div>
+              <div class="timeline-content">
+                <div class="field">
+                  <label for="photoRear">
+                    รูปท้ายรถก่อนปิดตู้ <span class="required">*</span>
+                  </label>
+                  <input type="file" id="photoRear" name="photoRear" accept="image/*" capture="environment" required />
+                  <div class="note">
+                    • ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
+                    • ระบบจะบีบอัดรูปให้อัตโนมัติ เพื่อลดเวลาส่งข้อมูล
+                  </div>
+      
+                  <div id="previewBox" class="image-preview">
+                    <span>รูปตัวอย่าง:</span>
+                    <img id="previewImage" alt="ตัวอย่างรูปท้ายรถ" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="field">
-            <label for="arriveDcTime">ถึง DC <span class="required">*</span></label>
-            <div class="field-inline">
-              <input type="datetime-local" id="arriveDcTime" name="arriveDcTime" required />
-              <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('arriveDcTime')">
-                ตอนนี้
-              </button>
-            </div>
-          </div>
-
-          <div class="grid-2 inline-desktop">
-            <div class="field">
-              <label for="loadStartTime">ขึ้นสินค้า (เริ่ม)</label>
-              <div class="field-inline">
-                <input type="datetime-local" id="loadStartTime" name="loadStartTime" />
-                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadStartTime')">
-                  ตอนนี้
-                </button>
-              </div>
-            </div>
-            <div class="field">
-              <label for="loadEndTime">ขึ้นสินค้า (เสร็จ)</label>
-              <div class="field-inline">
-                <input type="datetime-local" id="loadEndTime" name="loadEndTime" />
-                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('loadEndTime')">
-                  ตอนนี้
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid-2 inline-desktop">
-            <div class="field">
-              <label for="docStartTime">ยื่นเอกสาร (เริ่ม)</label>
-              <div class="field-inline">
-                <input type="datetime-local" id="docStartTime" name="docStartTime" />
-                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docStartTime')">
-                  ตอนนี้
-                </button>
-              </div>
-            </div>
-            <div class="field">
-              <label for="docEndTime">ยื่นเอกสาร (เสร็จ)</label>
-              <div class="field-inline">
-                <input type="datetime-local" id="docEndTime" name="docEndTime" />
-                <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('docEndTime')">
-                  ตอนนี้
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="departTime">ออกจาก DC</label>
-            <div class="field-inline">
-              <input type="datetime-local" id="departTime" name="departTime" />
-              <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('departTime')">
-                ตอนนี้
-              </button>
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="remark">หมายเหตุเพิ่มเติม</label>
+            <label for="remark">หมายเหตุเพิ่มเติม (ถ้ามี)</label>
             <textarea id="remark" name="remark" placeholder="เช่น รอคิวโหลดนาน / มีปัญหาหน้างาน ฯลฯ"></textarea>
           </div>
 
-          <div class="section-title">
-            <span>รูปท้ายรถก่อนปิดตู้</span>
-            <span class="tag">บังคับแนบทุกครั้ง</span>
-          </div>
-
-          <div class="field">
-            <label for="photoRear">
-              แนบรูปท้ายรถ <span class="required">*</span>
-            </label>
-            <input type="file" id="photoRear" name="photoRear" accept="image/*" capture="environment" required />
-            <div class="note">
-              • ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
-              • ระบบจะบีบอัดรูปให้อัตโนมัติ เพื่อลดเวลาส่งข้อมูล
-            </div>
-
-            <div id="previewBox" class="image-preview">
-              <span>รูปตัวอย่าง:</span>
-              <img id="previewImage" alt="ตัวอย่างรูปท้ายรถ" />
-            </div>
-          </div>
 
           <button type="submit" class="btn btn-accent btn-full">
             บันทึกข้อมูลงาน DC
