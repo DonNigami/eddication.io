@@ -179,6 +179,7 @@ const siphoningModalClose = document.getElementById('siphoning-modal-close');
 const siphoningModalTitle = document.getElementById('siphoning-modal-title');
 const siphoningForm = document.getElementById('siphoning-form');
 const siphoningIdInput = document.getElementById('siphoning-id');
+const siphoningReferenceInput = document.getElementById('siphoning-reference');
 const siphoningStation = document.getElementById('siphoning-station');
 const siphoningDriver = document.getElementById('siphoning-driver');
 const siphoningVehicleInput = document.getElementById('siphoning-vehicle');
@@ -2140,6 +2141,7 @@ async function openSiphoningModal(record = null) {
     if (record) {
         siphoningModalTitle.textContent = 'Edit Fuel Siphoning Record';
         siphoningIdInput.value = record.id;
+        siphoningReferenceInput.value = record.reference || '';
         siphoningVehicleInput.value = record.vehicle_plate || '';
         siphoningDateInput.value = record.siphon_date || '';
         siphoningTimeInput.value = record.siphon_time || '';
@@ -2154,6 +2156,16 @@ async function openSiphoningModal(record = null) {
         siphoningModalTitle.textContent = 'Record Fuel Siphoning';
         siphoningIdInput.value = '';
         siphoningDateInput.value = new Date().toISOString().split('T')[0];
+
+        // Auto-generate reference: SIPHON-YYMMDD-XXX
+        const today = new Date().toISOString().split('T')[0].replace(/-/g, '').slice(2); // YYMMDD
+        const { count } = await supabase
+            .from('jobdata')
+            .select('*', { count: 'exact', head: true })
+            .ilike('reference', `SIPHON-${today}%`);
+
+        const seqNum = String((count || 0) + 1).padStart(3, '0');
+        siphoningReferenceInput.value = `SIPHON-${today}-${seqNum}`;
     }
 
     siphoningModal.classList.remove('hidden');
@@ -2222,6 +2234,10 @@ async function handleSiphoningSubmit(event) {
             recordData.evidence_image_url = evidenceUrl;
         }
 
+        // Get reference from form
+        const reference = siphoningReferenceInput.value;
+        recordData.reference = reference;
+
         let error;
         if (id) {
             ({ error } = await supabase.from('fuel_siphoning').update(recordData).eq('id', id));
@@ -2235,16 +2251,6 @@ async function handleSiphoningSubmit(event) {
             if (!error) {
                 const siphonDate = siphoningDateInput.value;
                 const siphonTime = siphoningTimeInput.value || '00:00';
-                const dateStr = siphonDate.replace(/-/g, '').slice(2); // YYMMDD format
-
-                // Generate reference: SIPHON-YYMMDD-XXX
-                const { count } = await supabase
-                    .from('jobdata')
-                    .select('*', { count: 'exact', head: true })
-                    .ilike('reference', `SIPHON-${dateStr}%`);
-
-                const seqNum = String((count || 0) + 1).padStart(3, '0');
-                const reference = `SIPHON-${dateStr}-${seqNum}`;
 
                 const jobdataRecord = {
                     reference: reference,
