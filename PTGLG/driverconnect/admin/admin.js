@@ -2790,6 +2790,19 @@ function showAdminPanel(profile) {
     // Default to dashboard view
     navigateTo('dashboard');
     updateAlertsBadge(); // Load initial alert count
+    
+    // Initialize notification bell after admin panel is shown
+    initNotificationBell();
+    
+    // Add test notification after 2 seconds
+    setTimeout(() => {
+        addNotificationToBell(
+            'checkin',
+            'ระบบพร้อมใช้งาน',
+            'Notification system เปิดใช้งานแล้ว คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่',
+            {}
+        );
+    }, 2000);
 }
 
 // Function to initialize the application
@@ -3035,6 +3048,6 @@ function playNotificationSound() {
 // --- Main App Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
     await initializeApp();
-    initNotificationBell(); // Initialize notification bell
+    // Don't init notification bell here - will be called in showAdminPanel()
     setupRealtimeSubscriptions(); // Setup real-time listeners
 });
