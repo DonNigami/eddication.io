@@ -731,7 +731,7 @@
                             <input type="hidden" id="b100-job-id">
 
                             <label for="b100-reference">Reference:</label>
-                            <input type="text" id="b100-reference" required placeholder="e.g., B100-20260119-001">
+                            <input type="text" id="b100-reference" required placeholder="Auto-generated" readonly style="background-color: #444; cursor: not-allowed;">
 
                             <label for="b100-driver">Driver:</label>
                             <select id="b100-driver" required>
@@ -739,10 +739,32 @@
                             </select>
 
                             <label for="b100-vehicle">Vehicle Plate:</label>
-                            <input type="text" id="b100-vehicle" placeholder="e.g., กข-1234">
+                            <input type="text" id="b100-vehicle" required placeholder="e.g., กข-1234">
+
+                            <label for="b100-origin">ต้นทาง (Origin):</label>
+                            <select id="b100-origin" required>
+                                <option value="">-- Select Origin --</option>
+                            </select>
+
+                            <label for="b100-destination">ปลายทาง (Destination):</label>
+                            <select id="b100-destination" required>
+                                <option value="">-- Select Destination --</option>
+                            </select>
+
+                            <label for="b100-materials">สินค้า (Materials):</label>
+                            <select id="b100-materials" required>
+                                <option value="">-- Select Product --</option>
+                                <option value="B100">B100</option>
+                                <option value="ไบโอดีเซล B100">ไบโอดีเซล B100</option>
+                                <option value="น้ำมันปาล์ม">น้ำมันปาล์ม</option>
+                                <option value="Other">Other</option>
+                            </select>
+
+                            <label for="b100-quantity">จำนวน (Liters):</label>
+                            <input type="number" id="b100-quantity" step="0.01" min="0" required placeholder="Enter quantity in liters">
 
                             <label for="b100-amount">B100 Amount (฿):</label>
-                            <input type="number" id="b100-amount" step="0.01" min="0" required placeholder="Enter amount">
+                            <input type="number" id="b100-amount" step="0.01" min="0" required placeholder="Enter amount in Baht">
 
                             <label for="b100-notes">Notes:</label>
                             <textarea id="b100-notes" rows="3" placeholder="Additional notes..."></textarea>

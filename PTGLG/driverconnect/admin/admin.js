@@ -203,6 +203,10 @@ const b100JobIdInput = document.getElementById('b100-job-id');
 const b100ReferenceInput = document.getElementById('b100-reference');
 const b100DriverSelect = document.getElementById('b100-driver');
 const b100VehicleInput = document.getElementById('b100-vehicle');
+const b100OriginSelect = document.getElementById('b100-origin');
+const b100DestinationSelect = document.getElementById('b100-destination');
+const b100MaterialsSelect = document.getElementById('b100-materials');
+const b100QuantityInput = document.getElementById('b100-quantity');
 const b100AmountInput = document.getElementById('b100-amount');
 const b100NotesInput = document.getElementById('b100-notes');
 
@@ -2356,9 +2360,12 @@ async function openB100Modal() {
     b100Form.reset();
     b100JobIdInput.value = '';
 
-    // Generate default reference
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    const { count } = await supabase.from('driver_jobs').select('*', { count: 'exact', head: true }).eq('is_b100', true);
+    // Generate default reference: B100-YYMMDD-XXX
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '').slice(2); // YYMMDD
+    const { count } = await supabase
+        .from('jobdata')
+        .select('*', { count: 'exact', head: true })
+        .ilike('reference', `B100-${today}%`);
     b100ReferenceInput.value = `B100-${today}-${String((count || 0) + 1).padStart(3, '0')}`;
 
     // Load drivers
@@ -2372,12 +2379,77 @@ async function openB100Modal() {
         b100DriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
         drivers?.forEach(driver => {
             const option = document.createElement('option');
-            option.value = driver.display_name || driver.user_id;
+            option.value = JSON.stringify({ id: driver.user_id, name: driver.display_name });
             option.textContent = driver.display_name || driver.user_id;
             b100DriverSelect.appendChild(option);
         });
     } catch (e) {
         console.warn('Could not load drivers:', e);
+    }
+
+    // Load origins
+    try {
+        const { data: origins } = await supabase
+            .from('origins')
+            .select('origin_code, name, lat, lng')
+            .order('name');
+
+        b100OriginSelect.innerHTML = '<option value="">-- Select Origin --</option>';
+        origins?.forEach(origin => {
+            const option = document.createElement('option');
+            option.value = JSON.stringify({ code: origin.origin_code, name: origin.name, lat: origin.lat, lng: origin.lng });
+            option.textContent = origin.name || origin.origin_code;
+            b100OriginSelect.appendChild(option);
+        });
+    } catch (e) {
+        console.warn('Could not load origins:', e);
+    }
+
+    // Load destinations (stations + customers)
+    try {
+        const { data: stations } = await supabase
+            .from('stations')
+            .select('station_code, name, lat, lng')
+            .order('name');
+
+        const { data: customers } = await supabase
+            .from('customer')
+            .select('stationKey, name')
+            .order('name');
+
+        b100DestinationSelect.innerHTML = '<option value="">-- Select Destination --</option>';
+
+        // Add stations
+        if (stations && stations.length > 0) {
+            const stationGroup = document.createElement('optgroup');
+            stationGroup.label = 'Stations';
+            stations.forEach(station => {
+                if (station.name) {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({ code: station.station_code, name: station.name, lat: station.lat, lng: station.lng, type: 'station' });
+                    option.textContent = station.name;
+                    stationGroup.appendChild(option);
+                }
+            });
+            b100DestinationSelect.appendChild(stationGroup);
+        }
+
+        // Add customers
+        if (customers && customers.length > 0) {
+            const customerGroup = document.createElement('optgroup');
+            customerGroup.label = 'Customers';
+            customers.forEach(customer => {
+                if (customer.name) {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({ code: customer.stationKey, name: customer.name, type: 'customer' });
+                    option.textContent = customer.name;
+                    customerGroup.appendChild(option);
+                }
+            });
+            b100DestinationSelect.appendChild(customerGroup);
+        }
+    } catch (e) {
+        console.warn('Could not load destinations:', e);
     }
 
     b100Modal.classList.remove('hidden');
@@ -2393,10 +2465,26 @@ async function handleB100Submit(event) {
 
     try {
         const reference = b100ReferenceInput.value;
-        const driverName = b100DriverSelect.options[b100DriverSelect.selectedIndex]?.text || b100DriverSelect.value;
         const vehiclePlate = b100VehicleInput.value;
         const amount = parseFloat(b100AmountInput.value);
+        const quantity = parseFloat(b100QuantityInput.value);
+        const materials = b100MaterialsSelect.value;
         const notes = b100NotesInput.value;
+
+        // Parse driver, origin, destination from JSON values
+        let driverData = { id: '', name: '' };
+        let originData = { code: '', name: '', lat: null, lng: null };
+        let destData = { code: '', name: '', lat: null, lng: null };
+
+        try {
+            if (b100DriverSelect.value) driverData = JSON.parse(b100DriverSelect.value);
+            if (b100OriginSelect.value) originData = JSON.parse(b100OriginSelect.value);
+            if (b100DestinationSelect.value) destData = JSON.parse(b100DestinationSelect.value);
+        } catch (e) {
+            console.warn('Error parsing selection:', e);
+        }
+
+        const driverName = driverData.name || b100DriverSelect.options[b100DriverSelect.selectedIndex]?.text || '';
 
         // Create record in driver_jobs for B100 tracking
         const jobData = {
@@ -2416,29 +2504,56 @@ async function handleB100Submit(event) {
 
         if (error) throw error;
 
-        // Also create a record in jobdata table
-        const jobdataRecord = {
+        // Create 2 records in jobdata: origin (seq 1) and destination (seq 2)
+        const now = new Date().toISOString();
+
+        // Origin stop (seq 1)
+        const originRecord = {
             reference: reference,
             seq: 1,
-            ship_to_code: 'B100',
-            ship_to_name: 'B100 Fuel Delivery',
+            ship_to_code: originData.code,
+            ship_to_name: originData.name,
+            dest_lat: originData.lat,
+            dest_lng: originData.lng,
             vehicle_desc: vehiclePlate,
             drivers: driverName,
-            materials: 'B100',
-            total_qty: amount, // Use amount as quantity (in Baht, could also represent liters)
+            materials: materials,
+            total_qty: quantity,
+            is_origin_stop: true,
             status: 'PENDING',
             job_closed: false,
             trip_ended: false,
             updated_by: adminUsername.textContent || 'Admin',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: now,
+            updated_at: now
         };
 
-        const { error: jobdataError } = await supabase.from('jobdata').insert([jobdataRecord]);
+        // Destination stop (seq 2)
+        const destRecord = {
+            reference: reference,
+            seq: 2,
+            ship_to_code: destData.code,
+            ship_to_name: destData.name,
+            dest_lat: destData.lat,
+            dest_lng: destData.lng,
+            vehicle_desc: vehiclePlate,
+            drivers: driverName,
+            materials: materials,
+            total_qty: quantity,
+            is_origin_stop: false,
+            status: 'PENDING',
+            job_closed: false,
+            trip_ended: false,
+            updated_by: adminUsername.textContent || 'Admin',
+            created_at: now,
+            updated_at: now
+        };
+
+        const { error: jobdataError } = await supabase.from('jobdata').insert([originRecord, destRecord]);
         if (jobdataError) {
-            console.warn('Warning: Could not create jobdata record:', jobdataError);
+            console.warn('Warning: Could not create jobdata records:', jobdataError);
         } else {
-            console.log('✅ Created jobdata record for B100:', reference);
+            console.log('✅ Created jobdata records for B100:', reference, '(2 stops: origin + destination)');
         }
 
         showNotification('B100 job created successfully!', 'info');
