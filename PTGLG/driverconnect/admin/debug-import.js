@@ -445,7 +445,7 @@ window.clearDriverJobsTable = async function() {
     const { error } = await supabase
       .from('driver_jobs')
       .delete()
-      .neq('id', 0); // Use a condition that always matches to delete all rows
+      .not('id', 'is', null); // Use a condition that always matches to delete all rows
 
     if (error) throw error;
 
