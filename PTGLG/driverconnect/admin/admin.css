@@ -1300,17 +1300,125 @@ td button:hover {
     padding: 15px 15px 0 15px;
 }
 
-/* Pulse Animation for Badge */
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.15);
-        opacity: 0.9;
-    }
+/* Debug Import Tool Specific Styles */
+#debug-import-tool .container {
+    max-width: 1200px;
+    margin: 0 auto;
 }
+
+#debug-import-tool h1 {
+    color: var(--primary-color); /* Use existing primary color */
+    margin-top: 0;
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 10px;
+}
+
+#debug-import-tool button {
+    padding: 10px 20px;
+    margin: 5px;
+    background: #0e639c; /* Specific button color for debug tool */
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 5px; /* Added for consistency */
+}
+#debug-import-tool button:hover {
+    background: #1177bb; /* Darker hover color */
+}
+
+#debug-import-tool pre {
+    background: #252526;
+    padding: 15px;
+    border-radius: 5px;
+    overflow-x: auto;
+    border-left: 3px solid var(--primary-color); /* Use existing primary color */
+    color: var(--text-color); /* Use existing text color */
+}
+
+#debug-import-tool .success { color: var(--primary-color); }
+#debug-import-tool .error { color: #f48771; } /* Specific error color */
+#debug-import-tool .warning { color: #dcdcaa; } /* Specific warning color */
+
+#debug-import-tool .section {
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--card-bg); /* Use existing card background */
+    border-radius: 8px; /* Use existing border radius for consistency */
+}
+
+#debug-import-tool input,
+#debug-import-tool select {
+    padding: 8px;
+    margin: 5px;
+    background: #3c3c3c;
+    border: 1px solid var(--border-color); /* Use existing border color */
+    color: var(--text-color); /* Use existing text color */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Use admin panel font */
+    border-radius: 5px; /* Added for consistency */
+}
+
+/* Specific styles for Clear driver_jobs Table button */
+#debug-import-tool button[onclick="clearDriverJobsTable()"] {
+    background: #e74c3c !important; /* Specific color for clear button */
+}
+#debug-import-tool button[onclick="clearDriverJobsTable()"]:hover {
+    background: #c0392b !important; /* Darker hover for clear button */
+}
+
+/* Specific styles for Import ALL Rows button */
+#debug-import-tool button[onclick="importAllRows()"] {
+    background: #0e7490 !important;
+}
+#debug-import-tool button[onclick="importAllRows()"]:hover {
+    background: #0d657d !important;
+}
+
+/* Specific styles for Stop Import button */
+#debug-import-tool button[onclick="stopImport()"] {
+    background: #991b1b !important;
+}
+#debug-import-tool button[onclick="stopImport()"]:hover {
+    background: #7f1616 !important;
+}
+
+/* Progress bar styles */
+#debug-import-tool #progressBar {
+    margin-top: 10px;
+}
+#debug-import-tool #progressBar > div {
+    background: #3c3c3c;
+    height: 30px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+#debug-import-tool #progressFill {
+    background: linear-gradient(90deg, #0e7490, #06b6d4);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+/* Adjust labels for better visibility */
+#debug-import-tool label {
+    color: var(--text-color); /* Use general text color for labels */
+    display: block; /* Ensure labels are block elements */
+    margin-bottom: 5px; /* Add some margin */
+}
+
+#debug-import-tool .section h3 {
+    color: var(--primary-color);
+    margin-top: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
+
 
 
 
