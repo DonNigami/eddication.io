@@ -1,3 +1,4 @@
+console.log('debug-import.js loaded');
 import { supabase } from './admin.js';
 window.sheetData = null;
 window.importStopped = false;
@@ -592,6 +593,7 @@ window.stopImport = function() {
 
 // This init function will be called when the section is loaded
 window.initDebugImport = async function() {
+  console.log('initDebugImport called');
   // Auto-load sheet names on page load
   document.getElementById('fetchResult').innerHTML = '<span class="warning">Loading sheet names...</span>';
   await window.loadSheetNames();
