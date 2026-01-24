@@ -1252,6 +1252,11 @@ td button:hover {
     opacity: 0.5;
 }
 
+/* Ensure Debug Import link is always visible */
+.sidebar-nav a[data-target="debug-import-tool"] {
+    display: block !important;
+}
+
 .summary-card p {
     font-size: 2em;
     font-weight: bold;
