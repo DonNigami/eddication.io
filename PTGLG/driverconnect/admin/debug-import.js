@@ -1,7 +1,8 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQi
+OjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
 
 window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.sheetData = null;
@@ -16,47 +17,47 @@ function getSheetCSVUrl(sheetId, sheetName) {
 window.loadSheetNames = async function() {
   const sheetId = document.getElementById('sheetId').value;
   const selectEl = document.getElementById('sheetName');
-  
+
   selectEl.innerHTML = '<option value="">Loading...</option>';
-  
+
   try {
     // Fetch the spreadsheet HTML page to extract sheet names
     const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`, {
       mode: 'cors',
       credentials: 'omit'
     });
-    
+
     if (!response.ok) {
       throw new Error('Cannot access spreadsheet. Make sure it is public.');
     }
-    
+
     const html = await response.text();
-    
+
     // Extract sheet names from HTML (they're in the page as JSON data)
     // Look for sheet names in the format: "sheets":[{"properties":{"sheetId":...,"title":"SheetName"
     const sheetMatches = html.match(/"title":"([^"]+)"/g);
-    
+
     if (!sheetMatches || sheetMatches.length === 0) {
       throw new Error('No sheets found. Try using Sheet1 or InputZoile30');
     }
-    
+
     // Extract unique sheet names
     const sheets = [...new Set(
       sheetMatches
         .map(m => m.match(/"title":"([^"]+)"/)[1])
-        .filter(name => 
+        .filter(name =>
           // Filter out non-sheet titles (keep reasonable sheet names)
-          name.length < 50 && 
-          !name.includes('http') && 
+          name.length < 50 &&
+          !name.includes('http') &&
           !name.includes('www.')
         )
     )];
-    
+
     window.availableSheets = sheets;
-    
+
     // Populate select dropdown
     selectEl.innerHTML = '';
-    
+
     // Find InputZoile30 and put it first (default)
     const defaultSheet = sheets.find(s => s === 'InputZoile30');
     if (defaultSheet) {
@@ -66,7 +67,7 @@ window.loadSheetNames = async function() {
       option.selected = true;
       selectEl.appendChild(option);
     }
-    
+
     // Add rest of sheets
     sheets
       .filter(s => s !== 'InputZoile30')
@@ -76,13 +77,13 @@ window.loadSheetNames = async function() {
         option.text = sheetName;
         selectEl.appendChild(option);
       });
-    
+
     if (sheets.length === 0) {
       selectEl.innerHTML = '<option value="InputZoile30">InputZoile30 (Default)</option>';
     }
-    
+
     console.log('Available sheets:', sheets);
-    
+
   } catch (error) {
     console.error('Error loading sheet names:', error);
     // Fallback to common sheet names
@@ -133,14 +134,14 @@ function parseCSV(csvText) {
 
 function convertDateFormat(dateStr) {
   if (!dateStr || dateStr.trim() === '') return null;
-  
+
   dateStr = dateStr.trim();
-  
+
   // Already in YYYY-MM-DD format
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     return dateStr;
   }
-  
+
   // Convert DD/MM/YYYY to YYYY-MM-DD
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
     const [day, month, year] = dateStr.split('/');
@@ -148,7 +149,7 @@ function convertDateFormat(dateStr) {
     console.log(`Date converted: ${dateStr} → ${converted}`);
     return converted;
   }
-  
+
   // Convert DD.MM.YYYY to YYYY-MM-DD
   if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(dateStr)) {
     const [day, month, year] = dateStr.split('.');
@@ -156,7 +157,7 @@ function convertDateFormat(dateStr) {
     console.log(`Date converted: ${dateStr} → ${converted}`);
     return converted;
   }
-  
+
   // Try parsing with Date object
   try {
     const date = new Date(dateStr);
@@ -168,7 +169,7 @@ function convertDateFormat(dateStr) {
   } catch (e) {
     console.warn('Failed to parse date:', dateStr, e);
   }
-  
+
   console.warn('Date format not recognized:', dateStr);
   return null;
 }
@@ -250,7 +251,7 @@ function mapRowToDatabase(row) {
         }
       } else if (dbCol === 'scheduling_end' && value) {
         // scheduling_end might be a date too
-        if (/{1,2}\{1,2}\{4}/.test(value)) {
+        if (/\d{1,2}\/\d{1,2}\/\d{4}/.test(value)) {
           const converted = convertDateFormat(value);
           if (converted) {
             value = converted + 'T00:00:00Z'; // Make it a timestamp
@@ -295,25 +296,25 @@ function mapRowToDatabase(row) {
 window.fetchSheetData = async function() {
   const result = document.getElementById('fetchResult');
   result.innerHTML = '<span class="warning">Fetching...</span>';
-  
+
   try {
     const sheetId = document.getElementById('sheetId').value;
     const sheetName = document.getElementById('sheetName').value;
-    
+
     if (!sheetName) {
       throw new Error('Please select a sheet name');
     }
-    
+
     const url = getSheetCSVUrl(sheetId, sheetName);
-    
+
     const response = await fetch(url);
     if (!response.ok) throw new Error('Cannot access sheet');
-    
+
     const csvText = await response.text();
     const { headers, data } = parseCSV(csvText);
-    
+
     window.sheetData = { headers, data };
-    
+
     // Populate row select
     const rowSelect = document.getElementById('rowSelect');
     rowSelect.innerHTML = '';
@@ -323,7 +324,7 @@ window.fetchSheetData = async function() {
       option.text = `Row ${i + 2}: ${row['Shipment No.'] || row['Reference'] || 'No ID'}`;
       rowSelect.appendChild(option);
     });
-    
+
     result.innerHTML = `<span class="success">✓ Success!</span>\n\n` +
       `Total Rows: ${data.length}\n` +
       `Columns: ${headers.length}\n\n` +
@@ -336,17 +337,17 @@ window.fetchSheetData = async function() {
 window.checkSchema = async function() {
   const result = document.getElementById('schemaResult');
   result.innerHTML = '<span class="warning">Checking...</span>';
-  
+
   try {
     const { data, error } = await supabase
       .from('driver_jobs')
       .select('*')
       .limit(1);
-    
+
     if (error) throw error;
-    
+
     const columns = data.length > 0 ? Object.keys(data[0]) : [];
-    
+
     result.innerHTML = `<span class="success">✓ Table exists!</span>\n\n` +
       `Columns (${columns.length}):\n${JSON.stringify(columns, null, 2)}`;
   } catch (error) {
@@ -357,37 +358,37 @@ window.checkSchema = async function() {
 
 window.testMapping = function() {
   const result = document.getElementById('mappingResult');
-  
+
   if (!window.sheetData) {
     result.innerHTML = '<span class="error">✗ Please fetch sheet data first!</span>';
     return;
   }
-  
+
   const rowIndex = parseInt(document.getElementById('rowSelect').value);
   const row = window.sheetData.data[rowIndex];
-  
+
   const mapped = mapRowToDatabase(row);
-  
+
   result.innerHTML = `<span class="success">✓ Mapped!</span>\n\n` +
     `Original Row (first 5 fields):\n${JSON.stringify(Object.fromEntries(Object.entries(row).slice(0, 5)), null, 2)}\n\n` +
     `Mapped Data:\n${JSON.stringify(mapped, null, 2)}`;
-  
+
   window.testMappedData = mapped;
 };
 
 window.testInsert = async function() {
   const result = document.getElementById('insertResult');
-  
+
   if (!window.testMappedData) {
     result.innerHTML = '<span class="error">✗ Please test mapping first!</span>';
     return;
   }
-  
+
   result.innerHTML = '<span class="warning">Inserting...</span>';
-  
+
   console.log('=== TEST INSERT ===');
   console.log('Mapped data:', window.testMappedData);
-  
+
   // Check ALL fields for date formats that aren't converted
   const problematicFields = [];
   Object.entries(window.testMappedData).forEach(([key, value]) => {
@@ -399,7 +400,7 @@ window.testInsert = async function() {
       }
     }
   });
-  
+
   if (problematicFields.length > 0) {
     result.innerHTML = `<span class="error">❌ Found unconverted dates!</span>\n\n` +
       `These fields still have DD/MM/YYYY format:\n` +
@@ -407,23 +408,23 @@ window.testInsert = async function() {
       `\nPlease check the column mapping and convert these fields.`;
     return;
   }
-  
+
   // Check for date fields
   const dateFields = Object.entries(window.testMappedData)
     .filter(([key, value]) => key.includes('_date') && value);
-  
+
   console.log('Date fields:', dateFields);
-  
+
   try {
     const { data, error } = await supabase
       .from('driver_jobs')
-      .upsert(window.testMappedData, { 
+      .upsert(window.testMappedData, {
         onConflict: 'reference'
       })
       .select();
-    
+
     if (error) throw error;
-    
+
     result.innerHTML = `<span class="success">✓ Insert Success!</span>\n\n` +
       `Inserted Data:\n${JSON.stringify(data, null, 2)}`;
   } catch (error) {
@@ -439,52 +440,21 @@ window.testInsert = async function() {
 window.checkData = async function() {
   const result = document.getElementById('dataResult');
   result.innerHTML = '<span class="warning">Loading...</span>';
-  
+
   try {
     const { data, error } = await supabase
       .from('driver_jobs')
       .select('id, reference, shipment_no, vehicle_desc, driver_name, delivery, material')
       .order('created_at', { ascending: false })
       .limit(10);
-    
+
     if (error) throw error;
-    
+
     result.innerHTML = `<span class="success">✓ Found ${data.length} rows!</span>\n\n` +
       JSON.stringify(data, null, 2);
   } catch (error) {
     result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n\n` +
       JSON.stringify(error, null, 2);
-  }
-};
-
-window.clearJobData = async function() {
-  const result = document.getElementById('clearResult');
-  
-  const confirmed = confirm('Are you sure you want to delete ALL data from the driver_jobs table? This action cannot be undone.');
-  
-  if (!confirmed) {
-    result.innerHTML = '<span class="warning">Clear operation canceled.</span>';
-    return;
-  }
-  
-  result.innerHTML = '<span class="warning">🔥 Deleting all job data...</span>';
-  
-  try {
-    // Delete all rows in the driver_jobs table. 
-    // The `neq` condition is a common way to target all rows for deletion.
-    const { data, error } = await supabase
-      .from('driver_jobs')
-      .delete()
-      .not('id', 'is', null); // Deletes all rows since id is a PK and never null
-
-    if (error) throw error;
-    
-    result.innerHTML = `<span class="success">✓ All job data has been deleted successfully!</span>`;
-      
-  } catch (error) {
-    console.error('Clear data error:', error);
-    result.innerHTML = `<span class="error">✗ Failed to clear data!</span>\n\n` +
-      `Error: ${error.message}`;
   }
 };
 
@@ -494,15 +464,15 @@ window.importAllRows = async function() {
   const progressFill = document.getElementById('progressFill');
   const skipErrors = document.getElementById('skipErrors').checked;
   const importMode = document.querySelector('input[name="importMode"]:checked').value;
-  
+
   if (!window.sheetData) {
     result.innerHTML = '<span class="error">✗ Please fetch sheet data first!</span>';
     return;
   }
-  
+
   window.importStopped = false;
   progressBar.style.display = 'block';
-  
+
   const data = window.sheetData.data;
   const stats = {
     total: data.length,
@@ -511,20 +481,20 @@ window.importAllRows = async function() {
     skipped: 0,
     errors: []
   };
-  
+
   const modeText = importMode === 'upsert' ? 'Upsert' : 'Insert All';
   result.innerHTML = `<span class="warning">⏳ Importing ${data.length} rows (${modeText} mode)...</span>\n\n`;
-  
+
   for (let i = 0; i < data.length; i++) {
     if (window.importStopped) {
       result.innerHTML += `\n<span class="warning">⏹ Import stopped by user at row ${i + 2}</span>`;
       break;
     }
-    
+
     try {
       const row = data[i];
       const mapped = mapRowToDatabase(row);
-      
+
       // Check for unconverted dates (warning only, don't stop)
       const unconvertedDates = [];
       Object.entries(mapped).forEach(([key, value]) => {
@@ -537,11 +507,11 @@ window.importAllRows = async function() {
           }
         }
       });
-      
+
       if (unconvertedDates.length > 0) {
         console.warn(`Row ${i + 2}: Unconverted dates found and fixed:`, unconvertedDates);
       }
-      
+
       // Auto-generate reference if missing
       if (!mapped.reference) {
         // Try to use shipment_no
@@ -553,47 +523,47 @@ window.importAllRows = async function() {
           console.log(`Generated reference for row ${i + 2}: ${mapped.reference}`);
         }
       }
-      
+
       let insertData, error;
-      
+
       if (importMode === 'upsert') {
         // Upsert mode - update if exists, insert if new
         ({ data: insertData, error } = await supabase
           .from('driver_jobs')
-          .upsert(mapped, { 
+          .upsert(mapped, {
             onConflict: 'reference'
           })
           .select());
       } else {
         // Insert all mode - insert every row using original reference
         const insertPayload = { ...mapped };
-        
+
         ({ data: insertData, error } = await supabase
           .from('driver_jobs')
           .insert(insertPayload)
           .select());
       }
-      
+
       if (error) throw error;
-      
+
       stats.success++;
-      
+
     } catch (error) {
       stats.failed++;
       const errorMsg = error.message || String(error);
       const errorDetail = `Row ${i + 2} (${row['Reference'] || row['Shipment No.'] || 'Unknown'}): ${errorMsg}`;
       stats.errors.push(errorDetail);
       console.error(errorDetail, error);
-      
+
       // Always continue to next row (skipErrors is always on for importing all rows)
       // Don't stop import even if skipErrors is unchecked
     }
-    
+
     // Update progress
     const progress = ((i + 1) / data.length) * 100;
     progressFill.style.width = `${progress}%`;
     progressFill.textContent = `${Math.round(progress)}%`;
-    
+
     // Update result every 10 rows
     if ((i + 1) % 10 === 0 || i === data.length - 1) {
       result.innerHTML = `<span class="warning">⏳ Importing (${modeText})...</span>\n\n` +
@@ -603,11 +573,11 @@ window.importAllRows = async function() {
         (stats.skipped > 0 ? `Skipped: ${stats.skipped}\n` : '');
     }
   }
-  
+
   // Final result
   const summaryStats = `Total: ${stats.total}\nSuccess: ${stats.success}\nFailed: ${stats.failed}` +
     (stats.skipped > 0 ? `\nSkipped: ${stats.skipped}` : '');
-  
+
   if (stats.failed === 0 && stats.skipped === 0) {
     result.innerHTML = `<span class="success">✓ Import Complete!</span>\n\n` + summaryStats;
   } else {
@@ -616,7 +586,7 @@ window.importAllRows = async function() {
       `Errors (first 20):\n${stats.errors.slice(0, 20).join('\n')}\n` +
       (stats.errors.length > 20 ? `\n...and ${stats.errors.length - 20} more` : '');
   }
-  
+
   progressFill.style.width = '100%';
   progressFill.textContent = '100%';
 };
