@@ -432,6 +432,31 @@ window.testInsert = async function() {
   }
 };
 
+window.clearDriverJobsTable = async function() {
+  const result = document.getElementById('clearTableResult');
+  result.innerHTML = '<span class="warning">Clearing table...</span>';
+
+  if (!confirm('Are you absolutely sure you want to clear ALL data from the driver_jobs table? This action cannot be undone.')) {
+    result.innerHTML = '<span class="warning">Table clear cancelled.</span>';
+    return;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('driver_jobs')
+      .delete()
+      .neq('id', 0); // Use a condition that always matches to delete all rows
+
+    if (error) throw error;
+
+    result.innerHTML = '<span class="success">✓ driver_jobs table cleared successfully!</span>';
+    console.log('driver_jobs table cleared.');
+  } catch (error) {
+    console.error('Error clearing driver_jobs table:', error);
+    result.innerHTML = `<span class="error">✗ Error clearing table:</span>\n${error.message}`;
+  }
+};
+
 window.checkData = async function() {
   const result = document.getElementById('dataResult');
   result.innerHTML = '<span class="warning">Loading...</span>';

@@ -211,17 +211,6 @@ const b100QuantityInput = document.getElementById('b100-quantity');
 const b100AmountInput = document.getElementById('b100-amount');
 const b100NotesInput = document.getElementById('b100-notes');
 
-// B100 Outstanding
-const b100TotalJobs = document.getElementById('b100-total-jobs');
-const b100TotalAmount = document.getElementById('b100-total-amount');
-const b100DriverCount = document.getElementById('b100-driver-count');
-const b100OutstandingTableBody = document.querySelector('#b100-outstanding-table tbody');
-const b100DetailModal = document.getElementById('b100-detail-modal');
-const b100DetailModalClose = document.getElementById('b100-detail-modal-close');
-const b100DetailDriverName = document.getElementById('b100-detail-driver-name');
-const b100DetailTableBody = document.querySelector('#b100-detail-table tbody');
-const b100DetailTotal = document.getElementById('b100-detail-total');
-
 
 // --- Utility Functions ---
 
@@ -2598,117 +2587,6 @@ async function updateB100Status(jobId, newStatus) {
 }
 
 
-// --- B100 Outstanding Functions ---
-async function loadB100Outstanding() {
-    b100OutstandingTableBody.innerHTML = '<tr><td colspan="5">Loading outstanding summary...</td></tr>';
-
-    try {
-        // Fetch outstanding jobs
-        const { data: outstandingJobs, error } = await supabase
-            .from('driver_jobs')
-            .select('*')
-            .eq('is_b100', true)
-            .eq('b100_status', 'outstanding')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Calculate summaries
-        const totalJobs = outstandingJobs?.length || 0;
-        const totalAmount = outstandingJobs?.reduce((sum, job) => sum + (parseFloat(job.b100_amount) || 0), 0) || 0;
-
-        // Group by driver
-        const byDriver = {};
-        outstandingJobs?.forEach(job => {
-            const driver = job.drivers || 'Unknown';
-            if (!byDriver[driver]) {
-                byDriver[driver] = { jobs: [], total: 0, lastDate: null };
-            }
-            byDriver[driver].jobs.push(job);
-            byDriver[driver].total += parseFloat(job.b100_amount) || 0;
-            const jobDate = new Date(job.created_at);
-            if (!byDriver[driver].lastDate || jobDate > byDriver[driver].lastDate) {
-                byDriver[driver].lastDate = jobDate;
-            }
-        });
-
-        const driverCount = Object.keys(byDriver).length;
-
-        // Update summary cards
-        b100TotalJobs.textContent = totalJobs;
-        b100TotalAmount.textContent = `฿${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`;
-        b100DriverCount.textContent = driverCount;
-
-        // Populate table
-        b100OutstandingTableBody.innerHTML = '';
-        if (driverCount === 0) {
-            b100OutstandingTableBody.innerHTML = '<tr><td colspan="5">No outstanding B100 records.</td></tr>';
-            return;
-        }
-
-        Object.entries(byDriver).forEach(([driver, data]) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${driver}</td>
-                <td>${data.jobs.length}</td>
-                <td>${data.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                <td>${data.lastDate ? data.lastDate.toLocaleDateString() : 'N/A'}</td>
-                <td>
-                    <button class="view-driver-outstanding-btn" data-driver="${driver}">View Details</button>
-                </td>
-            `;
-            b100OutstandingTableBody.appendChild(row);
-        });
-
-        // Add event listeners
-        document.querySelectorAll('.view-driver-outstanding-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const driver = e.target.dataset.driver;
-                openB100DetailModal(driver, byDriver[driver]);
-            });
-        });
-
-    } catch (error) {
-        console.error('Error loading B100 outstanding:', error);
-        b100OutstandingTableBody.innerHTML = `<tr><td colspan="5">Error: ${error.message}</td></tr>`;
-    }
-}
-
-function openB100DetailModal(driver, data) {
-    b100DetailDriverName.textContent = driver;
-    b100DetailTotal.textContent = data.total.toLocaleString('th-TH', { minimumFractionDigits: 2 });
-
-    b100DetailTableBody.innerHTML = '';
-    data.jobs.forEach(job => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${job.reference || 'N/A'}</td>
-            <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
-            <td>${job.b100_amount ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '0.00'}</td>
-            <td>
-                <button class="mark-paid-detail-btn" data-job-id="${job.id}">Mark Paid</button>
-            </td>
-        `;
-        b100DetailTableBody.appendChild(row);
-    });
-
-    // Add event listeners for detail modal
-    document.querySelectorAll('.mark-paid-detail-btn').forEach(button => {
-        button.addEventListener('click', async (e) => {
-            await updateB100Status(e.target.dataset.jobId, 'paid');
-            closeB100DetailModal();
-            loadB100Outstanding();
-        });
-    });
-
-    b100DetailModal.classList.remove('hidden');
-}
-
-function closeB100DetailModal() {
-    b100DetailModal.classList.add('hidden');
-}
-
-
 // Function to load data for a given section
 function loadSectionData(targetId) {
     switch (targetId) {
@@ -2753,9 +2631,6 @@ function loadSectionData(targetId) {
             break;
         case 'b100-jobs':
             loadB100Jobs();
-            break;
-        case 'b100-outstanding':
-            loadB100Outstanding();
             break;
         // NEW: Debug Import Tool
         case 'debug-import-tool':
@@ -2957,12 +2832,6 @@ function setupEventListeners() {
         if (e.target === b100Modal) closeB100Modal();
     });
     b100Form.addEventListener('submit', handleB100Submit);
-
-    // B100 Outstanding Event Listeners
-    b100DetailModalClose.addEventListener('click', closeB100DetailModal);
-    b100DetailModal.addEventListener('click', (e) => {
-        if (e.target === b100DetailModal) closeB100DetailModal();
-    });
 }
 
 // Function to set up real-time subscriptions

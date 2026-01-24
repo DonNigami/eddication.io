@@ -35,7 +35,6 @@
                     <li class="nav-section-header">🚚 Operations Management</li>
                     <li><a href="#" class="nav-link" data-target="jobs">🚚 Job Management</a></li>
                     <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ B100 Jobs</a></li>
-                    <li><a href="#" class="nav-link" data-target="b100-outstanding">💰 B100 Outstanding</a></li>
                     <li><a href="#" class="nav-link" data-target="holiday-work">🎌 Holiday Work</a></li>
                     
                     <!-- Fleet & Maintenance -->
@@ -774,68 +773,6 @@
 
                             <button type="submit">Create B100 Job</button>
                         </form>
-                    </div>
-                </div>
-            </section>
-
-            <!-- B100 Outstanding Section -->
-            <section id="b100-outstanding" class="content-section hidden">
-                <h1>B100 Outstanding Summary</h1>
-
-                <!-- Summary Cards -->
-                <div class="b100-summary-cards">
-                    <div class="summary-card">
-                        <h3>Total Outstanding Jobs</h3>
-                        <p id="b100-total-jobs">0</p>
-                    </div>
-                    <div class="summary-card">
-                        <h3>Total Outstanding Amount</h3>
-                        <p id="b100-total-amount">฿0.00</p>
-                    </div>
-                    <div class="summary-card">
-                        <h3>Drivers with Outstanding</h3>
-                        <p id="b100-driver-count">0</p>
-                    </div>
-                </div>
-
-                <!-- Outstanding by Driver Table -->
-                <div class="table-container" style="margin-top: 20px;">
-                    <h3>Outstanding by Driver</h3>
-                    <table id="b100-outstanding-table">
-                        <thead>
-                            <tr>
-                                <th>Driver</th>
-                                <th>Outstanding Jobs</th>
-                                <th>Total Amount (฿)</th>
-                                <th>Last Job Date</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-                <!-- Driver Outstanding Detail Modal -->
-                <div id="b100-detail-modal" class="modal hidden">
-                    <div class="modal-content large-modal">
-                        <span class="close-button" id="b100-detail-modal-close">&times;</span>
-                        <h2>Outstanding Jobs: <span id="b100-detail-driver-name"></span></h2>
-                        <div class="table-container">
-                            <table id="b100-detail-table">
-                                <thead>
-                                    <tr>
-                                        <th>Reference</th>
-                                        <th>Date</th>
-                                        <th>Amount (฿)</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div class="b100-detail-summary" style="margin-top: 15px; text-align: right;">
-                            <strong>Total: ฿<span id="b100-detail-total">0.00</span></strong>
-                        </div>
                     </div>
                 </div>
             </section>
