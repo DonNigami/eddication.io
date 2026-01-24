@@ -102,19 +102,6 @@ const stopButton = document.getElementById('stop-button');
 const alertsBadge = document.getElementById('alerts-badge');
 const alertsTableBody = document.querySelector('#alerts-table tbody');
 
-// Scheduled Reports
-const createReportScheduleBtn = document.getElementById('create-report-schedule-btn');
-const reportSchedulesTableBody = document.querySelector('#report-schedules-table tbody');
-const reportScheduleModal = document.getElementById('report-schedule-modal');
-const reportScheduleModalCloseButton = reportScheduleModal.querySelector('.close-button');
-const reportScheduleForm = document.getElementById('report-schedule-form');
-const scheduleIdInput = document.getElementById('schedule-id');
-const scheduleReportNameInput = document.getElementById('schedule-report-name');
-const scheduleReportTypeInput = document.getElementById('schedule-report-type');
-const scheduleFrequencyInput = document.getElementById('schedule-frequency');
-const scheduleRecipientsInput = document.getElementById('schedule-recipients');
-const scheduleStatusInput = document.getElementById('schedule-status');
-
 // Log Viewer
 const logsTableBody = document.querySelector('#logs-table tbody');
 const logSearchReferenceInput = document.getElementById('log-search-reference');
@@ -1075,176 +1062,6 @@ async function updateAlertsBadge() {
         console.error('Error updating alerts badge:', error);
     }
 }
-
-async function handleResolveAlert(event) {
-    const button = event.currentTarget;
-    const alertId = button.dataset.alertId;
-
-    button.textContent = 'Resolving...';
-    button.disabled = true;
-
-    try {
-        const { error } = await supabase
-            .from('triggered_alerts')
-            .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-            .eq('id', alertId);
-
-        if (error) throw error;
-
-        showNotification('Alert resolved successfully!', 'info');
-        loadAlerts(); // Refresh alerts list
-        updateAlertsBadge(); // Update badge count
-    } catch (error) {
-        console.error('Error resolving alert:', error);
-        showNotification(`Failed to resolve alert: ${error.message}`, 'error');
-    } finally {
-        button.textContent = 'Resolve';
-        button.disabled = false;
-    }
-}
-
-
-// --- Scheduled Reports Functions ---
-async function loadReportSchedules() {
-    reportSchedulesTableBody.innerHTML = '<tr><td colspan="6">Loading report schedules...</td></tr>';
-    try {
-        const { data: schedules, error } = await supabase
-            .from('report_schedules')
-            .select('*')
-            .order('created_at', { ascending: false });
-        if (error) throw error;
-
-        reportSchedulesTableBody.innerHTML = '';
-        if (schedules.length === 0) {
-            reportSchedulesTableBody.innerHTML = '<tr><td colspan="6">No report schedules found.</td></tr>';
-            return;
-        }
-
-        schedules.forEach(schedule => {
-            const row = document.createElement('tr');
-            row.dataset.scheduleId = schedule.id;
-            const nextRun = schedule.next_generation_at ? new Date(schedule.next_generation_at).toLocaleString() : 'N/A';
-            const statusClass = schedule.status === 'active' ? 'status-active' : 'status-paused';
-            row.innerHTML = `
-                <td>${schedule.report_name || 'N/A'}</td>
-                <td>${schedule.report_type || 'N/A'}</td>
-                <td>${schedule.frequency || 'N/A'}</td>
-                <td>${nextRun}</td>
-                <td class="${statusClass}">${schedule.status}</td>
-                <td>
-                    <button class="edit-schedule-btn" data-id="${schedule.id}">Edit</button>
-                    <button class="delete-schedule-btn" data-id="${schedule.id}" style="background-color: #e74c3c;">Delete</button>
-                </td>
-            `;
-            reportSchedulesTableBody.appendChild(row);
-        });
-
-        document.querySelectorAll('.edit-schedule-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const scheduleId = e.target.dataset.id;
-                const schedule = schedules.find(s => s.id === scheduleId);
-                openReportScheduleModal(schedule);
-            });
-        });
-
-        document.querySelectorAll('.delete-schedule-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const scheduleId = e.target.dataset.id;
-                handleDeleteReportSchedule(scheduleId);
-            });
-        });
-
-    } catch (error) {
-        console.error('Error loading report schedules:', error);
-        reportSchedulesTableBody.innerHTML = `<tr><td colspan="6">Error loading report schedules: ${error.message}</td></tr>`;
-    }
-}
-
-function openReportScheduleModal(schedule = null) {
-    reportScheduleForm.reset();
-    scheduleIdInput.value = '';
-
-    if (schedule) {
-        scheduleIdInput.value = schedule.id;
-        scheduleReportNameInput.value = schedule.report_name || '';
-        scheduleReportTypeInput.value = schedule.report_type || 'driver_performance';
-        scheduleFrequencyInput.value = schedule.frequency || 'daily';
-        scheduleRecipientsInput.value = JSON.stringify(schedule.recipients || [], null, 2);
-        scheduleStatusInput.value = schedule.status || 'active';
-    }
-    reportScheduleModal.classList.remove('hidden');
-}
-
-function closeReportScheduleModal() {
-    reportScheduleModal.classList.add('hidden');
-}
-
-async function handleReportScheduleSubmit(event) {
-    event.preventDefault();
-
-    const scheduleId = scheduleIdInput.value;
-    let recipientsParsed;
-    try {
-        recipientsParsed = JSON.parse(scheduleRecipientsInput.value);
-        if (!Array.isArray(recipientsParsed)) {
-            throw new Error('Recipients must be a valid JSON array.');
-        }
-    } catch (e) {
-        alert(`Invalid Recipients JSON: ${e.message}`);
-        return;
-    }
-
-    const scheduleData = {
-        report_name: scheduleReportNameInput.value,
-        report_type: scheduleReportTypeInput.value,
-        frequency: scheduleFrequencyInput.value,
-        recipients: recipientsParsed,
-        status: scheduleStatusInput.value,
-        updated_at: new Date().toISOString()
-        // next_generation_at should be calculated by backend
-    };
-
-    try {
-        let error = null;
-        if (scheduleId) {
-            ({ error } = await supabase.from('report_schedules').update(scheduleData).eq('id', scheduleId));
-        } else {
-            scheduleData.created_at = new Date().toISOString();
-            ({ error } = await supabase.from('report_schedules').insert([scheduleData]));
-        }
-
-        if (error) throw error;
-
-        alert(`Report schedule ${scheduleId ? 'updated' : 'created'} successfully!`);
-        closeReportScheduleModal();
-        loadReportSchedules();
-    } catch (error) {
-        console.error('Error saving report schedule:', error);
-        alert(`Failed to save report schedule: ${error.message}`);
-    }
-}
-
-async function handleDeleteReportSchedule(scheduleId) {
-    if (!confirm('Are you sure you want to delete this report schedule?')) {
-        return;
-    }
-
-    try {
-        const { error } = await supabase
-            .from('report_schedules')
-            .delete()
-            .eq('id', scheduleId);
-
-        if (error) throw error;
-
-        alert('Report schedule deleted successfully!');
-        loadReportSchedules();
-    } catch (error) {
-        console.error('Error deleting report schedule:', error);
-        alert(`Failed to delete report schedule: ${error.message}`);
-    }
-}
-
 
 // --- Log Viewer Functions ---
 async function loadLogs() {
@@ -2612,9 +2429,6 @@ function loadSectionData(targetId) {
         case 'playback':
             loadDriverReports(); // Reusing the function to populate driver select
             break;
-        case 'scheduled-reports':
-            loadReportSchedules();
-            break;
         case 'logs':
             loadLogs();
             break;
@@ -2738,16 +2552,6 @@ function setupEventListeners() {
     playButton.addEventListener('click', startPlayback);
     pauseButton.addEventListener('click', pausePlayback);
     stopButton.addEventListener('click', stopPlayback);
-
-    // Scheduled Reports Event Listeners
-    createReportScheduleBtn.addEventListener('click', () => openReportScheduleModal());
-    reportScheduleForm.addEventListener('submit', handleReportScheduleSubmit);
-    reportScheduleModalCloseButton.addEventListener('click', closeReportScheduleModal);
-    reportScheduleModal.addEventListener('click', (e) => {
-        if (e.target === reportScheduleModal) {
-            closeReportScheduleModal();
-        }
-    });
 
     // Log Viewer Event Listeners
     logSearchReferenceInput.addEventListener('keyup', () => loadLogs());

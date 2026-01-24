@@ -29,7 +29,6 @@
                     <li><a href="#" class="nav-link active" data-target="dashboard">📈 Dashboard</a></li>
                     <li><a href="#" class="nav-link" data-target="logistics-performance">📊 Logistics Performance</a></li>
                     <li><a href="#" class="nav-link" data-target="driver-reports">👤 Driver Reports</a></li>
-                    <li><a href="#" class="nav-link" data-target="scheduled-reports">📄 Scheduled Reports</a></li>
                     
                     <!-- Operations Management -->
                     <li class="nav-section-header">🚚 Operations Management</li>
@@ -335,67 +334,6 @@
                     </div>
                     <button type="submit">Save Settings</button>
                 </form>
-            </section>
-            <section id="scheduled-reports" class="content-section hidden">
-                <h1>Scheduled Reports Management</h1>
-                <div class="report-schedule-controls">
-                    <button id="create-report-schedule-btn">Create New Schedule</button>
-                </div>
-                <div class="table-container" style="margin-top: 20px;">
-                    <table id="report-schedules-table">
-                        <thead>
-                            <tr>
-                                <th>Report Name</th>
-                                <th>Type</th>
-                                <th>Frequency</th>
-                                <th>Next Run</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Report schedules will be inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Report Schedule Modal (for Create/Edit) -->
-                <div id="report-schedule-modal" class="modal hidden">
-                    <div class="modal-content">
-                        <span class="close-button">&times;</span>
-                        <h2>Report Schedule Details</h2>
-                        <form id="report-schedule-form">
-                            <input type="hidden" id="schedule-id">
-                            <label for="schedule-report-name">Report Name:</label>
-                            <input type="text" id="schedule-report-name" required>
-
-                            <label for="schedule-report-type">Report Type:</label>
-                            <select id="schedule-report-type" required>
-                                <option value="driver_performance">Driver Performance</option>
-                                <option value="job_summary">Job Summary</option>
-                            </select>
-
-                            <label for="schedule-frequency">Frequency:</label>
-                            <select id="schedule-frequency" required>
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
-
-                            <label for="schedule-recipients">Recipients (JSON, e.g., [{"type":"email", "address":"a@b.com"}] or [{"type":"line", "id":"Uxxx"}]):</label>
-                            <textarea id="schedule-recipients" rows="3"></textarea>
-                            <p class="setting-description">JSON array of recipient objects. e.g., `[{"type":"email", "address":"a@b.com"}, {"type":"line", "id":"Uxxx"}]`</p>
-
-                            <label for="schedule-status">Status:</label>
-                            <select id="schedule-status">
-                                <option value="active">Active</option>
-                                <option value="paused">Paused</option>
-                            </select>
-
-                            <button type="submit">Save Schedule</button>
-                        </form>
-                    </div>
-                </div>
             </section>
             <section id="alerts" class="content-section hidden">
                 <h1>Triggered Alerts</h1>
