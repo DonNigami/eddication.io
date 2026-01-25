@@ -3,7 +3,7 @@
  * Initializes all modules and sets up event listeners
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { setNotificationContainer, showNotification } from './utils.js';
 import { initMap, setPlaybackElements } from './map.js';
 import { setDashboardElements, loadDashboardAnalytics } from './dashboard.js';

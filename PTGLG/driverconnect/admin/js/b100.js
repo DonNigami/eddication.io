@@ -3,7 +3,7 @@
  * Handles B100 (special fuel) jobs management
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { sanitizeHTML, showNotification } from './utils.js';
 
 // DOM elements

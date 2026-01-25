@@ -3,7 +3,7 @@
  * Handles holiday work approval workflow
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { sanitizeHTML, showNotification } from './utils.js';
 
 // DOM elements

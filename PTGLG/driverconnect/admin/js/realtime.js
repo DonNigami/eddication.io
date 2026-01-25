@@ -3,7 +3,7 @@
  * Handles Supabase realtime subscriptions
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { showNotification } from './utils.js';
 import { addNotificationToBell } from './notifications.js';
 import { subscribeToHolidayWorkUpdates, unsubscribeFromHolidayWorkUpdates } from './holiday-work.js';

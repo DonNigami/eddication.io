@@ -3,7 +3,7 @@
  * Handles map initialization, markers, and playback functionality
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { sanitizeHTML, showNotification } from './utils.js';
 
 // Default map settings (Bangkok)

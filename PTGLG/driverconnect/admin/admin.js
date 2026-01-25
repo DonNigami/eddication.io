@@ -8,16 +8,13 @@
 
 console.log('🚀 DriverConnect Admin Panel v2.0 (Modular)');
 
-// Import configuration
-import { SUPABASE_URL, SUPABASE_ANON_KEY, LIFF_IDS } from '../shared/config.js';
+// Import configuration and shared Supabase client
+import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY, LIFF_IDS } from '../shared/config.js';
 
 // Supabase & LIFF Configuration
 const LIFF_ID = LIFF_IDS.ADMIN;
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Export supabase for use in other modules
+// Export supabase and LIFF_ID for use in other modules
 export { supabase, LIFF_ID };
 
 // Import main app initialization

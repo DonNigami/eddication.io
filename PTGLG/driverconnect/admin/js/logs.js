@@ -3,7 +3,7 @@
  * Handles driver logs display and filtering
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { sanitizeHTML, showNotification } from './utils.js';
 
 // DOM elements

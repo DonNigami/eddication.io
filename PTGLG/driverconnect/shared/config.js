@@ -2,6 +2,22 @@
 export const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
 
+/**
+ * Singleton Supabase client instance
+ * Import this from any module to get the same client instance
+ * Prevents "Multiple GoTrueClient instances detected" warning
+ */
+let supabaseInstance = null;
+export function getSupabase() {
+    if (!supabaseInstance) {
+        supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return supabaseInstance;
+}
+
+// Convenience export for direct access
+export const supabase = getSupabase();
+
 export const LIFF_IDS = {
     ADMIN: '2007705394-Lq3mMYKA', // PTGLG/driverconnect/admin/admin.js
     APP: '2007705394-y4mV76Gv',   // PTGLG/driverconnect/app/index.html

@@ -3,7 +3,7 @@
  * Handles user management functions
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { sanitizeHTML, showNotification } from './utils.js';
 
 const USERS_TABLE_COLUMNS = 5;

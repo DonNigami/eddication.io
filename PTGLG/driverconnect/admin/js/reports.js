@@ -3,7 +3,7 @@
  * Handles driver report generation
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { showNotification } from './utils.js';
 
 // DOM elements

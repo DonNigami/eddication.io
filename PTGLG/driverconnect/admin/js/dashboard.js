@@ -3,7 +3,7 @@
  * Handles dashboard analytics and KPI displays
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { formatNumber } from './utils.js';
 
 // DOM elements

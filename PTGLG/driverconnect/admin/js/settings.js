@@ -3,7 +3,7 @@
  * Handles application settings management
  */
 
-import { supabase } from '../admin.js';
+import { supabase } from '../../shared/config.js';
 import { showNotification } from './utils.js';
 import { loadMapSettings } from './map.js';
 
