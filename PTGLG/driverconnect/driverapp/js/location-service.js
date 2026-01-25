@@ -100,7 +100,6 @@ export async function getCustomerCoordinates(shipToCodes = []) {
   }
 
   try {
-    const supabase = getSupabase();
     const { data: customerData } = await supabase
       .from('customer')
       .select('stationKey, name, lat, lng, radiusMeters')
