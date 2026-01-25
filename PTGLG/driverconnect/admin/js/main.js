@@ -244,16 +244,7 @@ function setupDOMElements() {
  * Setup event listeners
  */
 function setupEventListeners() {
-    // Navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const targetId = link.dataset.target;
-            if (targetId) {
-                loadSectionData(targetId);
-            }
-        });
-    });
+    // Navigation is handled by admin.js setupNavigation() which calls navigateTo()
 
     // Job search
     const jobSearchInput = document.getElementById('job-search-input');
