@@ -96,7 +96,7 @@ export function getLogFilters() {
 /**
  * Clear log filters and reload
  */
-export function clearLogFilters() {
+export async function clearLogFilters() {
     if (logSearchReferenceInput) logSearchReferenceInput.value = '';
     if (logSearchActionInput) logSearchActionInput.value = '';
     if (logSearchUserIdInput) logSearchUserIdInput.value = '';
