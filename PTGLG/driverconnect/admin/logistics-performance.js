@@ -1,7 +1,7 @@
 // logistics-performance.js
 // Performance Report Module for Admin Dashboard
 
-import { supabase } from './admin.js';
+import { supabase } from './admin.js?v=2';
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {

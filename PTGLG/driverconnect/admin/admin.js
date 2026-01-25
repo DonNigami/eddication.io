@@ -238,8 +238,10 @@ async function loadMapSettings() {
 }
 
 async function initMap() {
-    if (map) {
-        map.remove(); // Remove existing map if it was already initialized
+    // Check if map container already has a Leaflet instance
+    const mapContainer = document.getElementById('map');
+    if (mapContainer && mapContainer._leaflet_id) {
+        map.remove(); // Remove existing map
     }
 
     await loadMapSettings(); // Load map settings before initializing

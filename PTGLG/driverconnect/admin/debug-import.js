@@ -1,5 +1,5 @@
 console.log('debug-import.js loaded');
-import { supabase } from './admin.js';
+import { supabase } from './admin.js?v=2';
 window.sheetData = null;
 window.importStopped = false;
 window.availableSheets = [];
