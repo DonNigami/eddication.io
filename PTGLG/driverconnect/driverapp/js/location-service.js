@@ -23,7 +23,7 @@ const cache = {
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Geocode an address using Nominatim (OpenStreetMap)
+ * Geocode an address using Nominatim (OpenStreetMap) with CORS proxy
  * @param {string} address - Address to geocode
  * @returns {Promise<{lat, lng}|null>} - Coordinates or null
  */
@@ -36,45 +36,62 @@ async function geocodeAddress(address) {
     return cache.geocoding.get(cacheKey);
   }
 
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=th`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'DriverConnect-App/1.0'
-        }
+  // Build the Nominatim URL
+  const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=th&addressdetails=1`;
+
+  // Try multiple methods: direct fetch (works on some origins), CORS proxy, then Supabase edge function
+  const methods = [
+    {
+      name: 'Direct',
+      fetch: async () => {
+        const response = await fetch(nominatimUrl, {
+          headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
       }
-    );
+    },
+    {
+      name: 'CORS Proxy',
+      fetch: async () => {
+        // Use AllOrigins CORS proxy
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nominatimUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+        return response.json();
+      }
+    }
+  ];
 
-    if (!response.ok) {
-      console.warn('⚠️ Geocoding request failed:', response.status);
+  for (const method of methods) {
+    try {
+      const data = await method.fetch();
+
+      if (data && data.length > 0) {
+        const result = {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon)
+        };
+        // Cache the result
+        cache.geocoding.set(cacheKey, result);
+        console.log(`📍 Geocoded "${address}" to ${result.lat}, ${result.lng} (${method.name})`);
+        return result;
+      }
+
+      console.log(`ℹ️ No geocoding results for "${address}" (${method.name})`);
       return null;
+    } catch (error) {
+      console.warn(`⚠️ Geocoding ${method.name} failed:`, error.message);
+      // Continue to next method
     }
-
-    const data = await response.json();
-
-    if (data && data.length > 0) {
-      const result = {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon)
-      };
-      // Cache the result
-      cache.geocoding.set(cacheKey, result);
-      console.log(`📍 Geocoded "${address}" to ${result.lat}, ${result.lng}`);
-      return result;
-    }
-
-    console.log(`ℹ️ No geocoding results for "${address}"`);
-    return null;
-  } catch (error) {
-    console.warn('⚠️ Geocoding error:', error.message);
-    return null;
   }
+
+  console.warn(`⚠️ All geocoding methods failed for "${address}"`);
+  return null;
 }
 
 /**
- * Batch geocode multiple addresses with rate limiting
+ * Batch geocode multiple addresses with rate limiting (parallel with delay)
  * @param {Array} stops - Array of stops needing geocoding
  * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng }
  */
@@ -82,14 +99,37 @@ async function batchGeocodeStops(stops) {
   const results = new Map();
   const stopsToGeocode = stops.filter(s => s.shipToName || s.address);
 
-  for (const stop of stopsToGeocode) {
-    const address = stop.shipToName || stop.address;
-    const coords = await geocodeAddress(address);
-    if (coords) {
-      results.set(stop.shipToCode || stop.seq, coords);
+  if (stopsToGeocode.length === 0) {
+    return results;
+  }
+
+  // Process in parallel with small delay between batches
+  const BATCH_SIZE = 3;
+  const BATCH_DELAY = 500;
+
+  for (let i = 0; i < stopsToGeocode.length; i += BATCH_SIZE) {
+    const batch = stopsToGeocode.slice(i, i + BATCH_SIZE);
+
+    // Process batch in parallel
+    const batchResults = await Promise.all(
+      batch.map(async (stop) => {
+        const address = stop.shipToName || stop.address;
+        const coords = await geocodeAddress(address);
+        return coords ? { key: stop.shipToCode || stop.seq, coords } : null;
+      })
+    );
+
+    // Store results
+    batchResults.forEach(result => {
+      if (result) {
+        results.set(result.key, result.coords);
+      }
+    });
+
+    // Delay between batches (except for the last batch)
+    if (i + BATCH_SIZE < stopsToGeocode.length) {
+      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
     }
-    // Rate limiting: wait between requests
-    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   return results;
