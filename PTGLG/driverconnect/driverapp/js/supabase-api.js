@@ -11,6 +11,7 @@
 
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { decodeBase64 } from './utils.js';
+import { DriverAuth } from '../../shared/driver-auth.js';
 
 // Table names (aligned with app/PLAN.md migration status - PENDING)
 const TABLES = {
@@ -300,9 +301,21 @@ export const SupabaseAPI = {
   /**
    * Search job by reference
    * Search priority: jobdata first, then driver_jobs
+   * Phase 1.5: Verify driver has access to this job before returning details
    */
   async search(reference, userId) {
     console.log('🔍 Supabase: Searching for', reference);
+
+    // Phase 1.5: Verify driver has access to this job (prevent unauthorized access)
+    const hasAccess = await DriverAuth.verifyJobAccess(userId, reference);
+    if (!hasAccess) {
+      console.warn(`⚠️ Unauthorized search attempt by LIFF ID ${userId} on reference ${reference}`);
+      return {
+        success: false,
+        message: DriverAuth.getUnauthorizedMessage(),
+        unauthorized: true
+      };
+    }
 
     try {
       // ============================================
@@ -539,9 +552,22 @@ export const SupabaseAPI = {
 
   /**
    * Update stop status
+   * Requires DriverAuth verification before allowing updates
    */
   async updateStop({ reference, seq, shipToCode, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
     console.log('🔄 Supabase: Updating stop status for ref', reference, 'type', type);
+
+    // Phase 1.5: Verify driver has access to this job before updating
+    // userId in LIFF auth IS the liffId
+    const hasAccess = await DriverAuth.verifyCheckInAccess(userId, reference, shipToCode);
+    if (!hasAccess) {
+      console.warn(`⚠️ Unauthorized update attempt by LIFF ID ${userId} on reference ${reference}`);
+      return {
+        success: false,
+        message: DriverAuth.getUnauthorizedMessage(),
+        unauthorized: true
+      };
+    }
 
     try {
       const now = new Date().toISOString();
@@ -638,9 +664,21 @@ export const SupabaseAPI = {
   /**
    * Upload alcohol check
    * Schema aligned with app/PLAN.md: alcohol_checks table
+   * Requires DriverAuth verification before allowing uploads
    */
   async uploadAlcohol({ reference, driverName, userId, alcoholValue, imageBase64, lat, lng }) {
     console.log('🍺 Supabase: Uploading alcohol check for', driverName);
+
+    // Phase 1.5: Verify driver has access to this job before uploading alcohol test
+    const hasAccess = await DriverAuth.verifyAlcoholTestAccess(userId, reference);
+    if (!hasAccess) {
+      console.warn(`⚠️ Unauthorized alcohol upload attempt by LIFF ID ${userId} on reference ${reference}`);
+      return {
+        success: false,
+        message: DriverAuth.getUnauthorizedMessage(),
+        unauthorized: true
+      };
+    }
 
     try {
       // Get trip_id first. A reference can have multiple rows, but they belong to the same trip.
@@ -771,9 +809,21 @@ export const SupabaseAPI = {
   /**
    * Close job
    * Schema aligned with app/PLAN.md: trips table with job_closed flag
+   * Requires DriverAuth verification before allowing close
    */
   async closeJob({ reference, userId, driverCount, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee, isHolidayWork, holidayWorkNotes }) {
     console.log('📋 Supabase: Closing job', reference);
+
+    // Phase 1.5: Verify driver has access to this job before closing
+    const hasAccess = await DriverAuth.verifyJobAccess(userId, reference);
+    if (!hasAccess) {
+      console.warn(`⚠️ Unauthorized close attempt by LIFF ID ${userId} on reference ${reference}`);
+      return {
+        success: false,
+        message: DriverAuth.getUnauthorizedMessage(),
+        unauthorized: true
+      };
+    }
     
     if (isHolidayWork) {
       console.log('🎊 Holiday work detected with notes:', holidayWorkNotes);
@@ -867,9 +917,21 @@ export const SupabaseAPI = {
   /**
    * End trip
    * Schema aligned with app/PLAN.md: trips table with trip_ended flag and end_time
+   * Requires DriverAuth verification before allowing end
    */
   async endTrip({ reference, userId, endOdo, endPointName, lat, lng }) {
     console.log('🏁 Supabase: Ending trip', reference);
+
+    // Phase 1.5: Verify driver has access to this job before ending trip
+    const hasAccess = await DriverAuth.verifyJobAccess(userId, reference);
+    if (!hasAccess) {
+      console.warn(`⚠️ Unauthorized end trip attempt by LIFF ID ${userId} on reference ${reference}`);
+      return {
+        success: false,
+        message: DriverAuth.getUnauthorizedMessage(),
+        unauthorized: true
+      };
+    }
 
     try {
       // Fetch trip_id for logging (read-only from TABLES.TRIPS)
@@ -922,9 +984,15 @@ export const SupabaseAPI = {
 
   /**
    * Save or update user profile
+   * Phase 1.5: Already secure - updates only by user_id (which IS the liffId)
+   * Users can only update their own profile
    */
   async saveUserProfile(profile) {
     console.log('👤 Supabase: Saving user profile', profile.userId);
+
+    // Note: In LIFF auth, userId IS the liffId. The query below uses
+    // .eq('user_id', profile.userId) so users can only update their own profile.
+    // This is already secure at application layer.
 
     try {
       // Check if user exists

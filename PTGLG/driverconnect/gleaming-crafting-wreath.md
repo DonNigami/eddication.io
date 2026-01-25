@@ -28,9 +28,12 @@
 | Priority | Issue | Risk | Status | File |
 |----------|-------|------|--------|------|
 | 1 | Dev mode bypass `?dev=1` | CRITICAL | ⚠️ PENDING | admin/admin.old.js:2715 |
-| 2 | Row-Level Security (RLS) ปิดอยู่ | CRITICAL | 🟡 IN PROGRESS | Supabase migrations |
-| 3 | XSS vulnerabilities (115 จุด) | CRITICAL | ✅ DONE | admin/*.js |
-| 4 | Exposed API keys (15+ files) | HIGH | ✅ DONE | shared/config.js |
+| 2 | **Anon RLS = No access control** | CRITICAL | 🔴 NEW | `20260125160000*.sql` |
+| 3 | Row-Level Security (RLS) policies | CRITICAL | 🟡 IN PROGRESS | Supabase migrations |
+| 4 | XSS vulnerabilities (115 จุด) | CRITICAL | ✅ DONE | admin/*.js |
+| 5 | Exposed API keys (15+ files) | HIGH | ✅ DONE | shared/config.js |
+
+> **⚠️ SECURITY ALERT**: Migration `20260125160000` grants full anon access. RLS policies use `WITH CHECK (true)` which means ANYONE can INSERT/UPDATE. Must implement **application-layer ownership verification** (see Phase 1.5).
 
 ---
 
@@ -65,6 +68,51 @@ if (devMode) { ... }
 **Removed:** Hardcoded keys from admin modules (import from config)
 
 **Status:** ✅ DONE
+
+### 1.5 Application-Layer Auth for LIFF 🔴 NEW
+**Problem:** Anon RLS policies allow ANYONE to modify data. Need ownership verification.
+
+**Create:** `shared/driver-auth.js`
+```javascript
+export class DriverAuth {
+    static async verifyJobAccess(supabase, liffId, jobId) {
+        const { data } = await supabase
+            .from('driver_jobs')
+            .select('id')
+            .eq('job_id', jobId)
+            .eq('driver_liff_id', liffId)
+            .single();
+        return !!data;
+    }
+
+    static async verifyProfileOwnership(supabase, liffId, profileId) {
+        const { data } = await supabase
+            .from('user_profiles')
+            .select('liff_id')
+            .eq('id', profileId)
+            .single();
+        return data?.liff_id === liffId;
+    }
+}
+```
+
+**Update all driverapp mutations:**
+- `checkInToJob()` → verify before update
+- `submitAlcoholTest()` → verify before insert
+- `updateProfile()` → verify ownership
+
+**Effort:** 6 ชั่วโมง | **Status:** 🔴 TODO
+
+### 1.6 Database Indexes for Performance 🔴 NEW
+```sql
+-- Migration: 20260125180000_add_performance_indexes.sql
+CREATE INDEX idx_driver_jobs_liff_job ON driver_jobs(driver_liff_id, job_id);
+CREATE INDEX idx_driver_logs_reference_created ON driver_logs(reference, created_at DESC);
+CREATE INDEX idx_jobdata_reference_status ON jobdata(reference, status);
+CREATE INDEX idx_user_profiles_liff ON user_profiles(liff_id);
+```
+
+**Effort:** 1 ชั่วโมง | **Status:** 🔴 TODO
 
 ---
 
@@ -140,13 +188,17 @@ const { data: allLogs } = await supabase
 
 ## Phase 3: n8n Automation (Week 5-6)
 
-### 3.1 Alert Workflows
-| Workflow | Trigger | Action |
-|----------|---------|--------|
-| Holiday Work Alert | DB webhook | LINE notify admin |
-| Driver Offline Alert | Every 30 min | Alert dispatch |
-| Alcohol Fail Alert | DB webhook | LINE + Email supervisor |
-| Daily Summary | 6 AM daily | Report to stakeholders |
+### 3.1 Alert Workflows (Prioritized by Business Impact)
+
+| Priority | Workflow | Trigger | Action | KPI Impact |
+|----------|----------|---------|--------|------------|
+| 🔴 1 | **Route Deviation Alert** | GPS > 500m from route | LINE notify dispatch | Reduce theft/missuse |
+| 🔴 2 | **Late Check-in Alert** | Job start +30min no check-in | Alert supervisor | Improve on-time rate |
+| 🔴 3 | **Missed Alcohol Test** | Checkout without test | Block + notify | Safety compliance |
+| 🟡 4 | Holiday Work Alert | DB webhook | LINE notify admin | Overtime tracking |
+| 🟡 5 | Alcohol Fail Alert | DB webhook | LINE + Email | Safety response |
+| 🟢 6 | Daily Summary | 6 AM daily | Report to stakeholders | Management visibility |
+| 🟢 7 | Driver Offline Alert | Every 30 min | Alert dispatch | Fleet awareness |
 
 ### 3.2 Data Sync Workflows
 - Google Sheets backup (daily)
@@ -156,21 +208,54 @@ const { data: allLogs } = await supabase
 
 ---
 
+---
+
 ## Phase 4: Feature Enhancements (Week 7-10)
 
-### 4.1 Driver Value Features
+### 4.1 Critical Logistics Features 🔴 (High Business Impact)
+
+| Feature | Description | Business Value |
+|---------|-------------|----------------|
+| **Proof of Delivery (POD)** | Signature/photo confirmation | Reduce disputes, proof of service |
+| **Route Deviation Detection** | Alert when GPS > 500m off route | Prevent theft, unauthorized trips |
+| **Customer ETA Link** | Shareable tracking URL | Customer satisfaction, fewer calls |
+| **Vehicle Load Utilization** | Track cargo weight vs capacity | Optimize fleet usage |
+
+### 4.2 Driver Value Features
 - Fuel Efficiency Tracker
 - Trip Cost Calculator
 - Driver Performance Score
 - Weekly Dashboard
 
-### 4.2 UX Improvements
+### 4.3 Operational KPIs Dashboard (NEW)
+```javascript
+// Add to admin/js/dashboard.js
+const operationalKPIs = {
+    // Service Metrics
+    onTimeDeliveryRate: '(On-Time / Total) × 100',
+    firstTimeSuccessRate: '(First-Trip Success / Total) × 100',
+    avgCheckinToCheckout: 'AVG(checkout_time - checkin_time)',
+
+    // Safety Metrics
+    alcoholTestPassRate: '(Passed / Total Tests) × 100',
+    missedTestsCount: 'COUNT WHERE status = missed',
+
+    // Cost Metrics
+    fuelCostPerKM: 'Total Fuel Cost / Total KM',
+    vehicleUtilization: '(Loaded KM / Total KM) × 100',
+
+    // Performance
+    driverPerformanceScore: 'Weighted: on-time + safety + efficiency'
+};
+```
+
+### 4.4 UX Improvements
 - Loading skeletons
 - Better error messages
 - Confirmation dialogs
 - Mobile responsive
 
-### 4.3 Professional Enhancements
+### 4.5 Professional Enhancements
 - Design system
 - PWA support
 - Analytics (Sentry)
@@ -190,6 +275,8 @@ const { data: allLogs } = await supabase
 
 ### Security
 - [ ] `?dev=1` returns access denied
+- [ ] **Application-layer auth blocks unauthorized job updates**
+- [ ] **Test: Driver A cannot check in to Driver B's job**
 - [ ] RLS policies active (test driver sees only own jobs)
 - [ ] XSS scanner shows 0 vulnerabilities
 - [ ] API keys not visible in browser devtools
@@ -209,10 +296,18 @@ const { data: allLogs } = await supabase
 ## Timeline Summary
 
 ```
-Week 1-2:   Security Fixes ━━━━━━━━━━━━━━━━━━━━ (29 hrs)
+Week 1-2:   Security Fixes ━━━━━━━━━━━━━━━━━━━━ (37 hrs)
+            + NEW: 1.5 App-layer auth (6hrs)
+            + NEW: 1.6 DB Indexes (1hr)
+
 Week 3-4:   Code Quality  ━━━━━━━━━━━━━━━━━━━━━ (40 hrs)
+
 Week 5-6:   n8n Automation ━━━━━━━━━━━━━━━━━━━━ (24 hrs)
+            + Priority: Route/Late/Missed Test alerts
+
 Week 7-10:  Features ━━━━━━━━━━━━━━━━━━━━━━━━━━ (flexible)
+            + NEW: POD, Route Deviation, ETA Link
+
 Week 11-12: Testing ━━━━━━━━━━━━━━━━━━━━━━━━━━━ (flexible)
 ```
 
@@ -224,4 +319,6 @@ Week 11-12: Testing ━━━━━━━━━━━━━━━━━━━━
 2. **`PTGLG/driverconnect/driverapp/js/config.js`** - Centralize config
 3. **`PTGLG/driverconnect/driverapp/js/supabase-api.js`** - Code deduplication
 4. **`PTGLG/driverconnect/driverapp/js/app.js`** - State management
-5. **Supabase Dashboard** - RLS policies
+5. **`PTGLG/driverconnect/shared/driver-auth.js`** - NEW: App-layer auth verification
+6. **`PTGLG/driverconnect/admin/js/dashboard.js`** - NEW: Operational KPIs
+7. **`Supabase Dashboard`** - RLS policies + Performance indexes

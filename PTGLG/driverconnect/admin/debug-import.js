@@ -17,85 +17,22 @@ function getSheetCSVUrl(sheetId, sheetName) {
 }
 
 // Load available sheet names from Google Sheets
+// Note: Direct HTML scraping is blocked by CORS, so we use common defaults
 window.loadSheetNames = async function() {
-  const sheetId = document.getElementById('sheetId').value;
   const selectEl = document.getElementById('sheetName');
 
-  selectEl.innerHTML = '<option value="">Loading...</option>';
+  // Populate with common sheet name defaults
+  selectEl.innerHTML = `
+    <option value="InputZoile30" selected>📊 InputZoile30 (Default)</option>
+    <option value="Sheet1">Sheet1</option>
+    <option value="Sheet2">Sheet2</option>
+    <option value="" disabled>──────────</option>
+    <option value="JobData">JobData</option>
+    <option value="Data">Data</option>
+    <option value="Report">Report</option>
+  `;
 
-  try {
-    // Fetch the spreadsheet HTML page to extract sheet names
-    const response = await fetch(`https://docs.google.com/spreadsheets/d/${sheetId}/edit`, {
-      mode: 'cors',
-      credentials: 'omit'
-    });
-
-    if (!response.ok) {
-      throw new Error('Cannot access spreadsheet. Make sure it is public.');
-    }
-
-    const html = await response.text();
-
-    // Extract sheet names from HTML (they're in the page as JSON data)
-    // Look for sheet names in the format: "sheets":[{"properties":{"sheetId":...,"title":"SheetName"
-    const sheetMatches = html.match(/"title":"([^"]+)"/g);
-
-    if (!sheetMatches || sheetMatches.length === 0) {
-      throw new Error('No sheets found. Try using Sheet1 or InputZoile30');
-    }
-
-    // Extract unique sheet names
-    const sheets = [...new Set(
-      sheetMatches
-        .map(m => m.match(/"title":"([^"]+)"/)[1])
-        .filter(name =>
-          // Filter out non-sheet titles (keep reasonable sheet names)
-          name.length < 50 &&
-          !name.includes('http') &&
-          !name.includes('www.')
-        )
-    )];
-
-    window.availableSheets = sheets;
-
-    // Populate select dropdown
-    selectEl.innerHTML = '';
-
-    // Find InputZoile30 and put it first (default)
-    const defaultSheet = sheets.find(s => s === 'InputZoile30');
-    if (defaultSheet) {
-      const option = document.createElement('option');
-      option.value = defaultSheet;
-      option.text = `📊 ${defaultSheet} (Default)`;
-      option.selected = true;
-      selectEl.appendChild(option);
-    }
-
-    // Add rest of sheets
-    sheets
-      .filter(s => s !== 'InputZoile30')
-      .forEach(sheetName => {
-        const option = document.createElement('option');
-        option.value = sheetName;
-        option.text = sheetName;
-        selectEl.appendChild(option);
-      });
-
-    if (sheets.length === 0) {
-      selectEl.innerHTML = '<option value="InputZoile30">InputZoile30 (Default)</option>';
-    }
-
-    console.log('Available sheets:', sheets);
-
-  } catch (error) {
-    console.error('Error loading sheet names:', error);
-    // Fallback to common sheet names
-    selectEl.innerHTML = `
-      <option value="InputZoile30" selected>InputZoile30 (Default)</option>
-      <option value="Sheet1">Sheet1</option>
-      <option value="Sheet2">Sheet2</option>
-    `;
-  }
+  console.log('Sheet names loaded (defaults - manual entry available)');
 };
 
 function parseCSVLine(line) {
@@ -627,8 +564,7 @@ window.stopImport = function() {
 // This init function will be called when the section is loaded
 window.initDebugImport = async function() {
   console.log('initDebugImport called');
-  // Auto-load sheet names on page load
-  document.getElementById('fetchResult').innerHTML = '<span class="warning">Loading sheet names...</span>';
+  // Load default sheet names
   await window.loadSheetNames();
   document.getElementById('fetchResult').innerHTML = '<span class="warning">Ready! Click "Fetch Sheet Data" to start</span>';
 };
