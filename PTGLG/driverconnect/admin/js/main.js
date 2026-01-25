@@ -564,8 +564,8 @@ export async function showAdminPanel(profile, liffInstance) {
     const adminContainer = document.getElementById('admin-container');
     const adminUsername = document.getElementById('admin-username');
 
-    if (authContainer) authContainer.style.display = 'none';
-    if (adminContainer) adminContainer.style.display = 'block';
+    if (authContainer) authContainer.classList.add('hidden');
+    if (adminContainer) adminContainer.classList.remove('hidden');
     if (adminUsername) adminUsername.textContent = profile.displayName || 'Admin';
 
     // Initialize notification bell
