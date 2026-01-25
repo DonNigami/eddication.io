@@ -513,14 +513,16 @@ export async function loadSectionData(targetId) {
  * @param {string} targetId - Target section ID
  */
 export function navigateTo(targetId) {
-    // Hide all sections
+    // Hide all sections - remove active and add hidden
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
+        section.classList.add('hidden');
     });
 
-    // Show target section
+    // Show target section - remove hidden and add active
     const targetSection = document.getElementById(targetId);
     if (targetSection) {
+        targetSection.classList.remove('hidden');
         targetSection.classList.add('active');
     }
 
