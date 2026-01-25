@@ -5,25 +5,274 @@
  * auth.role() = 'anon' always. RLS policies are permissive (WITH CHECK (true)),
  * so we must enforce ownership at the APPLICATION LAYER.
  *
- * This class provides verification methods to ensure drivers can only access
- * their own assigned jobs and data.
+ * This class provides:
+ * 1. Driver approval status verification
+ * 2. Audit trail logging
+ * 3. Optional: Job access control (if database supports it)
  */
 
 import { getSupabase } from './config.js';
 
 /**
- * DriverAuth - Application-layer ownership verification
+ * Driver Approval Status Constants
+ */
+export const ApprovalStatus = {
+    APPROVED: 'APPROVED',
+    PENDING: 'PENDING',
+    REJECTED: 'REJECTED'
+};
+
+/**
+ * Configuration flags for DriverAuth behavior
+ */
+export const DriverAuthConfig = {
+    /**
+     * Bypass job access checks (verifyJobAccess, verifyCheckInAccess, etc.)
+     * Set to true when database doesn't support driver-to-job assignment.
+     * When true, any approved driver can access any job.
+     */
+    BYPASS_JOB_ACCESS_CHECK: true,
+
+    /**
+     * Enable audit logging for all driver actions
+     */
+    ENABLE_AUDIT_LOG: true
+};
+
+/**
+ * DriverAuth - Application-layer auth verification
  */
 export class DriverAuth {
     /**
+     * Check if a user (by LINE User ID) is approved to use the system.
+     * This is the primary approval check function.
+     *
+     * @param {string} lineUserId - The user's LINE User ID
+     * @returns {Promise<boolean>} - True if user is approved
+     */
+    static async isUserApproved(lineUserId) {
+        if (!lineUserId) {
+            console.warn('⚠️ DriverAuth: Missing lineUserId for approval check');
+            return false;
+        }
+
+        try {
+            const supabase = getSupabase();
+
+            // Option 1: Use the database function (recommended)
+            const { data, error } = await supabase
+                .rpc('is_user_approved', { p_user_id: lineUserId });
+
+            if (error) {
+                // Fallback: Direct query if function doesn't exist yet
+                const { data: profile, error: profileError } = await supabase
+                    .from('user_profiles')
+                    .select('status')
+                    .eq('user_id', lineUserId)
+                    .maybeSingle();
+
+                if (profileError) {
+                    console.error('❌ DriverAuth.isUserApproved error:', profileError);
+                    return false;
+                }
+
+                const isApproved = profile?.status === ApprovalStatus.APPROVED;
+                if (!isApproved) {
+                    console.warn(`⚠️ DriverAuth: User ${lineUserId} status is ${profile?.status || 'unknown'}`);
+                }
+                return isApproved;
+            }
+
+            return data === true;
+        } catch (err) {
+            console.error('❌ DriverAuth.isUserApproved exception:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Get user profile including approval status.
+     * Returns null if user not found.
+     *
+     * @param {string} lineUserId - The user's LINE User ID
+     * @returns {Promise<Object|null>} - User profile or null
+     */
+    static async getUserProfile(lineUserId) {
+        if (!lineUserId) {
+            console.warn('⚠️ DriverAuth: Missing lineUserId for profile fetch');
+            return null;
+        }
+
+        try {
+            const supabase = getSupabase();
+
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('*')
+                .eq('user_id', lineUserId)
+                .maybeSingle();
+
+            if (error) {
+                console.error('❌ DriverAuth.getUserProfile error:', error);
+                return null;
+            }
+
+            return data;
+        } catch (err) {
+            console.error('❌ DriverAuth.getUserProfile exception:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Create or update user profile on LIFF login.
+     * Tracks first_seen_at and total_visits.
+     *
+     * @param {Object} liffProfile - LIFF profile object { userId, displayName, pictureUrl, statusMessage }
+     * @returns {Promise<Object>} - Created/updated profile
+     */
+    static async registerUser(liffProfile) {
+        if (!liffProfile?.userId) {
+            console.error('❌ DriverAuth: Invalid LIFF profile');
+            return null;
+        }
+
+        try {
+            const supabase = getSupabase();
+
+            // First, try to get existing profile
+            const existing = await this.getUserProfile(liffProfile.userId);
+
+            if (existing) {
+                // Update last_seen and total_visits
+                const { data, error } = await supabase
+                    .from('user_profiles')
+                    .update({
+                        last_seen_at: new Date().toISOString(),
+                        total_visits: (existing.total_visits || 0) + 1,
+                        display_name: liffProfile.displayName || existing.display_name,
+                        picture_url: liffProfile.pictureUrl || existing.picture_url,
+                        status_message: liffProfile.statusMessage || existing.status_message
+                    })
+                    .eq('user_id', liffProfile.userId)
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ DriverAuth.registerUser update error:', error);
+                    return existing;
+                }
+                return data;
+            }
+
+            // Create new profile (status defaults to PENDING in DB, but we set explicitly here)
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .insert({
+                    user_id: liffProfile.userId,
+                    display_name: liffProfile.displayName,
+                    picture_url: liffProfile.pictureUrl,
+                    status_message: liffProfile.statusMessage,
+                    first_seen_at: new Date().toISOString(),
+                    last_seen_at: new Date().toISOString(),
+                    total_visits: 1,
+                    status: ApprovalStatus.PENDING, // New users need approval
+                    user_type: 'DRIVER'
+                })
+                .select()
+                .single();
+
+            if (error) {
+                console.error('❌ DriverAuth.registerUser insert error:', error);
+                return null;
+            }
+
+            console.log(`✅ DriverAuth: New user registered - ${liffProfile.userId} (status: PENDING)`);
+            return data;
+        } catch (err) {
+            console.error('❌ DriverAuth.registerUser exception:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Log audit trail for driver actions.
+     * Used to track who did what for accountability.
+     *
+     * @param {string} lineUserId - The user's LINE User ID
+     * @param {string} reference - Job reference
+     * @param {string} action - Action performed (search, checkin, checkout, etc.)
+     * @param {Object} details - Additional details
+     * @param {Object} location - GPS location {lat, lng}
+     * @returns {Promise<boolean>} - True if logged successfully
+     */
+    static async logAudit(lineUserId, userName, reference, action, details = null, location = null) {
+        if (!lineUserId) {
+            console.warn('⚠️ DriverAuth: Missing lineUserId for audit log');
+            return false;
+        }
+
+        try {
+            const supabase = getSupabase();
+
+            const { error } = await supabase
+                .from('driver_logs')
+                .insert({
+                    user_id: lineUserId,
+                    user_name: userName,
+                    reference: reference,
+                    action: action,
+                    details: details,
+                    location: location
+                });
+
+            if (error) {
+                console.error('❌ DriverAuth.logAudit error:', error);
+                return false;
+            }
+
+            return true;
+        } catch (err) {
+            console.error('❌ DriverAuth.logAudit exception:', err);
+            return false;
+        }
+    }
+
+    /**
+     * Get approval status message for UI display.
+     *
+     * @param {string} status - Status value from user_profiles
+     * @returns {string} - User-friendly message
+     */
+    static getStatusMessage(status) {
+        switch (status) {
+            case ApprovalStatus.APPROVED:
+                return null; // No message needed for approved users
+            case ApprovalStatus.PENDING:
+                return '⏳ บัญชีของคุณอยู่ระหว่างการตรวจสอบ\nกรุณาติดต่อผู้ดูแลระบบ';
+            case ApprovalStatus.REJECTED:
+                return '❌ บัญชีของคุณไม่ได้รับอนุมัติ\nกรุณาติดต่อผู้ดูแลระบบ';
+            default:
+                return '⚠️ สถานะบัญชีไม่ชัดเจน\nกรุณาติดต่อผู้ดูแลระบบ';
+        }
+    }
+
+    /**
      * Verify that the current driver (by LIFF ID) is assigned to this job.
-     * Used before check-in, check-out, and other job operations.
+     * NOTE: This check is bypassed when BYPASS_JOB_ACCESS_CHECK = true
+     * (which is the case when database doesn't support driver-to-job assignment).
      *
      * @param {string} liffId - The driver's LIFF ID
      * @param {string} reference - Job reference number
-     * @returns {Promise<boolean>} - True if driver owns this job
+     * @returns {Promise<boolean>} - True if driver can access this job
      */
     static async verifyJobAccess(liffId, reference) {
+        // Bypass job access check if configured
+        if (DriverAuthConfig.BYPASS_JOB_ACCESS_CHECK) {
+            console.log('✅ DriverAuth: Job access check bypassed (config)');
+            return true;
+        }
+
         if (!liffId || !reference) {
             console.warn('⚠️ DriverAuth: Missing liffId or reference');
             return false;

@@ -1019,7 +1019,7 @@ export const SupabaseAPI = {
         if (error) throw error;
         console.log('✅ User profile updated (visit #' + ((existing.total_visits || 0) + 1) + ')');
       } else {
-        // Insert new user with PENDING status
+        // Insert new user with PENDING status (requires admin approval)
         const { error } = await supabase
           .from(TABLES.USER_PROFILES)
           .insert({
@@ -1030,7 +1030,8 @@ export const SupabaseAPI = {
             first_seen_at: new Date().toISOString(),
             last_seen_at: new Date().toISOString(),
             total_visits: 1,
-            user_type: 'DRIVER' // Default type for new users
+            user_type: 'DRIVER', // Default type for new users
+            status: 'PENDING' // New users require admin approval
           });
 
         if (error) throw error;
