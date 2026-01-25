@@ -58,9 +58,10 @@ export async function loadAlerts() {
             row.insertCell().textContent = alert.triggered_at ? new Date(alert.triggered_at).toLocaleString() : 'N/A';
 
             const statusCell = row.insertCell();
-            statusCell.textContent = alert.acknowledged ? 'Acknowledged' : 'Pending';
-            statusCell.style.fontWeight = alert.acknowledged ? 'normal' : 'bold';
-            statusCell.style.color = alert.acknowledged ? 'green' : 'orange';
+            const isPending = alert.status === 'pending';
+            statusCell.textContent = isPending ? 'Pending' : 'Acknowledged';
+            statusCell.style.fontWeight = isPending ? 'bold' : 'normal';
+            statusCell.style.color = isPending ? 'orange' : 'green';
         });
 
     } catch (error) {
@@ -79,7 +80,7 @@ export async function updateAlertsBadge() {
         const { count, error } = await supabase
             .from('triggered_alerts')
             .select('*', { count: 'exact' })
-            .eq('acknowledged', false);
+            .eq('status', 'pending');
 
         if (error) throw error;
 
