@@ -16,27 +16,14 @@ import {
   ThemeManager
 } from './ui.js';
 import { liveTracking } from './live-tracking.js';
-
-// ============================================
-// GLOBAL STATE
-// ============================================
-let currentUserId = '';
-let currentUserProfile = null;
-let isAdminMode = false;
-let currentReference = '';
-let currentVehicleDesc = '';
-let lastStops = [];
-let currentDrivers = [];
-let currentCheckedDrivers = [];
-let alcoholAllDone = false;
-let jobClosed = false;
-let tripEnded = false;
+import { StateManager, StateKeys, ErrorCodes, getErrorInfo } from './state-manager.js';
 
 // ============================================
 // SEARCH FUNCTION
 // ============================================
 async function search(isSilent = false) {
   // User Approval Check (reverted to 'APPROVED' as per user request)
+  const currentUserProfile = StateManager.get(StateKeys.USER_PROFILE);
   if (currentUserProfile?.status !== 'APPROVED') {
     showError('คุณยังไม่ได้รับอนุมัติให้ใช้งานระบบ', 'กรุณาติดต่อผู้ดูแล');
     return;
@@ -72,7 +59,7 @@ async function search(isSilent = false) {
 
   try {
     const result = await withRetry(
-      () => SupabaseAPI.search(keyword, currentUserId),
+      () => SupabaseAPI.search(keyword, StateManager.get(StateKeys.USER_ID)),
       {
         ...APP_CONFIG.RETRY,
         onRetry: (attempt, waitTime) => {
@@ -100,31 +87,41 @@ async function search(isSilent = false) {
 
     const d = result.data;
     const source = result.source || 'unknown';
-    
-    lastStops = d.stops || [];
-    currentReference = d.referenceNo || keyword;
-    setCurrentReference(currentReference);
-    localStorage.setItem(APP_CONFIG.LAST_REFERENCE_KEY, currentReference);
-    
+
+    const stops = d.stops || [];
+    const reference = d.referenceNo || keyword;
+    const vehicleDesc = d.vehicleDesc || '';
+    const drivers = d.alcohol?.drivers || [];
+    const checkedDrivers = [...new Set(d.alcohol?.checkedDrivers || [])];
+
+    // Update state atomically
+    StateManager.batch(() => {
+      StateManager.set(StateKeys.LAST_STOPS, stops);
+      StateManager.set(StateKeys.CURRENT_REFERENCE, reference);
+      StateManager.set(StateKeys.CURRENT_VEHICLE_DESC, vehicleDesc);
+      StateManager.set(StateKeys.CURRENT_DRIVERS, drivers);
+      StateManager.set(StateKeys.CURRENT_CHECKED_DRIVERS, checkedDrivers);
+      StateManager.set(StateKeys.ALCOHOL_ALL_DONE, drivers.length > 0 && drivers.every(n => checkedDrivers.includes(n)));
+      StateManager.set(StateKeys.JOB_CLOSED, !!d.jobClosed);
+      StateManager.set(StateKeys.TRIP_ENDED, !!d.tripEnded);
+    });
+
+    setCurrentReference(reference);
+    localStorage.setItem(APP_CONFIG.LAST_REFERENCE_KEY, reference);
+
     // Update user's last searched reference
+    const currentUserId = StateManager.get(StateKeys.USER_ID);
     if (currentUserId && currentUserId.startsWith('U')) {
-      SupabaseAPI.updateUserLastReference(currentUserId, currentReference);
+      SupabaseAPI.updateUserLastReference(currentUserId, reference);
     }
-    
-    currentVehicleDesc = d.vehicleDesc || '';
-    currentDrivers = d.alcohol?.drivers || [];
-    currentCheckedDrivers = [...new Set(d.alcohol?.checkedDrivers || [])];
-    alcoholAllDone = currentDrivers.length > 0 && currentDrivers.every(n => currentCheckedDrivers.includes(n));
-    jobClosed = !!d.jobClosed;
-    tripEnded = !!d.tripEnded;
 
     renderSummary(d, source);
     renderAlcoholSection();
-    renderTimeline(lastStops);
+    renderTimeline(stops);
     recordLastUpdated();
 
     // Subscribe to realtime updates
-    SupabaseAPI.subscribeToJob(currentReference, (payload) => {
+    SupabaseAPI.subscribeToJob(reference, (payload) => {
       console.log('📡 Realtime update, refreshing...');
       search(true);
     });
@@ -149,12 +146,7 @@ function clearResult() {
   document.getElementById('closeJobContainer').classList.add('hidden');
   document.getElementById('alcoholContainer').classList.add('hidden');
   hideSkeleton();
-  lastStops = [];
-  currentDrivers = [];
-  currentCheckedDrivers = [];
-  alcoholAllDone = false;
-  jobClosed = false;
-  tripEnded = false;
+  StateManager.reset();
   hideLastUpdatedContainer();
 
   SupabaseAPI.unsubscribe();
@@ -187,6 +179,9 @@ function renderSummary(d, source = 'unknown') {
 
 function renderAlcoholSection() {
   const container = document.getElementById('alcoholContainer');
+  const currentDrivers = StateManager.get(StateKeys.CURRENT_DRIVERS) || [];
+  const currentCheckedDrivers = StateManager.get(StateKeys.CURRENT_CHECKED_DRIVERS) || [];
+
   if (!currentDrivers || currentDrivers.length === 0) {
     container.classList.add('hidden');
     return;
@@ -218,6 +213,8 @@ function renderTimeline(stops) {
   const closeJobContainer = document.getElementById('closeJobContainer');
   const btnCloseJob = document.getElementById('btnCloseJob');
   const btnEndTrip = document.getElementById('btnEndTrip');
+  const jobClosed = StateManager.get(StateKeys.JOB_CLOSED);
+  const tripEnded = StateManager.get(StateKeys.TRIP_ENDED);
 
   ul.innerHTML = '';
   closeJobContainer.classList.add('hidden');
@@ -347,6 +344,7 @@ function renderTimeline(stops) {
 // ACTION FUNCTIONS
 // ============================================
 async function startCheckin(rowIndex, seq, shipToCode) {
+  const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;
 
@@ -453,6 +451,7 @@ async function startCheckin(rowIndex, seq, shipToCode) {
 }
 
 async function startCheckout(rowIndex, seq, shipToCode) {
+  const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;
 
@@ -492,6 +491,11 @@ async function doUnload(rowIndex, seq, shipToCode) {
 }
 
 async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo, receiverName, receiverType, hasPumping, hasTransfer) {
+  const currentUserId = StateManager.get(StateKeys.USER_ID);
+  const isAdminMode = StateManager.get(StateKeys.IS_ADMIN_MODE);
+  const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
+  const currentReference = StateManager.get(StateKeys.CURRENT_REFERENCE);
+
   if (!currentUserId) {
     showError('ไม่พบข้อมูลผู้ใช้');
     return;
@@ -538,7 +542,7 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
       hasTransfer
     };
 
-    showLoading(isOnline() ? 'กำลังอัปเดตสถานะ...' : 'กำลังบันทึกข้อมูล...');
+    showLoading(StateManager.get(StateKeys.IS_ONLINE) ? 'กำลังอัปเดตสถานะ...' : 'กำลังบันทึกข้อมูล...');
 
     const result = await executeOrQueue(
       'updateStop',
@@ -558,6 +562,7 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
 
     // Handle queued response
     if (result.queued) {
+      const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
       const stop = lastStops.find(s => s.rowIndex === rowIndex);
       showInlineFlexCustom('queued', 'บันทึกไว้แล้ว', `${stop?.shipToName || 'จุดที่ ' + seq} - จะส่งเมื่อออนไลน์`);
       await showSuccess('บันทึกไว้แล้ว', 'ข้อมูลจะถูกส่งโดยอัตโนมัติเมื่อมีสัญญาณ');
@@ -604,6 +609,9 @@ async function doAlcoholCheck(driverName) {
   });
 
   if (!formValues) return;
+
+  const currentReference = StateManager.get(StateKeys.CURRENT_REFERENCE);
+  const currentUserId = StateManager.get(StateKeys.USER_ID);
 
   try {
     showLoading('กำลังดึงพิกัด...');
@@ -653,7 +661,9 @@ async function doAlcoholCheck(driverName) {
       return;
     }
 
-    currentCheckedDrivers = result.checkedDrivers || [];
+    const checkedDrivers = result.checkedDrivers || [];
+    StateManager.set(StateKeys.CURRENT_CHECKED_DRIVERS, checkedDrivers);
+    StateManager.set(StateKeys.ALCOHOL_ALL_DONE, StateManager.isAlcoholComplete());
     renderAlcoholSection();
     showSuccess('บันทึกสำเร็จ', 'บันทึกการตรวจแอลกอฮอล์เรียบร้อย');
 
@@ -664,6 +674,12 @@ async function doAlcoholCheck(driverName) {
 }
 
 async function closeJob() {
+  const currentReference = StateManager.get(StateKeys.CURRENT_REFERENCE);
+  const currentVehicleDesc = StateManager.get(StateKeys.CURRENT_VEHICLE_DESC);
+  const currentUserId = StateManager.get(StateKeys.USER_ID);
+  const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
+  const currentDrivers = StateManager.get(StateKeys.CURRENT_DRIVERS) || [];
+
   if (!currentReference) {
     showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
     return;
@@ -728,8 +744,8 @@ async function closeJob() {
             ⚠️ การทำงานในวันหยุดต้องได้รับการอนุมัติจากหัวหน้างาน
           </p>
           <p style="margin-bottom:15px;">กรุณาระบุรายละเอียด:</p>
-          <textarea id="holidayNotes" class="swal2-textarea" 
-            placeholder="เช่น: งานเร่งด่วน, ส่งของนอกเวลา, ลูกค้าขอเพิ่มเติม..." 
+          <textarea id="holidayNotes" class="swal2-textarea"
+            placeholder="เช่น: งานเร่งด่วน, ส่งของนอกเวลา, ลูกค้าขอเพิ่มเติม..."
             style="width:100%; min-height:100px; font-size:14px; resize:vertical;"
             required></textarea>
           <small style="color:#666; display:block; margin-top:8px;">
@@ -760,7 +776,7 @@ async function closeJob() {
     if (!notes) {
       return; // User cancelled
     }
-    
+
     // Add notes to formValues
     formValues.holidayWorkNotes = notes;
   }
@@ -804,8 +820,8 @@ async function closeJob() {
       return;
     }
 
-    jobClosed = true;
-    
+    StateManager.set(StateKeys.JOB_CLOSED, true);
+
     // Calculate and show trip summary
     const tripData = {
       reference: currentReference,
@@ -818,7 +834,7 @@ async function closeJob() {
       isHolidayWork: formValues.isHolidayWork,
       holidayWorkNotes: formValues.holidayWorkNotes
     };
-    
+
     await showTripSummary(tripData);
     if (currentReference) search(true); // Refresh the job data to show the 'End Trip' button
 
@@ -829,6 +845,9 @@ async function closeJob() {
 }
 
 async function openEndTripDialog() {
+  const currentReference = StateManager.get(StateKeys.CURRENT_REFERENCE);
+  const currentUserId = StateManager.get(StateKeys.USER_ID);
+
   if (!currentReference) {
     showInfo('ไม่พบเลขงาน', 'กรุณาค้นหางานก่อน');
     return;
@@ -905,7 +924,7 @@ async function openEndTripDialog() {
       return;
     }
 
-    tripEnded = true;
+    StateManager.set(StateKeys.TRIP_ENDED, true);
     await showSuccess('จบทริปสำเร็จ', 'บันทึกข้อมูลจบทริปเรียบร้อย');
 
     const closeJobContainer = document.getElementById('closeJobContainer');
@@ -918,6 +937,7 @@ async function openEndTripDialog() {
 }
 
 function navigateToStop(rowIndex) {
+  const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   if (!stop || !stop.destLat || !stop.destLng) {
     showInfo('ไม่พบพิกัด', 'ปลายทางนี้ยังไม่มีพิกัดในระบบ');
@@ -927,9 +947,12 @@ function navigateToStop(rowIndex) {
 }
 
 function toggleAdminMode() {
-    isAdminMode = !isAdminMode;
+    const currentIsAdminMode = StateManager.get(StateKeys.IS_ADMIN_MODE);
+    const newIsAdminMode = !currentIsAdminMode;
+    StateManager.set(StateKeys.IS_ADMIN_MODE, newIsAdminMode);
+
     const adminToggleBtn = document.getElementById('adminToggle');
-    if (isAdminMode) {
+    if (newIsAdminMode) {
         adminToggleBtn.style.backgroundColor = '#2ecc71'; // Green
         adminToggleBtn.style.color = 'white';
         showInfo('เปิดโหมดแอดมิน', 'ปิดการตรวจสอบระยะห่าง');
@@ -946,6 +969,9 @@ function toggleAdminMode() {
 async function initApp() {
   // Initialize Supabase
   initSupabase();
+
+  // Set initial online status
+  StateManager.set(StateKeys.IS_ONLINE, navigator.onLine);
 
   // Create Admin Button and prepend it to the header
   const adminToggleBtn = document.createElement('button');
@@ -966,16 +992,18 @@ async function initApp() {
 
   // Initialize offline queue
   OfflineQueue.load();
-  initOfflineQueue(SupabaseAPI, search, () => currentReference);
+  initOfflineQueue(SupabaseAPI, search, () => StateManager.get(StateKeys.CURRENT_REFERENCE));
 
   // Network status listeners
   window.addEventListener('online', () => {
+    StateManager.set(StateKeys.IS_ONLINE, true);
     document.getElementById('offlineBar').classList.remove('show');
     showInlineFlexCustom('success', 'กลับมาออนไลน์แล้ว', 'กำลังซิงค์ข้อมูลที่ค้างอยู่...');
     setTimeout(() => { OfflineQueue.sync(); }, 1000);
   });
 
   window.addEventListener('offline', () => {
+    StateManager.set(StateKeys.IS_ONLINE, false);
     document.getElementById('offlineBar').classList.add('show');
     showInlineFlexCustom('offline', 'ไม่มีสัญญาณอินเทอร์เน็ต', 'ข้อมูลจะถูกบันทึกไว้และส่งเมื่อออนไลน์');
   });
@@ -986,13 +1014,17 @@ async function initApp() {
 
     if (liff.isLoggedIn()) {
       const profile = await liff.getProfile();
-      currentUserId = profile.userId;
+      const userId = profile.userId;
 
-      if (currentUserId.startsWith('U')) {
+      StateManager.set(StateKeys.USER_ID, userId);
+
+      if (userId.startsWith('U')) {
         await SupabaseAPI.saveUserProfile(profile);
-        currentUserProfile = await SupabaseAPI.getUserProfile(currentUserId);
+        const userProfile = await SupabaseAPI.getUserProfile(userId);
+        StateManager.set(StateKeys.USER_PROFILE, userProfile);
       }
-      
+
+      const currentUserProfile = StateManager.get(StateKeys.USER_PROFILE);
       const statusEl = document.getElementById('status');
       const profilePictureUrl = currentUserProfile?.picture_url || profile.pictureUrl;
 
@@ -1005,7 +1037,7 @@ async function initApp() {
       if (currentUserProfile?.status === 'APPROVED') {
         const displayName = currentUserProfile.display_name || profile.displayName;
         const welcomeText = currentUserProfile.user_type === 'ADMIN' ? 'สวัสดี Admin ' : 'สวัสดี ';
-        
+
         let profileImageHtml = '';
         if (profilePictureUrl) {
             profileImageHtml = `<img src="${profilePictureUrl}" alt="Profile" style="width: 36px; height: 36px; border-radius: 50%;">`;
@@ -1016,16 +1048,16 @@ async function initApp() {
           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${welcomeText}${escapeHtml(displayName)}</span>
         `;
         statusEl.style.color = 'var(--text-main)';
-        
+
         // Show admin button if user's type is admin
         if (currentUserProfile.user_type === 'ADMIN') {
           document.getElementById('adminToggle').style.display = 'block';
         }
-        
+
         // Initialize live tracking after successful login
         if (APP_CONFIG.LIVE_TRACKING.enableAutoTracking) {
-          console.log('🌍 Initializing live tracking for user:', currentUserId);
-          liveTracking.init(currentUserId);
+          console.log('🌍 Initializing live tracking for user:', userId);
+          liveTracking.init(userId);
           // Expose to window for debugging
           window.liveTracking = liveTracking;
         }
@@ -1035,13 +1067,14 @@ async function initApp() {
         // Reset flex styles if no image
         statusEl.style.display = 'block';
       }
-      
+
     } else {
       liff.login(); // Enforce login
     }
   } catch (err) {
     console.error('LIFF init error:', err);
-    currentUserId = 'fallback_user_' + Date.now();
+    const fallbackUserId = 'fallback_user_' + Date.now();
+    StateManager.set(StateKeys.USER_ID, fallbackUserId);
     document.getElementById('status').textContent = 'ไม่สามารถเชื่อมต่อ LINE ได้';
   }
 

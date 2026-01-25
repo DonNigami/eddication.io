@@ -12,6 +12,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { decodeBase64 } from './utils.js';
 import { DriverAuth } from '../../shared/driver-auth.js';
+import { enrichStopsWithCoordinates, getOriginConfig, haversineDistanceMeters } from './location-service.js';
 
 // Table names (aligned with app/PLAN.md migration status - PENDING)
 const TABLES = {
@@ -49,137 +50,6 @@ export function initSupabase() {
  */
 export function getSupabase() {
   return supabase;
-}
-
-/**
- * Enrich stops with coordinates from master location tables
- * รองรับโครงสร้างตารางจริงใน Supabase
- */
-async function enrichStopsWithCoordinates(stops, route = null) {
-  if (!stops || stops.length === 0) return stops;
-
-  try {
-    console.log('🔍 Enriching coordinates for', stops.length, 'stops');
-
-    // Step 1: Get origin coordinate
-    let originData = null;
-
-    // 1a: Try to find by route
-    if (route) {
-      const routePrefix = route.substring(0, 3).toUpperCase();
-      try {
-        const { data } = await supabase
-          .from('origin')
-          .select('originKey, name, lat, lng, radiusMeters, routeCode')
-          .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
-          .limit(1)
-          .maybeSingle();
-        if (data) originData = data;
-      } catch (error) {
-        console.warn('⚠️ Error fetching origin by route:', error.message);
-      }
-    }
-
-    // 1b: If not found by route, get default origin (first row in table)
-    if (!originData) {
-      console.log('... route-based origin not found, trying default origin.');
-      try {
-        const { data } = await supabase
-          .from('origin')
-          .select('originKey, name, lat, lng, radiusMeters, routeCode')
-          .order('id', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        if (data) originData = data;
-      } catch (error) {
-        console.warn('⚠️ Error fetching default origin:', error.message);
-      }
-    }
-
-    // 1c: Parse final origin data
-    if (originData) {
-      console.log(`✅ Found origin: ${originData.name}`);
-    }
-
-    // Step 2: Get all customer coordinates
-    const shipToCodes = stops
-      .filter(s => s.shipToCode && !s.isOriginStop)
-      .map(s => s.shipToCode)
-      .filter((v, i, a) => a.indexOf(v) === i); // unique
-
-    const customerMap = new Map();
-
-    if (shipToCodes.length > 0) {
-      try {
-        const { data: customerData } = await supabase
-          .from('customer')
-          .select('stationKey, name, lat, lng, radiusMeters')
-          .in('stationKey', shipToCodes);
-
-        if (customerData) {
-          customerData.forEach(c => {
-            const lat = parseFloat(c.lat);
-            const lng = parseFloat(c.lng);
-            
-            if (!isNaN(lat) && !isNaN(lng)) {
-              customerMap.set(c.stationKey, { lat, lng, radiusMeters: c.radiusMeters });
-            }
-          });
-          console.log(`✅ Found ${customerData.length} customers with coordinates`);
-        }
-      } catch (error) {
-        console.warn('⚠️ Error fetching customers:', error.message);
-      }
-    }
-
-    // Step 3: Get all station coordinates (as a fallback)
-    const stationMap = new Map();
-    // (This part can be optimized or removed if `customer` table is the main source)
-
-    // Step 4: Enrich stops
-    const enrichedStops = stops.map(stop => {
-      // If already has coordinates, keep them
-      if (stop.destLat && stop.destLng && stop.radiusM) {
-        return stop;
-      }
-
-      // Origin stop - use origin coordinates
-      if (stop.isOriginStop && originData) {
-        return {
-          ...stop,
-          destLat: parseFloat(originData.lat) || null,
-          destLng: parseFloat(originData.lng) || null,
-          radiusM: parseFloat(originData.radiusMeters) || 200
-        };
-      }
-
-      // Regular stop - lookup in customer
-      if (stop.shipToCode) {
-        const customer = customerMap.get(stop.shipToCode);
-        if (customer && customer.lat && customer.lng) {
-          return {
-            ...stop,
-            destLat: customer.lat,
-            destLng: customer.lng,
-            radiusM: parseFloat(customer.radiusMeters) || 50
-          };
-        }
-      }
-
-      // No coordinates found
-      return stop;
-    });
-
-    const enrichedCount = enrichedStops.filter(s => s.destLat && s.destLng).length;
-    console.log(`✅ Enriched ${enrichedCount}/${stops.length} stops with coordinates`);
-
-    return enrichedStops;
-
-  } catch (error) {
-    console.error('❌ Error enriching coordinates:', error);
-    // Return original stops if enrichment fails
-    return stops;
-  }
 }
 
 /**
@@ -258,40 +128,6 @@ function getSuccessMessage(type) {
     unload: 'ลงเสร็จสำเร็จ'
   };
   return messages[type] || 'อัปเดตสำเร็จ';
-}
-
-async function getOriginConfig(route) {
-  let originData = null;
-  // 1. Try by route
-  if (route) {
-    const routePrefix = route.substring(0, 3).toUpperCase();
-    try {
-      const { data } = await supabase
-        .from('origin')
-        .select('originKey, name, lat, lng, radiusMeters, routeCode')
-        .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
-        .limit(1)
-        .maybeSingle();
-      if (data) originData = data;
-    } catch (error) {
-      console.warn('⚠️ Error fetching origin by route:', error.message);
-    }
-  }
-  // 2. Fallback to default
-  if (!originData) {
-    try {
-      const { data } = await supabase
-        .from('origin')
-        .select('originKey, name, lat, lng, radiusMeters, routeCode')
-        .order('id', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (data) originData = data;
-    } catch (error) {
-      console.warn('⚠️ Error fetching default origin:', error.message);
-    }
-  }
-  return originData;
 }
 
 /**

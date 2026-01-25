@@ -11,6 +11,14 @@
 
 ## Progress Log
 
+### 2026-01-25
+- ✅ **Phase 1.5 Completed**: Driver Approval System
+  - Migration: `20260126000000_add_driver_approval_fields.sql` (approved_by, approved_at, rejection_reason)
+  - `shared/driver-auth.js`: isUserApproved(), getUserProfile(), registerUser(), logAudit()
+  - Driver app: New users default to PENDING status (fixed bug in supabase-api.js)
+  - Admin UI: `users.js` tracks approved_by/approved_at when approving drivers
+  - Config: BYPASS_JOB_ACCESS_CHECK=true (database doesn't support driver-to-job assignment)
+
 ### 2025-01-25
 - ✅ **Phase 1.3-1.4 Completed**: Security hardening (commit 53f6683)
   - Fixed XSS vulnerabilities with sanitize utility
