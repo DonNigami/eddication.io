@@ -11,7 +11,7 @@
  * 3. Optional: Job access control (if database supports it)
  */
 
-import { getSupabase } from './config.js';
+import { supabase as supabaseClient } from './config.js';
 
 /**
  * Driver Approval Status Constants
@@ -57,7 +57,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             // Option 1: Use the database function (recommended)
             const { data, error } = await supabase
@@ -104,7 +104,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             const { data, error } = await supabase
                 .from('user_profiles')
@@ -138,7 +138,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             // First, try to get existing profile
             const existing = await this.getUserProfile(liffProfile.userId);
@@ -213,7 +213,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             const { error } = await supabase
                 .from('driver_logs')
@@ -279,7 +279,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             // Check if driver_jobs has this driver assigned to this reference
             const { data, error } = await supabase
@@ -325,7 +325,7 @@ export class DriverAuth {
         // If shipToCode provided, verify stop belongs to this job
         if (shipToCode) {
             try {
-                const supabase = getSupabase();
+                const supabase = supabaseClient;
                 const { data, error } = await supabase
                     .from('jobdata')
                     .select('id')
@@ -361,7 +361,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             const { data, error } = await supabase
                 .from('user_profiles')
@@ -415,7 +415,7 @@ export class DriverAuth {
         }
 
         try {
-            const supabase = getSupabase();
+            const supabase = supabaseClient;
 
             const { data, error } = await supabase
                 .from('driver_jobs')
