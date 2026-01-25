@@ -120,6 +120,9 @@ async function search(isSilent = false) {
     renderTimeline(stops);
     recordLastUpdated();
 
+    // Show force refresh button when job is loaded
+    document.getElementById('btnForceRefresh').classList.remove('hidden');
+
     // Subscribe to realtime updates
     SupabaseAPI.subscribeToJob(reference, (payload) => {
       console.log('📡 Realtime update, refreshing...');
@@ -145,6 +148,7 @@ function clearResult() {
   document.getElementById('timeline').innerHTML = '';
   document.getElementById('closeJobContainer').classList.add('hidden');
   document.getElementById('alcoholContainer').classList.add('hidden');
+  document.getElementById('btnForceRefresh').classList.add('hidden');
   hideSkeleton();
   StateManager.reset();
   hideLastUpdatedContainer();
@@ -567,6 +571,8 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
       const stop = lastStops.find(s => s.rowIndex === rowIndex);
       showInlineFlexCustom('queued', 'บันทึกไว้แล้ว', `${stop?.shipToName || 'จุดที่ ' + seq} - จะส่งเมื่อออนไลน์`);
       await showSuccess('บันทึกไว้แล้ว', 'ข้อมูลจะถูกส่งโดยอัตโนมัติเมื่อมีสัญญาณ');
+      // Refresh UI after queued to show updated state
+      if (currentReference) search(true);
       return;
     }
 
@@ -580,6 +586,11 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
   } catch (err) {
     closeLoading();
     showError('เกิดข้อผิดพลาด: ' + err.message);
+    // Refresh UI after error to get latest state from server
+    // This helps recover from transient errors
+    if (currentReference) {
+      setTimeout(() => search(true), 1000);
+    }
   }
 }
 
@@ -1094,6 +1105,7 @@ async function initApp() {
   document.getElementById('btnEndTrip').addEventListener('click', openEndTripDialog);
   document.getElementById('themeToggle').addEventListener('click', () => ThemeManager.toggle());
   document.getElementById('gpsStatus').addEventListener('click', checkGpsStatus);
+  document.getElementById('btnForceRefresh').addEventListener('click', () => search(true));
 
   // Sync queue if online and has pending items
   if (isOnline() && OfflineQueue.getCount() > 0) {

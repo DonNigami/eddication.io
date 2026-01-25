@@ -294,6 +294,21 @@ button:disabled {
   opacity: 0.9;
 }
 
+/* Force Refresh Button */
+.btn-refresh {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+}
+
+.btn-refresh:hover {
+  background: linear-gradient(135deg, #2980b9, #1f6391);
+}
+
+.btn-refresh:active {
+  transform: scale(0.98);
+}
+
 /* Theme Toggle & Notification Buttons */
 .theme-toggle,
 .notification-btn {
