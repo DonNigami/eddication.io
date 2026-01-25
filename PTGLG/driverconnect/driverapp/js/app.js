@@ -344,6 +344,7 @@ function renderTimeline(stops) {
 // ACTION FUNCTIONS
 // ============================================
 async function startCheckin(rowIndex, seq, shipToCode) {
+  const currentReference = StateManager.get(StateKeys.CURRENT_REFERENCE);
   const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;

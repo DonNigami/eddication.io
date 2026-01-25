@@ -3,13 +3,13 @@
  * Handles real-time location tracking with smart interval switching
  */
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY, APP_CONFIG } from './config.js';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { supabase } from '../../shared/config.js';
+import { APP_CONFIG } from './config.js';
 import { getCurrentPositionAsync } from './gps.js';
 
 class LiveTracking {
   constructor() {
-    this.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    this.supabase = supabase;
     this.userId = null;
     this.tripId = null;
     this.isTracking = false;
