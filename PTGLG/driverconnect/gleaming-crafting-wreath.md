@@ -12,6 +12,13 @@
 ## Progress Log
 
 ### 2026-01-25
+- ✅ **Phase 2.3 Completed**: Driver App Improvements
+  - Created: `driverapp/js/state-manager.js` - Centralized state with subscriptions, batch updates, persistence
+  - Created: `driverapp/js/state-manager.js` - Error codes (17 types) + Recovery actions + Thai messages
+  - Created: `driverapp/js/location-service.js` - Origin/customer coordinate lookup with caching (5min TTL)
+  - Refactored: `driverapp/js/app.js` - Use StateManager instead of global variables
+  - Refactored: `driverapp/js/supabase-api.js` - Import enrichStopsWithCoordinates, getOriginConfig (~130 lines removed)
+  - Refactored: `driverapp/js/gps.js` - Import haversineDistanceMeters from location-service
 - ✅ **Phase 1.5 Completed**: Driver Approval System
   - Migration: `20260126000000_add_driver_approval_fields.sql` (approved_by, approved_at, rejection_reason)
   - `shared/driver-auth.js`: isUserApproved(), getUserProfile(), registerUser(), logAudit()
