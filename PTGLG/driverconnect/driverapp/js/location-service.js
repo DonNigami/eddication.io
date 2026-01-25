@@ -23,6 +23,32 @@ const cache = {
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Fetch with timeout
+ * @param {string} url - URL to fetch
+ * @param {number} timeout - Timeout in milliseconds
+ * @returns {Promise<Response>} - Fetch response
+ */
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error('Timeout');
+    }
+    throw error;
+  }
+}
+
+/**
  * Geocode an address using Nominatim (OpenStreetMap) with CORS proxy
  * @param {string} address - Address to geocode
  * @returns {Promise<{lat, lng}|null>} - Coordinates or null
@@ -39,14 +65,14 @@ async function geocodeAddress(address) {
   // Build the Nominatim URL
   const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=th&addressdetails=1`;
 
-  // Try multiple methods: direct fetch (works on some origins), CORS proxy, then Supabase edge function
+  // Try multiple methods: direct fetch (works on some origins), CORS proxy
   const methods = [
     {
       name: 'Direct',
       fetch: async () => {
-        const response = await fetch(nominatimUrl, {
+        const response = await fetchWithTimeout(nominatimUrl, {
           headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
-        });
+        }, 3000);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
       }
@@ -56,7 +82,7 @@ async function geocodeAddress(address) {
       fetch: async () => {
         // Use AllOrigins CORS proxy
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nominatimUrl)}`;
-        const response = await fetch(proxyUrl);
+        const response = await fetchWithTimeout(proxyUrl, {}, 5000);
         if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
         return response.json();
       }
@@ -105,34 +131,48 @@ async function batchGeocodeStops(stops) {
 
   // Process in parallel with small delay between batches
   const BATCH_SIZE = 3;
-  const BATCH_DELAY = 500;
+  const BATCH_DELAY = 300;
 
-  for (let i = 0; i < stopsToGeocode.length; i += BATCH_SIZE) {
-    const batch = stopsToGeocode.slice(i, i + BATCH_SIZE);
+  // Add a timeout for the entire geocoding process
+  const GEOCODING_TIMEOUT = 8000; // 8 seconds total timeout
 
-    // Process batch in parallel
-    const batchResults = await Promise.all(
-      batch.map(async (stop) => {
-        const address = stop.shipToName || stop.address;
-        const coords = await geocodeAddress(address);
-        return coords ? { key: stop.shipToCode || stop.seq, coords } : null;
-      })
-    );
+  const geocodePromise = (async () => {
+    for (let i = 0; i < stopsToGeocode.length; i += BATCH_SIZE) {
+      const batch = stopsToGeocode.slice(i, i + BATCH_SIZE);
 
-    // Store results
-    batchResults.forEach(result => {
-      if (result) {
-        results.set(result.key, result.coords);
+      // Process batch in parallel
+      const batchResults = await Promise.all(
+        batch.map(async (stop) => {
+          const address = stop.shipToName || stop.address;
+          const coords = await geocodeAddress(address);
+          return coords ? { key: stop.shipToCode || stop.seq, coords } : null;
+        })
+      );
+
+      // Store results
+      batchResults.forEach(result => {
+        if (result) {
+          results.set(result.key, result.coords);
+        }
+      });
+
+      // Delay between batches (except for the last batch)
+      if (i + BATCH_SIZE < stopsToGeocode.length) {
+        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
       }
-    });
-
-    // Delay between batches (except for the last batch)
-    if (i + BATCH_SIZE < stopsToGeocode.length) {
-      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
     }
-  }
+    return results;
+  })();
 
-  return results;
+  // Race between geocoding and timeout
+  const timeoutPromise = new Promise(resolve => {
+    setTimeout(() => {
+      console.warn(`⏱️ Geocoding timed out after ${GEOCODING_TIMEOUT}ms, returning partial results`);
+      resolve(results);
+    }, GEOCODING_TIMEOUT);
+  });
+
+  return Promise.race([geocodePromise, timeoutPromise]);
 }
 
 /**
