@@ -5,12 +5,14 @@
 // แทนการเรียก Supabase โดยตรง
 // ============================================
 
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../shared/config.js';
+
 /**
  * API Configuration
  */
 const API_CONFIG = {
-  baseUrl: 'https://myplpshpcordggbbtblg.supabase.co/functions/v1',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8',
+  baseUrl: `${SUPABASE_URL}/functions/v1`,
+  anonKey: SUPABASE_ANON_KEY,
   timeout: 30000, // 30 seconds
 };
 

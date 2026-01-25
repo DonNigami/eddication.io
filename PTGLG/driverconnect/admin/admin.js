@@ -1,8 +1,8 @@
 console.log('admin.js loaded');
+import { SUPABASE_URL, SUPABASE_ANON_KEY, LIFF_IDS } from '../shared/config.js';
+
 // Supabase & LIFF Configuration
-const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8'; // CORRECTED KEY
-const LIFF_ID = '2007705394-Lq3mMYKA'; // Admin panel LIFF ID
+const LIFF_ID = LIFF_IDS.ADMIN; // Admin panel LIFF ID
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -201,13 +201,20 @@ const b100NotesInput = document.getElementById('b100-notes');
 
 // --- Utility Functions ---
 
+function sanitizeHTML(text) {
+  if (text === null || text === undefined) return '';
+  const temp = document.createElement('div');
+  temp.textContent = String(text);
+  return temp.innerHTML;
+}
+
 // Notification Helper
 function showNotification(message, type = 'info') {
     const notificationItem = document.createElement('div');
     notificationItem.classList.add('notification-item', type);
     notificationItem.innerHTML = `
         <span class="icon">${type === 'error' ? '!' : 'ℹ️'}</span>
-        <span class="message">${message}</span>
+        <span class="message">${sanitizeHTML(message)}</span>
     `;
     notificationContainer.prepend(notificationItem); // Add to top
 
@@ -296,10 +303,10 @@ async function updateMapMarkers() {
                 const time = new Date(latestLog.created_at).toLocaleString();
 
                 const marker = L.marker([lat, lng]).bindPopup(`
-                    <b>Job:</b> ${job.reference}<br>
-                    <b>Driver:</b> ${job.drivers || 'N/A'}<br>
-                    <b>Last Action:</b> ${action}<br>
-                    <b>Time:</b> ${time}
+                    <b>Job:</b> ${sanitizeHTML(job.reference)}<br>
+                    <b>Driver:</b> ${sanitizeHTML(job.drivers) || 'N/A'}<br>
+                    <b>Last Action:</b> ${sanitizeHTML(action)}<br>
+                    <b>Time:</b> ${sanitizeHTML(time)}
                 `);
                 markers.addLayer(marker);
             }
@@ -489,23 +496,42 @@ async function loadUsers() {
 
         usersTableBody.innerHTML = ''; // Clear loading state
         users.forEach(user => {
-            const row = document.createElement('tr');
+            const row = usersTableBody.insertRow();
             row.dataset.userId = user.id; // UserProfile ID (serial)
 
-            const statusOptions = ['PENDING', 'APPROVED', 'REJECTED']
-                .map(s => `<option value="${s}" ${user.status === s ? 'selected' : ''}>${s}</option>`).join('');
+            row.insertCell().textContent = user.display_name || 'N/A';
+            row.insertCell().textContent = user.user_id;
 
-            const roleOptions = ['DRIVER', 'ADMIN']
-                .map(r => `<option value="${r}" ${user.user_type === r ? 'selected' : ''}>${r}</option>`).join('');
+            const statusCell = row.insertCell();
+            const statusSelect = document.createElement('select');
+            statusSelect.className = 'status-select';
+            ['PENDING', 'APPROVED', 'REJECTED'].forEach(s => {
+                const option = document.createElement('option');
+                option.value = s;
+                option.textContent = s;
+                if (user.status === s) option.selected = true;
+                statusSelect.appendChild(option);
+            });
+            statusCell.appendChild(statusSelect);
 
-            row.innerHTML = `
-                <td>${user.display_name || 'N/A'}</td>
-                <td>${user.user_id}</td>
-                <td><select class="status-select">${statusOptions}</select></td>
-                <td><select class="role-select">${roleOptions}</select></td>
-                <td><button class="save-user-btn" data-id="${user.id}">Save</button></td>
-            `;
-            usersTableBody.appendChild(row);
+            const roleCell = row.insertCell();
+            const roleSelect = document.createElement('select');
+            roleSelect.className = 'role-select';
+            ['DRIVER', 'ADMIN'].forEach(r => {
+                const option = document.createElement('option');
+                option.value = r;
+                option.textContent = r;
+                if (user.user_type === r) option.selected = true;
+                roleSelect.appendChild(option);
+            });
+            roleCell.appendChild(roleSelect);
+
+            const actionCell = row.insertCell();
+            const saveButton = document.createElement('button');
+            saveButton.className = 'save-user-btn';
+            saveButton.dataset.id = user.id;
+            saveButton.textContent = 'Save';
+            actionCell.appendChild(saveButton);
         });
 
         // Add event listeners to save buttons
@@ -515,7 +541,7 @@ async function loadUsers() {
 
     } catch (error) {
         console.error('Error loading users:', error);
-        usersTableBody.innerHTML = `<tr><td colspan="5">Error loading users: ${error.message}</td></tr>`;
+        usersTableBody.innerHTML = `<tr><td colspan="5">Error loading users: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -580,21 +606,32 @@ async function loadJobs(searchTerm = '') {
         }
 
         jobs.forEach(job => {
-            const row = document.createElement('tr');
+            const row = jobsTableBody.insertRow();
             row.dataset.jobId = job.id;
-            row.innerHTML = `
-                <td>${job.reference || 'N/A'}</td>
-                <td>${job.shipment_no || 'N/A'}</td>
-                <td>${job.drivers || 'N/A'}</td>
-                <td>${job.status || 'N/A'}</td>
-                <td>${job.trip_ended ? 'Yes' : 'No'}</td>
-                <td>
-                    <button class="edit-job-btn">Edit</button>
-                    <button class="delete-job-btn" style="background-color: #e74c3c;">Delete</button>
-                    <button class="view-details-btn" data-job-id="${job.id}">Details</button>
-                </td>
-            `;
-            jobsTableBody.appendChild(row);
+
+            row.insertCell().textContent = job.reference || 'N/A';
+            row.insertCell().textContent = job.shipment_no || 'N/A';
+            row.insertCell().textContent = job.drivers || 'N/A';
+            row.insertCell().textContent = job.status || 'N/A';
+            row.insertCell().textContent = job.trip_ended ? 'Yes' : 'No';
+            
+            const actionCell = row.insertCell();
+            const editButton = document.createElement('button');
+            editButton.className = 'edit-job-btn';
+            editButton.textContent = 'Edit';
+            actionCell.appendChild(editButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-job-btn';
+            deleteButton.style.backgroundColor = '#e74c3c';
+            deleteButton.textContent = 'Delete';
+            actionCell.appendChild(deleteButton);
+
+            const detailsButton = document.createElement('button');
+            detailsButton.className = 'view-details-btn';
+            detailsButton.dataset.jobId = job.id;
+            detailsButton.textContent = 'Details';
+            actionCell.appendChild(detailsButton);
         });
 
         document.querySelectorAll('.edit-job-btn').forEach(button => {
@@ -621,7 +658,7 @@ async function loadJobs(searchTerm = '') {
 
     } catch (error) {
         console.error('Error loading jobs:', error);
-        jobsTableBody.innerHTML = `<tr><td colspan="6">Error loading jobs: ${error.message}</td></tr>`;
+        jobsTableBody.innerHTML = `<tr><td colspan="6">Error loading jobs: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -750,15 +787,12 @@ async function openJobDetailsModal(jobId) {
             jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="5">No stops found.</td></tr>';
         } else {
             driverStops.forEach(stop => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${stop.sequence || 'N/A'}</td>
-                    <td>${stop.destination_name || 'N/A'}</td>
-                    <td>${stop.status || 'N/A'}</td>
-                    <td>${stop.check_in_time ? new Date(stop.check_in_time).toLocaleString() : 'N/A'}</td>
-                    <td>${stop.check_out_time ? new Date(stop.check_out_time).toLocaleString() : 'N/A'}</td>
-                `;
-                jobDetailsStopsTableBody.appendChild(row);
+                const row = jobDetailsStopsTableBody.insertRow();
+                row.insertCell().textContent = stop.sequence || 'N/A';
+                row.insertCell().textContent = stop.destination_name || 'N/A';
+                row.insertCell().textContent = stop.status || 'N/A';
+                row.insertCell().textContent = stop.check_in_time ? new Date(stop.check_in_time).toLocaleString() : 'N/A';
+                row.insertCell().textContent = stop.check_out_time ? new Date(stop.check_out_time).toLocaleString() : 'N/A';
             });
         }
 
@@ -775,14 +809,20 @@ async function openJobDetailsModal(jobId) {
             jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">No alcohol checks found.</td></tr>';
         } else {
             driverAlcoholChecks.forEach(check => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${check.checked_by || 'N/A'}</td> <!-- Changed from driver_name to checked_by -->
-                    <td>${check.alcohol_value || 'N/A'}</td>
-                    <td>${new Date(check.checked_at).toLocaleString()}</td>
-                    <td>${check.image_url ? `<a href="${check.image_url}" target="_blank">View Image</a>` : 'N/A'}</td>
-                `;
-                jobDetailsAlcoholTableBody.appendChild(row);
+                const row = jobDetailsAlcoholTableBody.insertRow();
+                row.insertCell().textContent = check.checked_by || 'N/A';
+                row.insertCell().textContent = check.alcohol_value || 'N/A';
+                row.insertCell().textContent = new Date(check.checked_at).toLocaleString();
+                const imageCell = row.insertCell();
+                if (check.image_url) {
+                    const link = document.createElement('a');
+                    link.href = check.image_url;
+                    link.target = '_blank';
+                    link.textContent = 'View Image';
+                    imageCell.appendChild(link);
+                } else {
+                    imageCell.textContent = 'N/A';
+                }
             });
         }
 
@@ -799,14 +839,11 @@ async function openJobDetailsModal(jobId) {
             jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="4">No driver logs found.</td></tr>';
         } else {
             driverLogs.forEach(log => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${new Date(log.created_at).toLocaleString()}</td>
-                    <td>${log.action || 'N/A'}</td>
-                    <td>${log.user_id || 'N/A'}</td>
-                    <td>${log.location ? `Lat: ${log.location.lat}, Lng: ${log.location.lng}` : 'N/A'}</td>
-                `;
-                jobDetailsLogsTableBody.appendChild(row);
+                const row = jobDetailsLogsTableBody.insertRow();
+                row.insertCell().textContent = new Date(log.created_at).toLocaleString();
+                row.insertCell().textContent = log.action || 'N/A';
+                row.insertCell().textContent = log.user_id || 'N/A';
+                row.insertCell().textContent = log.location ? `Lat: ${log.location.lat}, Lng: ${log.location.lng}` : 'N/A';
             });
         }
 
@@ -908,16 +945,13 @@ async function generateDriverReport() {
             driverJobsTableBody.innerHTML = '<tr><td colspan="5">No jobs found for this driver in the selected period.</td></tr>';
         } else {
             jobs.forEach(job => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${job.reference || 'N/A'}</td>
-                    <td>${job.shipment_no || 'N/A'}</td>
-                    <td>${job.drivers || 'N/A'}</td>
-                    <td>${job.status || 'N/A'}</td>
-                    <td>${job.trip_ended ? 'Yes' : 'No'}</td>
-                    <td>${new Date(job.created_at).toLocaleString()}</td>
-                `;
-                driverJobsTableBody.appendChild(row);
+                const row = driverJobsTableBody.insertRow();
+                row.insertCell().textContent = job.reference || 'N/A';
+                row.insertCell().textContent = job.shipment_no || 'N/A';
+                row.insertCell().textContent = job.drivers || 'N/A';
+                row.insertCell().textContent = job.status || 'N/A';
+                row.insertCell().textContent = job.trip_ended ? 'Yes' : 'No';
+                row.insertCell().textContent = new Date(job.created_at).toLocaleString();
             });
         }
 
@@ -927,7 +961,10 @@ async function generateDriverReport() {
         reportTotalJobs.textContent = 'Error';
         reportCompletedJobs.textContent = 'Error';
         reportAlcoholChecks.textContent = 'Error';
-        driverJobsTableBody.innerHTML = '<tr><td colspan="5">Error generating report.</td></tr>';
+        const row = driverJobsTableBody.insertRow();
+        const cell = row.insertCell();
+        cell.colSpan = 5;
+        cell.textContent = 'Error generating report.';
     }
 }
 
@@ -1018,21 +1055,27 @@ async function loadAlerts() {
         }
 
         alerts.forEach(alert => {
-            const row = document.createElement('tr');
+            const row = alertsTableBody.insertRow();
             row.dataset.alertId = alert.id;
-            const statusClass = alert.status === 'pending' ? 'status-pending' : 'status-resolved';
-            const resolveButton = alert.status === 'pending' ? `<button class="resolve-alert-btn" data-alert-id="${alert.id}">Resolve</button>` : '';
 
-            row.innerHTML = `
-                <td>${new Date(alert.triggered_at).toLocaleString()}</td>
-                <td>${alert.rule_name || 'N/A'}</td>
-                <td>${alert.driver_user_id || 'N/A'}</td>
-                <td>${alert.trip_id || 'N/A'}</td>
-                <td>${alert.message || 'N/A'}</td>
-                <td class="${statusClass}">${alert.status}</td>
-                <td>${resolveButton}</td>
-            `;
-            alertsTableBody.appendChild(row);
+            row.insertCell().textContent = new Date(alert.triggered_at).toLocaleString();
+            row.insertCell().textContent = alert.rule_name || 'N/A';
+            row.insertCell().textContent = alert.driver_user_id || 'N/A';
+            row.insertCell().textContent = alert.trip_id || 'N/A';
+            row.insertCell().textContent = alert.message || 'N/A';
+            
+            const statusCell = row.insertCell();
+            statusCell.className = alert.status === 'pending' ? 'status-pending' : 'status-resolved';
+            statusCell.textContent = alert.status;
+
+            const actionCell = row.insertCell();
+            if (alert.status === 'pending') {
+                const resolveButton = document.createElement('button');
+                resolveButton.className = 'resolve-alert-btn';
+                resolveButton.dataset.alertId = alert.id;
+                resolveButton.textContent = 'Resolve';
+                actionCell.appendChild(resolveButton);
+            }
         });
 
         document.querySelectorAll('.resolve-alert-btn').forEach(button => {
@@ -1041,7 +1084,7 @@ async function loadAlerts() {
 
     } catch (error) {
         console.error('Error loading alerts:', error);
-        alertsTableBody.innerHTML = `<tr><td colspan="7">Error loading alerts: ${error.message}</td></tr>`;
+        alertsTableBody.innerHTML = `<tr><td colspan="7">Error loading alerts: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -1096,21 +1139,18 @@ async function loadLogs() {
         }
 
         logs.forEach(log => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${new Date(log.created_at).toLocaleString()}</td>
-                <td>${log.reference || 'N/A'}</td>
-                <td>${log.action || 'N/A'}</td>
-                <td>${log.user_id || 'N/A'}</td>
-                <td>${JSON.stringify(log.details) || 'N/A'}</td>
-                <td>${log.location ? `Lat: ${log.location.lat}, Lng: ${log.location.lng}` : 'N/A'}</td>
-            `;
-            logsTableBody.appendChild(row);
+            const row = logsTableBody.insertRow();
+            row.insertCell().textContent = new Date(log.created_at).toLocaleString();
+            row.insertCell().textContent = log.reference || 'N/A';
+            row.insertCell().textContent = log.action || 'N/A';
+            row.insertCell().textContent = log.user_id || 'N/A';
+            row.insertCell().textContent = JSON.stringify(log.details) || 'N/A';
+            row.insertCell().textContent = log.location ? `Lat: ${log.location.lat}, Lng: ${log.location.lng}` : 'N/A';
         });
 
     } catch (error) {
         console.error('Error loading logs:', error);
-        logsTableBody.innerHTML = `<tr><td colspan="6">Error loading logs: ${error.message}</td></tr>`;
+        logsTableBody.innerHTML = `<tr><td colspan="6">Error loading logs: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -1202,31 +1242,16 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
 
         // Convert to array and display
         Object.values(groupedJobs).forEach(job => {
-            const row = document.createElement('tr');
+            const row = tbody.insertRow();
             
-            // Status badge
-            let statusBadge = '';
-            let actionButtons = '';
-            
-            if (job.holiday_work_approved === true) {
-                statusBadge = '<span style="background:#4caf50; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">✅ อนุมัติแล้ว</span>';
-                actionButtons = '<button disabled style="opacity:0.5; cursor:not-allowed;">อนุมัติแล้ว</button>';
-            } else if (job.holiday_work_approved === false && job.holiday_work_approved_at) {
-                statusBadge = '<span style="background:#f44336; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">❌ ปฏิเสธ</span>';
-                actionButtons = '<button disabled style="opacity:0.5; cursor:not-allowed;">ปฏิเสธแล้ว</button>';
-            } else {
-                statusBadge = '<span style="background:#ff9800; color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;">⏳ รอดำเนินการ</span>';
-                actionButtons = `
-                    <button class="approve-holiday-btn" data-reference="${job.reference}" data-stop-count="${job.stop_count}" style="background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; margin-right:5px;">
-                        ✅ อนุมัติ
-                    </button>
-                    <button class="reject-holiday-btn" data-reference="${job.reference}" data-stop-count="${job.stop_count}" style="background:#f44336; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">
-                        ❌ ปฏิเสธ
-                    </button>
-                `;
-            }
+            const referenceCell = row.insertCell();
+            const referenceStrong = document.createElement('strong');
+            referenceStrong.textContent = job.reference || '-';
+            referenceCell.appendChild(referenceStrong);
 
-            const closedDate = job.job_closed_at ? new Date(job.job_closed_at).toLocaleString('th-TH', {
+            const closedDateCell = row.insertCell();
+            closedDateCell.style.fontSize = '0.9rem';
+            closedDateCell.textContent = job.job_closed_at ? new Date(job.job_closed_at).toLocaleString('th-TH', {
                 year: 'numeric',
                 month: 'short',
                 day: 'numeric',
@@ -1234,23 +1259,90 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
                 minute: '2-digit'
             }) : '-';
 
-            const approvedBy = job.holiday_work_approved_by ? 
-                `<div>${job.holiday_work_approved_by}</div><small style="color:var(--text-sub);">${job.holiday_work_approved_at ? new Date(job.holiday_work_approved_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : ''}</small>` : 
-                '-';
-
-            row.innerHTML = `
-                <td><strong>${job.reference || '-'}</strong></td>
-                <td style="font-size:0.9rem;">${closedDate}</td>
-                <td>${job.drivers || '-'}</td>
-                <td style="font-size:0.9rem;">${job.vehicle_desc || '-'}</td>
-                <td style="text-align:center;"><span style="background:#2196f3;color:white;padding:2px 8px;border-radius:10px;font-size:0.85rem;">${job.stop_count} จุด</span></td>
-                <td style="max-width:200px; font-size:0.85rem; line-height:1.4;">${job.holiday_work_notes || '<span style="color:var(--text-sub);">-</span>'}</td>
-                <td>${statusBadge}</td>
-                <td style="font-size:0.85rem;">${approvedBy}</td>
-                <td>${actionButtons}</td>
-            `;
+            row.insertCell().textContent = job.drivers || '-';
             
-            tbody.appendChild(row);
+            const vehicleCell = row.insertCell();
+            vehicleCell.style.fontSize = '0.9rem';
+            vehicleCell.textContent = job.vehicle_desc || '-';
+
+            const stopCountCell = row.insertCell();
+            stopCountCell.style.textAlign = 'center';
+            const stopCountSpan = document.createElement('span');
+            stopCountSpan.style.cssText = 'background:#2196f3;color:white;padding:2px 8px;border-radius:10px;font-size:0.85rem;';
+            stopCountSpan.textContent = `${job.stop_count} จุด`;
+            stopCountCell.appendChild(stopCountSpan);
+
+            const notesCell = row.insertCell();
+            notesCell.style.cssText = 'max-width:200px; font-size:0.85rem; line-height:1.4;';
+            if (job.holiday_work_notes) {
+                notesCell.textContent = job.holiday_work_notes;
+            } else {
+                const notesSpan = document.createElement('span');
+                notesSpan.style.color = 'var(--text-sub)';
+                notesSpan.textContent = '-';
+                notesCell.appendChild(notesSpan);
+            }
+
+            const statusCell = row.insertCell();
+            const statusBadge = document.createElement('span');
+            statusBadge.style.cssText = 'color:white; padding:4px 8px; border-radius:4px; font-size:0.85rem;';
+            if (job.holiday_work_approved === true) {
+                statusBadge.style.background = '#4caf50';
+                statusBadge.textContent = '✅ อนุมัติแล้ว';
+            } else if (job.holiday_work_approved === false && job.holiday_work_approved_at) {
+                statusBadge.style.background = '#f44336';
+                statusBadge.textContent = '❌ ปฏิเสธ';
+            } else {
+                statusBadge.style.background = '#ff9800';
+                statusBadge.textContent = '⏳ รอดำเนินการ';
+            }
+            statusCell.appendChild(statusBadge);
+
+            const approvedByCell = row.insertCell();
+            approvedByCell.style.fontSize = '0.85rem';
+            if (job.holiday_work_approved_by) {
+                const approvedByDiv = document.createElement('div');
+                approvedByDiv.textContent = job.holiday_work_approved_by;
+                approvedByCell.appendChild(approvedByDiv);
+
+                const approvedAtSmall = document.createElement('small');
+                approvedAtSmall.style.color = 'var(--text-sub)';
+                approvedAtSmall.textContent = job.holiday_work_approved_at ? new Date(job.holiday_work_approved_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' }) : '';
+                approvedByCell.appendChild(approvedAtSmall);
+            } else {
+                approvedByCell.textContent = '-';
+            }
+
+            const actionCell = row.insertCell();
+            if (job.holiday_work_approved === true) {
+                const approvedButton = document.createElement('button');
+                approvedButton.disabled = true;
+                approvedButton.style.cssText = 'opacity:0.5; cursor:not-allowed;';
+                approvedButton.textContent = 'อนุมัติแล้ว';
+                actionCell.appendChild(approvedButton);
+            } else if (job.holiday_work_approved === false && job.holiday_work_approved_at) {
+                const rejectedButton = document.createElement('button');
+                rejectedButton.disabled = true;
+                rejectedButton.style.cssText = 'opacity:0.5; cursor:not-allowed;';
+                rejectedButton.textContent = 'ปฏิเสธแล้ว';
+                actionCell.appendChild(rejectedButton);
+            } else {
+                const approveButton = document.createElement('button');
+                approveButton.className = 'approve-holiday-btn';
+                approveButton.dataset.reference = job.reference;
+                approveButton.dataset.stopCount = job.stop_count;
+                approveButton.style.cssText = 'background:#4caf50; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; margin-right:5px;';
+                approveButton.textContent = '✅ อนุมัติ';
+                actionCell.appendChild(approveButton);
+
+                const rejectButton = document.createElement('button');
+                rejectButton.className = 'reject-holiday-btn';
+                rejectButton.dataset.reference = job.reference;
+                rejectButton.dataset.stopCount = job.stop_count;
+                rejectButton.style.cssText = 'background:#f44336; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;';
+                rejectButton.textContent = '❌ ปฏิเสธ';
+                actionCell.appendChild(rejectButton);
+            }
         });
 
         // Add event listeners
@@ -1275,7 +1367,7 @@ async function loadHolidayWorkJobs(searchTerm = '', statusFilter = 'pending') {
     } catch (error) {
         console.error('Error loading holiday work jobs:', error);
         tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 20px; color: #f44336;">
-            ❌ เกิดข้อผิดพลาด: ${error.message}
+            ❌ เกิดข้อผิดพลาด: ${sanitizeHTML(error.message)}
         </td></tr>`;
     }
 }
@@ -1643,7 +1735,7 @@ async function loadVehicleBreakdowns(searchTerm = '') {
 
         // For each breakdown, fetch the replacement job info
         for (const bd of breakdowns) {
-            const row = document.createElement('tr');
+            const row = breakdownTableBody.insertRow();
             let newRef = '-';
             if (bd.replacement_job_id) {
                 const { data: replacement } = await supabase
@@ -1654,20 +1746,22 @@ async function loadVehicleBreakdowns(searchTerm = '') {
                 if (replacement) newRef = replacement.reference;
             }
 
-            row.innerHTML = `
-                <td>${bd.reference || 'N/A'}</td>
-                <td>${newRef}</td>
-                <td>${bd.drivers || 'N/A'}</td>
-                <td>${bd.breakdown_reason || 'N/A'}</td>
-                <td>${bd.created_at ? new Date(bd.created_at).toLocaleDateString() : 'N/A'}</td>
-                <td><span class="status-badge badge-breakdown">Breakdown</span></td>
-            `;
-            breakdownTableBody.appendChild(row);
+            row.insertCell().textContent = bd.reference || 'N/A';
+            row.insertCell().textContent = newRef;
+            row.insertCell().textContent = bd.drivers || 'N/A';
+            row.insertCell().textContent = bd.breakdown_reason || 'N/A';
+            row.insertCell().textContent = bd.created_at ? new Date(bd.created_at).toLocaleDateString() : 'N/A';
+            
+            const statusCell = row.insertCell();
+            const statusSpan = document.createElement('span');
+            statusSpan.className = 'status-badge badge-breakdown';
+            statusSpan.textContent = 'Breakdown';
+            statusCell.appendChild(statusSpan);
         }
 
     } catch (error) {
         console.error('Error loading breakdowns:', error);
-        breakdownTableBody.innerHTML = `<tr><td colspan="6">Error: ${error.message}</td></tr>`;
+        breakdownTableBody.innerHTML = `<tr><td colspan="6">Error: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -1837,22 +1931,37 @@ async function loadFuelSiphoning(searchTerm = '', dateFilter = '') {
         }
 
         records.forEach(record => {
-            const row = document.createElement('tr');
-            const statusClass = `badge-siphoning-${record.status}`;
+            const row = siphoningTableBody.insertRow();
+            
+            row.insertCell().textContent = record.siphon_date || 'N/A';
+            row.insertCell().textContent = record.station_name || 'N/A';
+            row.insertCell().textContent = record.driver_name || 'N/A';
+            row.insertCell().textContent = record.vehicle_plate || 'N/A';
+            row.insertCell().textContent = record.liters ? record.liters.toFixed(2) : '0.00';
 
-            row.innerHTML = `
-                <td>${record.siphon_date || 'N/A'}</td>
-                <td>${record.station_name || 'N/A'}</td>
-                <td>${record.driver_name || 'N/A'}</td>
-                <td>${record.vehicle_plate || 'N/A'}</td>
-                <td>${record.liters ? record.liters.toFixed(2) : '0.00'}</td>
-                <td>${record.evidence_image_url ? `<a href="${record.evidence_image_url}" target="_blank">View</a>` : 'N/A'}</td>
-                <td><span class="status-badge ${statusClass}">${record.status}</span></td>
-                <td>
-                    <button class="edit-siphoning-btn" data-id="${record.id}">Edit</button>
-                </td>
-            `;
-            siphoningTableBody.appendChild(row);
+            const evidenceCell = row.insertCell();
+            if (record.evidence_image_url) {
+                const link = document.createElement('a');
+                link.href = record.evidence_image_url;
+                link.target = '_blank';
+                link.textContent = 'View';
+                evidenceCell.appendChild(link);
+            } else {
+                evidenceCell.textContent = 'N/A';
+            }
+
+            const statusCell = row.insertCell();
+            const statusSpan = document.createElement('span');
+            statusSpan.className = `status-badge badge-siphoning-${record.status}`;
+            statusSpan.textContent = record.status;
+            statusCell.appendChild(statusSpan);
+
+            const actionCell = row.insertCell();
+            const editButton = document.createElement('button');
+            editButton.className = 'edit-siphoning-btn';
+            editButton.dataset.id = record.id;
+            editButton.textContent = 'Edit';
+            actionCell.appendChild(editButton);
         });
 
         // Add event listeners
@@ -1866,7 +1975,7 @@ async function loadFuelSiphoning(searchTerm = '', dateFilter = '') {
 
     } catch (error) {
         console.error('Error loading fuel siphoning:', error);
-        siphoningTableBody.innerHTML = `<tr><td colspan="8">Error: ${error.message}</td></tr>`;
+        siphoningTableBody.innerHTML = `<tr><td colspan="8">Error: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -2133,22 +2242,35 @@ async function loadB100Jobs(searchTerm = '', statusFilter = '') {
         }
 
         jobs.forEach(job => {
-            const row = document.createElement('tr');
-            const statusClass = `badge-b100-${job.b100_status}`;
+            const row = b100JobsTableBody.insertRow();
+            
+            row.insertCell().textContent = job.reference || 'N/A';
+            row.insertCell().textContent = job.drivers || 'N/A';
+            row.insertCell().textContent = job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A';
+            row.insertCell().textContent = job.vehicle_plate || 'N/A';
+            row.insertCell().textContent = job.b100_amount ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '0.00';
 
-            row.innerHTML = `
-                <td>${job.reference || 'N/A'}</td>
-                <td>${job.drivers || 'N/A'}</td>
-                <td>${job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
-                <td>${job.vehicle_plate || 'N/A'}</td>
-                <td>${job.b100_amount ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 }) : '0.00'}</td>
-                <td><span class="status-badge ${statusClass}">${job.b100_status || 'pending'}</span></td>
-                <td>
-                    ${job.b100_status !== 'paid' ? `<button class="mark-paid-btn" data-job-id="${job.id}">Mark Paid</button>` : ''}
-                    ${job.b100_status === 'pending' ? `<button class="mark-outstanding-btn" data-job-id="${job.id}">Outstanding</button>` : ''}
-                </td>
-            `;
-            b100JobsTableBody.appendChild(row);
+            const statusCell = row.insertCell();
+            const statusSpan = document.createElement('span');
+            statusSpan.className = `status-badge badge-b100-${job.b100_status}`;
+            statusSpan.textContent = job.b100_status || 'pending';
+            statusCell.appendChild(statusSpan);
+
+            const actionCell = row.insertCell();
+            if (job.b100_status !== 'paid') {
+                const paidButton = document.createElement('button');
+                paidButton.className = 'mark-paid-btn';
+                paidButton.dataset.jobId = job.id;
+                paidButton.textContent = 'Mark Paid';
+                actionCell.appendChild(paidButton);
+            }
+            if (job.b100_status === 'pending') {
+                const outstandingButton = document.createElement('button');
+                outstandingButton.className = 'mark-outstanding-btn';
+                outstandingButton.dataset.jobId = job.id;
+                outstandingButton.textContent = 'Outstanding';
+                actionCell.appendChild(outstandingButton);
+            }
         });
 
         // Add event listeners
@@ -2161,7 +2283,7 @@ async function loadB100Jobs(searchTerm = '', statusFilter = '') {
 
     } catch (error) {
         console.error('Error loading B100 jobs:', error);
-        b100JobsTableBody.innerHTML = `<tr><td colspan="7">Error: ${error.message}</td></tr>`;
+        b100JobsTableBody.innerHTML = `<tr><td colspan="7">Error: ${sanitizeHTML(error.message)}</td></tr>`;
     }
 }
 
@@ -2474,7 +2596,11 @@ async function loadDebugImportTool() {
         }
     } catch (error) {
         console.error('Error loading debug import tool:', error);
-        debugImportSection.innerHTML = `<p class="error">Failed to load Debug Import Tool: ${error.message}</p>`;
+        debugImportSection.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = 'error';
+        p.textContent = `Failed to load Debug Import Tool: ${error.message}`;
+        debugImportSection.appendChild(p);
     }
 }
 
@@ -2865,31 +2991,49 @@ function updateNotificationUI() {
 }
 
 function renderNotificationList() {
+    notificationList.innerHTML = ''; // Clear existing
     if (notificationBellData.length === 0) {
-        notificationList.innerHTML = `
-            <div class="notification-empty">
-                <div class="notification-empty-icon">🔕</div>
-                <p>ยังไม่มีการแจ้งเตือน</p>
-            </div>
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'notification-empty';
+        emptyDiv.innerHTML = `
+            <div class="notification-empty-icon">🔕</div>
+            <p>ยังไม่มีการแจ้งเตือน</p>
         `;
+        notificationList.appendChild(emptyDiv);
         return;
     }
 
-    notificationList.innerHTML = notificationBellData.map(n => {
-        const icon = getNotificationIcon(n.type);
-        const timeAgo = getTimeAgo(new Date(n.timestamp));
-        
-        return `
-            <div class="notification-item ${n.read ? '' : 'unread'}" onclick="handleNotificationClick(${n.id})">
-                <div class="notification-icon">${icon}</div>
-                <div class="notification-content">
-                    <div class="title">${n.title}</div>
-                    <div class="message">${n.message}</div>
-                    <div class="time">${timeAgo}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
+    notificationBellData.forEach(n => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `notification-item ${n.read ? '' : 'unread'}`;
+        itemDiv.onclick = () => handleNotificationClick(n.id);
+
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'notification-icon';
+        iconDiv.textContent = getNotificationIcon(n.type);
+        itemDiv.appendChild(iconDiv);
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'notification-content';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'title';
+        titleDiv.textContent = n.title;
+        contentDiv.appendChild(titleDiv);
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message';
+        messageDiv.textContent = n.message;
+        contentDiv.appendChild(messageDiv);
+
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'time';
+        timeDiv.textContent = getTimeAgo(new Date(n.timestamp));
+        contentDiv.appendChild(timeDiv);
+
+        itemDiv.appendChild(contentDiv);
+        notificationList.appendChild(itemDiv);
+    });
 }
 
 function handleNotificationClick(notificationId) {

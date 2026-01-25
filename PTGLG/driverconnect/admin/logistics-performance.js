@@ -532,20 +532,17 @@ function updatePerformanceTables(trips) {
     vehicleTableBody.innerHTML = '';
     
     vehicleSorted.forEach(([vehicle, perf], index) => {
-        const row = document.createElement('tr');
+        const row = vehicleTableBody.insertRow();
         const onTimeRate = perf.completed > 0 ? (perf.onTime / perf.completed * 100).toFixed(1) : 0;
         const avgTime = perf.completed > 0 ? (perf.duration / perf.completed).toFixed(1) : 0;
         const avgDistance = perf.completed > 0 ? (perf.distance / perf.completed).toFixed(0) : 0;
         
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${vehicle}</td>
-            <td>${perf.trips}</td>
-            <td>${avgDistance}</td>
-            <td>${onTimeRate}%</td>
-            <td>${avgTime}h</td>
-        `;
-        vehicleTableBody.appendChild(row);
+        row.insertCell().textContent = index + 1;
+        row.insertCell().textContent = vehicle;
+        row.insertCell().textContent = perf.trips;
+        row.insertCell().textContent = avgDistance;
+        row.insertCell().textContent = `${onTimeRate}%`;
+        row.insertCell().textContent = `${avgTime}h`;
     });
     
     // Driver performance table (process by reference)
@@ -617,20 +614,17 @@ function updatePerformanceTables(trips) {
     driverTableBody.innerHTML = '';
     
     driverSorted.forEach(([driver, perf], index) => {
-        const row = document.createElement('tr');
+        const row = driverTableBody.insertRow();
         const onTimeRate = perf.completed > 0 ? (perf.onTime / perf.completed * 100).toFixed(1) : 0;
         const avgTime = perf.completed > 0 ? (perf.duration / perf.completed).toFixed(1) : 0;
         const avgDistance = perf.completed > 0 ? (perf.distance / perf.completed).toFixed(0) : 0;
         
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${driver}</td>
-            <td>${perf.trips}</td>
-            <td>${avgDistance}</td>
-            <td>${onTimeRate}%</td>
-            <td>${avgTime}h</td>
-        `;
-        driverTableBody.appendChild(row);
+        row.insertCell().textContent = index + 1;
+        row.insertCell().textContent = driver;
+        row.insertCell().textContent = perf.trips;
+        row.insertCell().textContent = avgDistance;
+        row.insertCell().textContent = `${onTimeRate}%`;
+        row.insertCell().textContent = `${avgTime}h`;
     });
     
     // Route analysis table
@@ -700,21 +694,18 @@ function updateRouteAnalysis(trips) {
     routeTableBody.innerHTML = '';
     
     routeSorted.forEach(([route, perf]) => {
-        const row = document.createElement('tr');
+        const row = routeTableBody.insertRow();
         const avgDistance = perf.completed > 0 ? (perf.distance / perf.completed).toFixed(0) : 0;
         const avgDuration = perf.completed > 0 ? (perf.duration / perf.completed).toFixed(1) : 0;
         const onTimeRate = perf.completed > 0 ? (perf.onTime / perf.completed * 100).toFixed(1) : 0;
         const successRate = perf.trips > 0 ? (perf.success / perf.trips * 100).toFixed(1) : 0;
         
-        row.innerHTML = `
-            <td>${route}</td>
-            <td>${perf.trips}</td>
-            <td>${avgDistance}</td>
-            <td>${avgDuration}</td>
-            <td>${onTimeRate}%</td>
-            <td>${successRate}%</td>
-        `;
-        routeTableBody.appendChild(row);
+        row.insertCell().textContent = route;
+        row.insertCell().textContent = perf.trips;
+        row.insertCell().textContent = avgDistance;
+        row.insertCell().textContent = avgDuration;
+        row.insertCell().textContent = `${onTimeRate}%`;
+        row.insertCell().textContent = `${successRate}%`;
     });
 }
 
@@ -736,7 +727,7 @@ function updateTripsTable(trips) {
 
     // Show trip summaries
     uniqueTrips.forEach(([reference, stops]) => {
-        const row = document.createElement('tr');
+        const row = tripsTableBody.insertRow();
         const firstStop = stops[0];
 
         const date = new Date(firstStop.created_at).toLocaleDateString('th-TH');
@@ -774,19 +765,17 @@ function updateTripsTable(trips) {
         const completedStops = stops.filter(s => s.checkout_time).length;
         const statusSummary = `${completedStops}/${stops.length} stops`;
 
-        row.innerHTML = `
-            <td>${date}</td>
-            <td>${reference || '-'}</td>
-            <td>${firstStop.vehicle_desc || '-'}</td>
-            <td>${firstStop.drivers || '-'}</td>
-            <td title="${destinations.join(' → ')}">${routeSummary}</td>
-            <td>${distance}</td>
-            <td>${duration}</td>
-            <td>${statusSummary}</td>
-            <td>${onTime}</td>
-        `;
-
-        tripsTableBody.appendChild(row);
+        row.insertCell().textContent = date;
+        row.insertCell().textContent = reference || '-';
+        row.insertCell().textContent = firstStop.vehicle_desc || '-';
+        row.insertCell().textContent = firstStop.drivers || '-';
+        const routeCell = row.insertCell();
+        routeCell.textContent = routeSummary;
+        routeCell.title = destinations.join(' → ');
+        row.insertCell().textContent = distance;
+        row.insertCell().textContent = duration;
+        row.insertCell().textContent = statusSummary;
+        row.insertCell().textContent = onTime;
     });
 }
 

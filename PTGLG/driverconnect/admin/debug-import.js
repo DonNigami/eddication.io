@@ -4,6 +4,14 @@ window.sheetData = null;
 window.importStopped = false;
 window.availableSheets = [];
 
+function sanitizeHTML(text) {
+  if (text === null || text === undefined) return '';
+  const temp = document.createElement('div');
+  temp.textContent = String(text);
+  return temp.innerHTML;
+}
+
+
 function getSheetCSVUrl(sheetId, sheetName) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 }
@@ -323,9 +331,9 @@ window.fetchSheetData = async function() {
     result.innerHTML = `<span class="success">✓ Success!</span>\n\n` +
       `Total Rows: ${data.length}\n` +
       `Columns: ${headers.length}\n\n` +
-      `Headers:\n${JSON.stringify(headers, null, 2)}`;
+      `Headers:\n${sanitizeHTML(JSON.stringify(headers, null, 2))}`;
   } catch (error) {
-    result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n${error.stack}`;
+    result.innerHTML = `<span class="error">✗ Error:</span>\n${sanitizeHTML(error.message)}\n${sanitizeHTML(error.stack)}`;
   }
 };
 
@@ -344,10 +352,10 @@ window.checkSchema = async function() {
     const columns = data.length > 0 ? Object.keys(data[0]) : [];
 
     result.innerHTML = `<span class="success">✓ Table exists!</span>\n\n` +
-      `Columns (${columns.length}):\n${JSON.stringify(columns, null, 2)}`;
+      `Columns (${columns.length}):\n${sanitizeHTML(JSON.stringify(columns, null, 2))}`;
   } catch (error) {
-    result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n\n` +
-      `Details: ${JSON.stringify(error, null, 2)}`;
+    result.innerHTML = `<span class="error">✗ Error:</span>\n${sanitizeHTML(error.message)}\n\n` +
+      `Details: ${sanitizeHTML(JSON.stringify(error, null, 2))}`;
   }
 };
 
@@ -365,8 +373,8 @@ window.testMapping = function() {
   const mapped = mapRowToDatabase(row);
 
   result.innerHTML = `<span class="success">✓ Mapped!</span>\n\n` +
-    `Original Row (first 5 fields):\n${JSON.stringify(Object.fromEntries(Object.entries(row).slice(0, 5)), null, 2)}\n\n` +
-    `Mapped Data:\n${JSON.stringify(mapped, null, 2)}`;
+    `Original Row (first 5 fields):\n${sanitizeHTML(JSON.stringify(Object.fromEntries(Object.entries(row).slice(0, 5)), null, 2))}\n\n` +
+    `Mapped Data:\n${sanitizeHTML(JSON.stringify(mapped, null, 2))}`;
 
   window.testMappedData = mapped;
 };
@@ -399,7 +407,7 @@ window.testInsert = async function() {
   if (problematicFields.length > 0) {
     result.innerHTML = `<span class="error">❌ Found unconverted dates!</span>\n\n` +
       `These fields still have DD/MM/YYYY format:\n` +
-      problematicFields.map(f => `- ${f.field}: "${f.value}"`).join('\n') + 
+      problematicFields.map(f => `- ${sanitizeHTML(f.field)}: "${sanitizeHTML(f.value)}"`).join('\n') + 
       `\nPlease check the column mapping and convert these fields.`;
     return;
   }
@@ -421,14 +429,14 @@ window.testInsert = async function() {
     if (error) throw error;
 
     result.innerHTML = `<span class="success">✓ Insert Success!</span>\n\n` +
-      `Inserted Data:\n${JSON.stringify(data, null, 2)}`;
+      `Inserted Data:\n${sanitizeHTML(JSON.stringify(data, null, 2))}`;
   } catch (error) {
     console.error('Insert error:', error);
     result.innerHTML = `<span class="error">✗ Insert Failed!</span>\n\n` +
-      `Error Message: ${error.message}\n\n` +
-      `Error Code: ${error.code}\n\n` +
-      `Error Details:\n${JSON.stringify(error, null, 2)}\n\n` +
-      `Data Attempted:\n${JSON.stringify(window.testMappedData, null, 2)}`;
+      `Error Message: ${sanitizeHTML(error.message)}\n\n` +
+      `Error Code: ${sanitizeHTML(error.code)}\n\n` +
+      `Error Details:\n${sanitizeHTML(JSON.stringify(error, null, 2))}\n\n` +
+      `Data Attempted:\n${sanitizeHTML(JSON.stringify(window.testMappedData, null, 2))}`;
   }
 };
 
@@ -453,7 +461,7 @@ window.clearDriverJobsTable = async function() {
     console.log('driver_jobs table cleared.');
   } catch (error) {
     console.error('Error clearing driver_jobs table:', error);
-    result.innerHTML = `<span class="error">✗ Error clearing table:</span>\n${error.message}`;
+    result.innerHTML = `<span class="error">✗ Error clearing table:</span>\n${sanitizeHTML(error.message)}`;
   }
 };
 
@@ -471,10 +479,10 @@ window.checkData = async function() {
     if (error) throw error;
 
     result.innerHTML = `<span class="success">✓ Found ${data.length} rows!</span>\n\n` +
-      JSON.stringify(data, null, 2);
+      sanitizeHTML(JSON.stringify(data, null, 2));
   } catch (error) {
-    result.innerHTML = `<span class="error">✗ Error:</span>\n${error.message}\n\n` +
-      JSON.stringify(error, null, 2);
+    result.innerHTML = `<span class="error">✗ Error:</span>\n${sanitizeHTML(error.message)}\n\n` +
+      sanitizeHTML(JSON.stringify(error, null, 2));
   }
 };
 
@@ -603,7 +611,7 @@ window.importAllRows = async function() {
   } else {
     result.innerHTML = `<span class="warning">⚠ Import Complete with Issues</span>\n\n` +
       summaryStats + `\n\n` +
-      `Errors (first 20):\n${stats.errors.slice(0, 20).join('\n')}\n` +
+      `Errors (first 20):\n${sanitizeHTML(stats.errors.slice(0, 20).join('\n'))}\n` +
       (stats.errors.length > 20 ? `\n...and ${stats.errors.length - 20} more` : '');
   }
 

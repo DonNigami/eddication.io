@@ -3,12 +3,14 @@
  * Supabase Version
  */
 
+import { SUPABASE_URL as SU, SUPABASE_ANON_KEY as SAK, LIFF_IDS } from '../../shared/config.js';
+
 // Supabase Configuration
-export const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+export const SUPABASE_URL = SU;
+export const SUPABASE_ANON_KEY = SAK;
 
 // LIFF Configuration
-export const LIFF_ID = '2007705394-Fgx9wdHu';
+export const LIFF_ID = LIFF_IDS.DRIVER_APP;
 
 // App Settings
 export const APP_CONFIG = {

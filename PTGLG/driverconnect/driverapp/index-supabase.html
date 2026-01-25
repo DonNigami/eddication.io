@@ -274,20 +274,18 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_ANON_KEY, LIFF_IDS } from '../shared/config.js';
     // ============================================
     // SUPABASE CONFIGURATION
     // ============================================
-    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
-
     // Initialize Supabase client (force new initialization with unique name)
     window.supabaseDB = window.supabaseDB || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const supabase = window.supabaseDB;
     console.log('✅ Supabase client ready');
 
     // LIFF Configuration
-    const LIFF_ID = '2007705394-Fgx9wdHu';
+    const LIFF_ID = LIFF_IDS.DRIVER_APP;
 
     // ============================================
     // GLOBAL STATE
@@ -974,12 +972,27 @@
       const stops = d.stops || [];
       const totalQtyAll = stops.reduce((acc, s) => acc + (s.totalQty || 0), 0);
 
-      summaryEl.innerHTML = `
-        <div class="summary-row"><span class="summary-label">Reference</span><span class="summary-value">${escapeHtml(d.referenceNo)}</span></div>
-        <div class="summary-row"><span class="summary-label">ชื่อรถ</span><span class="summary-value">${escapeHtml(d.vehicleDesc) || '-'}</span></div>
-        <div class="summary-row"><span class="summary-label">จำนวนจุดส่ง</span><span class="summary-value">${stops.length} จุด</span></div>
-        <div class="summary-row"><span class="summary-label">ปริมาณรวม</span><span class="summary-value">${totalQtyAll || 0}</span></div>
-      `;
+      summaryEl.innerHTML = ''; // Clear previous content
+
+      const createRow = (label, value) => {
+          const row = document.createElement('div');
+          row.className = 'summary-row';
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'summary-label';
+          labelSpan.textContent = label;
+          const valueSpan = document.createElement('span');
+          valueSpan.className = 'summary-value';
+          valueSpan.textContent = value;
+          row.appendChild(labelSpan);
+          row.appendChild(valueSpan);
+          return row;
+      };
+
+      summaryEl.appendChild(createRow('Reference', d.referenceNo));
+      summaryEl.appendChild(createRow('ชื่อรถ', d.vehicleDesc || '-'));
+      summaryEl.appendChild(createRow('จำนวนจุดส่ง', `${stops.length} จุด`));
+      summaryEl.appendChild(createRow('ปริมาณรวม', totalQtyAll || 0));
+
       summaryEl.classList.remove('hidden');
     }
 
@@ -990,23 +1003,39 @@
         return;
       }
 
-      let html = `<div style="font-weight:600;margin-bottom:4px;">เป่าแอลกอฮอล์ก่อนเริ่มงาน</div>`;
+      container.innerHTML = ''; // Clear previous content
+      const title = document.createElement('div');
+      title.style.fontWeight = '600';
+      title.style.marginBottom = '4px';
+      title.textContent = 'เป่าแอลกอฮอล์ก่อนเริ่มงาน';
+      container.appendChild(title);
 
       currentDrivers.forEach(name => {
         const checked = currentCheckedDrivers.includes(name);
-        const displayName = escapeHtml(name);
-        const jsName = escapeHtml(name.replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+        const displayName = name;
 
-        html += `<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;">
-          <span>${displayName}</span>
-          ${checked
-            ? '<button class="btn-small btn-secondary" disabled>ตรวจแล้ว</button>'
-            : `<button class="btn-small btn-outline" onclick="doAlcoholCheck('${jsName}')">บันทึกผลแอลกอฮอล์</button>`
-          }
-        </div>`;
+        const row = document.createElement('div');
+        row.style.cssText = 'margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = displayName;
+        row.appendChild(nameSpan);
+
+        const button = document.createElement('button');
+        button.className = 'btn-small';
+        if (checked) {
+          button.classList.add('btn-secondary');
+          button.disabled = true;
+          button.textContent = 'ตรวจแล้ว';
+        } else {
+          button.classList.add('btn-outline');
+          button.textContent = 'บันทึกผลแอลกอฮอล์';
+          button.onclick = () => doAlcoholCheck(name);
+        }
+        row.appendChild(button);
+        container.appendChild(row);
       });
 
-      container.innerHTML = html;
       container.classList.remove('hidden');
     }
 
@@ -1036,41 +1065,75 @@
 
         if (!hasCheckOut) allCheckout = false;
 
-        let btnHtml = '';
+        const li = document.createElement('li');
+        li.className = 'timeline-item';
+        
+        const marker = document.createElement('div');
+        marker.className = 'timeline-marker';
+        li.appendChild(marker);
+
+        const content = document.createElement('div');
+        content.className = 'timeline-content';
+
+        const headerRow = document.createElement('div');
+        headerRow.className = 'timeline-header-row';
+
+        const stopLabel = document.createElement('span');
+        stopLabel.className = 'timeline-stop-label';
+        stopLabel.textContent = `จุดที่ ${stop.seq}`;
+        headerRow.appendChild(stopLabel);
+
+        const statusSpan = document.createElement('span');
+        statusSpan.className = 'timeline-status';
+        statusSpan.textContent = stop.status || '-';
+        headerRow.appendChild(statusSpan);
+        content.appendChild(headerRow);
+
+        const subDiv = document.createElement('div');
+        subDiv.className = 'timeline-sub';
+        subDiv.textContent = stop.shipToName || '-';
+        content.appendChild(subDiv);
+
+        if (stop.materials) {
+            const materialsDiv = document.createElement('div');
+            materialsDiv.className = 'materials-text';
+            materialsDiv.textContent = stop.materials;
+            content.appendChild(materialsDiv);
+        }
+
+        const actionRow = document.createElement('div');
+        actionRow.className = 'action-row';
+
+        const createButton = (text, className, onClick) => {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.className = className;
+            button.onclick = onClick;
+            return button;
+        };
+
         if (isOrigin) {
           if (!hasCheckIn) {
-            btnHtml += `<button class="btn-small btn-outline" onclick="startCheckin(${stop.rowIndex}, ${stop.seq})">Check-in</button>`;
+            actionRow.appendChild(createButton('Check-in', 'btn-small btn-outline', () => startCheckin(stop.rowIndex, stop.seq)));
           } else if (!hasCheckOut) {
-            btnHtml += `<button class="btn-small" onclick="startCheckout(${stop.rowIndex}, ${stop.seq})">Check-out</button>`;
+            actionRow.appendChild(createButton('Check-out', 'btn-small', () => startCheckout(stop.rowIndex, stop.seq)));
           }
         } else {
           if (!hasCheckIn) {
-            btnHtml += `<button class="btn-small btn-outline" onclick="startCheckin(${stop.rowIndex}, ${stop.seq})">Check-in</button>`;
+            actionRow.appendChild(createButton('Check-in', 'btn-small btn-outline', () => startCheckin(stop.rowIndex, stop.seq)));
           } else if (!hasCheckOut) {
-            if (!stop.fuelingTime) btnHtml += `<button class="btn-small btn-outline" onclick="doFuel(${stop.rowIndex}, ${stop.seq})">ลงน้ำมัน</button>`;
-            if (!stop.unloadDoneTime) btnHtml += `<button class="btn-small btn-outline" onclick="doUnload(${stop.rowIndex}, ${stop.seq})">ลงเสร็จ</button>`;
-            btnHtml += `<button class="btn-small" onclick="startCheckout(${stop.rowIndex}, ${stop.seq})">Check-out</button>`;
+            if (!stop.fuelingTime) actionRow.appendChild(createButton('ลงน้ำมัน', 'btn-small btn-outline', () => doFuel(stop.rowIndex, stop.seq)));
+            if (!stop.unloadDoneTime) actionRow.appendChild(createButton('ลงเสร็จ', 'btn-small btn-outline', () => doUnload(stop.rowIndex, stop.seq)));
+            actionRow.appendChild(createButton('Check-out', 'btn-small', () => startCheckout(stop.rowIndex, stop.seq)));
           }
         }
 
         if (stop.destLat && stop.destLng) {
-          btnHtml += `<button class="btn-nav" onclick="navigateToStop(${stop.rowIndex})">🧭</button>`;
+            actionRow.appendChild(createButton('🧭', 'btn-nav', () => navigateToStop(stop.rowIndex)));
         }
 
-        const li = document.createElement('li');
-        li.className = 'timeline-item';
-        li.innerHTML = `
-          <div class="timeline-marker"></div>
-          <div class="timeline-content">
-            <div class="timeline-header-row">
-              <span class="timeline-stop-label">จุดที่ ${stop.seq}</span>
-              <span class="timeline-status">${escapeHtml(stop.status) || '-'}</span>
-            </div>
-            <div class="timeline-sub">${escapeHtml(stop.shipToName) || '-'}</div>
-            ${stop.materials ? `<div class="materials-text">${escapeHtml(stop.materials)}</div>` : ''}
-            <div class="action-row">${btnHtml}</div>
-          </div>
-        `;
+        content.appendChild(actionRow);
+        li.appendChild(content);
         ul.appendChild(li);
       });
 
