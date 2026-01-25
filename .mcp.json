@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "n8n-mcp": {
+      "command": "npx",
+      "args": ["n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true",
+        "N8N_API_URL": "https://n8n.srv827062.hstgr.cloud/",
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI5MGQ1ZDBlOC1jZGNkLTQ4NTEtYjg0Zi02OWRiMWMxODg4OWEiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzY5MzA3ODUwfQ.3UcSiiPW6HoSPAEzd_IWN5IEyy3oMOTiWIozxJy5HBE"
+      }
+    },
+    "google-sheets": {
+      "command": "uvx",
+      "args": ["mcp-google-sheets@latest"],
+      "env": {
+        "SERVICE_ACCOUNT_PATH": "d:/VS_Code_GitHub_DATA/eddication.io/eddication.io/PTGLG/driverconnect/driverconnect-484913-7c9e78c1e3f2.json"
+      }
+    }
+  }
+}
