@@ -3,20 +3,17 @@ export const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
 export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
 
 /**
- * Singleton Supabase client instance
- * Import this from any module to get the same client instance
- * Prevents "Multiple GoTrueClient instances detected" warning
+ * Get Supabase client - for use with ES modules
+ * Import createClient from '@supabase/supabase-js' and call:
+ * import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+ * const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  */
-let supabaseInstance = null;
-export function getSupabase() {
-    if (!supabaseInstance) {
-        supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export function getSupabase(createClientFn) {
+    if (!createClientFn) {
+        throw new Error('getSupabase requires createClient function from @supabase/supabase-js');
     }
-    return supabaseInstance;
+    return createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
-
-// Convenience export for direct access
-export const supabase = getSupabase();
 
 export const LIFF_IDS = {
     ADMIN: '2007705394-Lq3mMYKA', // PTGLG/driverconnect/admin/admin.js
