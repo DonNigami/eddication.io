@@ -9,74 +9,124 @@
 
 ---
 
+## Progress Log
+
+### 2025-01-25
+- ✅ **Phase 1.3-1.4 Completed**: Security hardening (commit 53f6683)
+  - Fixed XSS vulnerabilities with sanitize utility
+  - Centralized API keys to `shared/config.js`
+- ✅ **Phase 2.1 Completed**: Refactored admin.js (3,118 → 162 lines entry point)
+  - Created 15 modules in `admin/js/`
+  - Original backed up as `admin/admin.old.js`
+- ✅ **Phase 2.2 Completed**: Fixed N+1 Query in updateMapMarkers()
+  - Changed from loop queries to single batch query with `.in()`
+
+---
+
 ## Critical Issues (ต้องแก้ก่อน)
 
-| Priority | Issue | Risk | File |
-|----------|-------|------|------|
-| 1 | Dev mode bypass `?dev=1` | CRITICAL | admin/admin.js:2715 |
-| 2 | Row-Level Security (RLS) ปิดอยู่ | CRITICAL | Supabase Dashboard |
-| 3 | XSS vulnerabilities (115 จุด) | CRITICAL | admin/*.js |
-| 4 | Exposed API keys (15+ files) | HIGH | Multiple files |
+| Priority | Issue | Risk | Status | File |
+|----------|-------|------|--------|------|
+| 1 | Dev mode bypass `?dev=1` | CRITICAL | ⚠️ PENDING | admin/admin.old.js:2715 |
+| 2 | Row-Level Security (RLS) ปิดอยู่ | CRITICAL | 🟡 IN PROGRESS | Supabase migrations |
+| 3 | XSS vulnerabilities (115 จุด) | CRITICAL | ✅ DONE | admin/*.js |
+| 4 | Exposed API keys (15+ files) | HIGH | ✅ DONE | shared/config.js |
 
 ---
 
 ## Phase 1: Security Hardening (Week 1-2)
 
 ### 1.1 Remove Dev Mode Bypass
-**File:** `PTGLG/driverconnect/admin/admin.js` (lines 2715-2723)
+**File:** `admin/admin.old.js` (lines 2715-2723) - **PENDING**
 ```javascript
 // ลบโค้ดนี้:
 const devMode = urlParams.get('dev') === '1';
 if (devMode) { ... }
 ```
-**Effort:** 1 ชั่วโมง
+**Effort:** 1 ชั่วโมง | **Status:** ⚠️ TODO
 
 ### 1.2 Enable Row-Level Security (RLS)
 **Location:** Supabase Dashboard → Tables
-- Enable RLS บนทุกตาราง (user_profiles, jobdata, driver_jobs, etc.)
-- สร้าง policies สำหรับ driver/admin access
+- ✅ Created migrations: `20260125140000_fix_user_profiles_rls.sql`, `20260125150000_fix_jobdata_rls.sql`
+- ⚠️ Need to verify all tables have RLS enabled
+- ⚠️ Need to create policies for driver/admin access
 
-**Effort:** 8 ชั่วโมง
+**Effort:** 8 ชั่วโมง | **Status:** 🟡 IN PROGRESS
 
 ### 1.3 Fix XSS Vulnerabilities
 **Files:**
-- `admin/admin.js` (73 innerHTML)
-- `admin/debug-import.js` (34 innerHTML)
-- `admin/logistics-performance.js` (8 innerHTML)
+- `admin/js/utils.js` - ✅ Created sanitizeHTML utility
+- All modules now use `sanitizeHTML()` instead of raw innerHTML
 
-**Solution:** สร้าง sanitize utility + replace innerHTML
-
-**Effort:** 16 ชั่วโมง
+**Status:** ✅ DONE
 
 ### 1.4 Centralize API Keys
-**Create:** `shared/config.js` เป็น single source of truth
-**Remove:** hardcoded keys จาก 15+ files
+**Created:** `shared/config.js` as single source of truth
+**Removed:** Hardcoded keys from admin modules (import from config)
 
-**Effort:** 4 ชั่วโมง
+**Status:** ✅ DONE
 
 ---
 
 ## Phase 2: Code Quality (Week 3-4)
 
-### 2.1 Refactor admin.js (2,984 lines)
-แยกเป็น modules:
-```
-admin/modules/
-├── auth.js
-├── dashboard.js
-├── jobs.js
-├── users.js
-├── map.js
-├── reports.js
-└── notifications.js
-```
-**Effort:** 24 ชั่วโมง
+### 2.1 Refactor admin.js ✅ COMPLETED
+**Before:** 3,118 lines monolithic file
+**After:** 162 lines entry point + 15 modules
 
-### 2.2 Fix N+1 Queries
-**File:** `admin/admin.js` - updateMapMarkers()
-- เปลี่ยนจาก loop queries เป็น batch query
+**New Structure:**
+```
+admin/
+├── admin.js (162 lines - LIFF init, routing)
+├── admin.old.js (backup - 3,118 lines)
+└── js/
+    ├── utils.js - sanitizeHTML, showNotification, formatters
+    ├── map.js - initMap, updateMapMarkers (N+1 fixed), playback
+    ├── dashboard.js - loadDashboardAnalytics
+    ├── users.js - loadUsers, handleUserUpdate
+    ├── jobs.js - loadJobs, openJobModal, handleJobSubmit, details
+    ├── reports.js - loadDriverReports, generateDriverReport
+    ├── settings.js - loadSettings, saveSettings
+    ├── alerts.js - loadAlerts, updateAlertsBadge
+    ├── logs.js - loadLogs, search filters
+    ├── holiday-work.js - holiday approval workflow
+    ├── breakdown.js - vehicle breakdown handling
+    ├── siphoning.js - fuel siphoning records
+    ├── b100.js - B100 jobs management
+    ├── notifications.js - notification bell & dropdown
+    ├── realtime.js - Supabase subscriptions
+    └── main.js - initialization & event setup
+```
 
-**Effort:** 4 ชั่วโมง
+**Status:** ✅ DONE
+
+### 2.2 Fix N+1 Queries ✅ COMPLETED
+**File:** `admin/js/map.js` - updateMapMarkers()
+
+**Before (admin.old.js:283-297):**
+```javascript
+// ❌ N+1: Loop + query per job
+for (const job of activeJobs) {
+    const { data: latestLog } = await supabase
+        .from('driver_logs')
+        .select('*')
+        .eq('reference', job.reference)
+        .limit(1);
+}
+```
+
+**After (js/map.js:91-103):**
+```javascript
+// ✅ Single batch query
+const references = activeJobs.map(job => job.reference);
+const { data: allLogs } = await supabase
+    .from('driver_logs')
+    .select('*')
+    .in('reference', references)
+    .order('created_at', { ascending: false });
+```
+
+**Status:** ✅ DONE
 
 ### 2.3 Driver App Improvements
 **Files:** `driverapp/js/`
@@ -84,7 +134,7 @@ admin/modules/
 - Extract duplicate enrichStopsWithCoordinates()
 - เพิ่ม error codes และ recovery guidance
 
-**Effort:** 12 ชั่วโมง
+**Effort:** 12 ชั่วโมง | **Status:** ⚠️ TODO
 
 ---
 
