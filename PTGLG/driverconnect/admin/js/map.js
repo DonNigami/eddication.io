@@ -44,7 +44,7 @@ export function setPlaybackElements(elements) {
 /**
  * Load map settings from database
  */
-async function loadMapSettings() {
+export async function loadMapSettings() {
     try {
         const { data: settings, error } = await supabase
             .from('app_settings')
