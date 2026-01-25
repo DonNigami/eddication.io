@@ -303,13 +303,30 @@ export const SupabaseAPI = {
       };
 
       // 3. Get Destination Stops from driver_stops or driver_jobs
-      const { data: stopsData } = await supabase
-        .from(TABLES.TRIP_STOPS)
-        .select('*')
-        .eq('reference', reference)
-        .order('sequence', { ascending: true });
-
       let destinationStops = [];
+      let stopsData = null;
+
+      try {
+        const result = await supabase
+          .from(TABLES.TRIP_STOPS)
+          .select('*')
+          .eq('reference', reference)
+          .order('sequence', { ascending: true });
+
+        stopsData = result.data;
+        const stopsError = result.error;
+
+        if (stopsError) {
+          if (stopsError.code === 'PGRST204' || stopsError.message.includes('404')) {
+            console.log('ℹ️ driver_stops table does not exist, falling back to driver_jobs');
+          } else {
+            console.warn('⚠️ driver_stops query error:', stopsError.message);
+          }
+        }
+      } catch (stopsErr) {
+        console.log('ℹ️ driver_stops query exception, falling back to driver_jobs:', stopsErr.message);
+      }
+
       if (stopsData && stopsData.length > 0) {
         // Data exists in driver_stops, use it
         destinationStops = stopsData.map(row => ({
@@ -532,17 +549,27 @@ export const SupabaseAPI = {
         const fileName = `${reference}_${driverName}_${Date.now()}.jpg`;
         const base64Data = imageBase64.split(',')[1] || imageBase64;
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from(STORAGE_BUCKET)
-          .upload(fileName, decodeBase64(base64Data), {
-            contentType: 'image/jpeg'
-          });
-
-        if (!uploadError && uploadData) {
-          const { data: urlData } = supabase.storage
+        try {
+          const { data: uploadData, error: uploadError } = await supabase.storage
             .from(STORAGE_BUCKET)
-            .getPublicUrl(fileName);
-          imageUrl = urlData.publicUrl;
+            .upload(fileName, decodeBase64(base64Data), {
+              contentType: 'image/jpeg',
+              upsert: true
+            });
+
+          if (uploadError) {
+            console.warn('⚠️ Image upload failed:', uploadError.message);
+            // Continue without image - don't fail the entire alcohol check
+          } else if (uploadData) {
+            const { data: urlData } = supabase.storage
+              .from(STORAGE_BUCKET)
+              .getPublicUrl(fileName);
+            imageUrl = urlData.publicUrl;
+            console.log('✅ Image uploaded successfully');
+          }
+        } catch (storageErr) {
+          console.warn('⚠️ Storage upload exception:', storageErr.message);
+          // Continue without image
         }
       }
 

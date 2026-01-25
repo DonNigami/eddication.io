@@ -16,10 +16,84 @@ const cache = {
   origin: null,
   originExpiry: 0,
   customers: new Map(),
-  customersExpiry: 0
+  customersExpiry: 0,
+  geocoding: new Map() // Cache for geocoding results
 };
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Geocode an address using Nominatim (OpenStreetMap)
+ * @param {string} address - Address to geocode
+ * @returns {Promise<{lat, lng}|null>} - Coordinates or null
+ */
+async function geocodeAddress(address) {
+  if (!address) return null;
+
+  // Check cache first
+  const cacheKey = address.toLowerCase();
+  if (cache.geocoding.has(cacheKey)) {
+    return cache.geocoding.get(cacheKey);
+  }
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=th`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'DriverConnect-App/1.0'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      console.warn('⚠️ Geocoding request failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (data && data.length > 0) {
+      const result = {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+      // Cache the result
+      cache.geocoding.set(cacheKey, result);
+      console.log(`📍 Geocoded "${address}" to ${result.lat}, ${result.lng}`);
+      return result;
+    }
+
+    console.log(`ℹ️ No geocoding results for "${address}"`);
+    return null;
+  } catch (error) {
+    console.warn('⚠️ Geocoding error:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Batch geocode multiple addresses with rate limiting
+ * @param {Array} stops - Array of stops needing geocoding
+ * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng }
+ */
+async function batchGeocodeStops(stops) {
+  const results = new Map();
+  const stopsToGeocode = stops.filter(s => s.shipToName || s.address);
+
+  for (const stop of stopsToGeocode) {
+    const address = stop.shipToName || stop.address;
+    const coords = await geocodeAddress(address);
+    if (coords) {
+      results.set(stop.shipToCode || stop.seq, coords);
+    }
+    // Rate limiting: wait between requests
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+
+  return results;
+}
 
 /**
  * Get origin configuration by route
@@ -158,7 +232,23 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
       ? await getCustomerCoordinates(shipToCodes)
       : new Map();
 
-    // Step 4: Enrich stops
+    // Step 4: Identify stops without coordinates for geocoding
+    const stopsWithoutCoords = stops.filter(stop => {
+      if (stop.destLat && stop.destLng) return false;
+      if (stop.isOriginStop) return false;
+      if (!stop.shipToCode) return false;
+      const customer = customerMap.get(stop.shipToCode);
+      return !(customer && customer.lat && customer.lng);
+    });
+
+    // Step 5: Geocode missing stops
+    let geocodedMap = new Map();
+    if (stopsWithoutCoords.length > 0) {
+      console.log(`📍 Geocoding ${stopsWithoutCoords.length} stops without coordinates...`);
+      geocodedMap = await batchGeocodeStops(stopsWithoutCoords);
+    }
+
+    // Step 6: Enrich stops
     const enrichedStops = stops.map(stop => {
       // If already has coordinates, keep them
       if (stop.destLat && stop.destLng && stop.radiusM) {
@@ -188,7 +278,19 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
         }
       }
 
-      // No coordinates found
+      // Try geocoded result
+      const geocodeKey = stop.shipToCode || stop.seq;
+      if (geocodedMap.has(geocodeKey)) {
+        const coords = geocodedMap.get(geocodeKey);
+        return {
+          ...stop,
+          destLat: coords.lat,
+          destLng: coords.lng,
+          radiusM: 100 // Default radius for geocoded locations
+        };
+      }
+
+      // No coordinates found - return original
       return stop;
     });
 
@@ -249,6 +351,7 @@ export function clearLocationCache() {
   cache.originExpiry = 0;
   cache.customers.clear();
   cache.customersExpiry = 0;
+  cache.geocoding.clear();
   console.log('🗑️ Location cache cleared');
 }
 

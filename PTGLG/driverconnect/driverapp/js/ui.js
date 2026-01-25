@@ -304,8 +304,7 @@ export async function showTripSummary(tripData) {
     showConfirmButton: true,
     confirmButtonText: isHolidayWork ? '📋 รับทราบ - รอการอนุมัติ' : '✨ ดีมาก!',
     confirmButtonColor: isHolidayWork ? '#ff9800' : '#1abc9c',
-    width: '90%',
-    maxWidth: '500px'
+    width: '90%'
   });
 }
 
