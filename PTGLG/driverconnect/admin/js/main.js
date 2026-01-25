@@ -479,6 +479,9 @@ export async function loadSectionData(targetId) {
         case 'logs':
             await import('./logs.js').then(m => m.loadLogs());
             break;
+        case 'debug-import-tool':
+            await loadDebugImportTool();
+            break;
         case 'holiday-work':
             await loadHolidayWorkJobs();
             break;
@@ -598,6 +601,38 @@ export function showAccessDenied() {
     if (authStatus) {
         authStatus.textContent = '❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้';
         authStatus.style.color = 'red';
+    }
+}
+
+/**
+ * Load Debug Import Tool content dynamically
+ */
+async function loadDebugImportTool() {
+    const debugImportSection = document.getElementById('debug-import-tool');
+
+    // If already loaded, skip
+    if (debugImportSection.querySelector('.container')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('debug-import-content.html');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const content = await response.text();
+        debugImportSection.innerHTML = content;
+
+        // Load available sheet names after content is loaded
+        if (window.loadSheetNames) {
+            await window.loadSheetNames();
+        }
+    } catch (error) {
+        console.error('Error loading debug import tool:', error);
+        debugImportSection.innerHTML = `
+            <div class="container">
+                <h1>🔍 Debug Import Tool</h1>
+                <p style="color: #e74c3c;">Failed to load: ${error.message}</p>
+            </div>
+        `;
     }
 }
 
