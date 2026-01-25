@@ -482,14 +482,25 @@ export async function loadSectionData(targetId) {
         case 'holiday-work':
             await loadHolidayWorkJobs();
             break;
+        case 'vehicle-breakdown':
         case 'breakdown':
             await loadVehicleBreakdowns();
             break;
+        case 'fuel-siphoning':
         case 'siphoning':
             await loadFuelSiphoning();
             break;
+        case 'b100-jobs':
         case 'b100':
             await loadB100Jobs();
+            break;
+        case 'logistics-performance':
+            // Handled by dashboard section
+            await loadDashboardAnalytics();
+            break;
+        case 'driver-reports':
+            // Handled by reports section
+            await loadDriverReports();
             break;
         case 'map':
             await import('./map.js').then(m => m.initMap());
