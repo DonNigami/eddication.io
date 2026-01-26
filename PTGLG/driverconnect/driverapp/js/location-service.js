@@ -23,92 +23,183 @@ const cache = {
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Fetch with timeout
+ * Fetch with timeout and retry logic
  * @param {string} url - URL to fetch
  * @param {number} timeout - Timeout in milliseconds
+ * @param {number} retries - Number of retries
  * @returns {Promise<Response>} - Fetch response
  */
-async function fetchWithTimeout(url, options = {}, timeout = 5000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
+async function fetchWithTimeout(url, options = {}, timeout = 6000, retries = 2) {
+  let lastError;
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    if (error.name === 'AbortError') {
-      throw new Error('Timeout');
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(id);
+      return response;
+    } catch (error) {
+      clearTimeout(id);
+      lastError = error;
+
+      if (attempt < retries) {
+        // Exponential backoff: 1s, 2s, 4s...
+        const backoffDelay = 1000 * Math.pow(2, attempt);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+      }
     }
-    throw error;
   }
+
+  throw lastError;
 }
 
 /**
- * Geocode an address using Nominatim (OpenStreetMap) with CORS proxy
- * @param {string} address - Address to geocode
- * @returns {Promise<{lat, lng}|null>} - Coordinates or null
+ * Simplify Thai company name for better geocoding results
+ * @param {string} name - Original company name
+ * @returns {Array<string>} - Array of simplified name variations to try
  */
-async function geocodeAddress(address) {
+function simplifyThaiName(name) {
+  const variations = [name];
+
+  // Remove common Thai company prefixes/suffixes
+  const simplified = name
+    .replace(/^บริษัท\s+/i, '') // Remove "บริษัท " (Company)
+    .replace(/^ห้างหุ้นส่วนจำกัด\s+/i, '') // Remove "ห้างหุ้นส่วนจำกัด " (Partnership)
+    .replace(/\sจำกัด$/i, '') // Remove " จำกัด" (Limited)
+    .replace(/\s\(จำกัด\)$/i, '') // Remove " (จำกัด)"
+    .replace(/\s\(มหาชน\)$/i, '') // Remove " (มหาชน)" (Public)
+    .replace(/\s\(ไทย\)$/i, '') // Remove " (ไทย)" (Thailand)
+    .replace(/\s\.+$/, '') // Remove trailing dots
+    .trim();
+
+  if (simplified !== name) {
+    variations.push(simplified);
+  }
+
+  // Try with "จำกัด" suffix only
+  if (simplified && !simplified.includes('จำกัด')) {
+    variations.push(simplified + ' จำกัด');
+  }
+
+  // Try just the first 2-3 words (often the core business name)
+  const words = simplified.split(/\s+/);
+  if (words.length > 3) {
+    const shortName = words.slice(0, Math.min(3, words.length)).join(' ');
+    if (shortName !== simplified) {
+      variations.push(shortName);
+    }
+  }
+
+  // Remove duplicates while preserving order
+  return [...new Set(variations)];
+}
+
+/**
+ * Get multiple CORS proxy URLs to try
+ * @param {string} targetUrl - URL to proxy
+ * @returns {Array<{name: string, url: string}>} - Array of proxy configurations
+ */
+function getCorsProxies(targetUrl) {
+  return [
+    {
+      name: 'AllOrigins',
+      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+    },
+    {
+      name: 'CORSProxy',
+      url: `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+    },
+    {
+      name: 'ThingProxy',
+      url: `https://thingproxy.freeboard.io/fetch/${targetUrl}`
+    }
+  ];
+}
+
+/**
+ * Geocode an address using Nominatim (OpenStreetMap) with multiple fallbacks
+ * @param {string} address - Address to geocode
+ * @param {Object} options - Options { skipCache: boolean }
+ * @returns {Promise<{lat, lng, source}|null>} - Coordinates with source or null
+ */
+async function geocodeAddress(address, options = {}) {
   if (!address) return null;
 
-  // Check cache first
+  // Check cache first (unless skipping cache)
   const cacheKey = address.toLowerCase();
-  if (cache.geocoding.has(cacheKey)) {
+  if (!options.skipCache && cache.geocoding.has(cacheKey)) {
     return cache.geocoding.get(cacheKey);
   }
 
-  // Build the Nominatim URL
-  const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=th&addressdetails=1`;
+  // Get name variations to try
+  const nameVariations = simplifyThaiName(address);
 
-  // Try multiple methods: direct fetch (works on some origins), CORS proxy
-  const methods = [
-    {
-      name: 'Direct',
-      fetch: async () => {
-        const response = await fetchWithTimeout(nominatimUrl, {
-          headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
-        }, 3000);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
+  // Try each name variation with each geocoding method
+  for (const [index, searchName] of nameVariations.entries()) {
+    // Build the Nominatim URL with progressive simplification
+    const params = new URLSearchParams({
+      format: 'json',
+      q: searchName,
+      limit: '1',
+      countrycodes: 'th',
+      addressdetails: '1',
+      'accept-language': 'th,en'
+    });
+
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+
+    // Define geocoding methods to try
+    const methods = [
+      {
+        name: 'Direct',
+        fetch: async () => {
+          const response = await fetchWithTimeout(nominatimUrl, {
+            headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
+          }, 6000, 1);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return response.json();
+        }
+      },
+      ...getCorsProxies(nominatimUrl).map(proxy => ({
+        name: proxy.name,
+        fetch: async () => {
+          const response = await fetchWithTimeout(proxy.url, {}, 8000, 1);
+          if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+          return response.json();
+        }
+      }))
+    ];
+
+    // Try each method for this name variation
+    for (const method of methods) {
+      try {
+        const data = await method.fetch();
+
+        if (data && data.length > 0 && data[0].lat && data[0].lon) {
+          const result = {
+            lat: parseFloat(data[0].lat),
+            lng: parseFloat(data[0].lon),
+            source: method.name,
+            searchedName: searchName
+          };
+          // Cache the result
+          cache.geocoding.set(cacheKey, result);
+          const variationLabel = index > 0 ? ` (simplified: "${searchName}")` : '';
+          console.log(`📍 Geocoded "${address}" to ${result.lat}, ${result.lng} (${method.name})${variationLabel}`);
+          return result;
+        }
+      } catch (error) {
+        // Only log warning for the last name variation
+        if (index === nameVariations.length - 1) {
+          console.warn(`⚠️ Geocoding ${method.name} failed:`, error.message);
+        }
+        // Continue to next method
       }
-    },
-    {
-      name: 'CORS Proxy',
-      fetch: async () => {
-        // Use AllOrigins CORS proxy
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nominatimUrl)}`;
-        const response = await fetchWithTimeout(proxyUrl, {}, 5000);
-        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-        return response.json();
-      }
-    }
-  ];
-
-  for (const method of methods) {
-    try {
-      const data = await method.fetch();
-
-      if (data && data.length > 0) {
-        const result = {
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon)
-        };
-        // Cache the result
-        cache.geocoding.set(cacheKey, result);
-        console.log(`📍 Geocoded "${address}" to ${result.lat}, ${result.lng} (${method.name})`);
-        return result;
-      }
-
-      console.log(`ℹ️ No geocoding results for "${address}" (${method.name})`);
-      return null;
-    } catch (error) {
-      console.warn(`⚠️ Geocoding ${method.name} failed:`, error.message);
-      // Continue to next method
     }
   }
 
@@ -119,7 +210,7 @@ async function geocodeAddress(address) {
 /**
  * Batch geocode multiple addresses with rate limiting (parallel with delay)
  * @param {Array} stops - Array of stops needing geocoding
- * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng }
+ * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng, source }
  */
 async function batchGeocodeStops(stops) {
   const results = new Map();
@@ -130,11 +221,11 @@ async function batchGeocodeStops(stops) {
   }
 
   // Process in parallel with small delay between batches
-  const BATCH_SIZE = 3;
-  const BATCH_DELAY = 300;
+  const BATCH_SIZE = 2; // Reduced for better reliability
+  const BATCH_DELAY = 500; // Increased delay to respect rate limits
 
-  // Add a timeout for the entire geocoding process
-  const GEOCODING_TIMEOUT = 8000; // 8 seconds total timeout
+  // Increase timeout significantly - geocoding can take time with retries
+  const GEOCODING_TIMEOUT = 20000; // 20 seconds total timeout
 
   const geocodePromise = (async () => {
     for (let i = 0; i < stopsToGeocode.length; i += BATCH_SIZE) {
@@ -145,7 +236,7 @@ async function batchGeocodeStops(stops) {
         batch.map(async (stop) => {
           const address = stop.shipToName || stop.address;
           const coords = await geocodeAddress(address);
-          return coords ? { key: stop.shipToCode || stop.seq, coords } : null;
+          return coords ? { key: stop.shipToCode || stop.seq, coords, address } : null;
         })
       );
 
@@ -173,6 +264,63 @@ async function batchGeocodeStops(stops) {
   });
 
   return Promise.race([geocodePromise, timeoutPromise]);
+}
+
+/**
+ * Save geocoded result to customer table for future use
+ * @param {string} stationKey - The customer station key
+ * @param {string} name - Customer name
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {string} source - Geocoding source
+ */
+async function saveGeocodedResult(stationKey, name, lat, lng, source = 'geocoding') {
+  try {
+    // Check if customer already exists first
+    const { data: existing } = await supabase
+      .from('customer')
+      .select('stationKey')
+      .eq('stationKey', stationKey)
+      .maybeSingle();
+
+    if (existing) {
+      // Update existing customer
+      await supabase
+        .from('customer')
+        .update({
+          lat: lat.toString(),
+          lng: lng.toString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('stationKey', stationKey);
+      console.log(`💾 Updated coordinates for ${stationKey} (${name})`);
+    } else {
+      // Insert new customer entry
+      await supabase
+        .from('customer')
+        .insert({
+          stationKey,
+          name,
+          lat: lat.toString(),
+          lng: lng.toString(),
+          radiusMeters: 100,
+          source,
+          createdAt: new Date().toISOString()
+        });
+      console.log(`💾 Saved new coordinates for ${stationKey} (${name})`);
+    }
+
+    // Update cache
+    cache.customers.set(stationKey, {
+      name,
+      lat,
+      lng,
+      radiusMeters: 100
+    });
+  } catch (error) {
+    console.warn(`⚠️ Failed to save geocoded result for ${stationKey}:`, error.message);
+    // Don't throw - geocoding success shouldn't fail due to save failure
+  }
 }
 
 /**
@@ -326,6 +474,24 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
     if (stopsWithoutCoords.length > 0) {
       console.log(`📍 Geocoding ${stopsWithoutCoords.length} stops without coordinates...`);
       geocodedMap = await batchGeocodeStops(stopsWithoutCoords);
+    }
+
+    // Step 5.5: Save successful geocoding results to database
+    if (geocodedMap.size > 0) {
+      console.log(`💾 Saving ${geocodedMap.size} geocoded results to database...`);
+      for (const [key, coords] of geocodedMap.entries()) {
+        const stop = stopsWithoutCoords.find(s => (s.shipToCode || s.seq) === key);
+        if (stop && stop.shipToCode && coords.lat && coords.lng) {
+          // Save asynchronously without blocking
+          saveGeocodedResult(
+            stop.shipToCode,
+            stop.shipToName || stop.address || 'Unknown',
+            coords.lat,
+            coords.lng,
+            coords.source || 'nominatim'
+          ).catch(() => {}); // Fire and forget
+        }
+      }
     }
 
     // Step 6: Enrich stops
