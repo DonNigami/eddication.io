@@ -106,19 +106,48 @@ function simplifyThaiName(name) {
  */
 function getCorsProxies(targetUrl) {
   return [
+    // AllOrigins - JSON mode for better parsing
     {
       name: 'AllOrigins',
-      url: `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+      url: `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+      isJsonWrapper: true // Response wraps data in .contents
     },
+    // Try-cf-worker - a Cloudflare worker proxy
     {
-      name: 'CORSProxy',
+      name: 'TryCFWorker',
+      url: `https://try-cf-worker.affecting.workers.dev/?url=${encodeURIComponent(targetUrl)}`
+    },
+    // Corsproxy - might be rate-limited
+    {
+      name: 'CorsProxyISO',
       url: `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
-    },
-    {
-      name: 'ThingProxy',
-      url: `https://thingproxy.freeboard.io/fetch/${targetUrl}`
     }
   ];
+}
+
+/**
+ * Try geocoding via Supabase Edge Function (if deployed)
+ * @param {string} address - Address to geocode
+ * @returns {Promise<{lat, lng, source}|null>} - Coordinates or null
+ */
+async function geocodeViaSupabaseEdgeFunction(address) {
+  try {
+    const { data, error } = await supabase.functions.invoke('geocode', {
+      body: { address, country: 'th' }
+    });
+
+    if (error) throw error;
+    if (data && data.lat && data.lng) {
+      return {
+        lat: parseFloat(data.lat),
+        lng: parseFloat(data.lng),
+        source: 'SupabaseEdge'
+      };
+    }
+  } catch (error) {
+    // Edge function might not exist - that's okay
+    return null;
+  }
 }
 
 /**
@@ -136,10 +165,18 @@ async function geocodeAddress(address, options = {}) {
     return cache.geocoding.get(cacheKey);
   }
 
+  // Method 1: Try Supabase Edge Function first (most reliable if available)
+  const edgeResult = await geocodeViaSupabaseEdgeFunction(address);
+  if (edgeResult) {
+    cache.geocoding.set(cacheKey, edgeResult);
+    console.log(`📍 Geocoded "${address}" to ${edgeResult.lat}, ${edgeResult.lng} (SupabaseEdge)`);
+    return edgeResult;
+  }
+
   // Get name variations to try
   const nameVariations = simplifyThaiName(address);
 
-  // Try each name variation with each geocoding method
+  // Method 2: Try Nominatim through various proxies
   for (const [index, searchName] of nameVariations.entries()) {
     // Build the Nominatim URL with progressive simplification
     const params = new URLSearchParams({
@@ -153,6 +190,9 @@ async function geocodeAddress(address, options = {}) {
 
     const nominatimUrl = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
 
+    // Get proxy configurations
+    const proxies = getCorsProxies(nominatimUrl);
+
     // Define geocoding methods to try
     const methods = [
       {
@@ -162,15 +202,26 @@ async function geocodeAddress(address, options = {}) {
             headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
           }, 6000, 1);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          return response.json();
+          const json = await response.json();
+          return { data: json, isDirect: true };
         }
       },
-      ...getCorsProxies(nominatimUrl).map(proxy => ({
+      ...proxies.map(proxy => ({
         name: proxy.name,
+        isJsonWrapper: proxy.isJsonWrapper || false,
         fetch: async () => {
           const response = await fetchWithTimeout(proxy.url, {}, 8000, 1);
           if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-          return response.json();
+          const json = await response.json();
+          // AllOrigins wraps the response in .contents
+          if (proxy.isJsonWrapper && json.contents) {
+            try {
+              return { data: JSON.parse(json.contents), isDirect: false };
+            } catch {
+              return { data: null, isDirect: false };
+            }
+          }
+          return { data: json, isDirect: false };
         }
       }))
     ];
@@ -178,24 +229,27 @@ async function geocodeAddress(address, options = {}) {
     // Try each method for this name variation
     for (const method of methods) {
       try {
-        const data = await method.fetch();
+        const result = await method.fetch();
+        const data = result.data;
 
         if (data && data.length > 0 && data[0].lat && data[0].lon) {
-          const result = {
+          const coords = {
             lat: parseFloat(data[0].lat),
             lng: parseFloat(data[0].lon),
             source: method.name,
             searchedName: searchName
           };
           // Cache the result
-          cache.geocoding.set(cacheKey, result);
+          cache.geocoding.set(cacheKey, coords);
           const variationLabel = index > 0 ? ` (simplified: "${searchName}")` : '';
-          console.log(`📍 Geocoded "${address}" to ${result.lat}, ${result.lng} (${method.name})${variationLabel}`);
-          return result;
+          console.log(`📍 Geocoded "${address}" to ${coords.lat}, ${coords.lng} (${method.name})${variationLabel}`);
+          return coords;
         }
       } catch (error) {
-        // Only log warning for the last name variation
-        if (index === nameVariations.length - 1) {
+        // Only log warning for the last name variation and last method
+        const isLastVariation = index === nameVariations.length - 1;
+        const isLastMethod = method === methods[methods.length - 1];
+        if (isLastVariation && isLastMethod) {
           console.warn(`⚠️ Geocoding ${method.name} failed:`, error.message);
         }
         // Continue to next method
