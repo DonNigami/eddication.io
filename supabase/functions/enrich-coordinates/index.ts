@@ -117,26 +117,27 @@ serve(async (req) => {
 
     // ============================================
     // Step 3: Get all station coordinates
+    // Note: station table uses lowercase column names (stationkey, radiusmeters)
     // ============================================
     let stationMap = new Map<string, LocationData>();
 
     if (shipToCodes.length > 0) {
       const { data: stationData } = await supabase
         .from('station')
-        .select('stationKey, name, lat, lng, radiusMeters')
-        .in('stationKey', shipToCodes);
+        .select('stationkey, name, lat, lng, radiusmeters')
+        .in('stationkey', shipToCodes);
 
       if (stationData) {
         stationData.forEach((s: any) => {
           const lat = parseFloat(s.lat);
           const lng = parseFloat(s.lng);
           if (!isNaN(lat) && !isNaN(lng)) {
-            stationMap.set(s.stationKey, {
+            stationMap.set(s.stationkey, {
               lat,
               lng,
-              radiusMeters: parseInt(s.radiusMeters) || 100,
+              radiusMeters: parseInt(s.radiusmeters) || 100,
               name: s.name,
-              code: s.stationKey
+              code: s.stationkey
             });
           }
         });
@@ -154,7 +155,7 @@ serve(async (req) => {
       for (const name of uniqueNames) {
         const { data: stationByName } = await supabase
           .from('station')
-          .select('stationKey, name, lat, lng, radiusMeters')
+          .select('stationkey, name, lat, lng, radiusmeters')
           .eq('name', name)
           .limit(1)
           .maybeSingle();
@@ -167,9 +168,9 @@ serve(async (req) => {
             stationMap.set(name, {
               lat,
               lng,
-              radiusMeters: parseInt(stationByName.radiusMeters) || 100,
+              radiusMeters: parseInt(stationByName.radiusmeters) || 100,
               name: stationByName.name,
-              code: stationByName.stationKey
+              code: stationByName.stationkey
             });
             log(`Found station by name: ${name}`);
           }

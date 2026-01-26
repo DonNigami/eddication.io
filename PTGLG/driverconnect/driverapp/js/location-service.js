@@ -490,8 +490,8 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     if (stillUncachedCodes.length > 0) {
       const { data: stationData, error: stationError } = await supabase
         .from('station')
-        .select('stationKey, name, lat, lng, radiusMeters')
-        .in('stationKey', stillUncachedCodes);
+        .select('stationkey, name, lat, lng, radiusmeters')
+        .in('stationkey', stillUncachedCodes);
 
       if (stationError) {
         // Check if table doesn't exist or permission denied
@@ -506,11 +506,11 @@ export async function getCustomerCoordinates(shipToCodes = []) {
           const lng = parseFloat(s.lng);
 
           if (!isNaN(lat) && !isNaN(lng)) {
-            cache.customers.set(s.stationKey, {
+            cache.customers.set(s.stationkey, {
               name: s.name,
               lat,
               lng,
-              radiusMeters: s.radiusMeters
+              radiusMeters: s.radiusmeters
             });
           }
         });
@@ -565,14 +565,14 @@ async function getStationByName(name) {
   // Check cache first
   const cached = Array.from(cache.customers.entries()).find(([key, value]) => value.name === name);
   if (cached) {
-    return { stationKey: cached[0], ...cached[1] };
+    return { stationkey: cached[0], ...cached[1] };
   }
 
   try {
     // Try exact match first - more reliable for Thai names
     const { data: stationData, error } = await supabase
       .from('station')
-      .select('stationKey, name, lat, lng, radiusMeters')
+      .select('stationkey, name, lat, lng, radiusmeters')
       .eq('name', name)
       .limit(1)
       .maybeSingle();
@@ -593,11 +593,11 @@ async function getStationByName(name) {
       const lat = parseFloat(stationData.lat);
       const lng = parseFloat(stationData.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
-        cache.customers.set(stationData.stationKey, {
+        cache.customers.set(stationData.stationkey, {
           name: stationData.name,
           lat,
           lng,
-          radiusMeters: stationData.radiusMeters
+          radiusMeters: stationData.radiusmeters
         });
         return stationData;
       }
