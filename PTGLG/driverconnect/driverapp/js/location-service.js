@@ -456,12 +456,19 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 
   try {
     // Step 1: Query customer table
-    const { data: customerData } = await supabase
+    const { data: customerData, error: customerError } = await supabase
       .from('customer')
       .select('stationKey, name, lat, lng, radiusMeters')
       .in('stationKey', uncachedCodes);
 
-    if (customerData) {
+    if (customerError) {
+      // Check if table doesn't exist or permission denied
+      if (customerError.code === 'PGRST116' || customerError.code === '42501') {
+        console.warn(`⚠️ Customer table not accessible (${customerError.code}), skipping...`);
+      } else {
+        console.warn('⚠️ Customer table query error:', customerError.message);
+      }
+    } else if (customerData) {
       customerData.forEach(c => {
         const lat = parseFloat(c.lat);
         const lng = parseFloat(c.lng);
@@ -481,12 +488,19 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     // Step 2: Query station table for codes not found in customer
     const stillUncachedCodes = uncachedCodes.filter(code => !cache.customers.has(code));
     if (stillUncachedCodes.length > 0) {
-      const { data: stationData } = await supabase
+      const { data: stationData, error: stationError } = await supabase
         .from('station')
         .select('stationKey, name, lat, lng, radiusMeters')
         .in('stationKey', stillUncachedCodes);
 
-      if (stationData) {
+      if (stationError) {
+        // Check if table doesn't exist or permission denied
+        if (stationError.code === 'PGRST116' || stationError.code === '42501') {
+          console.warn(`⚠️ Station table not accessible (${stationError.code}), skipping...`);
+        } else {
+          console.warn('⚠️ Station table query error:', stationError.message);
+        }
+      } else if (stationData) {
         stationData.forEach(s => {
           const lat = parseFloat(s.lat);
           const lng = parseFloat(s.lng);
@@ -506,7 +520,7 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 
     cache.customersExpiry = Date.now() + CACHE_TTL;
   } catch (error) {
-    console.warn('⚠️ Error fetching customer/station coordinates:', error.message);
+    console.warn('⚠️ Exception fetching customer/station coordinates:', error.message);
   }
 
   return new Map(cache.customers);
@@ -556,12 +570,24 @@ async function getStationByName(name) {
 
   try {
     // Try exact match first - more reliable for Thai names
-    const { data: stationData } = await supabase
+    const { data: stationData, error } = await supabase
       .from('station')
       .select('stationKey, name, lat, lng, radiusMeters')
       .eq('name', name)
       .limit(1)
       .maybeSingle();
+
+    // Check for specific error codes
+    if (error) {
+      // If table doesn't exist or permission denied, just return null
+      if (error.code === 'PGRST116' || error.code === '42501') {
+        console.warn(`⚠️ Station table not accessible (${error.code})`);
+        return null;
+      }
+      // For other errors, log and continue
+      console.warn(`⚠️ Error looking up station by name "${name}":`, error.message);
+      return null;
+    }
 
     if (stationData) {
       const lat = parseFloat(stationData.lat);
@@ -577,7 +603,8 @@ async function getStationByName(name) {
       }
     }
   } catch (err) {
-    console.warn(`⚠️ Error looking up station by name "${name}":`, err.message);
+    // Catch network errors and other exceptions
+    console.warn(`⚠️ Exception looking up station by name "${name}":`, err.message);
   }
 
   return null;
@@ -626,10 +653,16 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
       .map(s => s.shipToCode)
       .filter((v, i, a) => a.indexOf(v) === i); // unique
 
-    // Step 2.3: Fetch customer coordinates
-    const customerMap = shipToCodes.length > 0
-      ? await getCustomerCoordinates(shipToCodes)
-      : new Map();
+    // Step 2.3: Fetch customer coordinates (with error handling)
+    let customerMap = new Map();
+    if (shipToCodes.length > 0) {
+      try {
+        customerMap = await getCustomerCoordinates(shipToCodes);
+      } catch (err) {
+        console.warn('⚠️ Error fetching customer coordinates, continuing without:', err.message);
+        customerMap = new Map();
+      }
+    }
 
     // Step 2.4: For stops without shipToCode, try to load coordinates by shipToName
     const stopsWithoutCode = stops.filter(s => !s.shipToCode && s.shipToName && !s.isOriginStop);
