@@ -558,14 +558,34 @@ export const SupabaseAPI = {
     }
 
     try {
-      // Get trip_id first. A reference can have multiple rows, but they belong to the same trip.
-      const { data: trips } = await supabase
+      // Get trip_id first - try driver_jobs, fallback to jobdata
+      let tripId = null;
+
+      const { data: trips, error: tripsError } = await supabase
         .from(TABLES.TRIPS)
         .select('id')
         .eq('reference', reference);
 
-      if (!trips || trips.length === 0) throw new Error('ไม่พบงาน');
-      const tripId = trips[0].id; // Use the ID from the first row
+      if (!tripsError && trips && trips.length > 0) {
+        tripId = trips[0].id;
+      }
+
+      // Fallback to jobdata if driver_jobs doesn't have the reference
+      if (!tripId) {
+        const { data: jobdataData, error: jobdataError } = await supabase
+          .from(TABLES.JOBDATA)
+          .select('id')
+          .eq('reference', reference)
+          .limit(1)
+          .maybeSingle();
+
+        if (!jobdataError && jobdataData) {
+          tripId = jobdataData.id;
+          console.log('✅ Using jobdata.id for alcohol check:', tripId);
+        }
+      }
+
+      if (!tripId) throw new Error('ไม่พบงาน');
 
       // Upload image to Storage (alcohol-evidence bucket per PLAN.md)
       let imageUrl = null;
@@ -828,15 +848,51 @@ export const SupabaseAPI = {
     }
 
     try {
-      // Fetch trip_id for logging (read-only from TABLES.TRIPS)
+      // Fetch trip_id for logging - try driver_jobs first, fallback to jobdata
+      let tripIdForLog = null;
+
       const { data: tripsData, error: tripsError } = await supabase
         .from(TABLES.TRIPS)
         .select('id')
         .eq('reference', reference);
-      
-      if (tripsError) throw tripsError;
-      if (!tripsData || tripsData.length === 0) throw new Error("Trip not found for logging.");
-      const tripIdForLog = tripsData[0].id;
+
+      if (tripsError) {
+        // Table might not exist, log and continue without trip_id
+        console.warn('⚠️ driver_jobs table query failed:', tripsError.message);
+      } else if (tripsData && tripsData.length > 0) {
+        tripIdForLog = tripsData[0].id;
+      }
+
+      // If no trip_id from driver_jobs, try getting id from jobdata
+      if (!tripIdForLog) {
+        const { data: jobdataData, error: jobdataError } = await supabase
+          .from(TABLES.JOBDATA)
+          .select('id')
+          .eq('reference', reference)
+          .limit(1)
+          .maybeSingle();
+
+        if (!jobdataError && jobdataData) {
+          tripIdForLog = jobdataData.id;
+          console.log('✅ Using jobdata.id for logging:', tripIdForLog);
+        }
+      }
+
+      // Log action if we have a trip_id
+      if (tripIdForLog) {
+        await supabase
+          .from(TABLES.DRIVER_LOGS)
+          .insert({
+            job_id: tripIdForLog,
+            reference: reference,
+            action: 'endtrip',
+            details: { endOdo, endPointName, location: { lat, lng } },
+            location: { lat, lng },
+            user_id: userId
+          });
+      } else {
+        console.warn('⚠️ No trip_id available for logging, skipping log entry');
+      }
 
       // Update jobdata table (primary writable table for status)
       const { error } = await supabase
@@ -856,18 +912,6 @@ export const SupabaseAPI = {
         .eq('reference', reference);
 
       if (error) throw error;
-
-      // Log action
-      await supabase
-        .from(TABLES.DRIVER_LOGS)
-        .insert({
-          job_id: tripIdForLog, // Use ID fetched from TABLES.TRIPS
-          reference: reference,
-          action: 'endtrip',
-          details: { endOdo, endPointName, location: { lat, lng } },
-          location: { lat, lng },
-          user_id: userId
-        });
 
       return { success: true, message: 'บันทึกจบทริปสำเร็จ' };
     } catch (err) {

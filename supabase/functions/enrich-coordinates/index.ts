@@ -26,9 +26,9 @@ interface StopData {
 }
 
 interface LocationData {
-  latitude: number;
-  longitude: number;
-  radius_meters?: number;
+  lat: number;
+  lng: number;
+  radiusMeters?: number;
   name?: string;
   code?: string;
 }
@@ -50,8 +50,8 @@ serve(async (req) => {
     log(`Enriching ${stops.length} stops with coordinates`);
 
     // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('PROJECT_URL') || 'https://myplpshpcordggbbtblg.supabase.co';
-    const supabaseKey = Deno.env.get('SERVICE_ROLE_KEY')!;
+    const supabaseUrl = Deno.env.get('PROJECT_URL') || Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // ============================================
@@ -59,27 +59,30 @@ serve(async (req) => {
     // ============================================
     let originLat: number | null = null;
     let originLng: number | null = null;
+    let originRadiusM: number = 200;
 
     if (route) {
       const routePrefix = route.substring(0, 3).toUpperCase();
-      
+
       const { data: originData } = await supabase
         .from('origin')
-        .select('latitude, longitude, radius_meters, name, code')
-        .ilike('route_code', `${routePrefix}%`)
+        .select('*')
+        .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
         .eq('active', true)
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (originData) {
-        originLat = originData.latitude;
-        originLng = originData.longitude;
+        originLat = parseFloat(originData.lat);
+        originLng = parseFloat(originData.lng);
+        originRadiusM = parseInt(originData.radiusMeters) || 200;
         log(`Found origin: ${originData.name} (${originLat}, ${originLng})`);
       }
     }
 
     // ============================================
-    // Step 2: Get all customer coordinates in one query
+    // Step 2: Get all customer coordinates
+    // Using camelCase column names: stationKey, name, lat, lng, radiusMeters
     // ============================================
     const shipToCodes = stops
       .filter(s => s.shipToCode && !s.isOriginStop)
@@ -91,52 +94,91 @@ serve(async (req) => {
     if (shipToCodes.length > 0) {
       const { data: customerData } = await supabase
         .from('customer')
-        .select('customer_code, customer_name, latitude, longitude, radius_meters')
-        .in('customer_code', shipToCodes)
-        .eq('active', true);
+        .select('stationKey, name, lat, lng, radiusMeters')
+        .in('stationKey', shipToCodes);
 
       if (customerData) {
-        customerData.forEach(c => {
-          customerMap.set(c.customer_code, {
-            latitude: c.latitude,
-            longitude: c.longitude,
-            radius_meters: c.radius_meters,
-            name: c.customer_name,
-            code: c.customer_code
-          });
+        customerData.forEach((c: any) => {
+          const lat = parseFloat(c.lat);
+          const lng = parseFloat(c.lng);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            customerMap.set(c.stationKey, {
+              lat,
+              lng,
+              radiusMeters: parseInt(c.radiusMeters) || 100,
+              name: c.name,
+              code: c.stationKey
+            });
+          }
         });
         log(`Found ${customerData.length} customers with coordinates`);
       }
     }
 
     // ============================================
-    // Step 3: Get all station coordinates in one query
+    // Step 3: Get all station coordinates
     // ============================================
     let stationMap = new Map<string, LocationData>();
 
     if (shipToCodes.length > 0) {
       const { data: stationData } = await supabase
         .from('station')
-        .select('station_code, station_name, latitude, longitude, radius_meters')
-        .in('station_code', shipToCodes)
-        .eq('active', true);
+        .select('stationKey, name, lat, lng, radiusMeters')
+        .in('stationKey', shipToCodes);
 
       if (stationData) {
-        stationData.forEach(s => {
-          stationMap.set(s.station_code, {
-            latitude: s.latitude,
-            longitude: s.longitude,
-            radius_meters: s.radius_meters,
-            name: s.station_name,
-            code: s.station_code
-          });
+        stationData.forEach((s: any) => {
+          const lat = parseFloat(s.lat);
+          const lng = parseFloat(s.lng);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            stationMap.set(s.stationKey, {
+              lat,
+              lng,
+              radiusMeters: parseInt(s.radiusMeters) || 100,
+              name: s.name,
+              code: s.stationKey
+            });
+          }
         });
         log(`Found ${stationData.length} stations with coordinates`);
       }
     }
 
     // ============================================
-    // Step 4: Enrich stops with coordinates
+    // Step 4: Look up stations by name for stops without shipToCode
+    // ============================================
+    const stopsWithoutCode = stops.filter(s => !s.shipToCode && s.shipToName && !s.isOriginStop);
+    if (stopsWithoutCode.length > 0) {
+      const uniqueNames = [...new Set(stopsWithoutCode.map(s => s.shipToName))];
+
+      for (const name of uniqueNames) {
+        const { data: stationByName } = await supabase
+          .from('station')
+          .select('stationKey, name, lat, lng, radiusMeters')
+          .eq('name', name)
+          .limit(1)
+          .maybeSingle();
+
+        if (stationByName) {
+          const lat = parseFloat(stationByName.lat);
+          const lng = parseFloat(stationByName.lng);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            // Store by name for later lookup
+            stationMap.set(name, {
+              lat,
+              lng,
+              radiusMeters: parseInt(stationByName.radiusMeters) || 100,
+              name: stationByName.name,
+              code: stationByName.stationKey
+            });
+            log(`Found station by name: ${name}`);
+          }
+        }
+      }
+    }
+
+    // ============================================
+    // Step 5: Enrich stops with coordinates
     // ============================================
     const enrichedStops = stops.map((stop, index) => {
       // If already has coordinates, keep them
@@ -149,29 +191,45 @@ serve(async (req) => {
         return {
           ...stop,
           destLat: originLat,
-          destLng: originLng
+          destLng: originLng,
+          radiusM: originRadiusM
         };
       }
 
-      // Regular stop - lookup in customer or station
+      // Regular stop - lookup in customer first
       if (stop.shipToCode) {
-        // Try customer first
         const customer = customerMap.get(stop.shipToCode);
-        if (customer && customer.latitude && customer.longitude) {
+        if (customer && customer.lat && customer.lng) {
           return {
             ...stop,
-            destLat: customer.latitude,
-            destLng: customer.longitude
+            destLat: customer.lat,
+            destLng: customer.lng,
+            radiusM: customer.radiusMeters || 100
           };
         }
 
         // Try station
         const station = stationMap.get(stop.shipToCode);
-        if (station && station.latitude && station.longitude) {
+        if (station && station.lat && station.lng) {
           return {
             ...stop,
-            destLat: station.latitude,
-            destLng: station.longitude
+            destLat: station.lat,
+            destLng: station.lng,
+            radiusM: station.radiusMeters || 100
+          };
+        }
+      }
+
+      // If shipToCode is empty, try to find by shipToName
+      if (!stop.shipToCode && stop.shipToName) {
+        // Check if we found it by name lookup
+        const station = stationMap.get(stop.shipToName);
+        if (station && station.lat && station.lng) {
+          return {
+            ...stop,
+            destLat: station.lat,
+            destLng: station.lng,
+            radiusM: station.radiusMeters || 100
           };
         }
       }
@@ -182,9 +240,9 @@ serve(async (req) => {
 
     // Count how many stops were enriched
     const enrichedCount = enrichedStops.filter(s => s.destLat && s.destLng).length;
-    log(`Enriched ${enrichedCount}/${stops.length} stops with coordinates`);
+    log(`Enriched ${enrichCount}/${stops.length} stops with coordinates`);
 
-    return successResponse({ stops: enrichedStops }, `Enriched ${enrichedCount} stops`);
+    return successResponse({ stops: enrichedStops }, `Enriched ${enriched} stops`);
 
   } catch (err) {
     log('Unexpected error:', err);
