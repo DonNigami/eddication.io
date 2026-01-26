@@ -3,6 +3,10 @@
  * Supabase Version
  */
 
+// Debounce flag to prevent realtime updates from interfering immediately after local updates
+let lastLocalUpdateTime = 0;
+const REALTIME_DEBOUNCE_MS = 2000; // Ignore realtime updates for 2s after local update
+
 import { LIFF_ID, APP_CONFIG } from './config.js';
 import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64, vibrateSuccess, vibrateError, vibrateWarning, vibrateNotification, vibrateImpact } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
@@ -102,8 +106,11 @@ async function search(isSilent = false) {
       StateManager.set(StateKeys.CURRENT_DRIVERS, drivers);
       StateManager.set(StateKeys.CURRENT_CHECKED_DRIVERS, checkedDrivers);
       StateManager.set(StateKeys.ALCOHOL_ALL_DONE, drivers.length > 0 && drivers.every(n => checkedDrivers.includes(n)));
-      StateManager.set(StateKeys.JOB_CLOSED, !!d.jobClosed);
-      StateManager.set(StateKeys.TRIP_ENDED, !!d.tripEnded);
+      const jobClosed = !!d.jobClosed;
+      const tripEnded = !!d.tripEnded;
+      StateManager.set(StateKeys.JOB_CLOSED, jobClosed);
+      StateManager.set(StateKeys.TRIP_ENDED, tripEnded);
+      console.log('📊 Job status from database:', { jobClosed, tripEnded, jobData: d.jobClosed, tripData: d.tripEnded });
     });
 
     setCurrentReference(reference);
@@ -125,6 +132,12 @@ async function search(isSilent = false) {
 
     // Subscribe to realtime updates
     SupabaseAPI.subscribeToJob(reference, (payload) => {
+      // Ignore realtime updates if we just did a local update (prevents race conditions)
+      const timeSinceLastUpdate = Date.now() - lastLocalUpdateTime;
+      if (timeSinceLastUpdate < REALTIME_DEBOUNCE_MS) {
+        console.log(`📡 Realtime update ignored (debounce: ${timeSinceLastUpdate}ms ago)`);
+        return;
+      }
       console.log('📡 Realtime update, refreshing...');
       search(true);
     });
@@ -267,11 +280,21 @@ function renderTimeline(stops) {
   groupOrder.forEach(key => {
     const group = grouped[key];
     const firstStop = group.stops[0];
-    
+
     // Check if all stops in this group are checked out
     const hasCheckIn = group.stops.some(s => !!s.checkInTime);
     const hasCheckOut = group.stops.every(s => !!s.checkOutTime);
     const isOrigin = group.isOriginStop;
+
+    // Log checkout status for debugging
+    if (!hasCheckOut) {
+      console.log(`⚠️ Stop "${group.shipToName}" (seq ${group.seq}) not checked out.`, {
+        hasCheckIn,
+        hasCheckOut,
+        checkInTime: group.stops.map(s => s.checkInTime),
+        checkOutTime: group.stops.map(s => s.checkOutTime)
+      });
+    }
 
     if (!hasCheckOut) allCheckout = false;
 
@@ -335,12 +358,21 @@ function renderTimeline(stops) {
   container.classList.remove('hidden');
 
   // Show close/end buttons
+  console.log('🔍 Close job button check:', { allCheckout, jobClosed, tripEnded, totalGroups: groupOrder.length });
   if (allCheckout && !jobClosed && !tripEnded) {
+    console.log('✅ Showing close job button');
     closeJobContainer.classList.remove('hidden');
     if (btnCloseJob) { btnCloseJob.style.display = 'block'; btnCloseJob.disabled = false; }
   } else if (jobClosed && !tripEnded) {
+    console.log('✅ Showing end trip button');
     closeJobContainer.classList.remove('hidden');
     if (btnEndTrip) { btnEndTrip.style.display = 'block'; btnEndTrip.disabled = false; }
+  } else {
+    console.log('⚠️ Close job button not shown. Reasons:', {
+      allCheckout,
+      jobClosed,
+      tripEnded
+    });
   }
 }
 
@@ -580,8 +612,14 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
       showInlineFlex(type, result.stop);
     }
 
+    // Refresh UI immediately to ensure latest state is shown
+    // This must happen BEFORE showing success to avoid race conditions
+    if (currentReference) {
+      lastLocalUpdateTime = Date.now(); // Set debounce flag to prevent realtime interference
+      await search(true);
+    }
+
     await showSuccess('อัปเดตสำเร็จ', result.message);
-    if (currentReference) search(true);
 
   } catch (err) {
     closeLoading();
