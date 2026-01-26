@@ -527,19 +527,35 @@ function handleSearchShipment(e) {
     if (driverRaw) drivers = driverRaw.split("/").map(s => s.trim()).filter(Boolean);
 
     // ---------- 3. Aggregate ปลายทาง/สินค้า ----------
+    // ✅ FIX: สร้าง map shipToName -> shipToCode ก่อน เพื่อ copy ค่าให้ row ที่ไม่มี shipToCode
+    const shipToNameToCodeMap = {};
+    zoRowsForRef.forEach(obj => {
+      const row = obj.row;
+      const shipToCode = String(row[cols.SHIP_TO_CODE - 1] || "").trim();
+      const shipToName = String(row[cols.SHIP_TO_NAME - 1] || "").trim();
+      if (shipToCode && shipToName && !shipToNameToCodeMap[shipToName]) {
+        shipToNameToCodeMap[shipToName] = shipToCode;
+      }
+    });
+
     const stationAgg = {};
     zoRowsForRef.forEach(obj => {
       const row = obj.row;
 
-      const shipToCode   = String(row[cols.SHIP_TO_CODE   - 1] || "").trim();
-      const shipToName   = String(row[cols.SHIP_TO_NAME   - 1] || "").trim();
-      const material     = String(row[cols.MATERIAL       - 1] || "").trim();
+      let shipToCode   = String(row[cols.SHIP_TO_CODE   - 1] || "").trim();
+      const shipToName = String(row[cols.SHIP_TO_NAME   - 1] || "").trim();
+      const material   = String(row[cols.MATERIAL       - 1] || "").trim();
       const materialDesc = String(row[cols.MATERIAL_DESC  - 1] || "").trim();
-      const qtyRaw       = row[cols.DELIVERY_QTY - 1];
-      const qty          = parseFloat(qtyRaw || 0) || 0;
+      const qtyRaw     = row[cols.DELIVERY_QTY - 1];
+      const qty        = parseFloat(qtyRaw || 0) || 0;
 
       const distanceRaw = row[cols.DISTANCE - 1];
       const distanceKm  = (distanceRaw !== "" && distanceRaw != null) ? parseFloat(distanceRaw) : "";
+
+      // ✅ FIX: ถ้าไม่มี shipToCode แต่มี shipToName ที่ match กับค่าอื่น ให้ copy มาใช้
+      if (!shipToCode && shipToName && shipToNameToCodeMap[shipToName]) {
+        shipToCode = shipToNameToCodeMap[shipToName];
+      }
 
       const stationKey = shipToCode || ("NAME:" + shipToName);
 
@@ -611,15 +627,32 @@ function handleSearchShipment(e) {
       const now        = new Date();
       const stationMap = {};
 
+      // ✅ FIX: สร้าง map shipToName -> shipToCode เพื่อ copy ค่าให้ row ที่ไม่มี shipToCode
+      const shipToNameToCode = {};
+      zoRowsForRef.forEach(obj => {
+        const row        = obj.row;
+        const shipToCode = String(row[cols.SHIP_TO_CODE - 1] || "").trim();
+        const shipToName = String(row[cols.SHIP_TO_NAME - 1] || "").trim();
+        // ถ้ามี shipToCode และยังไม่เคย map กับ shipToName นี้ ให้บันทึก
+        if (shipToCode && shipToName && !shipToNameToCode[shipToName]) {
+          shipToNameToCode[shipToName] = shipToCode;
+        }
+      });
+
       zoRowsForRef.forEach(obj => {
         const row        = obj.row;
         const zoRowIndex = obj.index + 2;
 
-        const shipToCode = String(row[cols.SHIP_TO_CODE - 1] || "").trim();
+        let shipToCode = String(row[cols.SHIP_TO_CODE - 1] || "").trim();
         const shipToName = String(row[cols.SHIP_TO_NAME - 1] || "").trim();
 
         const distanceRaw = row[cols.DISTANCE - 1];
         const distanceKm  = (distanceRaw !== "" && distanceRaw != null) ? parseFloat(distanceRaw) : "";
+
+        // ✅ FIX: ถ้าไม่มี shipToCode แต่มี shipToName ที่ match กับค่าอื่น ให้ copy มาใช้
+        if (!shipToCode && shipToName && shipToNameToCode[shipToName]) {
+          shipToCode = shipToNameToCode[shipToName];
+        }
 
         if (!shipToCode) {
           const fallbackKey = "NO_CODE_" + zoRowIndex;
