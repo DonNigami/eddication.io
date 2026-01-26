@@ -264,9 +264,10 @@ async function geocodeAddress(address, options = {}) {
 /**
  * Batch geocode multiple addresses with rate limiting (parallel with delay)
  * @param {Array} stops - Array of stops needing geocoding
+ * @param {number} timeoutMs - Timeout in milliseconds (default: 20000)
  * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng, source }
  */
-async function batchGeocodeStops(stops) {
+async function batchGeocodeStops(stops, timeoutMs = 20000) {
   const results = new Map();
   const stopsToGeocode = stops.filter(s => s.shipToName || s.address);
 
@@ -277,9 +278,6 @@ async function batchGeocodeStops(stops) {
   // Process in parallel with small delay between batches
   const BATCH_SIZE = 2; // Reduced for better reliability
   const BATCH_DELAY = 500; // Increased delay to respect rate limits
-
-  // Increase timeout significantly - geocoding can take time with retries
-  const GEOCODING_TIMEOUT = 20000; // 20 seconds total timeout
 
   const geocodePromise = (async () => {
     for (let i = 0; i < stopsToGeocode.length; i += BATCH_SIZE) {
@@ -312,9 +310,9 @@ async function batchGeocodeStops(stops) {
   // Race between geocoding and timeout
   const timeoutPromise = new Promise(resolve => {
     setTimeout(() => {
-      console.warn(`⏱️ Geocoding timed out after ${GEOCODING_TIMEOUT}ms, returning partial results`);
+      console.warn(`⏱️ Geocoding timed out after ${timeoutMs}ms, returning partial results`);
       resolve(results);
-    }, GEOCODING_TIMEOUT);
+    }, timeoutMs);
   });
 
   return Promise.race([geocodePromise, timeoutPromise]);
@@ -523,11 +521,26 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
       return !(customer && customer.lat && customer.lng);
     });
 
-    // Step 5: Geocode missing stops
+    // Step 5: Geocode missing stops - NON-BLOCKING with 2s timeout
     let geocodedMap = new Map();
     if (stopsWithoutCoords.length > 0) {
-      console.log(`📍 Geocoding ${stopsWithoutCoords.length} stops without coordinates...`);
-      geocodedMap = await batchGeocodeStops(stopsWithoutCoords);
+      console.log(`📍 Geocoding ${stopsWithoutCoords.length} stops without coordinates (max 2s wait)...`);
+
+      // Quick 2-second timeout for initial results
+      geocodedMap = await batchGeocodeStops(stopsWithoutCoords, 2000);
+
+      // Continue geocoding in background with full timeout (fire and forget)
+      batchGeocodeStops(stopsWithoutCoords, 20000).then(backgroundResults => {
+        if (backgroundResults.size > geocodedMap.size) {
+          console.log(`📍 Background geocoding completed: ${backgroundResults.size} results`);
+          // Trigger a UI refresh if callback is registered
+          if (window.onGeocodingComplete) {
+            window.onGeocodingComplete(backgroundResults);
+          }
+        }
+      }).catch(err => {
+        console.warn('⚠️ Background geocoding failed:', err.message);
+      });
     }
 
     // Step 5.5: Save successful geocoding results to database
