@@ -124,7 +124,7 @@ async function search(isSilent = false) {
 
     renderSummary(d, source);
     renderAlcoholSection();
-    renderTimeline(stops);
+    renderTimeline(stops, reference);
     recordLastUpdated();
 
     // Show force refresh button when job is loaded
@@ -224,7 +224,10 @@ function renderAlcoholSection() {
   container.classList.remove('hidden');
 }
 
-function renderTimeline(stops) {
+// Track current job reference to prevent mixing timeline items from different jobs
+let currentTimelineJobRef = null;
+
+function renderTimeline(stops, jobReference = null) {
   const container = document.getElementById('timelineContainer');
   const ul = document.getElementById('timeline');
   const closeJobContainer = document.getElementById('closeJobContainer');
@@ -233,11 +236,31 @@ function renderTimeline(stops) {
   const jobClosed = StateManager.get(StateKeys.JOB_CLOSED);
   const tripEnded = StateManager.get(StateKeys.TRIP_ENDED);
 
-  // Clear timeline completely to prevent duplicates
-  ul.innerHTML = '';
-  // Also remove any existing timeline items to ensure clean state
-  const existingItems = ul.querySelectorAll('.timeline-item');
-  existingItems.forEach(item => item.remove());
+  // Determine the job reference for this render
+  const thisJobRef = jobReference || (stops && stops[0] && stops[0].referenceNo) || currentTimelineJobRef;
+
+  console.log(`🔍 renderTimeline called for job "${thisJobRef}", current tracking: "${currentTimelineJobRef}"`);
+
+  // First pass: Remove any items with different job reference (stale items)
+  const staleItems = ul.querySelectorAll(`[data-job-ref]:not([data-job-ref="${thisJobRef}"])`);
+  if (staleItems.length > 0) {
+    console.log(`🧹 Removing ${staleItems.length} stale timeline items from previous jobs`);
+    staleItems.forEach(item => item.remove());
+  }
+
+  // If job reference changed, clear ALL remaining timeline items aggressively
+  if (currentTimelineJobRef !== thisJobRef) {
+    console.log(`🔄 Job changed: "${currentTimelineJobRef}" -> "${thisJobRef}", clearing ALL timeline items`);
+    ul.innerHTML = '';
+    // Remove ALL children, not just timeline-item class
+    while (ul.firstChild) {
+      ul.removeChild(ul.firstChild);
+    }
+    currentTimelineJobRef = thisJobRef;
+  } else {
+    // Same job, just clear using innerHTML
+    ul.innerHTML = '';
+  }
 
   closeJobContainer.classList.add('hidden');
   if (btnCloseJob) { btnCloseJob.style.display = 'none'; btnCloseJob.disabled = true; }
@@ -353,7 +376,9 @@ function renderTimeline(stops) {
 
     const li = document.createElement('li');
     li.className = 'timeline-item';
-    
+    // Track job reference to identify stale items
+    li.setAttribute('data-job-ref', thisJobRef);
+
     // Show item count if multiple items in group
     const itemCountBadge = group.stops.length > 1 
       ? `<span style="background:#3ecf8e;color:white;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:4px;">${group.stops.length} รายการ</span>` 

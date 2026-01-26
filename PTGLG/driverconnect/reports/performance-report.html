@@ -525,6 +525,43 @@
             max-width: 500px;
             margin: 0 auto;
         }
+
+        /* Station Table Enhancements */
+        .station-table-benchmark {
+            font-size: 11px;
+            color: var(--gray);
+        }
+
+        .trend-up {
+            color: #10b981;
+        }
+
+        .trend-down {
+            color: #ef4444;
+        }
+
+        /* Heatmap Legend */
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: center;
+        }
+
+        .heatmap-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--gray);
+        }
+
+        .heatmap-legend-color {
+            width: 20px;
+            height: 12px;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body>
@@ -741,6 +778,42 @@
 
             <!-- Time Analysis Tab -->
             <div class="tab-content" id="tab-time">
+                <!-- Summary Cards -->
+                <div class="kpi-grid" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-icon green"><i class="fas fa-check-circle"></i></div>
+                        </div>
+                        <div class="kpi-value" id="withinBenchmark">0</div>
+                        <div class="kpi-label">จุดที่อยู่ในเป้าหมาย</div>
+                        <div class="kpi-target">&lt; 20 นาที</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-icon yellow"><i class="fas fa-exclamation-triangle"></i></div>
+                        </div>
+                        <div class="kpi-value" id="needsAttention">0</div>
+                        <div class="kpi-label">ต้องติดตาม</div>
+                        <div class="kpi-target">20-40 นาที</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-icon red"><i class="fas fa-exclamation-circle"></i></div>
+                        </div>
+                        <div class="kpi-value" id="criticalStations">0</div>
+                        <div class="kpi-label">วิกฤติ</div>
+                        <div class="kpi-target">&gt; 40 นาที</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-header">
+                            <div class="kpi-icon blue"><i class="fas fa-chart-line"></i></div>
+                        </div>
+                        <div class="kpi-value" id="dwellTrendValue">-</div>
+                        <div class="kpi-label">แนวโน้ม 7 วัน</div>
+                        <div class="kpi-target">เทียบกับสัปดาห์ก่อน</div>
+                    </div>
+                </div>
+
                 <div class="charts-grid">
                     <div class="chart-card">
                         <div class="chart-header">
@@ -759,15 +832,80 @@
                             <canvas id="hourlyChart"></canvas>
                         </div>
                     </div>
+                </div>
 
+                <div class="chart-card full-width">
+                    <div class="chart-header">
+                        <h3 class="chart-title"><i class="fas fa-map-marker-alt"></i> ระยะเวลาเฉลี่ยต่อจุดบริการ (Dwell Time by Station)</h3>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="stationDwellTimeChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="table-card">
+                    <div class="table-header">
+                        <h3 class="table-title">รายละเอียดระยะเวลาต่อจุดบริการ</h3>
+                        <select id="stationFilter" onchange="filterStationTable()" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                            <option value="all">ทุกสถานะ</option>
+                            <option value="good">🟢 ดีเยี่ยม (&lt;15 นาที)</option>
+                            <option value="normal">🟡 ปกติ (15-30 นาที)</option>
+                            <option value="warning">🟠 ต้องติดตาม (30-45 นาที)</option>
+                            <option value="critical">🔴 วิกฤติ (&gt;45 นาที)</option>
+                        </select>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>อันดับ</th>
+                                <th>จุดบริการ (Station)</th>
+                                <th>ชื่อสถานที่</th>
+                                <th>จำนวนเยี่ยม</th>
+                                <th>เวลาเฉลี่ย</th>
+                                <th>เวลาเร็วสุด</th>
+                                <th>เวลาช้าสุด</th>
+                                <th>Std Dev</th>
+                                <th>Benchmark</th>
+                                <th>สถานะ</th>
+                                <th>แนวโน้ม 7 วัน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stationDwellTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="charts-grid">
                     <div class="chart-card full-width">
                         <div class="chart-header">
-                            <h3 class="chart-title"><i class="fas fa-business-time"></i> เวลาในการทำงานแต่ละขั้นตอน</h3>
+                            <h3 class="chart-title"><i class="fas fa-fire"></i> Dwell Time Heatmap (ชั่วโมง vs จุดบริการ)</h3>
                         </div>
-                        <div class="chart-container">
-                            <canvas id="processTimeChart"></canvas>
+                        <div class="chart-container" style="height: 350px;">
+                            <canvas id="heatmapChart"></canvas>
                         </div>
                     </div>
+                </div>
+
+                <div class="table-card" style="margin-top: 24px;">
+                    <div class="table-header">
+                        <h3 class="table-title">🚨 รายการที่ใช้เวลาเกินเกณฑ์ (Exception Report)</h3>
+                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Reference No</th>
+                                <th>จุดบริการ</th>
+                                <th>พนักงานขับ</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>ระยะเวลา</th>
+                                <th>เกินเกณฑ์</th>
+                                <th>สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="exceptionTableBody">
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -1010,17 +1148,32 @@
             updateTrend('dwellTimeTrend', kpi.avgDwellTime <= 15 ? 'up' : kpi.avgDwellTime <= 20 ? 'neutral' : 'down', kpi.avgDwellTime <= 20 ? 'ดี' : 'ต้องปรับปรุง');
             updateTrend('gpsTrend', kpi.gpsAccuracy >= 95 ? 'up' : kpi.gpsAccuracy >= 80 ? 'neutral' : 'down');
 
-            // Render charts
+            // Calculate station dwell time data
+            calculateStationDwellTime();
+
+            // Render overview charts
             renderStatusChart();
             renderDailyJobsChart();
             renderTrendChart();
+
+            // Render driver charts
             renderDriverPerformanceChart();
             renderDriverTable();
+
+            // Render location charts
             renderLocationChart();
             renderLocationTable();
+
+            // Render time analysis charts
+            renderStationDwellSummary();
+            renderStationDwellTimeChart();
+            renderStationDwellTable();
             renderDwellTimeChart();
             renderHourlyChart();
-            renderProcessTimeChart();
+            renderDwellTimeHeatmap();
+            renderExceptionReport();
+
+            // Render status charts
             renderStatusGrid();
             renderPendingTable();
         }
@@ -1520,63 +1673,6 @@
             });
         }
 
-        // Process Time Chart
-        function renderProcessTimeChart() {
-            // Calculate average times for each process step
-            const processTimes = {
-                'Check-in to Checkout': [],
-                'Checkout to Fueling': [],
-                'Fueling to Unload': [],
-                'Unload to Review': [],
-                'Review to Job Done': []
-            };
-
-            filteredData.forEach(r => {
-                if (r.checkIn && r.checkOut) {
-                    const checkIn = parseThaiDate(r.checkIn);
-                    const checkOut = parseThaiDate(r.checkOut);
-                    if (checkIn && checkOut) {
-                        processTimes['Check-in to Checkout'].push((checkOut - checkIn) / 1000 / 60);
-                    }
-                }
-                if (r.checkOut && r.fuelingAt) {
-                    const checkOut = parseThaiDate(r.checkOut);
-                    const fueling = parseThaiDate(r.fuelingAt);
-                    if (checkOut && fueling) {
-                        processTimes['Checkout to Fueling'].push((fueling - checkOut) / 1000 / 60);
-                    }
-                }
-                // Add more process steps as needed
-            });
-
-            const labels = Object.keys(processTimes);
-            const data = labels.map(label => {
-                const times = processTimes[label];
-                return times.length > 0 ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : 0;
-            });
-
-            if (charts.processTime) charts.processTime.destroy();
-            charts.processTime = new Chart(document.getElementById('processTimeChart'), {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'เวลาเฉลี่ย (นาที)',
-                        data,
-                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
-
         // Status Grid
         function renderStatusGrid() {
             const statusCounts = {};
@@ -1707,6 +1803,421 @@
                 `อัปเดตล่าสุด: ${now.toLocaleDateString('th-TH', options)}`;
         }
 
+        // ==================== TIME ANALYSIS BY STATION ====================
+
+        // Station Dwell Time Data Store
+        let stationDwellData = [];
+
+        // Calculate Dwell Time by Station
+        function calculateStationDwellTime() {
+            const stationData = {};
+
+            filteredData.forEach(r => {
+                if (!r.shipToCode || !r.checkIn || !r.checkOut) return;
+
+                const checkIn = parseThaiDate(r.checkIn);
+                const checkOut = parseThaiDate(r.checkOut);
+                if (!checkIn || !checkOut) return;
+
+                const dwellTime = (checkOut - checkIn) / 1000 / 60; // minutes
+                if (dwellTime < 0 || dwellTime > 600) return; // Filter invalid data
+
+                const stationCode = r.shipToCode;
+                if (!stationData[stationCode]) {
+                    stationData[stationCode] = {
+                        code: stationCode,
+                        name: r.shipToName || '-',
+                        times: [],
+                        checkIns: [],
+                        visits: 0,
+                        totalDwell: 0
+                    };
+                }
+
+                stationData[stationCode].times.push(dwellTime);
+                stationData[stationCode].checkIns.push(checkIn);
+                stationData[stationCode].visits++;
+                stationData[stationCode].totalDwell += dwellTime;
+            });
+
+            // Convert to array and calculate stats
+            stationDwellData = Object.values(stationData).map(station => {
+                const times = station.times.sort((a, b) => a - b);
+                const avg = times.reduce((a, b) => a + b, 0) / times.length;
+                const min = times[0];
+                const max = times[times.length - 1];
+                const median = times[Math.floor(times.length / 2)];
+
+                // Calculate standard deviation
+                const variance = times.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / times.length;
+                const stdDev = Math.sqrt(variance);
+
+                // Calculate 7-day trend
+                const now = new Date();
+                const sevenDaysAgo = new Date(now);
+                sevenDaysAgo.setDate(now.getDate() - 7);
+
+                const recentTimes = station.times.filter((_, i) =>
+                    station.checkIns[i] >= sevenDaysAgo
+                );
+                const fourteenDaysAgo = new Date(now);
+                fourteenDaysAgo.setDate(now.getDate() - 14);
+                sevenDaysAgo.setDate(now.getDate() - 7);
+
+                const previousTimes = station.times.filter((_, i) =>
+                    station.checkIns[i] >= fourteenDaysAgo && station.checkIns[i] < sevenDaysAgo
+                );
+
+                const recentAvg = recentTimes.length > 0
+                    ? recentTimes.reduce((a, b) => a + b, 0) / recentTimes.length
+                    : avg;
+                const previousAvg = previousTimes.length > 0
+                    ? previousTimes.reduce((a, b) => a + b, 0) / previousTimes.length
+                    : avg;
+
+                const trend = previousAvg > 0
+                    ? ((recentAvg - previousAvg) / previousAvg * 100).toFixed(1)
+                    : '0';
+
+                // Determine benchmark based on station type
+                const benchmark = getBenchmarkForStation(station.code, station.name);
+
+                // Determine status
+                let status = 'good';
+                if (avg > benchmark * 2) status = 'critical';
+                else if (avg > benchmark * 1.5) status = 'warning';
+                else if (avg > benchmark) status = 'normal';
+
+                return {
+                    ...station,
+                    avg: avg.toFixed(1),
+                    min: min.toFixed(1),
+                    max: max.toFixed(1),
+                    median: median.toFixed(1),
+                    stdDev: stdDev.toFixed(1),
+                    benchmark,
+                    status,
+                    trend,
+                    recentVisits: recentTimes.length
+                };
+            }).sort((a, b) => parseFloat(a.avg) - parseFloat(b.avg));
+
+            return stationDwellData;
+        }
+
+        // Get benchmark based on station type
+        function getBenchmarkForStation(code, name) {
+            // Main depots
+            if (code === 'TOP SR' || name.includes('ศรีราชา') || name.includes('คลัง')) return 30;
+
+            // Rural stations (typically farther)
+            if (name.includes('ชนบท') || name.includes('ห่าง')) return 45;
+
+            // High traffic stations
+            if (name.includes('หลัก') || name.includes('ใหญ่')) return 25;
+
+            // Standard PTC stations
+            if (code.startsWith('PTC-STA') || code.startsWith('S') || code.startsWith('SF')) return 20;
+
+            // Default
+            return 20;
+        }
+
+        // Render Station Dwell Time Summary Cards
+        function renderStationDwellSummary() {
+            const summary = {
+                withinBenchmark: 0,
+                needsAttention: 0,
+                critical: 0
+            };
+
+            stationDwellData.forEach(s => {
+                const avg = parseFloat(s.avg);
+                if (avg <= 20) summary.withinBenchmark++;
+                else if (avg <= 40) summary.needsAttention++;
+                else summary.critical++;
+            });
+
+            document.getElementById('withinBenchmark').textContent = summary.withinBenchmark;
+            document.getElementById('needsAttention').textContent = summary.needsAttention;
+            document.getElementById('criticalStations').textContent = summary.critical;
+
+            // Calculate trend
+            const trends = stationDwellData
+                .filter(s => s.trend !== '0')
+                .map(s => parseFloat(s.trend));
+            const avgTrend = trends.length > 0
+                ? (trends.reduce((a, b) => a + b, 0) / trends.length).toFixed(1)
+                : '0';
+
+            const trendEl = document.getElementById('dwellTrendValue');
+            if (avgTrend === '0') {
+                trendEl.textContent = '-';
+            } else {
+                const isImproving = avgTrend < 0;
+                trendEl.textContent = `${isImproving ? '' : '+'}${avgTrend}%`;
+                trendEl.style.color = isImproving ? '#10b981' : '#ef4444';
+            }
+        }
+
+        // Render Station Dwell Time Chart
+        function renderStationDwellTimeChart() {
+            const topStations = stationDwellData.slice(0, 20);
+            const labels = topStations.map(s => s.code);
+            const avgTimes = topStations.map(s => parseFloat(s.avg));
+            const benchmarks = topStations.map(s => s.benchmark);
+
+            // Color by status
+            const colors = topStations.map(s => {
+                if (s.status === 'critical') return '#ef4444';
+                if (s.status === 'warning') return '#f59e0b';
+                if (s.status === 'normal') return '#06b6d4';
+                return '#10b981';
+            });
+
+            if (charts.stationDwellTime) charts.stationDwellTime.destroy();
+            charts.stationDwellTime = new Chart(document.getElementById('stationDwellTimeChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'เวลาเฉลี่ย (นาที)',
+                            data: avgTimes,
+                            backgroundColor: colors,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Benchmark',
+                            data: benchmarks,
+                            type: 'line',
+                            borderColor: '#64748b',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                labels: function(context) {
+                                    return `เวลาเฉลี่ย: ${context.raw} นาที`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'นาที' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render Station Dwell Table
+        function renderStationDwellTable() {
+            const tbody = document.getElementById('stationDwellTableBody');
+            const filter = document.getElementById('stationFilter').value;
+
+            let filtered = stationDwellData;
+            if (filter !== 'all') {
+                filtered = stationDwellData.filter(s => s.status === filter);
+            }
+
+            tbody.innerHTML = filtered.map((s, i) => {
+                const avg = parseFloat(s.avg);
+                const benchmarkPct = ((avg / s.benchmark) * 100).toFixed(0);
+
+                let statusBadge, statusText;
+                if (s.status === 'critical') {
+                    statusBadge = 'status-badge danger';
+                    statusText = 'วิกฤติ';
+                } else if (s.status === 'warning') {
+                    statusBadge = 'status-badge warning';
+                    statusText = 'ต้องติดตาม';
+                } else if (s.status === 'normal') {
+                    statusBadge = 'status-badge info';
+                    statusText = 'ปกติ';
+                } else {
+                    statusBadge = 'status-badge success';
+                    statusText = 'ดีเยี่ยม';
+                }
+
+                // Trend icon
+                let trendIcon = '';
+                if (s.trend !== '0') {
+                    const isImproving = parseFloat(s.trend) < 0;
+                    trendIcon = isImproving
+                        ? '<span style="color: #10b981">↓</span>'
+                        : '<span style="color: #ef4444">↑</span>';
+                }
+
+                return `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${s.code}</strong></td>
+                        <td>${s.name}</td>
+                        <td>${s.visits}</td>
+                        <td><strong>${s.avg}</strong> นาที</td>
+                        <td>${s.min} นาที</td>
+                        <td>${s.max} นาที</td>
+                        <td>±${s.stdDev}</td>
+                        <td>${s.benchmark} นาที (${benchmarkPct}%)</td>
+                        <td><span class="${statusBadge}">${statusText}</span></td>
+                        <td>${trendIcon} ${s.trend !== '0' ? Math.abs(s.trend) + '%' : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter Station Table
+        function filterStationTable() {
+            renderStationDwellTable();
+        }
+
+        // Render Heatmap (Hour vs Station)
+        function renderDwellTimeHeatmap() {
+            // Get top 10 stations
+            const topStations = stationDwellData.slice(0, 10);
+
+            // Build hourly data
+            const heatmapData = [];
+            for (let hour = 0; hour < 24; hour++) {
+                topStations.forEach(station => {
+                    const hourVisits = filteredData.filter(r => {
+                        if (r.shipToCode !== station.code || !r.checkIn) return false;
+                        const checkIn = parseThaiDate(r.checkIn);
+                        return checkIn && checkIn.getHours() === hour;
+                    });
+
+                    const avgTime = hourVisits.length > 0
+                        ? hourVisits.reduce((sum, r) => {
+                            const checkIn = parseThaiDate(r.checkIn);
+                            const checkOut = parseThaiDate(r.checkOut);
+                            return sum + (checkIn && checkOut ? (checkOut - checkIn) / 1000 / 60 : 0);
+                        }, 0) / hourVisits.length
+                        : 0;
+
+                    heatmapData.push({
+                        x: hour,
+                        y: station.code,
+                        v: avgTime
+                    });
+                });
+            }
+
+            // Create heatmap using scatter with colors
+            if (charts.heatmap) charts.heatmap.destroy();
+            charts.heatmap = new Chart(document.getElementById('heatmapChart'), {
+                type: 'matrix',
+                data: {
+                    datasets: [{
+                        label: 'เวลาเฉลี่ย (นาที)',
+                        data: heatmapData,
+                        backgroundColor: function(ctx) {
+                            const value = ctx.dataset.data[ctx.dataIndex].v;
+                            const alpha = Math.min(value / 60, 1);
+                            return `rgba(239, 68, 68, ${alpha})`;
+                        },
+                        borderColor: function(ctx) {
+                            const value = ctx.dataset.data[ctx.dataIndex].v;
+                            return value > 30 ? '#ef4444' : value > 15 ? '#f59e0b' : '#10b981';
+                        },
+                        borderWidth: 1,
+                        width: ({ chart }) => (chart.chartArea || {}).width / 24 - 1,
+                        height: ({ chart }) => (chart.chartArea || {}).height / topStations.length - 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return `${context[0].raw.y}:00 น.`;
+                                },
+                                label: function(context) {
+                                    return `เวลาเฉลี่ย: ${context.raw.v.toFixed(1)} นาที`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            min: -0.5,
+                            max: 23.5,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function(value) {
+                                    return value + ':00';
+                                }
+                            },
+                            title: { display: true, text: 'ชั่วโมง' }
+                        },
+                        y: {
+                            type: 'category',
+                            labels: topStations.map(s => s.code),
+                            title: { display: true, text: 'จุดบริการ' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render Exception Report
+        function renderExceptionReport() {
+            const exceptions = [];
+            const benchmark = 45; // minutes
+
+            filteredData.forEach(r => {
+                if (!r.checkIn || !r.checkOut) return;
+                const checkIn = parseThaiDate(r.checkIn);
+                const checkOut = parseThaiDate(r.checkOut);
+                if (!checkIn || !checkOut) return;
+
+                const dwellTime = (checkOut - checkIn) / 1000 / 60;
+                if (dwellTime > benchmark) {
+                    exceptions.push({
+                        ...r,
+                        dwellTime,
+                        overBenchmark: (dwellTime - benchmark).toFixed(1)
+                    });
+                }
+            });
+
+            // Sort by dwell time descending
+            exceptions.sort((a, b) => b.dwellTime - a.dwellTime);
+
+            const tbody = document.getElementById('exceptionTableBody');
+            tbody.innerHTML = exceptions.slice(0, 20).map(r => {
+                const severity = r.dwellTime > 90 ? 'critical' : r.dwellTime > 60 ? 'warning' : 'info';
+
+                return `
+                    <tr>
+                        <td><code>${r.referenceNo || '-'}</code></td>
+                        <td>${r.shipToCode || '-'}</td>
+                        <td><code>${r.updatedBy ? r.updatedBy.substring(0, 15) + '...' : '-'}</code></td>
+                        <td>${r.checkIn || '-'}</td>
+                        <td>${r.checkOut || '-'}</td>
+                        <td><strong>${r.dwellTime.toFixed(1)}</strong> นาที</td>
+                        <td style="color: #ef4444">+${r.overBenchmark} นาที</td>
+                        <td><span class="status-badge ${severity === 'critical' ? 'danger' : severity === 'warning' ? 'warning' : 'info'}">${severity === 'critical' ? 'วิกฤติ' : severity === 'warning' ? 'รุนแรง' : 'เกินเกณฑ์'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
         // Export Report
         function exportReport() {
             const kpi = calculateKPIs();
@@ -1717,6 +2228,7 @@
                     end: document.getElementById('endDate').value
                 },
                 kpi: kpi,
+                stationDwellTime: stationDwellData,
                 data: filteredData
             };
 
