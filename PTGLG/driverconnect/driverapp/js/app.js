@@ -233,13 +233,21 @@ function renderTimeline(stops) {
   const jobClosed = StateManager.get(StateKeys.JOB_CLOSED);
   const tripEnded = StateManager.get(StateKeys.TRIP_ENDED);
 
+  // Clear timeline completely to prevent duplicates
   ul.innerHTML = '';
+  // Also remove any existing timeline items to ensure clean state
+  const existingItems = ul.querySelectorAll('.timeline-item');
+  existingItems.forEach(item => item.remove());
+
   closeJobContainer.classList.add('hidden');
   if (btnCloseJob) { btnCloseJob.style.display = 'none'; btnCloseJob.disabled = true; }
   if (btnEndTrip) { btnEndTrip.style.display = 'none'; btnEndTrip.disabled = true; }
 
   // Filter out "คลังศรีราชา" stops before rendering
   const filteredStops = stops ? stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา')) : [];
+
+  console.log('🔍 renderTimeline: filteredStops count =', filteredStops.length,
+    'unique seqs =', [...new Set(filteredStops.map(s => s.seq))].sort((a,b) => a-b));
 
   if (filteredStops.length === 0) {
     container.classList.remove('hidden');
@@ -256,7 +264,7 @@ function renderTimeline(stops) {
   // Group stops by shipToCode
   const grouped = {};
   const groupOrder = [];
-  
+
   filteredStops.forEach(stop => {
     // Group by shipToCode when available, otherwise by seq
     // - If shipToCode exists: group all materials with same code together
@@ -277,6 +285,12 @@ function renderTimeline(stops) {
     }
 
     grouped[key].stops.push(stop);
+  });
+
+  console.log('🔍 Grouping result:', {
+    totalStops: filteredStops.length,
+    totalGroups: groupOrder.length,
+    groups: groupOrder.map(key => ({ key, count: grouped[key].stops.length, seq: grouped[key].seq, name: grouped[key].shipToName }))
   });
 
   // Render grouped stops
@@ -358,6 +372,7 @@ function renderTimeline(stops) {
       </div>
     `;
     ul.appendChild(li);
+    console.log(`📌 Added timeline item for seq ${group.seq}, key "${key}", stops count: ${group.stops.length}`);
   });
 
   container.classList.remove('hidden');
