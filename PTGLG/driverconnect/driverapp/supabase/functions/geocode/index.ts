@@ -21,13 +21,15 @@ interface NominatimResult {
 }
 
 serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight - MUST allow all Supabase client headers
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
+      status: 200,
       headers: {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers':
-          'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-runtime, x-supabase-client-runtime-version, x-supabase-auth, x-supabase-client-platform, x-supabase-client-version',
+        'Access-Control-Max-Age': '86400',
       },
     });
   }
