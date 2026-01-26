@@ -218,6 +218,12 @@ export const SupabaseAPI = {
               materials: row.materials || ''
             }));
 
+            // Debug: Log raw checkout times from database
+            console.log('🔍 Raw data from database:');
+            filteredJobdataRows.forEach(row => {
+              console.log(`  id=${row.id}, seq=${row.seq}, ship_to_code="${row.ship_to_code}", checkout_time=${row.checkout_time}`);
+            });
+
             // Enrich stops with coordinates from master location tables
             const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || null);
 
@@ -475,6 +481,10 @@ export const SupabaseAPI = {
         }
       } else {
         console.log(`✅ Updated ${data.length} rows in jobdata.`);
+        // Log details of updated rows for debugging
+        data.forEach((row, i) => {
+          console.log(`  Row ${i+1}: seq=${row.seq}, ship_to_code=${row.ship_to_code}, checkin_time=${row.checkin_time}, checkout_time=${row.checkout_time}`);
+        });
       }
 
       // Log the action to driver_logs (log once per action, not per row updated)
