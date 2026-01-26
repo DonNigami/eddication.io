@@ -28,6 +28,11 @@ const TABLES = {
 // Storage bucket name (migration PENDING)
 const STORAGE_BUCKET = 'alcohol-evidence';
 
+// Cache for table existence checks (avoid repeated 404 errors)
+const TABLE_EXISTS_CACHE = {
+  driver_stops: null // null=unknown, true=exists, false=not exists
+};
+
 // Initialize Supabase client
 let supabase = null;
 let realtimeSubscription = null;
@@ -312,25 +317,34 @@ export const SupabaseAPI = {
       let destinationStops = [];
       let stopsData = null;
 
-      try {
-        const result = await supabase
-          .from(TABLES.TRIP_STOPS)
-          .select('*')
-          .eq('reference', reference)
-          .order('sequence', { ascending: true });
+      // Check cache to avoid repeated 404 errors
+      if (TABLE_EXISTS_CACHE.driver_stops !== false) {
+        try {
+          const result = await supabase
+            .from(TABLES.TRIP_STOPS)
+            .select('*')
+            .eq('reference', reference)
+            .order('sequence', { ascending: true });
 
-        stopsData = result.data;
-        const stopsError = result.error;
+          stopsData = result.data;
+          const stopsError = result.error;
 
-        if (stopsError) {
-          if (stopsError.code === 'PGRST204' || stopsError.message.includes('404')) {
-            console.log('ℹ️ driver_stops table does not exist, falling back to driver_jobs');
-          } else {
-            console.warn('⚠️ driver_stops query error:', stopsError.message);
+          if (stopsError) {
+            if (stopsError.code === 'PGRST204' || stopsError.message.includes('404')) {
+              console.log('ℹ️ driver_stops table does not exist, using driver_jobs (cached)');
+              TABLE_EXISTS_CACHE.driver_stops = false; // Cache the result
+            } else {
+              console.warn('⚠️ driver_stops query error:', stopsError.message);
+            }
+          } else if (stopsData && stopsData.length > 0) {
+            TABLE_EXISTS_CACHE.driver_stops = true; // Table exists and has data
           }
+        } catch (stopsErr) {
+          console.log('ℹ️ driver_stops query exception, falling back to driver_jobs:', stopsErr.message);
+          TABLE_EXISTS_CACHE.driver_stops = false; // Assume table doesn't exist on exception
         }
-      } catch (stopsErr) {
-        console.log('ℹ️ driver_stops query exception, falling back to driver_jobs:', stopsErr.message);
+      } else {
+        console.log('ℹ️ Skipping driver_stops query (table not found, cached)');
       }
 
       if (stopsData && stopsData.length > 0) {
@@ -556,7 +570,14 @@ export const SupabaseAPI = {
       // Upload image to Storage (alcohol-evidence bucket per PLAN.md)
       let imageUrl = null;
       if (imageBase64) {
-        const fileName = `${reference}_${driverName}_${Date.now()}.jpg`;
+        // Sanitize filename: remove spaces and special characters, use only alphanumeric
+        // Thai characters in driverName cause "Invalid key" error in Supabase Storage
+        const safeDriverName = driverName
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+          .replace(/[^a-zA-Z0-9]/g, '') // Remove non-alphanumeric (including Thai)
+          .substring(0, 20); // Limit length
+        const fileName = `${reference}_${safeDriverName || 'driver'}_${Date.now()}.jpg`;
         const base64Data = imageBase64.split(',')[1] || imageBase64;
 
         try {
