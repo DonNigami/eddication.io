@@ -289,22 +289,30 @@ function renderTimeline(stops, jobReference = null) {
   const groupOrder = [];
 
   filteredStops.forEach(stop => {
-    // Group by shipToCode when available, otherwise by seq
+    // Group by shipToCode when available, otherwise by shipToName
     // - If shipToCode exists: group all materials with same code together
-    // - If shipToCode is empty: each seq is a separate location (don't group)
-    const key = stop.shipToCode ? stop.shipToCode : `seq_${stop.seq}`;
+    // - If shipToCode is empty: group by shipToName (same location = same group)
+    const key = stop.shipToCode && stop.shipToCode.trim()
+      ? stop.shipToCode
+      : stop.shipToName || `seq_${stop.seq}`;
 
     if (!grouped[key]) {
       grouped[key] = {
         shipToCode: stop.shipToCode,
         shipToName: stop.shipToName,
         seq: stop.seq,
+        allSeqs: [stop.seq], // Track all seqs in this group
         stops: [],
         isOriginStop: stop.isOriginStop,
         destLat: stop.destLat,
         destLng: stop.destLng
       };
       groupOrder.push(key);
+    } else {
+      // Add seq to the list if not already there
+      if (!grouped[key].allSeqs.includes(stop.seq)) {
+        grouped[key].allSeqs.push(stop.seq);
+      }
     }
 
     grouped[key].stops.push(stop);
@@ -380,15 +388,20 @@ function renderTimeline(stops, jobReference = null) {
     li.setAttribute('data-job-ref', thisJobRef);
 
     // Show item count if multiple items in group
-    const itemCountBadge = group.stops.length > 1 
-      ? `<span style="background:#3ecf8e;color:white;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:4px;">${group.stops.length} รายการ</span>` 
+    const itemCountBadge = group.stops.length > 1
+      ? `<span style="background:#3ecf8e;color:white;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:4px;">${group.stops.length} รายการ</span>`
       : '';
+
+    // Format seq display for grouped stops (e.g., "จุดที่ 2, 3, 5" or "จุดที่ 2-4")
+    const seqDisplay = group.allSeqs && group.allSeqs.length > 1
+      ? ` ${group.allSeqs.join(', ')}`
+      : ` ${group.seq}`;
     
     li.innerHTML = `
       <div class="timeline-marker"></div>
       <div class="timeline-content">
         <div class="timeline-header-row">
-          <span class="timeline-stop-label">จุดที่ ${group.seq}${itemCountBadge}</span>
+          <span class="timeline-stop-label">จุดที่${seqDisplay}${itemCountBadge}</span>
           <span class="timeline-status">${escapeHtml(firstStop.status) || '-'}</span>
         </div>
         <div class="timeline-sub">${escapeHtml(group.shipToName) || '-'}</div>
