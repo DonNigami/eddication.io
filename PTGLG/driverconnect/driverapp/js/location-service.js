@@ -437,7 +437,8 @@ export async function getOriginConfig(route = null) {
 }
 
 /**
- * Get customer coordinates by shipToCodes
+ * Get customer/station coordinates by shipToCodes
+ * Queries both 'customer' and 'station' tables
  * @param {string[]} shipToCodes - Array of ship to codes
  * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng, radiusMeters }
  */
@@ -454,6 +455,7 @@ export async function getCustomerCoordinates(shipToCodes = []) {
   }
 
   try {
+    // Step 1: Query customer table
     const { data: customerData } = await supabase
       .from('customer')
       .select('stationKey, name, lat, lng, radiusMeters')
@@ -476,9 +478,35 @@ export async function getCustomerCoordinates(shipToCodes = []) {
       console.log(`✅ Loaded ${customerData.length} customer coordinates`);
     }
 
+    // Step 2: Query station table for codes not found in customer
+    const stillUncachedCodes = uncachedCodes.filter(code => !cache.customers.has(code));
+    if (stillUncachedCodes.length > 0) {
+      const { data: stationData } = await supabase
+        .from('station')
+        .select('stationKey, name, lat, lng, radiusMeters')
+        .in('stationKey', stillUncachedCodes);
+
+      if (stationData) {
+        stationData.forEach(s => {
+          const lat = parseFloat(s.lat);
+          const lng = parseFloat(s.lng);
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            cache.customers.set(s.stationKey, {
+              name: s.name,
+              lat,
+              lng,
+              radiusMeters: s.radiusMeters
+            });
+          }
+        });
+        console.log(`✅ Loaded ${stationData.length} station coordinates`);
+      }
+    }
+
     cache.customersExpiry = Date.now() + CACHE_TTL;
   } catch (error) {
-    console.warn('⚠️ Error fetching customers:', error.message);
+    console.warn('⚠️ Error fetching customer/station coordinates:', error.message);
   }
 
   return new Map(cache.customers);
@@ -512,13 +540,67 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
       ? await getCustomerCoordinates(shipToCodes)
       : new Map();
 
+    // Step 3.5: For stops without shipToCode, try to load coordinates by shipToName
+    const stopsWithoutCode = stops.filter(s => !s.shipToCode && s.shipToName && !s.isOriginStop);
+    if (stopsWithoutCode.length > 0) {
+      const uniqueNames = [...new Set(stopsWithoutCode.map(s => s.shipToName))];
+      console.log(`🔍 Looking up ${uniqueNames.length} unique names for stops without shipToCode...`);
+
+      // Query station table by name for stops without shipToCode
+      for (const name of uniqueNames) {
+        // Check if already in cache by name
+        const alreadyCached = Array.from(cache.customers.values()).some(v => v.name === name);
+        if (alreadyCached) continue;
+
+        try {
+          const { data: stationData } = await supabase
+            .from('station')
+            .select('stationKey, name, lat, lng, radiusMeters')
+            .ilike('name', name)
+            .limit(1);
+
+          if (stationData && stationData.length > 0) {
+            const s = stationData[0];
+            const lat = parseFloat(s.lat);
+            const lng = parseFloat(s.lng);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              // Use the stationKey as cache key
+              cache.customers.set(s.stationKey, {
+                name: s.name,
+                lat,
+                lng,
+                radiusMeters: s.radiusMeters
+              });
+              console.log(`✅ Found coordinates for "${name}" by name lookup`);
+            }
+          }
+        } catch (err) {
+          console.warn(`⚠️ Error looking up station by name "${name}":`, err.message);
+        }
+      }
+    }
+
     // Step 4: Identify stops without coordinates for geocoding
     const stopsWithoutCoords = stops.filter(stop => {
-      if (stop.destLat && stop.destLng) return false;
-      if (stop.isOriginStop) return false;
-      if (!stop.shipToCode) return false;
-      const customer = customerMap.get(stop.shipToCode);
-      return !(customer && customer.lat && customer.lng);
+      if (stop.destLat && stop.destLng) return false; // Already has coords
+      if (stop.isOriginStop) return false; // Origin handled separately
+
+      // Check if found in customerMap by shipToCode
+      if (stop.shipToCode) {
+        const customer = customerMap.get(stop.shipToCode);
+        if (customer && customer.lat && customer.lng) return false;
+      }
+
+      // Check if found in cache by shipToName (for stops without shipToCode)
+      if (!stop.shipToCode && stop.shipToName) {
+        const foundByName = Array.from(cache.customers.values()).some(
+          v => v.name === stop.shipToName && v.lat && v.lng
+        );
+        if (foundByName) return false;
+      }
+
+      // Needs geocoding
+      return true;
     });
 
     // Step 5: Geocode missing stops - NON-BLOCKING with 2s timeout
@@ -578,7 +660,7 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
         };
       }
 
-      // Regular stop - lookup in customer map
+      // Regular stop - lookup in customer map by shipToCode
       if (stop.shipToCode) {
         const customer = customerMap.get(stop.shipToCode);
         if (customer && customer.lat && customer.lng) {
@@ -588,6 +670,21 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
             destLng: customer.lng,
             radiusM: parseFloat(customer.radiusMeters) || 50
           };
+        }
+      }
+
+      // If shipToCode is empty, try to find by shipToName in customer/station cache
+      // (look up by name as fallback for empty codes)
+      if (!stop.shipToCode && stop.shipToName) {
+        for (const [key, value] of cache.customers.entries()) {
+          if (value.name === stop.shipToName && value.lat && value.lng) {
+            return {
+              ...stop,
+              destLat: value.lat,
+              destLng: value.lng,
+              radiusM: parseFloat(value.radiusMeters) || 100
+            };
+          }
         }
       }
 

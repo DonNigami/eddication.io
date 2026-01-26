@@ -258,9 +258,10 @@ function renderTimeline(stops) {
   const groupOrder = [];
   
   filteredStops.forEach(stop => {
-    // Use seq as the primary grouping key when shipToCode is empty
-    // This prevents different locations from being incorrectly grouped together
-    const key = stop.shipToCode || `seq_${stop.seq}`;
+    // Group by shipToCode when available, otherwise by seq
+    // - If shipToCode exists: group all materials with same code together
+    // - If shipToCode is empty: each seq is a separate location (don't group)
+    const key = stop.shipToCode ? stop.shipToCode : `seq_${stop.seq}`;
 
     if (!grouped[key]) {
       grouped[key] = {
@@ -274,7 +275,7 @@ function renderTimeline(stops) {
       };
       groupOrder.push(key);
     }
-    
+
     grouped[key].stops.push(stop);
   });
 
@@ -284,10 +285,10 @@ function renderTimeline(stops) {
     const firstStop = group.stops[0];
 
     // Check if this group has check-in/check-out
-    // Use some() instead of every() since multiple materials for same location
-    // may be in separate rows, but only one row has the timestamp
+    // Use every() since a location may have multiple material rows,
+    // and all must be checked out to consider the location complete
     const hasCheckIn = group.stops.some(s => !!s.checkInTime);
-    const hasCheckOut = group.stops.some(s => !!s.checkOutTime);
+    const hasCheckOut = group.stops.every(s => !!s.checkOutTime);
     const isOrigin = group.isOriginStop;
 
     // Log checkout status for debugging
