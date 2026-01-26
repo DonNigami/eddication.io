@@ -513,6 +513,77 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 }
 
 /**
+ * Enrich stops using the enrich-coordinates Edge Function
+ * This calls the server-side function which queries origin, customer, and station tables
+ * @param {Array} stops - Array of stop objects
+ * @param {string|null} route - Route code for origin lookup
+ * @returns {Promise<{success: boolean, stops: Array}|null>} - Enriched stops or null on failure
+ */
+async function enrichViaEdgeFunction(stops, route) {
+  try {
+    const { data, error } = await supabase.functions.invoke('enrich-coordinates', {
+      body: { stops, route }
+    });
+
+    if (error) {
+      console.warn('⚠️ enrich-coordinates Edge Function error:', error.message);
+      return null;
+    }
+
+    if (data && data.stops) {
+      console.log(`✅ Enriched via Edge Function: ${data.stops.filter(s => s.destLat && s.destLng).length}/${stops.length} stops`);
+      return { success: true, stops: data.stops };
+    }
+
+    return null;
+  } catch (err) {
+    console.warn('⚠️ enrich-coordinates Edge Function failed:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Query station by exact name match (more reliable than ilike for Thai)
+ * @param {string} name - Station name to lookup
+ * @returns {Promise<Object|null>} - Station data or null
+ */
+async function getStationByName(name) {
+  // Check cache first
+  const cached = Array.from(cache.customers.entries()).find(([key, value]) => value.name === name);
+  if (cached) {
+    return { stationKey: cached[0], ...cached[1] };
+  }
+
+  try {
+    // Try exact match first - more reliable for Thai names
+    const { data: stationData } = await supabase
+      .from('station')
+      .select('stationKey, name, lat, lng, radiusMeters')
+      .eq('name', name)
+      .limit(1)
+      .maybeSingle();
+
+    if (stationData) {
+      const lat = parseFloat(stationData.lat);
+      const lng = parseFloat(stationData.lng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        cache.customers.set(stationData.stationKey, {
+          name: stationData.name,
+          lat,
+          lng,
+          radiusMeters: stationData.radiusMeters
+        });
+        return stationData;
+      }
+    }
+  } catch (err) {
+    console.warn(`⚠️ Error looking up station by name "${name}":`, err.message);
+  }
+
+  return null;
+}
+
+/**
  * Enrich stops with coordinates from master location tables
  * @param {Array} stops - Array of stop objects
  * @param {string|null} route - Route code for origin lookup
@@ -526,56 +597,51 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
   try {
     console.log('🔍 Enriching coordinates for', stops.length, 'stops');
 
-    // Step 1: Get origin coordinate
+    // STEP 1: Try enrich-coordinates Edge Function first (server-side, no CORS issues)
+    const edgeResult = await enrichViaEdgeFunction(stops, route);
+    if (edgeResult && edgeResult.stops) {
+      // Update cache with results from Edge Function
+      for (const stop of edgeResult.stops) {
+        if (stop.destLat && stop.destLng && stop.shipToCode) {
+          cache.customers.set(stop.shipToCode, {
+            name: stop.shipToName || '',
+            lat: stop.destLat,
+            lng: stop.destLng,
+            radiusMeters: stop.radiusM || 100
+          });
+        }
+      }
+      return edgeResult.stops;
+    }
+
+    // STEP 2: Fallback to client-side enrichment if Edge Function fails
+    console.log('🔄 Falling back to client-side enrichment...');
+
+    // Step 2.1: Get origin coordinate
     const originData = await getOriginConfig(route);
 
-    // Step 2: Get all unique customer codes
+    // Step 2.2: Get all unique customer codes
     const shipToCodes = stops
       .filter(s => s.shipToCode && !s.isOriginStop)
       .map(s => s.shipToCode)
       .filter((v, i, a) => a.indexOf(v) === i); // unique
 
-    // Step 3: Fetch customer coordinates
+    // Step 2.3: Fetch customer coordinates
     const customerMap = shipToCodes.length > 0
       ? await getCustomerCoordinates(shipToCodes)
       : new Map();
 
-    // Step 3.5: For stops without shipToCode, try to load coordinates by shipToName
+    // Step 2.4: For stops without shipToCode, try to load coordinates by shipToName
     const stopsWithoutCode = stops.filter(s => !s.shipToCode && s.shipToName && !s.isOriginStop);
     if (stopsWithoutCode.length > 0) {
       const uniqueNames = [...new Set(stopsWithoutCode.map(s => s.shipToName))];
       console.log(`🔍 Looking up ${uniqueNames.length} unique names for stops without shipToCode...`);
 
-      // Query station table by name for stops without shipToCode
+      // Use exact match instead of ilike for Thai names
       for (const name of uniqueNames) {
-        // Check if already in cache by name
-        const alreadyCached = Array.from(cache.customers.values()).some(v => v.name === name);
-        if (alreadyCached) continue;
-
-        try {
-          const { data: stationData } = await supabase
-            .from('station')
-            .select('stationKey, name, lat, lng, radiusMeters')
-            .ilike('name', name)
-            .limit(1);
-
-          if (stationData && stationData.length > 0) {
-            const s = stationData[0];
-            const lat = parseFloat(s.lat);
-            const lng = parseFloat(s.lng);
-            if (!isNaN(lat) && !isNaN(lng)) {
-              // Use the stationKey as cache key
-              cache.customers.set(s.stationKey, {
-                name: s.name,
-                lat,
-                lng,
-                radiusMeters: s.radiusMeters
-              });
-              console.log(`✅ Found coordinates for "${name}" by name lookup`);
-            }
-          }
-        } catch (err) {
-          console.warn(`⚠️ Error looking up station by name "${name}":`, err.message);
+        const station = await getStationByName(name);
+        if (station) {
+          console.log(`✅ Found coordinates for "${name}" by name lookup`);
         }
       }
     }
