@@ -506,7 +506,8 @@ async function loadJobStops(reference) {
 }
 
 /**
- * Render stops detail
+ * Render stops detail - grouped by ship_to for incentive calculation
+ * Shows all jobdata records with their check-in/check-out details
  */
 async function renderStopsDetail(stops) {
     if (!elements.detailStops) return;
@@ -521,52 +522,124 @@ async function renderStopsDetail(stops) {
     // Load origin keys once for all stops
     const origins = await loadOriginKeys();
 
-    for (const [index, stop] of stops.entries()) {
-        const stopDiv = document.createElement('div');
-        stopDiv.style.cssText = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);';
+    // Group stops by ship_to (unique destinations)
+    // key: ship_to or ship_to_name, value: array of all stops for this destination
+    const groupedStops = new Map();
+    const originStops = [];
+    const deliveryStops = [];
 
-        // Check if this is an origin point by looking up in origin table
-        // jobdata table uses 'ship_to', not 'ship_to_code'
+    for (const stop of stops) {
         const shipToCode = stop.ship_to || stop.ship_to_code || '';
         const shipToName = stop.ship_to_name || '';
         const isOrigin = origins.has(shipToCode);
 
-        // Get destination name
-        const destinationName = shipToName || stop.destination || '-';
-        // Get ship_to_code for display
-        const shipToCodeDisplay = shipToCode || '-';
+        // Use ship_to as key for grouping
+        const key = shipToCode || shipToName || 'unknown';
 
-        stopDiv.innerHTML = `
-            <div style="width: 30px; height: 30px; background: ${isOrigin ? '#78909c' : 'var(--primary-color)'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px;">
-                ${isOrigin ? '🏠' : index + 1}
-            </div>
-            <div style="flex: 1;">
-                <strong>${sanitizeHTML(destinationName)}</strong>
-                ${!isOrigin ? `<div style="font-size: 0.8rem; color: var(--text-sub);">รหัส: ${sanitizeHTML(shipToCodeDisplay)}</div>` : ''}
-                <div style="font-size: 0.85rem; color: var(--text-sub);">
-                    Check-in: ${stop.checkin_time ? new Date(stop.checkin_time).toLocaleTimeString('th-TH') : '-'}
-                    | Check-out: ${stop.checkout_time ? new Date(stop.checkout_time).toLocaleTimeString('th-TH') : '-'}
+        if (!groupedStops.has(key)) {
+            groupedStops.set(key, {
+                shipToCode,
+                shipToName,
+                destination: stop.destination || '',
+                isOrigin,
+                records: []
+            });
+        }
+
+        groupedStops.get(key).records.push(stop);
+
+        if (isOrigin) {
+            originStops.push(key);
+        } else {
+            deliveryStops.push(key);
+        }
+    }
+
+    // Display header
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'padding: 10px; background: #f5f5f5; border-radius: 6px; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-sub);';
+    headerDiv.innerHTML = `
+        <div><strong>ข้อมูลทั้งหมดจาก jobdata:</strong> ${stops.length} ระเบียน</div>
+        <div style="margin-top: 5px;">
+            <span style="color: #78909c;">🏠 ต้นทาง ${new Set(originStops).size} จุด (${originStops.length} ระเบียน)</span> |
+            <span style="color: #4caf50;">📍 จุดส่ง ${new Set(deliveryStops).size} จุด (${deliveryStops.length} ระเบียน)</span>
+        </div>
+    `;
+    elements.detailStops.appendChild(headerDiv);
+
+    // Display grouped stops
+    let displayIndex = 0;
+    for (const [key, group] of groupedStops.entries()) {
+        displayIndex++;
+
+        const groupDiv = document.createElement('div');
+        groupDiv.style.cssText = 'margin-bottom: 15px; padding: 12px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);';
+
+        // Header for this group (unique destination)
+        const destinationName = group.shipToName || group.destination || key;
+        const bgColor = group.isOrigin ? '#78909c' : 'var(--primary-color)';
+        const label = group.isOrigin ? '🏠 ต้นทาง' : `📍 จุดส่งที่ ${displayIndex}`;
+
+        // Check if any records are incomplete
+        const hasIncomplete = group.records.some(r => !r.checkin_time || !r.checkout_time);
+
+        let html = `
+            <div style="display: flex; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);">
+                <div style="width: 32px; height: 32px; background: ${bgColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px;">
+                    ${group.isOrigin ? '🏠' : displayIndex}
                 </div>
-            </div>
-            <div style="text-align: right;">
-                <span style="font-size: 0.85rem; padding: 2px 8px; background: ${isOrigin ? '#78909c' : (stop.checkin_time && stop.checkout_time ? '#4caf50' : '#ff9800')}; color: white; border-radius: 4px;">
-                    ${isOrigin ? '🏠 ต้นทาง' : (stop.checkin_time && stop.checkout_time ? '✅ เสร็จสิ้น' : '⏳ ไม่สมบูรณ์')}
-                </span>
+                <div style="flex: 1;">
+                    <strong>${sanitizeHTML(destinationName)}</strong>
+                    ${!group.isOrigin ? `<div style="font-size: 0.8rem; color: var(--text-sub);">รหัส: ${sanitizeHTML(group.shipToCode || '-')}</div>` : ''}
+                    <div style="font-size: 0.8rem; color: ${hasIncomplete ? '#ff9800' : '#4caf50'};">
+                        ${group.records.length} ระเบียน ${hasIncomplete ? '⚠️ บางระเบียนไม่สมบูรณ์' : '✅ สมบูรณ์'}
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 0.8rem; padding: 3px 8px; background: ${group.isOrigin ? '#78909c' : '#2196f3'}; color: white; border-radius: 4px;">
+                        ${label}
+                    </span>
+                </div>
             </div>
         `;
 
-        elements.detailStops.appendChild(stopDiv);
+        // List all records for this destination
+        html += '<div style="margin-left: 42px; font-size: 0.85rem;">';
+        for (const [i, record] of group.records.entries()) {
+            const seq = record.seq || i + 1;
+            const checkinTime = record.checkin_time ? new Date(record.checkin_time).toLocaleTimeString('th-TH') : '-';
+            const checkoutTime = record.checkout_time ? new Date(record.checkout_time).toLocaleTimeString('th-TH') : '-';
+            const isComplete = record.checkin_time && record.checkout_time;
+
+            html += `
+                <div style="padding: 6px 8px; margin-bottom: 4px; background: ${isComplete ? '#f0f9ff' : '#fff3e0'}; border-radius: 4px; border-left: 3px solid ${isComplete ? '#4caf50' : '#ff9800'};">
+                    <span style="color: var(--text-sub);">Seq ${seq}:</span>
+                    Check-in: <strong>${checkinTime}</strong>
+                    | Check-out: <strong>${checkoutTime}</strong>
+                    ${record.checkin_odo ? `| ไมล์: ${record.checkin_odo}` : ''}
+                    ${record.checkout_odo ? `→ ${record.checkout_odo}` : ''}
+                </div>
+            `;
+        }
+        html += '</div>';
+
+        groupDiv.innerHTML = html;
+        elements.detailStops.appendChild(groupDiv);
     }
 
-    // Add summary of unique delivery stops
-    const uniqueCount = await calculateUniqueStops(stops);
-    const originCount = stops.length - uniqueCount;
+    // Summary for incentive calculation
+    const uniqueDeliveryCount = new Set(deliveryStops).size;
+    const uniqueOriginCount = new Set(originStops).size;
     const summaryDiv = document.createElement('div');
-    summaryDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: var(--card-bg); border-radius: 8px; font-size: 0.9rem;';
+    summaryDiv.style.cssText = 'margin-top: 15px; padding: 12px; background: #e8f5e9; border-radius: 8px; border: 1px solid #4caf50;';
     summaryDiv.innerHTML = `
-        <strong>สรุป:</strong> ทั้งหมด ${stops.length} จุด |
-        <span style="color: #78909c;">ต้นทาง ${originCount} จุด</span> |
-        <span style="color: #4caf50;">จุดส่งจริง ${uniqueCount} จุด</span> (ไม่ซ้ำกัน)
+        <div style="font-size: 1rem; font-weight: bold; color: #2e7d32; margin-bottom: 5px;">
+            💰 คำนวณ Incentive
+        </div>
+        <div style="font-size: 0.9rem; color: #1b5e20;">
+            จุดส่งจริงที่นับรับ: <strong>${uniqueDeliveryCount} จุด</strong>
+            <span style="color: #4caf50;">(ไม่รวมต้นทาง ${uniqueOriginCount} จุด)</span>
+        </div>
     `;
     elements.detailStops.appendChild(summaryDiv);
 }
