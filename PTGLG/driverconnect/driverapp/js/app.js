@@ -540,24 +540,35 @@ function renderTimeline(stops, jobReference = null) {
     // Track job reference to identify stale items
     li.setAttribute('data-job-ref', thisJobRef);
 
-    // Show item count if multiple items in group
-    const itemCountBadge = group.stops.length > 1
-      ? `<span style="background:#3ecf8e;color:white;padding:2px 8px;border-radius:12px;font-size:0.75rem;margin-left:4px;">${group.stops.length} รายการ</span>`
-      : '';
+    // For grouped stops: show location name as main label, seq info as badge
+    // For single stops: show "จุดที่ X" + location name
+    const isGrouped = group.stops.length > 1;
+    const locationName = escapeHtml(group.shipToName) || '-';
 
-    // Format seq display for grouped stops (e.g., "จุดที่ 2, 3, 5" or "จุดที่ 2-4")
-    const seqDisplay = group.allSeqs && group.allSeqs.length > 1
-      ? ` ${group.allSeqs.join(', ')}`
-      : ` ${group.seq}`;
-    
+    let labelHtml = '';
+    if (isGrouped) {
+      // Grouped: Location name (main) + seq badge
+      const seqBadge = `<span class="seq-badge">${group.allSeqs.join(',')}</span>`;
+      const countBadge = `<span class="count-badge">${group.stops.length}</span>`;
+      labelHtml = `
+        <span class="timeline-stop-label grouped">
+          ${locationName}
+          <span class="timeline-badges">${seqBadge}${countBadge}</span>
+        </span>
+      `;
+    } else {
+      // Single: "จุดที่ X" + location name
+      labelHtml = `<span class="timeline-stop-label">จุดที่ ${group.seq}</span>`;
+    }
+
     li.innerHTML = `
       <div class="timeline-marker"></div>
       <div class="timeline-content">
         <div class="timeline-header-row">
-          <span class="timeline-stop-label">จุดที่${seqDisplay}${itemCountBadge}</span>
+          ${labelHtml}
           <span class="timeline-status">${escapeHtml(firstStop.status) || '-'}</span>
         </div>
-        <div class="timeline-sub">${escapeHtml(group.shipToName) || '-'}</div>
+        ${!isGrouped ? `<div class="timeline-sub">${locationName}</div>` : ''}
         ${allMaterials ? `<div class="materials-text">${escapeHtml(allMaterials)}</div>` : ''}
         <div class="action-row">${btnHtml}</div>
       </div>

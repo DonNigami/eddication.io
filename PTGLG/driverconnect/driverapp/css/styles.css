@@ -989,6 +989,40 @@ button:disabled {
   color: var(--primary-dark);
 }
 
+/* Grouped stop label - shows location name as main label */
+.timeline-stop-label.grouped {
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-badges {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.seq-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #555;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.count-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: white;
+  background: #3ecf8e;
+  padding: 2px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
 .timeline-sub {
   font-size: 0.82rem;
   color: var(--text-sub);
