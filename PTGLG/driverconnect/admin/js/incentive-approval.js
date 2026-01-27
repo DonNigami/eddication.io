@@ -463,25 +463,19 @@ export async function openDetailModal(job) {
     // Holiday Work
     if (elements.detailHolidayWork) {
         const isHoliday = job.is_holiday_work || job.all_jobs?.some(j => j.is_holiday_work);
-        elements.detailHolidayWork.innerHTML = isHoliday
-            ? '<span style="color: #ff9800;">✅ ใช่ (ทำงานวันหยุด)</span>'
-            : '<span style="color: #757575;">ไม่ใช่</span>';
+        elements.detailHolidayWork.textContent = isHoliday ? '✅ ใช่ (ทำงานวันหยุด)' : 'ไม่ใช่';
     }
 
     // Pumping
     if (elements.detailPumping) {
         const hasPumping = job.has_pumping || job.all_jobs?.some(j => j.has_pumping);
-        elements.detailPumping.innerHTML = hasPumping
-            ? '<span style="color: #2196f3;">✅ ปั่นน้ำมัน</span>'
-            : '<span style="color: #757575;">ไม่ปั่น</span>';
+        elements.detailPumping.textContent = hasPumping ? '✅ ปั่นน้ำมัน' : 'ไม่ปั่น';
     }
 
     // Transfer
     if (elements.detailTransfer) {
         const hasTransfer = job.has_transfer || job.all_jobs?.some(j => j.has_transfer);
-        elements.detailTransfer.innerHTML = hasTransfer
-            ? '<span style="color: #9c27b0;">✅ โยกน้ำมัน</span>'
-            : '<span style="color: #757575;">ไม่ได้โยก</span>';
+        elements.detailTransfer.textContent = hasTransfer ? '✅ โยกน้ำมัน' : 'ไม่ได้โยก';
     }
 
     // Materials
