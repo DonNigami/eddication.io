@@ -636,14 +636,18 @@ This admin panel interfaces with the following Supabase database tables:
                             <!-- Trip Summary -->
                             <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
                                 <h3 style="margin-bottom: 10px;">📊 สรุปการเดินทาง</h3>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                                     <div>
                                         <small style="color: var(--text-sub);">Reference</small>
-                                        <p id="detail-reference" style="font-size: 1.2em; font-weight: bold; margin: 0;">-</p>
+                                        <p id="detail-reference" style="font-size: 1.1em; font-weight: bold; margin: 0;">-</p>
                                     </div>
                                     <div>
                                         <small style="color: var(--text-sub);">คนขับ</small>
                                         <p id="detail-driver" style="font-size: 1.1em; margin: 0;">-</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">จำนวนคน</small>
+                                        <p id="detail-driver-count" style="font-size: 1.1em; margin: 0;">-</p>
                                     </div>
                                     <div>
                                         <small style="color: var(--text-sub);">ทะเบียนรถ</small>
@@ -652,6 +656,43 @@ This admin panel interfaces with the following Supabase database tables:
                                     <div>
                                         <small style="color: var(--text-sub);">วันที่ทำงาน</small>
                                         <p id="detail-date" style="margin: 0;">-</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trip Details -->
+                            <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #90caf9;">
+                                <h3 style="margin-bottom: 12px; color: #1565c0;">📋 รายละเอียดงาน</h3>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;">
+                                    <!-- Holiday Work -->
+                                    <div style="background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #ff9800;">
+                                        <small style="color: #757575;">📅 ทำงานวันหยุด</small>
+                                        <p id="detail-holiday-work" style="margin: 5px 0 0 0; font-weight: 500;">-</p>
+                                    </div>
+                                    <!-- Pumping -->
+                                    <div style="background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #2196f3;">
+                                        <small style="color: #757575;">⛽ ปั่นน้ำมัน</small>
+                                        <p id="detail-pumping" style="margin: 5px 0 0 0; font-weight: 500;">-</p>
+                                    </div>
+                                    <!-- Transfer -->
+                                    <div style="background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #9c27b0;">
+                                        <small style="color: #757575;">🔄 โยกน้ำมัน</small>
+                                        <p id="detail-transfer" style="margin: 5px 0 0 0; font-weight: 500;">-</p>
+                                    </div>
+                                    <!-- Materials -->
+                                    <div style="background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #4caf50; grid-column: span 2;">
+                                        <small style="color: #757575;">📦 วัสดุที่บรรทุก</small>
+                                        <p id="detail-materials" style="margin: 5px 0 0 0; font-weight: 500;">-</p>
+                                    </div>
+                                    <!-- Total Quantity -->
+                                    <div style="background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #009688;">
+                                        <small style="color: #757575;">⚖️ ปริมาณรวม</small>
+                                        <p id="detail-quantity" style="margin: 5px 0 0 0; font-weight: 500;">-</p>
+                                    </div>
+                                    <!-- Receiver -->
+                                    <div style="background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #f44336; grid-column: span 2;">
+                                        <small style="color: #757575;">👤 ผู้รับสินค้า</small>
+                                        <p id="detail-receiver" style="margin: 5px 0 0 0; font-weight: 500;">-</p>
                                     </div>
                                 </div>
                             </div>

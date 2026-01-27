@@ -28,8 +28,15 @@ const elements = {
     modalClose: null,
     detailReference: null,
     detailDriver: null,
+    detailDriverCount: null,
     detailVehicle: null,
     detailDate: null,
+    detailHolidayWork: null,
+    detailPumping: null,
+    detailTransfer: null,
+    detailMaterials: null,
+    detailQuantity: null,
+    detailReceiver: null,
     detailStops: null,
     detailDistance: null,
     detailStopsCount: null,
@@ -441,10 +448,60 @@ export async function openDetailModal(job) {
     // Populate basic info
     if (elements.detailReference) elements.detailReference.textContent = job.reference;
     if (elements.detailDriver) elements.detailDriver.textContent = job.drivers || '-';
+    if (elements.detailDriverCount) {
+        const driverCount = job.driver_count || job.all_jobs?.[0]?.driver_count;
+        elements.detailDriverCount.textContent = driverCount ? `${driverCount} คน` : '-';
+    }
     if (elements.detailVehicle) elements.detailVehicle.textContent = job.vehicle_desc || '-';
     if (elements.detailDate) {
         elements.detailDate.textContent = job.job_closed_at
             ? new Date(job.job_closed_at).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+            : '-';
+    }
+
+    // Populate trip details
+    // Holiday Work
+    if (elements.detailHolidayWork) {
+        const isHoliday = job.is_holiday_work || job.all_jobs?.some(j => j.is_holiday_work);
+        elements.detailHolidayWork.innerHTML = isHoliday
+            ? '<span style="color: #ff9800;">✅ ใช่ (ทำงานวันหยุด)</span>'
+            : '<span style="color: #757575;">ไม่ใช่</span>';
+    }
+
+    // Pumping
+    if (elements.detailPumping) {
+        const hasPumping = job.has_pumping || job.all_jobs?.some(j => j.has_pumping);
+        elements.detailPumping.innerHTML = hasPumping
+            ? '<span style="color: #2196f3;">✅ ปั่นน้ำมัน</span>'
+            : '<span style="color: #757575;">ไม่ปั่น</span>';
+    }
+
+    // Transfer
+    if (elements.detailTransfer) {
+        const hasTransfer = job.has_transfer || job.all_jobs?.some(j => j.has_transfer);
+        elements.detailTransfer.innerHTML = hasTransfer
+            ? '<span style="color: #9c27b0;">✅ โยกน้ำมัน</span>'
+            : '<span style="color: #757575;">ไม่ได้โยก</span>';
+    }
+
+    // Materials
+    if (elements.detailMaterials) {
+        const materials = job.materials || job.all_jobs?.map(j => j.materials).filter(m => m).join(', ');
+        elements.detailMaterials.textContent = materials || '-';
+    }
+
+    // Total Quantity
+    if (elements.detailQuantity) {
+        const qty = job.total_qty || job.all_jobs?.reduce((sum, j) => sum + (j.total_qty || 0), 0);
+        elements.detailQuantity.textContent = qty ? `${qty.toLocaleString()} ลิตร` : '-';
+    }
+
+    // Receiver
+    if (elements.detailReceiver) {
+        const receiver = job.receiver_name || job.all_jobs?.map(j => j.receiver_name).filter(r => r).join(', ');
+        const receiverType = job.receiver_type || job.all_jobs?.[0]?.receiver_type;
+        elements.detailReceiver.textContent = receiver
+            ? `${receiver}${receiverType ? ` (${receiverType})` : ''}`
             : '-';
     }
 
