@@ -191,6 +191,7 @@ function setupDOMElements() {
         detailMaterials: document.getElementById('detail-materials'),
         detailQuantity: document.getElementById('detail-quantity'),
         detailReceiver: document.getElementById('detail-receiver'),
+        detailDeliverySummary: document.getElementById('detail-delivery-summary'),
         detailStops: document.getElementById('detail-stops'),
         detailDistance: document.getElementById('detail-distance'),
         detailStopsCount: document.getElementById('detail-stops-count'),

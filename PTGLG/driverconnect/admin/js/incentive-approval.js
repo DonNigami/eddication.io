@@ -37,6 +37,7 @@ const elements = {
     detailMaterials: null,
     detailQuantity: null,
     detailReceiver: null,
+    detailDeliverySummary: null,
     detailStops: null,
     detailDistance: null,
     detailStopsCount: null,
@@ -503,6 +504,11 @@ export async function openDetailModal(job) {
     const stops = await loadJobStops(job.reference);
     const uniqueStopsCount = await calculateUniqueStops(stops);
 
+    // Render delivery summary
+    if (elements.detailDeliverySummary) {
+        renderDeliverySummary(stops);
+    }
+
     // Calculate totals
     const rate = job.incentive_rate || DEFAULT_RATE_PER_KM;
     const totalDistance = job.total_distance || 0;
@@ -695,6 +701,68 @@ async function renderStopsDetail(stops) {
         </div>
     `;
     elements.detailStops.appendChild(summaryDiv);
+}
+
+/**
+ * Render delivery summary - aggregates materials and quantities
+ */
+function renderDeliverySummary(stops) {
+    if (!elements.detailDeliverySummary) return;
+
+    elements.detailDeliverySummary.innerHTML = '';
+
+    if (stops.length === 0) {
+        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575;">ไม่พบข้อมูลการจัดส่ง</p>';
+        return;
+    }
+
+    // Aggregate materials and quantities
+    const materialSummary = new Map();
+    let totalQuantity = 0;
+
+    for (const stop of stops) {
+        if (stop.materials) {
+            const materials = stop.materials.split(',').map(m => m.trim()).filter(m => m);
+            for (const material of materials) {
+                if (!materialSummary.has(material)) {
+                    materialSummary.set(material, { count: 0, quantity: 0 });
+                }
+                materialSummary.get(material).count++;
+            }
+        }
+        if (stop.total_qty) {
+            totalQuantity += parseFloat(stop.total_qty) || 0;
+        }
+    }
+
+    // Display total quantity
+    if (totalQuantity > 0) {
+        const totalDiv = document.createElement('div');
+        totalDiv.style.cssText = 'background: #ffe0b2; padding: 12px; border-radius: 6px; border-left: 5px solid #ff9800;';
+        totalDiv.innerHTML = `
+            <div style="color: #e65100; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">📊 ปริมาณรวมทั้งหมด</div>
+            <div style="color: #212121; font-size: 1.3rem; font-weight: bold;">${totalQuantity.toLocaleString()} ลิตร</div>
+        `;
+        elements.detailDeliverySummary.appendChild(totalDiv);
+    }
+
+    // Display materials
+    if (materialSummary.size > 0) {
+        for (const [material, data] of materialSummary.entries()) {
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = 'background: white; padding: 10px; border-radius: 6px; border-left: 4px solid #ffb74d;';
+            itemDiv.innerHTML = `
+                <div style="color: #e65100; font-size: 0.75rem; font-weight: 600; margin-bottom: 2px;">📦 ${sanitizeHTML(material)}</div>
+                <div style="color: #616161; font-size: 0.85rem;">พบใน ${data.count} จุดส่ง</div>
+            `;
+            elements.detailDeliverySummary.appendChild(itemDiv);
+        }
+    }
+
+    // If no data
+    if (totalQuantity === 0 && materialSummary.size === 0) {
+        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575;">ไม่มีข้อมูลสินค้าที่จัดส่ง</p>';
+    }
 }
 
 /**
