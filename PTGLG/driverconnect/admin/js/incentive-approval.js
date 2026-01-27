@@ -704,7 +704,7 @@ async function renderStopsDetail(stops) {
 }
 
 /**
- * Render delivery summary - grouped by destination with materials and quantities
+ * Render delivery summary - detailed breakdown by destination and delivery records
  */
 async function renderDeliverySummary(stops) {
     if (!elements.detailDeliverySummary) return;
@@ -722,6 +722,7 @@ async function renderDeliverySummary(stops) {
     // Group by destination - use ship_to_name primarily since ship_to_code is often empty
     const destinationGroups = new Map();
     let totalQuantity = 0;
+    let allMaterials = new Map(); // Track all materials for total summary
 
     for (const stop of stops) {
         const shipToCode = stop.ship_to || stop.ship_to_code || '';
@@ -730,56 +731,67 @@ async function renderDeliverySummary(stops) {
         // Check if this is an origin point
         const isOrigin = origins.has(shipToCode);
 
-        // Skip origin points from delivery summary
-        if (isOrigin) continue;
-
-        // Use ship_to_name as the primary key since ship_to_code is often empty
+        // Use ship_to_name as the primary key
         const key = shipToName;
 
         if (!destinationGroups.has(key)) {
             destinationGroups.set(key, {
                 shipToCode,
                 shipToName,
-                materials: new Map(), // Use Map to store material -> total quantity
-                totalQuantity: 0,
-                records: []
+                isOrigin,
+                deliveries: []
             });
         }
 
         const group = destinationGroups.get(key);
 
-        // Add materials with quantities
+        // Track individual delivery record
+        group.deliveries.push({
+            seq: stop.seq,
+            materials: stop.materials || '',
+            quantity: parseFloat(stop.total_qty) || 0,
+            receiver: stop.receiver_name || '',
+            receiverType: stop.receiver_type || '',
+            checkinTime: stop.checkin_time,
+            checkoutTime: stop.checkout_time
+        });
+
+        // Accumulate totals
+        totalQuantity += parseFloat(stop.total_qty) || 0;
+
+        // Track all materials
         if (stop.materials) {
             const materials = stop.materials.split(',').map(m => m.trim()).filter(m => m);
             for (const material of materials) {
-                if (!group.materials.has(material)) {
-                    group.materials.set(material, 0);
+                if (!allMaterials.has(material)) {
+                    allMaterials.set(material, 0);
                 }
-                group.materials.set(material, group.materials.get(material) + (stop.total_qty || 0));
+                allMaterials.set(material, allMaterials.get(material) + (stop.total_qty || 0));
             }
         }
-
-        // Add quantity
-        const qty = parseFloat(stop.total_qty) || 0;
-        group.totalQuantity += qty;
-        totalQuantity += qty;
-
-        // Track records
-        group.records.push(stop);
     }
 
-    const totalStops = destinationGroups.size;
+    const deliveryDestinations = Array.from(destinationGroups.entries()).filter(([key, group]) => !group.isOrigin);
+    const totalStops = deliveryDestinations.length;
 
     // Display total summary at the top
     const totalDiv = document.createElement('div');
-    totalDiv.style.cssText = 'background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%); padding: 14px; border-radius: 8px; border: 2px solid #ff9800; margin-bottom: 15px; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.2);';
+    totalDiv.style.cssText = 'background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%); padding: 14px; border-radius: 8px; border: 2px solid #ff9800; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.2);';
+
+    const materialsSummaryText = Array.from(allMaterials.entries())
+        .map(([mat, qty]) => `${mat}: ${qty.toLocaleString()} ลิตร`)
+        .join(' | ');
+
     totalDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <div style="color: #e65100; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">📊 สรุปทั้งหมด</div>
-                <div style="color: #212121; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+            <div style="flex: 1;">
+                <div style="color: #e65100; font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">📊 สรุปทั้งหมด</div>
+                <div style="color: #212121; font-size: 0.95rem; line-height: 1.6;">
                     จุดส่ง <strong>${totalStops}</strong> แห่ง |
                     ปริมาณรวม <strong>${totalQuantity.toLocaleString()} ลิตร</strong>
+                </div>
+                <div style="margin-top: 6px; font-size: 0.8rem; color: #757575;">
+                    📦 ${materialsSummaryText || '-'}
                 </div>
             </div>
             <div style="font-size: 2rem;">📦</div>
@@ -787,57 +799,112 @@ async function renderDeliverySummary(stops) {
     `;
     elements.detailDeliverySummary.appendChild(totalDiv);
 
-    // Display each destination with its details
+    // Display each destination with its detailed breakdown
     let stopIndex = 0;
-    for (const [key, group] of destinationGroups.entries()) {
+    for (const [key, group] of deliveryDestinations) {
         stopIndex++;
 
-        const stopDiv = document.createElement('div');
-        stopDiv.style.cssText = 'background: white; padding: 12px; border-radius: 8px; border-left: 5px solid #ff9800; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+        // Calculate destination totals
+        const destTotalQty = group.deliveries.reduce((sum, d) => sum + d.quantity, 0);
 
-        // Build materials list with quantities
-        let materialsHtml = '';
-        if (group.materials.size > 0) {
-            const materialEntries = Array.from(group.materials.entries());
-            materialsHtml = materialEntries.map(([material, qty]) =>
-                `<span style="display: inline-block; background: #fff3e0; padding: 2px 6px; border-radius: 4px; margin: 2px; font-size: 0.75rem; color: #e65100;">
-                    ${sanitizeHTML(material)}: <strong>${qty.toLocaleString()}</strong> ลิตร
-                </span>`
-            ).join('');
-        } else {
-            materialsHtml = '<span style="color: #9e9e9e;">-</span>';
+        // Get unique materials for this destination
+        const destMaterials = new Map();
+        for (const delivery of group.deliveries) {
+            if (delivery.materials) {
+                const materials = delivery.materials.split(',').map(m => m.trim()).filter(m => m);
+                for (const material of materials) {
+                    if (!destMaterials.has(material)) {
+                        destMaterials.set(material, 0);
+                    }
+                    destMaterials.set(material, destMaterials.get(material) + delivery.quantity);
+                }
+            }
         }
 
-        stopDiv.innerHTML = `
-            <div style="display: flex; align-items: start; gap: 10px;">
-                <div style="width: 36px; height: 36px; background: #ff9800; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; font-size: 1rem;">
-                    ${stopIndex}
+        const stopDiv = document.createElement('div');
+        stopDiv.style.cssText = 'background: #fff8e1; padding: 0; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ffb74d; box-shadow: 0 2px 8px rgba(0,0,0,0.08);';
+
+        // Build destination header
+        let deliveriesHtml = `
+            <div style="background: linear-gradient(90deg, #ff9800 0%, #fb8c00 100%); padding: 12px 15px; border-radius: 10px 10px 0 0;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; color: #ff9800;">
+                        ${stopIndex}
+                    </div>
+                    <div style="flex: 1; color: white;">
+                        <div style="font-size: 1rem; font-weight: 600;">${sanitizeHTML(group.shipToName)}</div>
+                        ${group.shipToCode ? `<div style="font-size: 0.8rem; opacity: 0.9;">รหัส: ${sanitizeHTML(group.shipToCode)}</div>` : ''}
+                    </div>
+                    <div style="text-align: right; color: white;">
+                        <div style="font-size: 0.75rem; opacity: 0.9;">ปริมาณรวม</div>
+                        <div style="font-size: 1.2rem; font-weight: bold;">${destTotalQty.toLocaleString()} ลิตร</div>
+                    </div>
                 </div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: #212121; font-size: 1rem; margin-bottom: 4px;">
-                        ${sanitizeHTML(group.shipToName)}
+            </div>
+
+            <div style="padding: 15px;">
+                <!-- Materials summary for this destination -->
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 0.75rem; color: #757575; margin-bottom: 6px;">📦 สินค้าที่จัดส่ง:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        ${Array.from(destMaterials.entries()).map(([material, qty]) =>
+                            `<span style="background: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid #ffcc80;">
+                                <strong style="color: #e65100;">${sanitizeHTML(material)}</strong>: ${qty.toLocaleString()} ลิตร
+                            </span>`
+                        ).join('')}
                     </div>
-                    ${group.shipToCode ? `<div style="font-size: 0.75rem; color: #757575; margin-bottom: 4px;">รหัส: ${sanitizeHTML(group.shipToCode)}</div>` : ''}
-                    ${group.records.length > 1 ? `<div style="font-size: 0.7rem; color: #757575;">(${group.records.length} ระเบียน)</div>` : ''}
-                    <div style="margin-top: 8px;">
-                        <div style="font-size: 0.75rem; color: #757575; margin-bottom: 4px;">📦 สินค้าและปริมาณ:</div>
-                        <div style="line-height: 1.8;">${materialsHtml}</div>
+                </div>
+
+                <!-- Individual delivery records -->
+                <div style="background: white; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #fafafa; padding: 8px 12px; font-size: 0.75rem; color: #757575; border-bottom: 1px solid #e0e0e0;">
+                        📋 รายละเอียดการจัดส่ง (${group.deliveries.length} รายการ)
                     </div>
-                    ${group.totalQuantity > 0 ? `
-                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e0e0e0;">
-                            <span style="color: #757575; font-size: 0.8rem;">⚖️ ปริมาณรวมที่จุดนี้:</span>
-                            <span style="color: #e65100; font-weight: bold; font-size: 1rem; margin-left: 8px;">${group.totalQuantity.toLocaleString()} ลิตร</span>
+                    <div style="padding: 0;">
+        `;
+
+        // Add each delivery record
+        for (const delivery of group.deliveries) {
+            const checkinTime = delivery.checkinTime ? new Date(delivery.checkin_time).toLocaleTimeString('th-TH') : '-';
+            const checkoutTime = delivery.checkoutTime ? new Date(delivery.checkoutTime).toLocaleTimeString('th-TH') : '-';
+            const isComplete = delivery.checkinTime && delivery.checkoutTime;
+
+            deliveriesHtml += `
+                <div style="padding: 10px 12px; border-bottom: 1px dashed #e0e0e0; display: grid; grid-template-columns: auto 1fr auto; gap: 8px 12px; align-items: center; font-size: 0.85rem;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="background: ${isComplete ? '#4caf50' : '#ff9800'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
+                            ${delivery.seq || '-'}
+                        </span>
+                        <div>
+                            <div style="color: #424242; font-weight: 500;">${sanitizeHTML(delivery.materials || '-')}</div>
+                            ${delivery.receiver ? `<div style="font-size: 0.7rem; color: #757575;">ผู้รับ: ${sanitizeHTML(delivery.receiver)}</div>` : ''}
                         </div>
-                    ` : ''}
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: #757575; font-size: 0.75rem;">ปริมาณ</div>
+                        <div style="color: #e65100; font-weight: bold; font-size: 1rem;">${delivery.quantity.toLocaleString()} ลิตร</div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #9e9e9e;">
+                        ${checkinTime !== '-' ? `Check-in: ${checkinTime}` : ''}
+                        ${checkoutTime !== '-' ? `<br>Check-out: ${checkoutTime}` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        deliveriesHtml += `
+                    </div>
                 </div>
             </div>
         `;
+
+        stopDiv.innerHTML = deliveriesHtml;
         elements.detailDeliverySummary.appendChild(stopDiv);
     }
 
-    // If no data
-    if (totalQuantity === 0 && destinationGroups.size === 0) {
-        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575;">ไม่มีข้อมูลสินค้าที่จัดส่ง</p>';
+    // If no delivery destinations (only origins)
+    if (deliveryDestinations.length === 0) {
+        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575;">ไม่มีข้อมูลการจัดส่ง (มีเฉพาะต้นทาง)</p>';
     }
 }
 
