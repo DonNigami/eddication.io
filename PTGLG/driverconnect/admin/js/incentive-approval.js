@@ -155,16 +155,46 @@ function calculateUniqueStops(jobs) {
     // Use Set to track unique ship_to_code values, falling back to ship_to_name
     const uniqueDestinations = new Set();
 
-    jobs.forEach(job => {
-        // Skip origin points (seq = 0 or ship_to_code is null/empty/origin)
-        const shipToCode = job.ship_to_code || job.shiptocode || '';
-        const shipToName = job.ship_to_name || job.shiptoname || '';
+    console.log('🔍 Debug calculateUniqueStops:', {
+        jobsCount: jobs.length,
+        jobs: jobs.map(j => ({
+            seq: j.seq,
+            ship_to_code: j.ship_to_code,
+            ship_to_name: j.ship_to_name,
+            is_origin_stop: j.is_origin_stop,
+            destination: j.destination
+        }))
+    });
 
-        // Check if this is an origin point (empty or origin indicators)
-        if (!shipToCode ||
-            shipToCode.toLowerCase() === 'origin' ||
-            shipToCode.trim() === '' ||
-            (job.seq && parseInt(job.seq) === 0)) {
+    jobs.forEach(job => {
+        // Get column values - database uses snake_case
+        const shipToCode = job.ship_to_code || '';
+        const shipToName = job.ship_to_name || '';
+
+        // Check if this is an origin point
+        // 1. Use is_origin_stop column from database if available
+        // 2. Fallback to database logic: ship_to LIKE 'ZSF%' OR ship_to_name LIKE '%PTC-STA-%'
+        let isOrigin = false;
+        if (job.is_origin_stop === true) {
+            isOrigin = true;
+        } else if (typeof job.is_origin_stop === 'string') {
+            isOrigin = job.is_origin_stop === 'true' || job.is_origin_stop === 't';
+        } else {
+            // Fallback to database pattern matching logic
+            const codeUpper = (shipToCode || '').toUpperCase();
+            const nameUpper = (shipToName || '').toUpperCase();
+            isOrigin = codeUpper.startsWith('ZSF') || nameUpper.includes('PTC-STA-');
+        }
+
+        console.log('📍 Processing stop:', {
+            shipToCode,
+            shipToName,
+            isOrigin,
+            is_origin_stop_col: job.is_origin_stop
+        });
+
+        if (isOrigin) {
+            console.log('⏭️ Skipping origin point');
             return; // Skip origin
         }
 
@@ -175,7 +205,10 @@ function calculateUniqueStops(jobs) {
         }
     });
 
-    return uniqueDestinations.size;
+    const result = uniqueDestinations.size;
+    console.log('✅ Unique stops count:', result, 'destinations:', Array.from(uniqueDestinations));
+
+    return result;
 }
 
 /**
@@ -453,13 +486,22 @@ function renderStopsDetail(stops) {
         const stopDiv = document.createElement('div');
         stopDiv.style.cssText = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);';
 
-        // Check if this is an origin point
-        const shipToCode = stop.ship_to_code || stop.shiptocode || '';
-        const shipToName = stop.ship_to_name || stop.shiptoname || '';
-        const isOrigin = !shipToCode ||
-            shipToCode.toLowerCase() === 'origin' ||
-            shipToCode.trim() === '' ||
-            (stop.seq && parseInt(stop.seq) === 0);
+        // Check if this is an origin point (using same logic as calculateUniqueStops)
+        const shipToCode = stop.ship_to_code || '';
+        const shipToName = stop.ship_to_name || '';
+
+        // Use is_origin_stop column from database
+        let isOrigin = false;
+        if (stop.is_origin_stop === true) {
+            isOrigin = true;
+        } else if (typeof stop.is_origin_stop === 'string') {
+            isOrigin = stop.is_origin_stop === 'true' || stop.is_origin_stop === 't';
+        } else {
+            // Fallback to database pattern matching logic
+            const codeUpper = (shipToCode || '').toUpperCase();
+            const nameUpper = (shipToName || '').toUpperCase();
+            isOrigin = codeUpper.startsWith('ZSF') || nameUpper.includes('PTC-STA-');
+        }
 
         // Get destination name
         const destinationName = shipToName || stop.destination || '-';
