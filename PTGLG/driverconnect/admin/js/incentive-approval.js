@@ -772,6 +772,12 @@ async function renderStopsDetail(stops) {
             const checkinTime = record.checkin_time ? new Date(record.checkin_time).toLocaleTimeString('th-TH') : '-';
             const checkoutTime = record.checkout_time ? new Date(record.checkout_time).toLocaleTimeString('th-TH') : '-';
             const isComplete = record.checkin_time && record.checkout_time;
+            const hasPumping = record.has_pumping;
+            const hasTransfer = record.has_transfer;
+            const materials = record.materials || '-';
+            const quantity = record.total_qty ? `${parseFloat(record.total_qty).toLocaleString()} ลิตร` : '-';
+            const receiver = record.receiver_name || '';
+            const receiverType = record.receiver_type || '';
 
             html += `
                 <div style="padding: 8px 10px; margin-bottom: 4px; background: ${isComplete ? '#ffffff' : '#fff8e1'}; border-radius: 4px; border-left: 4px solid ${isComplete ? '#4caf50' : '#ff9800'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
@@ -782,6 +788,17 @@ async function renderStopsDetail(stops) {
                         ${record.checkin_odo ? `| ไมล์: <span style="color: #1976d2;">${record.checkin_odo}</span>` : ''}
                         ${record.checkout_odo ? `→ <span style="color: #1976d2;">${record.checkout_odo}</span>` : ''}
                     </div>
+                    <div style="margin-top: 4px; color: #616161; font-size: 0.8rem;">
+                        ${hasPumping ? '<span style="background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">⛽ ปั่น</span> ' : ''}
+                        ${hasTransfer ? '<span style="background: #fff3e0; color: #e65100; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">🔄 โยก</span> ' : ''}
+                        ${materials !== '-' ? `📦 <strong>${sanitizeHTML(materials)}</strong>` : ''}
+                        ${quantity !== '-' ? `| ปริมาณ: <strong style="color: #e65100;">${quantity}</strong>` : ''}
+                    </div>
+                    ${receiver ? `
+                        <div style="margin-top: 2px; color: #616161; font-size: 0.8rem;">
+                            👤 ผู้รับ: <strong>${sanitizeHTML(receiver)}</strong>${receiverType ? ` <span style="color: #757575;">(${sanitizeHTML(receiverType)})</span>` : ''}
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
@@ -1025,6 +1042,37 @@ async function renderDeliverySummaryHorizontal(stops) {
 
             <!-- Card Body - Summary Information -->
             <div style="padding: 16px;">
+                <!-- Pumping/Transfer Status Section -->
+                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        ${group.hasPumping ? `
+                            <div style="background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid #2196f3; display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 1rem;">⛽</span>
+                                <span style="color: #1976d2; font-weight: 600; font-size: 0.85rem;">ปั่นน้ำมัน</span>
+                            </div>
+                        ` : ''}
+                        ${group.hasTransfer ? `
+                            <div style="background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid #ff9800; display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 1rem;">🔄</span>
+                                <span style="color: #e65100; font-weight: 600; font-size: 0.85rem;">โยกน้ำมัน</span>
+                            </div>
+                        ` : ''}
+                        ${!group.hasPumping && !group.hasTransfer ? `
+                            <span style="color: #757575; font-size: 0.85rem;">ไม่มีการปั่น/โยก</span>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Receiver Section -->
+                ${group.receiverNames && group.receiverNames.size > 0 ? `
+                    <div style="background: #fff3e0; border-radius: 10px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #ff9800;">
+                        <div style="color: #757575; font-size: 0.7rem; margin-bottom: 4px;">👤 ผู้รับน้ำมัน:</div>
+                        <div style="color: #e65100; font-weight: 600; font-size: 0.95rem;">
+                            ${Array.from(group.receiverNames).map(r => sanitizeHTML(r)).join(', ')}
+                        </div>
+                    </div>
+                ` : ''}
+
                 <!-- Time & Odometer Section -->
                 <div style="background: #f5f5f5; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
