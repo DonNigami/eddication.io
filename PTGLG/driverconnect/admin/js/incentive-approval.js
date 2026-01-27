@@ -782,7 +782,7 @@ function renderDeliverySummary(stops) {
         stopDiv.style.cssText = 'background: white; padding: 12px; border-radius: 8px; border-left: 5px solid #ff9800; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
 
         // Get origin keys to check if this is an origin point
-        const isOrigin = Array.from(originKeysCache).has(group.shipToCode);
+        const isOrigin = originKeysCache.has(group.shipToCode);
 
         const materialsList = Array.from(group.materials).filter(m => m);
         const materialsText = materialsList.length > 0
