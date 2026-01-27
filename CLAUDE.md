@@ -209,6 +209,7 @@ This project uses specialized Claude Code skills for context-aware assistance:
 | **supabase-database** | PostgreSQL, RLS, Edge Functions, Realtime | Database queries, migrations, RLS policies |
 | **line-messaging** | LIFF, Messaging API, Rich Menus | Driver app features, LINE integration |
 | **4pl-director** | Logistics strategy, 4PL operations | Route optimization, delivery workflows |
+| **warehouse-lean** | Warehouse, Distribution, SCOR DS, Lean Six Sigma Black Belt | Warehouse optimization, layout design, lean implementation, process improvement |
 | **fullstack-dev** | JavaScript/Node.js, architecture | Full-stack features, refactoring |
 | **typescript-dev** | TypeScript patterns, types | Edge Functions, type safety |
 | **frontend-design** | UI/UX, CSS architecture | Admin panel, driver app design |
@@ -226,6 +227,7 @@ Skills have been updated with DriverConnect project context:
 - `.claude/skills/supabase-database/SKILL.md` - Database tables, RLS status, Edge Functions
 - `.claude/skills/line-messaging/SKILL.md` - LIFF app details, configuration
 - `.claude/skills/4pl-director/SKILL.md` - Development plan status, roadmap
+- `.claude/skills/warehouse-lean/SKILL.md` - Warehouse operations, SCOR DS, Lean Six Sigma
 - `.claude/skills/fullstack-dev/SKILL.md` - Architecture, refactoring notes
 - `.claude/skills/typescript-dev/SKILL.md` - Edge Functions, shared types
 - `.claude/skills/frontend-design/SKILL.md` - Admin panel, driver app screens

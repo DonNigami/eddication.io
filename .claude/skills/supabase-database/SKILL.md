@@ -17,18 +17,40 @@ description: World-class expert Supabase database specialist covering PostgreSQL
 - **Migrations Folder**: `supabase/migrations/`
 - **Edge Functions**: `supabase/functions/`
 
+### Complete Database Schema Reference
+
+📄 **Full Schema Documentation**: [docs/database-schema-reference.md](../../../docs/database-schema-reference.md)
+
+This document contains:
+
+- Complete table definitions with all columns
+- Indexes, constraints, and foreign keys
+- RLS policies for each table
+- Storage buckets configuration
+- Database functions and triggers
+- Migration files reference
+
 ### Key Database Tables
 
-| Table | Purpose | Key Fields |
-| :--- | :--- | :--- |
-| `jobdata` | Delivery jobs | reference, stops, status, checkin/checkout |
-| `alcohol_checks` | Alcohol test results | liff_id, alcohol_level, photo_url, gps |
-| `review_data` | Service reviews | rating, signature_url, feedback |
-| `user_profiles` | Driver profiles | liff_id, full_name, status (PENDING/APPROVED) |
-| `stations` | Service stations | name, latitude, longitude |
-| `origins` | Job departure points | name, address |
-| `admin_logs` | Audit trail | action, changed_by, timestamp |
-| `driver_performance` | Performance metrics | overall_score, period_type |
+| Category | Table | Purpose | Key Fields |
+| :--- | :--- | :--- | :--- |
+| **Core Jobs** | `jobdata` | Delivery jobs/stops | reference, ship_to_code, status, checkin/checkout |
+| | `trips` | Trip headers (was driver_jobs) | reference, vehicle_desc, drivers, status |
+| | `trip_stops` | Individual stops (was driver_stops) | trip_id, sequence, destination_name, status |
+| **User Mgmt** | `user_profiles` | Driver/user profiles | user_id (LINE), status (PENDING/APPROVED), user_type |
+| **Location** | `station` | Service stations (PTC) | plant code, stationKey, lat/lng |
+| | `customer` | Customer locations | stationKey, name, lat/lng |
+| | `origin` | Job departure points | originKey, routeCode, name |
+| **Tracking** | `driver_live_locations` | Real-time GPS | driver_user_id, lat/lng, last_updated |
+| | `driver_logs` | Audit trail | action, details, location |
+| **Safety** | `alcohol_checks` | Alcohol tests | alcohol_value, image_url, checked_at |
+| | `fuel_siphoning` | Siphoning incidents | liters, siphon_date, evidence_image_url |
+| **Monitoring** | `admin_alerts` | Alert rules | rule_type, threshold, recipients |
+| | `triggered_alerts` | Triggered alerts | alert_rule_id, message, status |
+| | `app_settings` | App config | id, value, type |
+| **CRM** | `profiles` | CRM profiles (separate) | line_user_id, points, tags |
+| | `tiers` | Loyalty tiers | name, min_points, color_theme |
+| | `news_promotions` | News/promotions | title, description, image_url |
 
 ### Current RLS Status
 
