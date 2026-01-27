@@ -1025,37 +1025,6 @@ async function renderDeliverySummaryHorizontal(stops) {
 
             <!-- Card Body - Summary Information -->
             <div style="padding: 16px;">
-                <!-- Pumping/Transfer Status Section -->
-                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                        ${group.hasPumping ? `
-                            <div style="background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid #2196f3; display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 1rem;">⛽</span>
-                                <span style="color: #1976d2; font-weight: 600; font-size: 0.85rem;">ปั่นน้ำมัน</span>
-                            </div>
-                        ` : ''}
-                        ${group.hasTransfer ? `
-                            <div style="background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid #ff9800; display: flex; align-items: center; gap: 6px;">
-                                <span style="font-size: 1rem;">🔄</span>
-                                <span style="color: #e65100; font-weight: 600; font-size: 0.85rem;">โยกน้ำมัน</span>
-                            </div>
-                        ` : ''}
-                        ${!group.hasPumping && !group.hasTransfer ? `
-                            <span style="color: #757575; font-size: 0.85rem;">ไม่มีการปั่น/โยก</span>
-                        ` : ''}
-                    </div>
-                </div>
-
-                <!-- Receiver Section -->
-                ${group.receiverNames && group.receiverNames.size > 0 ? `
-                    <div style="background: #fff3e0; border-radius: 10px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #ff9800;">
-                        <div style="color: #757575; font-size: 0.7rem; margin-bottom: 4px;">👤 ผู้รับน้ำมัน:</div>
-                        <div style="color: #e65100; font-weight: 600; font-size: 0.95rem;">
-                            ${Array.from(group.receiverNames).map(r => sanitizeHTML(r)).join(', ')}
-                        </div>
-                    </div>
-                ` : ''}
-
                 <!-- Time & Odometer Section -->
                 <div style="background: #f5f5f5; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
