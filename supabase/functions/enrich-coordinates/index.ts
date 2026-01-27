@@ -117,27 +117,27 @@ serve(async (req) => {
 
     // ============================================
     // Step 3: Get all station coordinates
-    // Note: station table uses lowercase column names (stationkey, radiusmeters)
+    // Note: station table uses "stationKey" (preserved case), no radiusMeters column
     // ============================================
     let stationMap = new Map<string, LocationData>();
 
     if (shipToCodes.length > 0) {
       const { data: stationData } = await supabase
         .from('station')
-        .select('stationkey, name, lat, lng, radiusmeters')
-        .in('stationkey', shipToCodes);
+        .select('stationKey, lat, lng')
+        .in('stationKey', shipToCodes);
 
       if (stationData) {
         stationData.forEach((s: any) => {
           const lat = parseFloat(s.lat);
           const lng = parseFloat(s.lng);
           if (!isNaN(lat) && !isNaN(lng)) {
-            stationMap.set(s.stationkey, {
+            stationMap.set(s.stationKey, {
               lat,
               lng,
-              radiusMeters: parseInt(s.radiusmeters) || 100,
-              name: s.name,
-              code: s.stationkey
+              radiusMeters: 100, // Default radius for stations
+              name: s.stationKey,
+              code: s.stationKey
             });
           }
         });
@@ -153,10 +153,11 @@ serve(async (req) => {
       const uniqueNames = [...new Set(stopsWithoutCode.map(s => s.shipToName))];
 
       for (const name of uniqueNames) {
+        // Try to find by Thai station name first, then by stationKey
         const { data: stationByName } = await supabase
           .from('station')
-          .select('stationkey, name, lat, lng, radiusmeters')
-          .eq('name', name)
+          .select('stationKey, lat, lng')
+          .or(`stationKey.ilike.%${name}%,ชื่อสถานีบริการ.ilike.%${name}%`)
           .limit(1)
           .maybeSingle();
 
@@ -168,9 +169,9 @@ serve(async (req) => {
             stationMap.set(name, {
               lat,
               lng,
-              radiusMeters: parseInt(stationByName.radiusmeters) || 100,
-              name: stationByName.name,
-              code: stationByName.stationkey
+              radiusMeters: 100, // Default radius for stations
+              name: stationByName.stationKey,
+              code: stationByName.stationKey
             });
             log(`Found station by name: ${name}`);
           }

@@ -21,6 +21,7 @@ import {
 } from './ui.js';
 import { liveTracking } from './live-tracking.js';
 import { StateManager, StateKeys, ErrorCodes, getErrorInfo } from './state-manager.js';
+import { initEnhancedUX } from './enhanced-ux.js';
 
 // ============================================
 // SEARCH FUNCTION
@@ -1094,6 +1095,9 @@ async function initApp() {
 
   // Load theme
   ThemeManager.load();
+
+  // Initialize Enhanced UX features (pull-to-refresh, notifications, etc.)
+  initEnhancedUX();
 
   // Check GPS
   checkGpsStatus();

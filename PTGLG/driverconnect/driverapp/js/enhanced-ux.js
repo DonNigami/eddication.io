@@ -103,15 +103,20 @@ function showQuickActions(stop) {
   
   // Generate buttons based on stop status
   let buttons = '';
-  
+
+  // Ensure required properties exist
+  const rowIndex = stop.rowIndex ?? stop.id ?? '';
+  const seq = stop.seq ?? stop.stop_number ?? 0;
+  const shipToCode = stop.shipToCode ?? stop.shipToCode ?? '';
+
   if (!stop.checkinTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.checkIn(\'' + stop.id + '\')">✅ Check-in</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.startCheckin(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">✅ Check-in</button>';
   } else if (!stop.fuelTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.addFuel(\'' + stop.id + '\')">⛽ ลงน้ำมัน</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.doFuel(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">⛽ ลงน้ำมัน</button>';
   } else if (!stop.unloadTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.unload(\'' + stop.id + '\')">📦 ลงเสร็จ</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.doUnload(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">📦 ลงเสร็จ</button>';
   } else if (!stop.checkoutTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.checkOut(\'' + stop.id + '\')">🏁 Check-out</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.startCheckout(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">🏁 Check-out</button>';
   }
 
   quickActionsButtons.innerHTML = buttons;
@@ -248,14 +253,20 @@ function initEnhancedUX() {
   console.log('✅ Enhanced UX features loaded');
 }
 
-// Auto-init when DOM ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initEnhancedUX);
-} else {
-  initEnhancedUX();
-}
+// Export for ES module usage
+export {
+  initEnhancedUX,
+  showQuickActions,
+  hideQuickActions,
+  showToast,
+  clearAllToasts,
+  showSyncingBar,
+  hideSyncingBar,
+  openNotificationSettings,
+  getNotificationSettings
+};
 
-// Export functions
+// Also export to window for global access (backward compatibility)
 window.showQuickActions = showQuickActions;
 window.hideQuickActions = hideQuickActions;
 window.showToast = showToast;
