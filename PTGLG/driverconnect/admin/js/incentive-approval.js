@@ -147,6 +147,38 @@ export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending
 }
 
 /**
+ * Calculate unique delivery stops count (excluding origin)
+ * @param {Array} jobs - Array of job records for a single reference
+ * @returns {number} Count of unique delivery destinations
+ */
+function calculateUniqueStops(jobs) {
+    // Use Set to track unique ship_to_code values, falling back to ship_to_name
+    const uniqueDestinations = new Set();
+
+    jobs.forEach(job => {
+        // Skip origin points (seq = 0 or ship_to_code is null/empty/origin)
+        const shipToCode = job.ship_to_code || job.shiptocode || '';
+        const shipToName = job.ship_to_name || job.shiptoname || '';
+
+        // Check if this is an origin point (empty or origin indicators)
+        if (!shipToCode ||
+            shipToCode.toLowerCase() === 'origin' ||
+            shipToCode.trim() === '' ||
+            (job.seq && parseInt(job.seq) === 0)) {
+            return; // Skip origin
+        }
+
+        // Use ship_to_code if available, otherwise use ship_to_name
+        const key = shipToCode || shipToName;
+        if (key && key.trim() !== '') {
+            uniqueDestinations.add(key.trim());
+        }
+    });
+
+    return uniqueDestinations.size;
+}
+
+/**
  * Render the incentive table
  */
 function renderTable(jobs) {
@@ -166,15 +198,20 @@ function renderTable(jobs) {
         if (!groupedJobs[job.reference]) {
             groupedJobs[job.reference] = {
                 ...job,
-                stop_count: 1,
+                all_jobs: [job],
                 total_distance: parseFloat(job.distance_km) || 0,
                 all_seqs: [job.seq]
             };
         } else {
-            groupedJobs[job.reference].stop_count++;
+            groupedJobs[job.reference].all_jobs.push(job);
             groupedJobs[job.reference].all_seqs.push(job.seq);
             groupedJobs[job.reference].total_distance += parseFloat(job.distance_km) || 0;
         }
+    });
+
+    // Calculate unique stops for each reference
+    Object.keys(groupedJobs).forEach(reference => {
+        groupedJobs[reference].stop_count = calculateUniqueStops(groupedJobs[reference].all_jobs);
     });
 
     // Render rows
@@ -342,19 +379,22 @@ export async function openDetailModal(job) {
             : '-';
     }
 
+    // Load all stops for this reference to calculate unique stops correctly
+    const stops = await loadJobStops(job.reference);
+    const uniqueStopsCount = calculateUniqueStops(stops);
+
     // Calculate totals
     const rate = job.incentive_rate || DEFAULT_RATE_PER_KM;
     const totalDistance = job.total_distance || 0;
     const amount = totalDistance * rate;
 
     if (elements.detailDistance) elements.detailDistance.textContent = totalDistance.toFixed(1) + ' km';
-    if (elements.detailStopsCount) elements.detailStopsCount.textContent = job.stop_count + ' จุด';
+    if (elements.detailStopsCount) elements.detailStopsCount.textContent = uniqueStopsCount + ' จุด';
     if (elements.detailRate) elements.detailRate.textContent = '฿' + rate.toFixed(2);
     if (elements.detailAmount) elements.detailAmount.textContent = '฿' + amount.toFixed(2);
 
-    // Load stops detail
+    // Render stops detail
     if (elements.detailStops) {
-        const stops = await loadJobStops(job.reference);
         renderStopsDetail(stops);
     }
 
@@ -366,7 +406,7 @@ export async function openDetailModal(job) {
     // Populate edit form
     if (elements.editReference) elements.editReference.value = job.reference;
     if (elements.editDistance) elements.editDistance.value = totalDistance;
-    if (elements.editStopsCount) elements.editStopsCount.value = job.stop_count;
+    if (elements.editStopsCount) elements.editStopsCount.value = uniqueStopsCount;
     if (elements.editRate) elements.editRate.value = rate;
     if (elements.editAmount) elements.editAmount.value = amount;
     if (elements.editNotes) elements.editNotes.value = '';
@@ -413,26 +453,51 @@ function renderStopsDetail(stops) {
         const stopDiv = document.createElement('div');
         stopDiv.style.cssText = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);';
 
+        // Check if this is an origin point
+        const shipToCode = stop.ship_to_code || stop.shiptocode || '';
+        const shipToName = stop.ship_to_name || stop.shiptoname || '';
+        const isOrigin = !shipToCode ||
+            shipToCode.toLowerCase() === 'origin' ||
+            shipToCode.trim() === '' ||
+            (stop.seq && parseInt(stop.seq) === 0);
+
+        // Get destination name
+        const destinationName = shipToName || stop.destination || '-';
+        // Get ship_to_code for display
+        const shipToCodeDisplay = shipToCode || '-';
+
         stopDiv.innerHTML = `
-            <div style="width: 30px; height: 30px; background: var(--primary-color); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px;">
-                ${index + 1}
+            <div style="width: 30px; height: 30px; background: ${isOrigin ? '#78909c' : 'var(--primary-color)'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px;">
+                ${isOrigin ? '🏠' : index + 1}
             </div>
             <div style="flex: 1;">
-                <strong>${sanitizeHTML(stop.destination || '-')}</strong>
+                <strong>${sanitizeHTML(destinationName)}</strong>
+                ${!isOrigin ? `<div style="font-size: 0.8rem; color: var(--text-sub);">รหัส: ${sanitizeHTML(shipToCodeDisplay)}</div>` : ''}
                 <div style="font-size: 0.85rem; color: var(--text-sub);">
                     Check-in: ${stop.checkin_time ? new Date(stop.checkin_time).toLocaleTimeString('th-TH') : '-'}
                     | Check-out: ${stop.checkout_time ? new Date(stop.checkout_time).toLocaleTimeString('th-TH') : '-'}
                 </div>
             </div>
             <div style="text-align: right;">
-                <span style="font-size: 0.85rem; padding: 2px 8px; background: ${stop.checkin_time && stop.checkout_time ? '#4caf50' : '#ff9800'}; color: white; border-radius: 4px;">
-                    ${stop.checkin_time && stop.checkout_time ? '✅ เสร็จสิ้น' : '⏳ ไม่สมบูรณ์'}
+                <span style="font-size: 0.85rem; padding: 2px 8px; background: ${isOrigin ? '#78909c' : (stop.checkin_time && stop.checkout_time ? '#4caf50' : '#ff9800')}; color: white; border-radius: 4px;">
+                    ${isOrigin ? '🏠 ต้นทาง' : (stop.checkin_time && stop.checkout_time ? '✅ เสร็จสิ้น' : '⏳ ไม่สมบูรณ์')}
                 </span>
             </div>
         `;
 
         elements.detailStops.appendChild(stopDiv);
     });
+
+    // Add summary of unique delivery stops
+    const uniqueCount = calculateUniqueStops(stops);
+    const summaryDiv = document.createElement('div');
+    summaryDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: var(--card-bg); border-radius: 8px; font-size: 0.9rem;';
+    summaryDiv.innerHTML = `
+        <strong>สรุป:</strong> ทั้งหมด ${stops.length} จุด |
+        <span style="color: #78909c;">ต้นทาง ${stops.length - uniqueCount} จุด</span> |
+        <span style="color: #4caf50;">จุดส่งจริง ${uniqueCount} จุด</span> (ไม่ซ้ำกัน)
+    `;
+    elements.detailStops.appendChild(summaryDiv);
 }
 
 /**
