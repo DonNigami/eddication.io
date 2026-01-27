@@ -557,7 +557,7 @@ async function renderStopsDetail(stops) {
 
     // Display header
     const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'padding: 10px; background: #f5f5f5; border-radius: 6px; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-sub);';
+    headerDiv.style.cssText = 'padding: 12px; background: #f5f5f5; border-radius: 8px; margin-bottom: 12px; font-size: 0.85rem; color: #424242; border: 1px solid #e0e0e0;';
     headerDiv.innerHTML = `
         <div><strong>ข้อมูลทั้งหมดจาก jobdata:</strong> ${stops.length} ระเบียน</div>
         <div style="margin-top: 5px;">
@@ -573,7 +573,7 @@ async function renderStopsDetail(stops) {
         displayIndex++;
 
         const groupDiv = document.createElement('div');
-        groupDiv.style.cssText = 'margin-bottom: 15px; padding: 12px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);';
+        groupDiv.style.cssText = 'margin-bottom: 15px; padding: 12px; background: #e3f2fd; border-radius: 8px; border: 1px solid #90caf9; box-shadow: 0 2px 4px rgba(0,0,0,0.08);';
 
         // Header for this group (unique destination)
         const destinationName = group.shipToName || group.destination || key;
@@ -584,19 +584,19 @@ async function renderStopsDetail(stops) {
         const hasIncomplete = group.records.some(r => !r.checkin_time || !r.checkout_time);
 
         let html = `
-            <div style="display: flex; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);">
-                <div style="width: 32px; height: 32px; background: ${bgColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 10px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px dashed #90caf9;">
+                <div style="width: 36px; height: 36px; background: ${bgColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
                     ${group.isOrigin ? '🏠' : displayIndex}
                 </div>
                 <div style="flex: 1;">
-                    <strong>${sanitizeHTML(destinationName)}</strong>
-                    ${!group.isOrigin ? `<div style="font-size: 0.8rem; color: var(--text-sub);">รหัส: ${sanitizeHTML(group.shipToCode || '-')}</div>` : ''}
-                    <div style="font-size: 0.8rem; color: ${hasIncomplete ? '#ff9800' : '#4caf50'};">
+                    <strong style="color: #1565c0; font-size: 0.95rem;">${sanitizeHTML(destinationName)}</strong>
+                    ${!group.isOrigin ? `<div style="font-size: 0.8rem; color: #546e7a;">รหัส: ${sanitizeHTML(group.shipToCode || '-')}</div>` : ''}
+                    <div style="font-size: 0.8rem; color: ${hasIncomplete ? '#ef6c00' : '#2e7d32'};">
                         ${group.records.length} ระเบียน ${hasIncomplete ? '⚠️ บางระเบียนไม่สมบูรณ์' : '✅ สมบูรณ์'}
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <span style="font-size: 0.8rem; padding: 3px 8px; background: ${group.isOrigin ? '#78909c' : '#2196f3'}; color: white; border-radius: 4px;">
+                    <span style="font-size: 0.8rem; padding: 4px 10px; background: ${group.isOrigin ? '#78909c' : '#1976d2'}; color: white; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
                         ${label}
                     </span>
                 </div>
@@ -604,7 +604,7 @@ async function renderStopsDetail(stops) {
         `;
 
         // List all records for this destination
-        html += '<div style="margin-left: 42px; font-size: 0.85rem;">';
+        html += '<div style="margin-left: 48px; font-size: 0.85rem;">';
         for (const [i, record] of group.records.entries()) {
             const seq = record.seq || i + 1;
             const checkinTime = record.checkin_time ? new Date(record.checkin_time).toLocaleTimeString('th-TH') : '-';
@@ -612,12 +612,14 @@ async function renderStopsDetail(stops) {
             const isComplete = record.checkin_time && record.checkout_time;
 
             html += `
-                <div style="padding: 6px 8px; margin-bottom: 4px; background: ${isComplete ? '#f0f9ff' : '#fff3e0'}; border-radius: 4px; border-left: 3px solid ${isComplete ? '#4caf50' : '#ff9800'};">
-                    <span style="color: var(--text-sub);">Seq ${seq}:</span>
-                    Check-in: <strong>${checkinTime}</strong>
-                    | Check-out: <strong>${checkoutTime}</strong>
-                    ${record.checkin_odo ? `| ไมล์: ${record.checkin_odo}` : ''}
-                    ${record.checkout_odo ? `→ ${record.checkout_odo}` : ''}
+                <div style="padding: 8px 10px; margin-bottom: 4px; background: ${isComplete ? '#ffffff' : '#fff8e1'}; border-radius: 4px; border-left: 4px solid ${isComplete ? '#4caf50' : '#ff9800'}; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="color: #424242; font-weight: 500;">Seq ${seq}</div>
+                    <div style="margin-top: 4px; color: #616161;">
+                        Check-in: <strong style="color: ${isComplete ? '#2e7d32' : '#ef6c00'};">${checkinTime}</strong>
+                        | Check-out: <strong style="color: ${isComplete ? '#2e7d32' : '#ef6c00'};">${checkoutTime}</strong>
+                        ${record.checkin_odo ? `| ไมล์: <span style="color: #1976d2;">${record.checkin_odo}</span>` : ''}
+                        ${record.checkout_odo ? `→ <span style="color: #1976d2;">${record.checkout_odo}</span>` : ''}
+                    </div>
                 </div>
             `;
         }
@@ -631,13 +633,13 @@ async function renderStopsDetail(stops) {
     const uniqueDeliveryCount = new Set(deliveryStops).size;
     const uniqueOriginCount = new Set(originStops).size;
     const summaryDiv = document.createElement('div');
-    summaryDiv.style.cssText = 'margin-top: 15px; padding: 12px; background: #e8f5e9; border-radius: 8px; border: 1px solid #4caf50;';
+    summaryDiv.style.cssText = 'margin-top: 16px; padding: 14px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 8px; border: 1px solid #81c784; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.15);';
     summaryDiv.innerHTML = `
-        <div style="font-size: 1rem; font-weight: bold; color: #2e7d32; margin-bottom: 5px;">
+        <div style="font-size: 1.05rem; font-weight: bold; color: #2e7d32; margin-bottom: 6px;">
             💰 คำนวณ Incentive
         </div>
-        <div style="font-size: 0.9rem; color: #1b5e20;">
-            จุดส่งจริงที่นับรับ: <strong>${uniqueDeliveryCount} จุด</strong>
+        <div style="font-size: 0.95rem; color: #1b5e20;">
+            จุดส่งจริงที่นับรับ: <strong style="font-size: 1.1rem;">${uniqueDeliveryCount} จุด</strong>
             <span style="color: #4caf50;">(ไม่รวมต้นทาง ${uniqueOriginCount} จุด)</span>
         </div>
     `;
