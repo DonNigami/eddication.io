@@ -1,10 +1,12 @@
 /**
- * Driver Tracking App - Location Service
+ * Driver Tracking App - Location Service (Simplified)
  *
- * Centralized location data management including:
+ * Centralized location data management using ONLY database tables:
  * - Origin configuration lookup
- * - Customer/station coordinate lookup
+ * - Customer/station coordinate lookup from database
  * - Stop enrichment with coordinates
+ *
+ * NO EXTERNAL GEOCODING - Coordinates must exist in database tables
  */
 
 import { supabase } from '../../shared/config.js';
@@ -16,360 +18,10 @@ const cache = {
   origin: null,
   originExpiry: 0,
   customers: new Map(),
-  customersExpiry: 0,
-  geocoding: new Map() // Cache for geocoding results
+  customersExpiry: 0
 };
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Fetch with timeout and retry logic
- * @param {string} url - URL to fetch
- * @param {number} timeout - Timeout in milliseconds
- * @param {number} retries - Number of retries
- * @returns {Promise<Response>} - Fetch response
- */
-async function fetchWithTimeout(url, options = {}, timeout = 6000, retries = 2) {
-  let lastError;
-
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal
-      });
-      clearTimeout(id);
-      return response;
-    } catch (error) {
-      clearTimeout(id);
-      lastError = error;
-
-      if (attempt < retries) {
-        // Exponential backoff: 1s, 2s, 4s...
-        const backoffDelay = 1000 * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
-      }
-    }
-  }
-
-  throw lastError;
-}
-
-/**
- * Simplify Thai company name for better geocoding results
- * @param {string} name - Original company name
- * @returns {Array<string>} - Array of simplified name variations to try
- */
-function simplifyThaiName(name) {
-  const variations = [name];
-
-  // Remove common Thai company prefixes/suffixes
-  const simplified = name
-    .replace(/^บริษัท\s+/i, '') // Remove "บริษัท " (Company)
-    .replace(/^ห้างหุ้นส่วนจำกัด\s+/i, '') // Remove "ห้างหุ้นส่วนจำกัด " (Partnership)
-    .replace(/\sจำกัด$/i, '') // Remove " จำกัด" (Limited)
-    .replace(/\s\(จำกัด\)$/i, '') // Remove " (จำกัด)"
-    .replace(/\s\(มหาชน\)$/i, '') // Remove " (มหาชน)" (Public)
-    .replace(/\s\(ไทย\)$/i, '') // Remove " (ไทย)" (Thailand)
-    .replace(/\s\.+$/, '') // Remove trailing dots
-    .trim();
-
-  if (simplified !== name) {
-    variations.push(simplified);
-  }
-
-  // Try with "จำกัด" suffix only
-  if (simplified && !simplified.includes('จำกัด')) {
-    variations.push(simplified + ' จำกัด');
-  }
-
-  // Try just the first 2-3 words (often the core business name)
-  const words = simplified.split(/\s+/);
-  if (words.length > 3) {
-    const shortName = words.slice(0, Math.min(3, words.length)).join(' ');
-    if (shortName !== simplified) {
-      variations.push(shortName);
-    }
-  }
-
-  // Remove duplicates while preserving order
-  return [...new Set(variations)];
-}
-
-/**
- * Get CORS proxy URLs for Photon API (though Photon generally doesn't need proxies)
- * @param {string} targetUrl - URL to proxy
- * @returns {Array<{name: string, url: string}>} - Array of proxy configurations
- */
-function getCorsProxies(targetUrl) {
-  return [
-    // AllOrigins - JSON mode for better parsing
-    {
-      name: 'AllOrigins',
-      url: `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
-      isJsonWrapper: true
-    }
-  ];
-}
-
-/**
- * Try geocoding via Supabase Edge Function (if deployed)
- * @param {string} address - Address to geocode
- * @returns {Promise<{lat, lng, source}|null>} - Coordinates or null
- */
-async function geocodeViaSupabaseEdgeFunction(address) {
-  try {
-    const { data, error } = await supabase.functions.invoke('geocode', {
-      body: { address, country: 'th' }
-    });
-
-    if (error) throw error;
-    if (data && data.lat && data.lng) {
-      return {
-        lat: parseFloat(data.lat),
-        lng: parseFloat(data.lng),
-        source: 'SupabaseEdge'
-      };
-    }
-  } catch (error) {
-    // Edge function might not exist - that's okay
-    return null;
-  }
-}
-
-/**
- * Geocode an address using Photon API (OpenStreetMap-based) with fallbacks
- * Photon has no rate limits unlike Nominatim and generally works better from browsers
- * @param {string} address - Address to geocode
- * @param {Object} options - Options { skipCache: boolean }
- * @returns {Promise<{lat, lng, source}|null>} - Coordinates with source or null
- */
-async function geocodeAddress(address, options = {}) {
-  if (!address) return null;
-
-  // Check cache first (unless skipping cache)
-  const cacheKey = address.toLowerCase();
-  if (!options.skipCache && cache.geocoding.has(cacheKey)) {
-    return cache.geocoding.get(cacheKey);
-  }
-
-  // Method 1: Try Supabase Edge Function first (most reliable if available)
-  const edgeResult = await geocodeViaSupabaseEdgeFunction(address);
-  if (edgeResult) {
-    cache.geocoding.set(cacheKey, edgeResult);
-    console.log(`📍 Geocoded "${address}" to ${edgeResult.lat}, ${edgeResult.lng} (SupabaseEdge)`);
-    return edgeResult;
-  }
-
-  // Get name variations to try
-  const nameVariations = simplifyThaiName(address);
-
-  // Method 2: Try Photon API through various methods
-  for (const [index, searchName] of nameVariations.entries()) {
-    // Build the Photon URL - add ", Thailand" for better Thai results
-    const searchQuery = `${searchName}, Thailand`;
-    const params = new URLSearchParams({
-      q: searchQuery,
-      limit: '1',
-      lang: 'th'
-    });
-
-    const photonUrl = `https://photon.komoot.io/api/?${params.toString()}`;
-
-    // Get proxy configurations (minimal - Photon usually works directly)
-    const proxies = getCorsProxies(photonUrl);
-
-    // Define geocoding methods to try
-    const methods = [
-      {
-        name: 'PhotonDirect',
-        fetch: async () => {
-          const response = await fetchWithTimeout(photonUrl, {
-            headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
-          }, 8000, 1);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const json = await response.json();
-          return { data: json, isDirect: true };
-        }
-      },
-      ...proxies.map(proxy => ({
-        name: proxy.name,
-        isJsonWrapper: proxy.isJsonWrapper || false,
-        fetch: async () => {
-          const response = await fetchWithTimeout(proxy.url, {}, 10000, 1);
-          if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-          const json = await response.json();
-          // AllOrigins wraps the response in .contents
-          if (proxy.isJsonWrapper && json.contents) {
-            try {
-              return { data: JSON.parse(json.contents), isDirect: false };
-            } catch {
-              return { data: null, isDirect: false };
-            }
-          }
-          return { data: json, isDirect: false };
-        }
-      }))
-    ];
-
-    // Try each method for this name variation
-    for (const method of methods) {
-      try {
-        const result = await method.fetch();
-        const data = result.data;
-
-        // Photon API returns { features: [{ geometry: { coordinates: [lon, lat] } }] }
-        if (data?.features?.[0]) {
-          const feature = data.features[0];
-          const lon = feature.geometry.coordinates[0];
-          const lat = feature.geometry.coordinates[1];
-
-          if (lat && lon) {
-            const coords = {
-              lat: lat,
-              lng: lon,
-              source: method.name,
-              searchedName: searchName
-            };
-            // Cache the result
-            cache.geocoding.set(cacheKey, coords);
-            const variationLabel = index > 0 ? ` (simplified: "${searchName}")` : '';
-            console.log(`📍 Geocoded "${address}" to ${coords.lat}, ${coords.lng} (${method.name})${variationLabel}`);
-            return coords;
-          }
-        }
-      } catch (error) {
-        // Only log warning for the last name variation and last method
-        const isLastVariation = index === nameVariations.length - 1;
-        const isLastMethod = method === methods[methods.length - 1];
-        if (isLastVariation && isLastMethod) {
-          console.warn(`⚠️ Geocoding ${method.name} failed:`, error.message);
-        }
-        // Continue to next method
-      }
-    }
-  }
-
-  console.warn(`⚠️ All geocoding methods failed for "${address}"`);
-  return null;
-}
-
-/**
- * Batch geocode multiple addresses with rate limiting (parallel with delay)
- * @param {Array} stops - Array of stops needing geocoding
- * @param {number} timeoutMs - Timeout in milliseconds (default: 20000)
- * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng, source }
- */
-async function batchGeocodeStops(stops, timeoutMs = 20000) {
-  const results = new Map();
-  const stopsToGeocode = stops.filter(s => s.shipToName || s.address);
-
-  if (stopsToGeocode.length === 0) {
-    return results;
-  }
-
-  // Process in parallel with small delay between batches
-  const BATCH_SIZE = 2; // Reduced for better reliability
-  const BATCH_DELAY = 500; // Increased delay to respect rate limits
-
-  const geocodePromise = (async () => {
-    for (let i = 0; i < stopsToGeocode.length; i += BATCH_SIZE) {
-      const batch = stopsToGeocode.slice(i, i + BATCH_SIZE);
-
-      // Process batch in parallel
-      const batchResults = await Promise.all(
-        batch.map(async (stop) => {
-          const address = stop.shipToName || stop.address;
-          const coords = await geocodeAddress(address);
-          return coords ? { key: stop.shipToCode || stop.seq, coords, address } : null;
-        })
-      );
-
-      // Store results
-      batchResults.forEach(result => {
-        if (result) {
-          results.set(result.key, result.coords);
-        }
-      });
-
-      // Delay between batches (except for the last batch)
-      if (i + BATCH_SIZE < stopsToGeocode.length) {
-        await new Promise(resolve => setTimeout(resolve, BATCH_DELAY));
-      }
-    }
-    return results;
-  })();
-
-  // Race between geocoding and timeout
-  const timeoutPromise = new Promise(resolve => {
-    setTimeout(() => {
-      console.warn(`⏱️ Geocoding timed out after ${timeoutMs}ms, returning partial results`);
-      resolve(results);
-    }, timeoutMs);
-  });
-
-  return Promise.race([geocodePromise, timeoutPromise]);
-}
-
-/**
- * Save geocoded result to customer table for future use
- * @param {string} stationKey - The customer station key
- * @param {string} name - Customer name
- * @param {number} lat - Latitude
- * @param {number} lng - Longitude
- * @param {string} source - Geocoding source
- */
-async function saveGeocodedResult(stationKey, name, lat, lng, source = 'geocoding') {
-  try {
-    // Check if customer already exists first
-    const { data: existing } = await supabase
-      .from('customer')
-      .select('stationKey')
-      .eq('stationKey', stationKey)
-      .maybeSingle();
-
-    if (existing) {
-      // Update existing customer
-      await supabase
-        .from('customer')
-        .update({
-          lat: lat.toString(),
-          lng: lng.toString(),
-          updatedAt: new Date().toISOString()
-        })
-        .eq('stationKey', stationKey);
-      console.log(`💾 Updated coordinates for ${stationKey} (${name})`);
-    } else {
-      // Insert new customer entry
-      await supabase
-        .from('customer')
-        .insert({
-          stationKey,
-          name,
-          lat: lat.toString(),
-          lng: lng.toString(),
-          radiusMeters: 100,
-          source,
-          createdAt: new Date().toISOString()
-        });
-      console.log(`💾 Saved new coordinates for ${stationKey} (${name})`);
-    }
-
-    // Update cache
-    cache.customers.set(stationKey, {
-      name,
-      lat,
-      lng,
-      radiusMeters: 100
-    });
-  } catch (error) {
-    console.warn(`⚠️ Failed to save geocoded result for ${stationKey}:`, error.message);
-    // Don't throw - geocoding success shouldn't fail due to save failure
-  }
-}
 
 /**
  * Get origin configuration by route
@@ -453,8 +105,8 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     // Step 1: Query customer table
     const { data: customerData, error: customerError } = await supabase
       .from('customer')
-      .select('stationKey, name, lat, lng, radiusMeters')
-      .in('stationKey', uncachedCodes);
+      .select('"stationKey", name, lat, lng, "radiusMeters"')
+      .in('"stationKey"', uncachedCodes);
 
     if (customerError) {
       // Check if table doesn't exist or permission denied
@@ -485,8 +137,8 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     if (stillUncachedCodes.length > 0) {
       const { data: stationData, error: stationError } = await supabase
         .from('station')
-        .select('stationKey, name, lat, lng, radiusMeters')
-        .in('stationKey', stillUncachedCodes);
+        .select('"stationKey", name, lat, lng, "radiusMeters"')
+        .in('"stationKey"', stillUncachedCodes);
 
       if (stationError) {
         // Check if table doesn't exist or permission denied
@@ -522,37 +174,7 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 }
 
 /**
- * Enrich stops using the enrich-coordinates Edge Function
- * This calls the server-side function which queries origin, customer, and station tables
- * @param {Array} stops - Array of stop objects
- * @param {string|null} route - Route code for origin lookup
- * @returns {Promise<{success: boolean, stops: Array}|null>} - Enriched stops or null on failure
- */
-async function enrichViaEdgeFunction(stops, route) {
-  try {
-    const { data, error } = await supabase.functions.invoke('enrich-coordinates', {
-      body: { stops, route }
-    });
-
-    if (error) {
-      console.warn('⚠️ enrich-coordinates Edge Function error:', error.message);
-      return null;
-    }
-
-    if (data && data.stops) {
-      console.log(`✅ Enriched via Edge Function: ${data.stops.filter(s => s.destLat && s.destLng).length}/${stops.length} stops`);
-      return { success: true, stops: data.stops };
-    }
-
-    return null;
-  } catch (err) {
-    console.warn('⚠️ enrich-coordinates Edge Function failed:', err.message);
-    return null;
-  }
-}
-
-/**
- * Query station by exact name match (more reliable than ilike for Thai)
+ * Query station by exact name match
  * @param {string} name - Station name to lookup
  * @returns {Promise<Object|null>} - Station data or null
  */
@@ -564,11 +186,11 @@ async function getStationByName(name) {
   }
 
   try {
-    // Try exact match first - more reliable for Thai names
+    // Try exact match - using station_name since name might be a generated column
     const { data: stationData, error } = await supabase
       .from('station')
-      .select('stationKey, name, lat, lng, radiusMeters')
-      .eq('name', name)
+      .select('"stationKey", station_name, lat, lng, "radiusMeters"')
+      .eq('station_name', name)
       .limit(1)
       .maybeSingle();
 
@@ -589,7 +211,7 @@ async function getStationByName(name) {
       const lng = parseFloat(stationData.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
         cache.customers.set(stationData.stationKey, {
-          name: stationData.name,
+          name: stationData.station_name,
           lat,
           lng,
           radiusMeters: stationData.radiusMeters
@@ -606,10 +228,11 @@ async function getStationByName(name) {
 }
 
 /**
- * Enrich stops with coordinates from master location tables
+ * Enrich stops with coordinates from database tables only
+ * NO EXTERNAL API CALLS - Coordinates must exist in database
  * @param {Array} stops - Array of stop objects
  * @param {string|null} route - Route code for origin lookup
- * @returns {Promise<Array>} - Enriched stops with coordinates
+ * @returns {Promise<Array>} - Enriched stops with coordinates (or without if not found in DB)
  */
 export async function enrichStopsWithCoordinates(stops, route = null) {
   if (!stops || stops.length === 0) {
@@ -617,127 +240,43 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
   }
 
   try {
-    console.log('🔍 Enriching coordinates for', stops.length, 'stops');
+    console.log('🔍 Enriching coordinates for', stops.length, 'stops (database only)');
 
-    // STEP 1: Try enrich-coordinates Edge Function first (server-side, no CORS issues)
-    const edgeResult = await enrichViaEdgeFunction(stops, route);
-    if (edgeResult && edgeResult.stops) {
-      // Update cache with results from Edge Function
-      for (const stop of edgeResult.stops) {
-        if (stop.destLat && stop.destLng && stop.shipToCode) {
-          cache.customers.set(stop.shipToCode, {
-            name: stop.shipToName || '',
-            lat: stop.destLat,
-            lng: stop.destLng,
-            radiusMeters: stop.radiusM || 100
-          });
-        }
-      }
-      return edgeResult.stops;
-    }
-
-    // STEP 2: Fallback to client-side enrichment if Edge Function fails
-    console.log('🔄 Falling back to client-side enrichment...');
-
-    // Step 2.1: Get origin coordinate
+    // Step 1: Get origin coordinate
     const originData = await getOriginConfig(route);
 
-    // Step 2.2: Get all unique customer codes
+    // Step 2: Get all unique customer codes
     const shipToCodes = stops
       .filter(s => s.shipToCode && !s.isOriginStop)
       .map(s => s.shipToCode)
       .filter((v, i, a) => a.indexOf(v) === i); // unique
 
-    // Step 2.3: Fetch customer coordinates (with error handling)
+    // Step 3: Fetch customer coordinates from database
     let customerMap = new Map();
     if (shipToCodes.length > 0) {
       try {
         customerMap = await getCustomerCoordinates(shipToCodes);
       } catch (err) {
-        console.warn('⚠️ Error fetching customer coordinates, continuing without:', err.message);
+        console.warn('⚠️ Error fetching customer coordinates:', err.message);
         customerMap = new Map();
       }
     }
 
-    // Step 2.4: For stops without shipToCode, try to load coordinates by shipToName
+    // Step 4: For stops without shipToCode, try to load coordinates by shipToName
     const stopsWithoutCode = stops.filter(s => !s.shipToCode && s.shipToName && !s.isOriginStop);
     if (stopsWithoutCode.length > 0) {
       const uniqueNames = [...new Set(stopsWithoutCode.map(s => s.shipToName))];
-      console.log(`🔍 Looking up ${uniqueNames.length} unique names for stops without shipToCode...`);
+      console.log(`🔍 Looking up ${uniqueNames.length} unique names in station table...`);
 
-      // Use exact match instead of ilike for Thai names
       for (const name of uniqueNames) {
         const station = await getStationByName(name);
         if (station) {
-          console.log(`✅ Found coordinates for "${name}" by name lookup`);
+          console.log(`✅ Found coordinates for "${name}"`);
         }
       }
     }
 
-    // Step 4: Identify stops without coordinates for geocoding
-    const stopsWithoutCoords = stops.filter(stop => {
-      if (stop.destLat && stop.destLng) return false; // Already has coords
-      if (stop.isOriginStop) return false; // Origin handled separately
-
-      // Check if found in customerMap by shipToCode
-      if (stop.shipToCode) {
-        const customer = customerMap.get(stop.shipToCode);
-        if (customer && customer.lat && customer.lng) return false;
-      }
-
-      // Check if found in cache by shipToName (for stops without shipToCode)
-      if (!stop.shipToCode && stop.shipToName) {
-        const foundByName = Array.from(cache.customers.values()).some(
-          v => v.name === stop.shipToName && v.lat && v.lng
-        );
-        if (foundByName) return false;
-      }
-
-      // Needs geocoding
-      return true;
-    });
-
-    // Step 5: Geocode missing stops - NON-BLOCKING with 2s timeout
-    let geocodedMap = new Map();
-    if (stopsWithoutCoords.length > 0) {
-      console.log(`📍 Geocoding ${stopsWithoutCoords.length} stops without coordinates (max 2s wait)...`);
-
-      // Quick 2-second timeout for initial results
-      geocodedMap = await batchGeocodeStops(stopsWithoutCoords, 2000);
-
-      // Continue geocoding in background with full timeout (fire and forget)
-      batchGeocodeStops(stopsWithoutCoords, 20000).then(backgroundResults => {
-        if (backgroundResults.size > geocodedMap.size) {
-          console.log(`📍 Background geocoding completed: ${backgroundResults.size} results`);
-          // Trigger a UI refresh if callback is registered
-          if (window.onGeocodingComplete) {
-            window.onGeocodingComplete(backgroundResults);
-          }
-        }
-      }).catch(err => {
-        console.warn('⚠️ Background geocoding failed:', err.message);
-      });
-    }
-
-    // Step 5.5: Save successful geocoding results to database
-    if (geocodedMap.size > 0) {
-      console.log(`💾 Saving ${geocodedMap.size} geocoded results to database...`);
-      for (const [key, coords] of geocodedMap.entries()) {
-        const stop = stopsWithoutCoords.find(s => (s.shipToCode || s.seq) === key);
-        if (stop && stop.shipToCode && coords.lat && coords.lng) {
-          // Save asynchronously without blocking
-          saveGeocodedResult(
-            stop.shipToCode,
-            stop.shipToName || stop.address || 'Unknown',
-            coords.lat,
-            coords.lng,
-            coords.source || 'photon'
-          ).catch(() => {}); // Fire and forget
-        }
-      }
-    }
-
-    // Step 6: Enrich stops
+    // Step 5: Enrich stops with database coordinates
     const enrichedStops = stops.map(stop => {
       // If already has coordinates, keep them
       if (stop.destLat && stop.destLng && stop.radiusM) {
@@ -767,8 +306,7 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
         }
       }
 
-      // If shipToCode is empty, try to find by shipToName in customer/station cache
-      // (look up by name as fallback for empty codes)
+      // If shipToCode is empty, try to find by shipToName in cache
       if (!stop.shipToCode && stop.shipToName) {
         for (const [key, value] of cache.customers.entries()) {
           if (value.name === stop.shipToName && value.lat && value.lng) {
@@ -776,30 +314,27 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
               ...stop,
               destLat: value.lat,
               destLng: value.lng,
-              radiusM: parseFloat(value.radiusMeters) || 100
+              radiusM: parseFloat(value.radiusMeters) || 100,
+              // Add shipToCode from cache for future reference
+              shipToCode: key
             };
           }
         }
       }
 
-      // Try geocoded result
-      const geocodeKey = stop.shipToCode || stop.seq;
-      if (geocodedMap.has(geocodeKey)) {
-        const coords = geocodedMap.get(geocodeKey);
-        return {
-          ...stop,
-          destLat: coords.lat,
-          destLng: coords.lng,
-          radiusM: 100 // Default radius for geocoded locations
-        };
-      }
-
-      // No coordinates found - return original
+      // No coordinates found in database - return original (will be shown without map)
       return stop;
     });
 
     const enrichedCount = enrichedStops.filter(s => s.destLat && s.destLng).length;
-    console.log(`✅ Enriched ${enrichedCount}/${stops.length} stops with coordinates`);
+    console.log(`✅ Enriched ${enrichedCount}/${stops.length} stops with coordinates (from database)`);
+
+    // Log stops without coordinates for reference
+    const withoutCoords = enrichedStops.filter(s => !s.destLat || !s.destLng);
+    if (withoutCoords.length > 0) {
+      const missingNames = [...new Set(withoutCoords.map(s => s.shipToName || s.shipToCode || 'Unknown').filter(Boolean))];
+      console.log(`⚠️ No coordinates found for: ${missingNames.join(', ')} (add to station/customer table)`);
+    }
 
     return enrichedStops;
 
@@ -855,7 +390,6 @@ export function clearLocationCache() {
   cache.originExpiry = 0;
   cache.customers.clear();
   cache.customersExpiry = 0;
-  cache.geocoding.clear();
   console.log('🗑️ Location cache cleared');
 }
 
