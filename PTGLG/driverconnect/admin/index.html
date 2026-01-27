@@ -1,5 +1,116 @@
 <!DOCTYPE html>
 <html lang="th">
+<!--
+================================================================================
+DRIVERCONNECT ADMIN PANEL - DATABASE SCHEMA ALIGNMENT
+================================================================================
+
+This admin panel interfaces with the following Supabase database tables:
+
+1. jobdata (Main Job Table - Trip & Stop Data)
+   Core Fields:
+   - id: UUID (PK)
+   - reference: TEXT - Job reference number (grouping key)
+   - shipment_no: TEXT - Shipment document number
+   - drivers: TEXT - Comma-separated driver names
+   - vehicle_desc: TEXT - Vehicle description/plate
+   - route: TEXT - Route code
+   - distance_km: NUMERIC - Distance in km
+
+   Stop Fields (per row):
+   - seq: INTEGER - Stop sequence number
+   - ship_to_code: TEXT - Customer/station code (grouping key)
+   - ship_to_name: TEXT - Customer/station name
+   - destination: TEXT - Destination address
+   - is_origin_stop: BOOLEAN - TRUE if origin/depot point
+   - status: TEXT - pending, checkin, checkout, completed
+
+   Check-in/out Fields:
+   - checkin_time: TIMESTAMPTZ - Check-in timestamp
+   - checkin_lat: NUMERIC - Check-in latitude
+   - checkin_lng: NUMERIC - Check-in longitude
+   - checkin_odo: INTEGER - Odometer at check-in
+   - checkout_time: TIMESTAMPTZ - Check-out timestamp
+   - checkout_lat: NUMERIC - Check-out latitude
+   - checkout_lng: NUMERIC - Check-out longitude
+   - checkout_odo: INTEGER - Odometer at check-out
+
+   Job Completion:
+   - job_closed_at: TIMESTAMPTZ - Job completion timestamp
+   - end_odo: INTEGER - Final odometer reading
+
+   Incentive Fields:
+   - incentive_approved: BOOLEAN - Approved for payment
+   - incentive_approved_by: TEXT - Admin LINE User ID
+   - incentive_approved_at: TIMESTAMPTZ
+   - incentive_distance: NUMERIC - Distance for incentive calc
+   - incentive_stops: INTEGER - Stop count for incentive
+   - incentive_rate: NUMERIC - Rate per km (default 2.0)
+   - incentive_amount: NUMERIC - Total incentive amount
+   - incentive_notes: TEXT
+
+   Payment Fields:
+   - payment_status: TEXT - pending, processing, paid, transfer_pending, correction_needed, rejected
+   - payment_notes: TEXT
+   - paid_at: TIMESTAMPTZ
+   - paid_by: TEXT - Admin LINE User ID
+
+2. alcohol_checks
+   - id: UUID (PK)
+   - reference: TEXT (FK to jobdata.reference)
+   - driver_name: TEXT
+   - alcohol_value: NUMERIC(4,3) - BAC level
+   - image_url: TEXT - Supabase Storage URL
+   - checked_at: TIMESTAMPTZ
+   - checked_by: TEXT - LINE User ID
+
+3. admin_logs
+   - id: UUID (PK)
+   - reference: TEXT
+   - action: TEXT - search, checkin, checkout, close_job
+   - user_id: TEXT - LINE User ID
+   - user_name: TEXT - LINE Display Name
+   - details: JSONB
+   - location: JSONB - {lat, lng}
+   - created_at: TIMESTAMPTZ
+
+4. vehicle_breakdown
+   - id: UUID (PK)
+   - reference: TEXT - New reference after breakdown
+   - original_ref: TEXT - Original job reference
+   - driver: TEXT
+   - vehicle: TEXT
+   - reason: TEXT
+   - status: TEXT
+   - created_at: TIMESTAMPTZ
+
+5. fuel_siphoning
+   - id: UUID (PK)
+   - reference: TEXT
+   - driver_id: TEXT
+   - vehicle: TEXT
+   - liters: NUMERIC
+   - date: DATE
+   - time: TIME
+   - evidence_image: TEXT
+   - notes: TEXT
+   - status: TEXT
+
+6. Location Tables
+   - origin: originKey, name, lat, lng, radiusMeters, routeCode
+   - customer: stationKey, stationKey2, name, lat, lng, radiusMeters, email, STD
+   - station: ชื่อสถานีบริการ, Mobile, Name_Area, plant code, lat, lng, stationKey
+
+7. user_profiles
+   - id: UUID (PK)
+   - user_id: TEXT (UNIQUE) - LINE User ID
+   - display_name: TEXT
+   - status: TEXT - active, inactive, suspended
+   - role: TEXT - driver, admin, accounting
+   - liff_id: TEXT
+
+================================================================================
+-->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -212,10 +323,20 @@
                                 <p><strong>Reference:</strong> <span id="detail-job-reference"></span></p>
                                 <p><strong>Shipment No.:</strong> <span id="detail-job-shipment-no"></span></p>
                                 <p><strong>Driver:</strong> <span id="detail-job-driver"></span></p>
+                                <p><strong>Vehicle:</strong> <span id="detail-job-vehicle"></span></p>
+                                <p><strong>Route:</strong> <span id="detail-job-route"></span></p>
                                 <p><strong>Status:</strong> <span id="detail-job-status"></span></p>
-                                <p><strong>Trip Ended:</strong> <span id="detail-job-trip-ended"></span></p>
+                                <p><strong>Job Closed:</strong> <span id="detail-job-closed"></span></p>
                                 <p><strong>Created At:</strong> <span id="detail-job-created-at"></span></p>
                                 <p><strong>Updated At:</strong> <span id="detail-job-updated-at"></span></p>
+                            </div>
+                            <div class="job-details-section">
+                                <h3>Incentive & Payment</h3>
+                                <p><strong>Incentive Approved:</strong> <span id="detail-job-incentive-approved"></span></p>
+                                <p><strong>Incentive Amount:</strong> <span id="detail-job-incentive-amount"></span></p>
+                                <p><strong>Incentive Stops:</strong> <span id="detail-job-incentive-stops"></span></p>
+                                <p><strong>Payment Status:</strong> <span id="detail-job-payment-status"></span></p>
+                                <p><strong>Paid At:</strong> <span id="detail-job-paid-at"></span></p>
                             </div>
                             <div class="job-details-section">
                                 <h3>Trip Stops</h3>
@@ -224,10 +345,12 @@
                                         <thead>
                                             <tr>
                                                 <th>Seq</th>
+                                                <th>Ship To Code</th>
                                                 <th>Destination</th>
+                                                <th>Origin?</th>
                                                 <th>Status</th>
-                                                <th>Check-in Time</th>
-                                                <th>Check-out Time</th>
+                                                <th>Check-in</th>
+                                                <th>Check-out</th>
                                             </tr>
                                         </thead>
                                         <tbody></tbody>
@@ -258,7 +381,8 @@
                                             <tr>
                                                 <th>Time</th>
                                                 <th>Action</th>
-                                                <th>User</th>
+                                                <th>User ID</th>
+                                                <th>User Name</th>
                                                 <th>Location</th>
                                             </tr>
                                         </thead>

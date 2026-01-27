@@ -1,6 +1,63 @@
 <!DOCTYPE html>
 <html lang="th">
 
+<!--
+================================================================================
+DRIVER TRACKING APP - DATABASE SCHEMA ALIGNMENT
+================================================================================
+
+This application interfaces with the following Supabase database tables:
+
+1. jobdata (Main Job Table)
+   - reference: TEXT (UNIQUE) - Job reference number
+   - shipment_no: TEXT - Shipment document number
+   - drivers: TEXT - Comma-separated driver names
+   - vehicle_desc: TEXT - Vehicle description/plate
+   - route: TEXT - Route code
+   - seq: INTEGER - Stop sequence number
+   - ship_to_code: TEXT - Customer/station code (grouping key)
+   - ship_to_name: TEXT - Customer/station name (destination)
+   - destination: TEXT - Destination address
+   - is_origin_stop: BOOLEAN - TRUE if this is origin/depot point
+   - status: TEXT - pending, checkin, checkout, completed
+   - checkin_time: TIMESTAMPTZ - Check-in timestamp
+   - checkin_lat: NUMERIC - Check-in latitude
+   - checkin_lng: NUMERIC - Check-in longitude
+   - checkin_odo: INTEGER - Odometer at check-in
+   - checkout_time: TIMESTAMPTZ - Check-out timestamp
+   - checkout_lat: NUMERIC - Check-out latitude
+   - checkout_lng: NUMERIC - Check-out longitude
+   - checkout_odo: INTEGER - Odometer at check-out
+   - job_closed_at: TIMESTAMPTZ - Job completion timestamp
+   - end_odo: INTEGER - Final odometer reading
+   - distance_km: NUMERIC - Distance traveled in km
+
+2. alcohol_checks
+   - id: UUID (PK)
+   - reference: TEXT (FK to jobdata.reference)
+   - driver_name: TEXT
+   - alcohol_value: NUMERIC(4,3) - BAC level
+   - image_url: TEXT - Supabase Storage URL
+   - checked_at: TIMESTAMPTZ
+   - checked_by: TEXT - LINE User ID
+
+3. admin_logs
+   - id: UUID (PK)
+   - reference: TEXT
+   - action: TEXT - search, checkin, checkout, close_job
+   - user_id: TEXT - LINE User ID
+   - user_name: TEXT - LINE Display Name
+   - details: JSONB
+   - location: JSONB - {lat, lng}
+   - created_at: TIMESTAMPTZ
+
+4. Location Tables
+   - origin: originKey, name, lat, lng, radiusMeters, routeCode
+   - customer: stationKey, name, lat, lng, radiusMeters
+   - station: stationKey, plant code, lat, lng
+
+================================================================================
+-->
 <head>
   <base target="_top" />
   <meta charset="UTF-8" />
@@ -190,7 +247,7 @@
   <script type="module" src="js/enhanced-ux.js"></script>
 
   <!-- Application Script (ES Module) -->
-  <script type="module" src="js/app.js?v=20260126260000"></script>
+  <script type="module" src="js/app.js?v=20260127000000"></script>
 </body>
 
 </html>
