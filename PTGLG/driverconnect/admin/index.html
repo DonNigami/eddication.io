@@ -663,6 +663,38 @@ This admin panel interfaces with the following Supabase database tables:
                             <!-- Trip Details -->
                             <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e0e0e0;">
                                 <h3 style="margin-bottom: 12px; color: #212121; font-size: 1.1rem;">📋 รายละเอียดงาน</h3>
+
+                                <!-- Performance Summary Section -->
+                                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #90caf9;">
+                                    <div style="color: #0d47a1; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">📊 สรุป Performance การจัดส่ง</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 15px;">
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div style="color: #546e7a; font-size: 0.75rem;">ระยะเวลารวม</div>
+                                            <div id="perf-total-time" style="font-size: 1rem; font-weight: 600; color: #1565c0;">-</div>
+                                        </div>
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div style="color: #546e7a; font-size: 0.75rem;">ระยะทางรวม</div>
+                                            <div id="perf-total-distance" style="font-size: 1rem; font-weight: 600; color: #1565c0;">-</div>
+                                        </div>
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div style="color: #546e7a; font-size: 0.75rem;">การทำงานวันหยุด</div>
+                                            <div id="perf-holiday-work" style="font-size: 1rem; font-weight: 600; color: #1565c0;">-</div>
+                                        </div>
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div style="color: #546e7a; font-size: 0.75rem;">จำนวนคนขับ</div>
+                                            <div id="perf-driver-count" style="font-size: 1rem; font-weight: 600; color: #1565c0;">-</div>
+                                        </div>
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div style="color: #546e7a; font-size: 0.75rem;">รายชื่อคนขับ</div>
+                                            <div id="perf-driver-names" style="font-size: 0.9rem; font-weight: 500; color: #424242;">-</div>
+                                        </div>
+                                        <div style="flex: 1; min-width: 120px;">
+                                            <div style="color: #546e7a; font-size: 0.75rem;">สถานะรถ</div>
+                                            <div id="perf-vehicle-status" style="font-size: 1rem; font-weight: 600; color: #1565c0;">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px;">
                                     <!-- Holiday Work -->
                                     <div style="background: #fff3e0; padding: 12px; border-radius: 6px; border-left: 5px solid #ff9800;">
@@ -697,11 +729,16 @@ This admin panel interfaces with the following Supabase database tables:
                                 </div>
                             </div>
 
-                            <!-- Delivery Summary -->
+                            <!-- Delivery Summary - Horizontal Layout -->
                             <div style="background: #fff8e1; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffb74d;">
-                                <h3 style="margin-bottom: 12px; color: #e65100; font-size: 1.1rem;">📦 สรุปการจัดส่งสินค้า</h3>
-                                <div id="detail-delivery-summary" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                                    <!-- Delivery items will be populated here -->
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <h3 style="color: #e65100; font-size: 1.1rem; margin: 0;">📦 สรุปการจัดส่งสินค้า</h3>
+                                    <button type="button" id="btn-edit-delivery" style="padding: 6px 12px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+                                        ✏️ แก้ไข
+                                    </button>
+                                </div>
+                                <div id="detail-delivery-summary" style="display: flex; flex-wrap: wrap; gap: 12px; overflow-x: auto;">
+                                    <!-- Delivery items will be populated here as horizontal cards -->
                                 </div>
                             </div>
 

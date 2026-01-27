@@ -45,6 +45,17 @@ const elements = {
     detailAmount: null,
     detailNotes: null,
 
+    // Performance Summary elements
+    perfTotalTime: null,
+    perfTotalDistance: null,
+    perfHolidayWork: null,
+    perfDriverCount: null,
+    perfDriverNames: null,
+    perfVehicleStatus: null,
+
+    // Edit delivery button
+    editDeliveryBtn: null,
+
     // Edit form
     editForm: null,
     editReference: null,
@@ -462,8 +473,8 @@ export async function openDetailModal(job) {
 
     // Populate trip details
     // Holiday Work
+    const isHoliday = job.is_holiday_work || job.all_jobs?.some(j => j.is_holiday_work);
     if (elements.detailHolidayWork) {
-        const isHoliday = job.is_holiday_work || job.all_jobs?.some(j => j.is_holiday_work);
         elements.detailHolidayWork.textContent = isHoliday ? '✅ ใช่ (ทำงานวันหยุด)' : 'ไม่ใช่';
     }
 
@@ -504,15 +515,42 @@ export async function openDetailModal(job) {
     const stops = await loadJobStops(job.reference);
     const uniqueStopsCount = await calculateUniqueStops(stops);
 
-    // Render delivery summary (now async)
-    if (elements.detailDeliverySummary) {
-        await renderDeliverySummary(stops);
+    // Calculate performance metrics
+    const totalDistance = job.total_distance || 0;
+    const rate = job.incentive_rate || DEFAULT_RATE_PER_KM;
+    const amount = totalDistance * rate;
+
+    // Calculate total duration from check-in to last check-out
+    const perfMetrics = calculatePerformanceMetrics(stops);
+
+    // Populate Performance Summary section
+    if (elements.perfTotalTime) {
+        elements.perfTotalTime.textContent = perfMetrics.totalDuration || '-';
+    }
+    if (elements.perfTotalDistance) {
+        elements.perfTotalDistance.textContent = `${totalDistance.toFixed(1)} กม.`;
+    }
+    if (elements.perfHolidayWork) {
+        elements.perfHolidayWork.textContent = isHoliday ? '✅ ใช่' : '❌ ไม่ใช่';
+    }
+    if (elements.perfDriverCount) {
+        const driverCount = job.driver_count || countDrivers(job.drivers);
+        elements.perfDriverCount.textContent = `${driverCount} คน`;
+    }
+    if (elements.perfDriverNames) {
+        const driverNames = formatDriverNames(job.drivers);
+        elements.perfDriverNames.textContent = driverNames || '-';
+    }
+    if (elements.perfVehicleStatus) {
+        const isVehicleReady = checkVehicleReady(job);
+        elements.perfVehicleStatus.textContent = isVehicleReady ? '✅ พร้อมจัดส่ง' : '⚠️ ไม่พร้อม';
+        elements.perfVehicleStatus.style.color = isVehicleReady ? '#2e7d32' : '#f44336';
     }
 
-    // Calculate totals
-    const rate = job.incentive_rate || DEFAULT_RATE_PER_KM;
-    const totalDistance = job.total_distance || 0;
-    const amount = totalDistance * rate;
+    // Render delivery summary (horizontal layout)
+    if (elements.detailDeliverySummary) {
+        await renderDeliverySummaryHorizontal(stops);
+    }
 
     if (elements.detailDistance) elements.detailDistance.textContent = totalDistance.toFixed(1) + ' km';
     if (elements.detailStopsCount) elements.detailStopsCount.textContent = uniqueStopsCount + ' จุด';
@@ -539,8 +577,75 @@ export async function openDetailModal(job) {
 
     elements.detailModal.classList.remove('hidden');
 
+    // Setup edit delivery button
+    setupEditDeliveryButton();
+
     // Setup tab switching
     setupModalTabs();
+}
+
+/**
+ * Calculate performance metrics from stops
+ */
+function calculatePerformanceMetrics(stops) {
+    if (!stops || stops.length === 0) {
+        return { totalDuration: '-' };
+    }
+
+    // Find first check-in and last check-out
+    let firstCheckin = null;
+    let lastCheckout = null;
+
+    for (const stop of stops) {
+        if (stop.checkin_time && (!firstCheckin || new Date(stop.checkin_time) < new Date(firstCheckin))) {
+            firstCheckin = stop.checkin_time;
+        }
+        if (stop.checkout_time && (!lastCheckout || new Date(stop.checkout_time) > new Date(lastCheckout))) {
+            lastCheckout = stop.checkout_time;
+        }
+    }
+
+    if (firstCheckin && lastCheckout) {
+        const duration = new Date(lastCheckout) - new Date(firstCheckin);
+        const hours = Math.floor(duration / (1000 * 60 * 60));
+        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+        return {
+            totalDuration: `${hours} ชม. ${minutes} นาที`,
+            firstCheckin,
+            lastCheckout
+        };
+    }
+
+    return { totalDuration: '-' };
+}
+
+/**
+ * Count number of drivers from driver string
+ */
+function countDrivers(driversStr) {
+    if (!driversStr) return 0;
+    // Split by comma and count non-empty entries
+    return driversStr.split(',').filter(d => d && d.trim()).length;
+}
+
+/**
+ * Format driver names for display
+ */
+function formatDriverNames(driversStr) {
+    if (!driversStr) return '-';
+    const drivers = driversStr.split(',').filter(d => d && d.trim());
+    if (drivers.length === 0) return '-';
+    if (drivers.length <= 2) return drivers.join(', ');
+    return `${drivers.slice(0, 2).join(', ')} +${drivers.length - 2}`;
+}
+
+/**
+ * Check if vehicle is ready for delivery
+ */
+function checkVehicleReady(job) {
+    // Vehicle is ready if job is completed and no issues
+    const hasIssues = job.vehicle_breakdown || job.has_issues || job.status === 'breakdown';
+    return !hasIssues && (job.status === 'completed' || job.trip_ended);
 }
 
 /**
@@ -707,12 +812,21 @@ async function renderStopsDetail(stops) {
  * Render delivery summary - detailed breakdown by destination and delivery records
  */
 async function renderDeliverySummary(stops) {
+    // Keep the old function for backward compatibility, but use the new horizontal version
+    await renderDeliverySummaryHorizontal(stops);
+}
+
+/**
+ * Render delivery summary - horizontal layout with editable cards
+ * NEW VERSION - Horizontal cards that can be edited individually
+ */
+async function renderDeliverySummaryHorizontal(stops) {
     if (!elements.detailDeliverySummary) return;
 
     elements.detailDeliverySummary.innerHTML = '';
 
     if (stops.length === 0) {
-        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575;">ไม่พบข้อมูลการจัดส่ง</p>';
+        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575; padding: 20px; text-align: center;">ไม่พบข้อมูลการจัดส่ง</p>';
         return;
     }
 
@@ -747,6 +861,7 @@ async function renderDeliverySummary(stops) {
 
         // Track individual delivery record
         group.deliveries.push({
+            id: stop.id,
             seq: stop.seq,
             materials: stop.materials || '',
             quantity: parseFloat(stop.total_qty) || 0,
@@ -774,32 +889,33 @@ async function renderDeliverySummary(stops) {
     const deliveryDestinations = Array.from(destinationGroups.entries()).filter(([key, group]) => !group.isOrigin);
     const totalStops = deliveryDestinations.length;
 
-    // Display total summary at the top
+    // Display total summary at the top - horizontal pill badges
     const totalDiv = document.createElement('div');
-    totalDiv.style.cssText = 'background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%); padding: 14px; border-radius: 8px; border: 2px solid #ff9800; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(255, 152, 0, 0.2);';
+    totalDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;';
 
     const materialsSummaryText = Array.from(allMaterials.entries())
-        .map(([mat, qty]) => `${mat}: ${qty.toLocaleString()} ลิตร`)
+        .map(([mat, qty]) => `${mat}: ${qty.toLocaleString()}`)
         .join(' | ');
 
     totalDiv.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start;">
-            <div style="flex: 1;">
-                <div style="color: #e65100; font-size: 0.9rem; font-weight: 600; margin-bottom: 6px;">📊 สรุปทั้งหมด</div>
-                <div style="color: #212121; font-size: 0.95rem; line-height: 1.6;">
-                    จุดส่ง <strong>${totalStops}</strong> แห่ง |
-                    ปริมาณรวม <strong>${totalQuantity.toLocaleString()} ลิตร</strong>
-                </div>
-                <div style="margin-top: 6px; font-size: 0.8rem; color: #757575;">
-                    📦 ${materialsSummaryText || '-'}
-                </div>
+        <div style="background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%); padding: 8px 16px; border-radius: 20px; border: 1px solid #ff9800; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.2rem;">📊</span>
+            <div>
+                <span style="color: #e65100; font-weight: 600;">จุดส่ง ${totalStops} แห่ง</span>
+                <span style="color: #757575; margin: 0 8px;">|</span>
+                <span style="color: #212121;">รวม ${totalQuantity.toLocaleString()} ลิตร</span>
             </div>
-            <div style="font-size: 2rem;">📦</div>
         </div>
+        ${Array.from(allMaterials.entries()).map(([mat, qty]) => `
+            <div style="background: white; padding: 6px 14px; border-radius: 20px; border: 1px solid #ffcc80; display: flex; align-items: center; gap: 6px;">
+                <span style="color: #e65100; font-weight: 500;">${sanitizeHTML(mat)}</span>
+                <span style="color: #757575; font-size: 0.9rem;">${qty.toLocaleString()} ลิตร</span>
+            </div>
+        `).join('')}
     `;
     elements.detailDeliverySummary.appendChild(totalDiv);
 
-    // Display each destination with its detailed breakdown
+    // Display each destination as a horizontal card
     let stopIndex = 0;
     for (const [key, group] of deliveryDestinations) {
         stopIndex++;
@@ -821,90 +937,178 @@ async function renderDeliverySummary(stops) {
             }
         }
 
-        const stopDiv = document.createElement('div');
-        stopDiv.style.cssText = 'background: #fff8e1; padding: 0; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ffb74d; box-shadow: 0 2px 8px rgba(0,0,0,0.08);';
+        // Create horizontal card for this destination
+        const stopCard = document.createElement('div');
+        stopCard.className = 'delivery-destination-card';
+        stopCard.dataset.destination = key;
+        stopCard.style.cssText = `
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #ffb74d;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        `;
 
-        // Build destination header
-        let deliveriesHtml = `
-            <div style="background: linear-gradient(90deg, #ff9800 0%, #fb8c00 100%); padding: 12px 15px; border-radius: 10px 10px 0 0;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.1rem; color: #ff9800;">
+        stopCard.onmouseover = () => {
+            stopCard.style.boxShadow = '0 4px 16px rgba(255, 152, 0, 0.2)';
+            stopCard.style.transform = 'translateY(-2px)';
+        };
+        stopCard.onmouseout = () => {
+            stopCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+            stopCard.style.transform = 'translateY(0)';
+        };
+
+        // Build card HTML
+        let cardHtml = `
+            <div style="background: linear-gradient(90deg, #ff9800 0%, #fb8c00 100%); padding: 12px 15px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 36px; height: 36px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; color: #ff9800; flex-shrink: 0;">
                         ${stopIndex}
                     </div>
-                    <div style="flex: 1; color: white;">
-                        <div style="font-size: 1rem; font-weight: 600;">${sanitizeHTML(group.shipToName)}</div>
-                        ${group.shipToCode ? `<div style="font-size: 0.8rem; opacity: 0.9;">รหัส: ${sanitizeHTML(group.shipToCode)}</div>` : ''}
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="color: white; font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sanitizeHTML(group.shipToName)}</div>
+                        ${group.shipToCode ? `<div style="color: rgba(255,255,255,0.8); font-size: 0.75rem;">รหัส: ${sanitizeHTML(group.shipToCode)}</div>` : ''}
                     </div>
-                    <div style="text-align: right; color: white;">
-                        <div style="font-size: 0.75rem; opacity: 0.9;">ปริมาณรวม</div>
-                        <div style="font-size: 1.2rem; font-weight: bold;">${destTotalQty.toLocaleString()} ลิตร</div>
+                    <div style="text-align: right;">
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem;">ปริมาณ</div>
+                        <div style="color: white; font-weight: bold; font-size: 1.1rem;">${destTotalQty.toLocaleString()}</div>
                     </div>
                 </div>
             </div>
 
-            <div style="padding: 15px;">
-                <!-- Materials summary for this destination -->
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 0.75rem; color: #757575; margin-bottom: 6px;">📦 สินค้าที่จัดส่ง:</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                        ${Array.from(destMaterials.entries()).map(([material, qty]) =>
-                            `<span style="background: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; border: 1px solid #ffcc80;">
-                                <strong style="color: #e65100;">${sanitizeHTML(material)}</strong>: ${qty.toLocaleString()} ลิตร
-                            </span>`
-                        ).join('')}
-                    </div>
+            <div style="padding: 12px;">
+                <!-- Materials tags -->
+                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+                    ${Array.from(destMaterials.entries()).map(([material, qty]) =>
+                        `<span style="background: #fff3e0; color: #e65100; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">
+                            ${sanitizeHTML(material)}: ${qty.toLocaleString()}
+                        </span>`
+                    ).join('')}
                 </div>
 
-                <!-- Individual delivery records -->
-                <div style="background: white; border-radius: 8px; overflow: hidden;">
-                    <div style="background: #fafafa; padding: 8px 12px; font-size: 0.75rem; color: #757575; border-bottom: 1px solid #e0e0e0;">
-                        📋 รายละเอียดการจัดส่ง (${group.deliveries.length} รายการ)
-                    </div>
-                    <div style="padding: 0;">
+                <!-- Delivery records list -->
+                <div style="background: #fafafa; border-radius: 8px; overflow: hidden;">
         `;
 
         // Add each delivery record
         for (const delivery of group.deliveries) {
-            const checkinTime = delivery.checkinTime ? new Date(delivery.checkin_time).toLocaleTimeString('th-TH') : '-';
-            const checkoutTime = delivery.checkoutTime ? new Date(delivery.checkoutTime).toLocaleTimeString('th-TH') : '-';
+            const checkinTime = delivery.checkinTime ? new Date(delivery.checkinTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+            const checkoutTime = delivery.checkoutTime ? new Date(delivery.checkoutTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
             const isComplete = delivery.checkinTime && delivery.checkoutTime;
 
-            deliveriesHtml += `
-                <div style="padding: 10px 12px; border-bottom: 1px dashed #e0e0e0; display: grid; grid-template-columns: auto 1fr auto; gap: 8px 12px; align-items: center; font-size: 0.85rem;">
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <span style="background: ${isComplete ? '#4caf50' : '#ff9800'}; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem;">
-                            ${delivery.seq || '-'}
-                        </span>
-                        <div>
-                            <div style="color: #424242; font-weight: 500;">${sanitizeHTML(delivery.materials || '-')}</div>
-                            ${delivery.receiver ? `<div style="font-size: 0.7rem; color: #757575;">ผู้รับ: ${sanitizeHTML(delivery.receiver)}</div>` : ''}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="color: #757575; font-size: 0.75rem;">ปริมาณ</div>
-                        <div style="color: #e65100; font-weight: bold; font-size: 1rem;">${delivery.quantity.toLocaleString()} ลิตร</div>
-                    </div>
-                    <div style="text-align: right; font-size: 0.75rem; color: #9e9e9e;">
-                        ${checkinTime !== '-' ? `Check-in: ${checkinTime}` : ''}
-                        ${checkoutTime !== '-' ? `<br>Check-out: ${checkoutTime}` : ''}
-                    </div>
+            cardHtml += `
+                <div class="delivery-record-item" data-delivery-id="${delivery.id}" style="padding: 8px 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; ${!isComplete ? 'background: #fff8e1;' : ''}">
+                    <span style="background: ${isComplete ? '#4caf50' : '#ff9800'}; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0;">
+                        ${delivery.seq || '-'}
+                    </span>
+                    <span style="flex: 1; color: #424242;">${sanitizeHTML(delivery.materials || '-')}</span>
+                    <span style="color: #e65100; font-weight: 600;">${delivery.quantity.toLocaleString()}</span>
+                    <span style="color: #9e9e9e; font-size: 0.7rem;">${checkinTime}</span>
                 </div>
             `;
         }
 
-        deliveriesHtml += `
-                    </div>
+        cardHtml += `
                 </div>
             </div>
         `;
 
-        stopDiv.innerHTML = deliveriesHtml;
-        elements.detailDeliverySummary.appendChild(stopDiv);
+        stopCard.innerHTML = cardHtml;
+        elements.detailDeliverySummary.appendChild(stopCard);
     }
 
     // If no delivery destinations (only origins)
     if (deliveryDestinations.length === 0) {
-        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575;">ไม่มีข้อมูลการจัดส่ง (มีเฉพาะต้นทาง)</p>';
+        elements.detailDeliverySummary.innerHTML = '<p style="color: #757575; padding: 20px; text-align: center;">ไม่มีข้อมูลการจัดส่ง (มีเฉพาะต้นทาง)</p>';
+    }
+}
+
+/**
+ * Setup edit delivery button functionality
+ */
+function setupEditDeliveryButton() {
+    const editBtn = document.getElementById('btn-edit-delivery');
+    if (!editBtn) return;
+
+    // Remove any existing listeners
+    const newBtn = editBtn.cloneNode(true);
+    editBtn.parentNode.replaceChild(newBtn, editBtn);
+
+    newBtn.addEventListener('click', () => {
+        const cards = document.querySelectorAll('.delivery-destination-card');
+        const isEditing = newBtn.dataset.editing === 'true';
+
+        cards.forEach(card => {
+            const recordItems = card.querySelectorAll('.delivery-record-item');
+
+            if (!isEditing) {
+                // Enter edit mode
+                recordItems.forEach(item => {
+                    const materialSpan = item.querySelector('span:nth-child(2)');
+                    const qtySpan = item.querySelector('span:nth-child(3)');
+
+                    if (materialSpan && qtySpan) {
+                        const currentMaterial = materialSpan.textContent;
+                        const currentQty = qtySpan.textContent;
+
+                        // Replace with input fields
+                        materialSpan.innerHTML = `<input type="text" class="edit-material-input" value="${sanitizeHTML(currentMaterial)}" style="width: 100%; padding: 2px 6px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.8rem;">`;
+                        qtySpan.innerHTML = `<input type="number" class="edit-qty-input" value="${currentQty.replace(/,/g, '')}" style="width: 60px; padding: 2px 6px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.8rem;">`;
+                    }
+                });
+
+                // Add save button to card
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'save-delivery-card-btn';
+                saveBtn.textContent = '💾 บันทึก';
+                saveBtn.style.cssText = 'margin: 8px 12px; padding: 6px 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;';
+                saveBtn.onclick = () => saveDeliveryCard(card);
+                card.appendChild(saveBtn);
+
+                card.style.border = '2px solid #2196f3';
+            } else {
+                // Exit edit mode - reload to restore
+                location.reload();
+            }
+        });
+
+        // Update button state
+        newBtn.dataset.editing = (!isEditing).toString();
+        newBtn.textContent = isEditing ? '✏️ แก้ไข' : '❌ ยกเลิก';
+        newBtn.style.background = isEditing ? '#ff9800' : '#f44336';
+    });
+}
+
+/**
+ * Save delivery card changes
+ */
+async function saveDeliveryCard(card) {
+    const materialInputs = card.querySelectorAll('.edit-material-input');
+    const qtyInputs = card.querySelectorAll('.edit-qty-input');
+
+    if (!currentJob) return;
+
+    try {
+        // Here you would update the database
+        // For now, just show a notification
+        showNotification('💾 บันทึกข้อมูลแล้ว (Demo Mode)', 'success');
+
+        // Remove save button
+        const saveBtn = card.querySelector('.save-delivery-card-btn');
+        if (saveBtn) saveBtn.remove();
+
+        // Reset card border
+        card.style.border = '1px solid #ffb74d';
+
+        // Reload the modal to show updated data
+        await openDetailModal(currentJob);
+    } catch (error) {
+        console.error('Error saving delivery card:', error);
+        showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
 }
 
