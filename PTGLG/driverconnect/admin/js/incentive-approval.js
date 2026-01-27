@@ -196,13 +196,14 @@ export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending
  * @returns {Promise<number>} Count of unique delivery destinations
  */
 async function calculateUniqueStops(jobs) {
-    // Use Set to track unique ship_to_code values, falling back to ship_to_name
+    // Use Set to track unique ship_to values (jobdata uses 'ship_to', driver_jobs uses 'ship_to_code')
     const uniqueDestinations = new Set();
 
     console.log('🔍 Debug calculateUniqueStops:', {
         jobsCount: jobs.length,
         jobs: jobs.map(j => ({
             seq: j.seq,
+            ship_to: j.ship_to,
             ship_to_code: j.ship_to_code,
             ship_to_name: j.ship_to_name,
             destination: j.destination
@@ -214,8 +215,9 @@ async function calculateUniqueStops(jobs) {
     console.log('🏠 Origin keys for comparison:', Array.from(origins));
 
     for (const job of jobs) {
-        // Get column values - database uses snake_case
-        const shipToCode = job.ship_to_code || '';
+        // Get column values - jobdata table uses 'ship_to', not 'ship_to_code'
+        // ship_to_code is in driver_jobs table only
+        const shipToCode = job.ship_to || job.ship_to_code || '';
         const shipToName = job.ship_to_name || '';
 
         // Check if this is an origin point by looking up in origin table
@@ -232,7 +234,7 @@ async function calculateUniqueStops(jobs) {
             continue; // Skip origin
         }
 
-        // Use ship_to_code if available, otherwise use ship_to_name
+        // Use ship_to if available, otherwise use ship_to_name for grouping
         const key = shipToCode || shipToName;
         if (key && key.trim() !== '') {
             uniqueDestinations.add(key.trim());
@@ -524,7 +526,8 @@ async function renderStopsDetail(stops) {
         stopDiv.style.cssText = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);';
 
         // Check if this is an origin point by looking up in origin table
-        const shipToCode = stop.ship_to_code || '';
+        // jobdata table uses 'ship_to', not 'ship_to_code'
+        const shipToCode = stop.ship_to || stop.ship_to_code || '';
         const shipToName = stop.ship_to_name || '';
         const isOrigin = origins.has(shipToCode);
 
