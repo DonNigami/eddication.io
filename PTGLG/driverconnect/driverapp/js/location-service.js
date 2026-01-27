@@ -100,7 +100,7 @@ function simplifyThaiName(name) {
 }
 
 /**
- * Get multiple CORS proxy URLs to try
+ * Get CORS proxy URLs for Photon API (though Photon generally doesn't need proxies)
  * @param {string} targetUrl - URL to proxy
  * @returns {Array<{name: string, url: string}>} - Array of proxy configurations
  */
@@ -110,17 +110,7 @@ function getCorsProxies(targetUrl) {
     {
       name: 'AllOrigins',
       url: `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
-      isJsonWrapper: true // Response wraps data in .contents
-    },
-    // Try-cf-worker - a Cloudflare worker proxy
-    {
-      name: 'TryCFWorker',
-      url: `https://try-cf-worker.affecting.workers.dev/?url=${encodeURIComponent(targetUrl)}`
-    },
-    // Corsproxy - might be rate-limited
-    {
-      name: 'CorsProxyISO',
-      url: `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+      isJsonWrapper: true
     }
   ];
 }
@@ -151,7 +141,8 @@ async function geocodeViaSupabaseEdgeFunction(address) {
 }
 
 /**
- * Geocode an address using Nominatim (OpenStreetMap) with multiple fallbacks
+ * Geocode an address using Photon API (OpenStreetMap-based) with fallbacks
+ * Photon has no rate limits unlike Nominatim and generally works better from browsers
  * @param {string} address - Address to geocode
  * @param {Object} options - Options { skipCache: boolean }
  * @returns {Promise<{lat, lng, source}|null>} - Coordinates with source or null
@@ -176,31 +167,29 @@ async function geocodeAddress(address, options = {}) {
   // Get name variations to try
   const nameVariations = simplifyThaiName(address);
 
-  // Method 2: Try Nominatim through various proxies
+  // Method 2: Try Photon API through various methods
   for (const [index, searchName] of nameVariations.entries()) {
-    // Build the Nominatim URL with progressive simplification
+    // Build the Photon URL - add ", Thailand" for better Thai results
+    const searchQuery = `${searchName}, Thailand`;
     const params = new URLSearchParams({
-      format: 'json',
-      q: searchName,
+      q: searchQuery,
       limit: '1',
-      countrycodes: 'th',
-      addressdetails: '1',
-      'accept-language': 'th,en'
+      lang: 'th'
     });
 
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+    const photonUrl = `https://photon.komoot.io/api/?${params.toString()}`;
 
-    // Get proxy configurations
-    const proxies = getCorsProxies(nominatimUrl);
+    // Get proxy configurations (minimal - Photon usually works directly)
+    const proxies = getCorsProxies(photonUrl);
 
     // Define geocoding methods to try
     const methods = [
       {
-        name: 'Direct',
+        name: 'PhotonDirect',
         fetch: async () => {
-          const response = await fetchWithTimeout(nominatimUrl, {
+          const response = await fetchWithTimeout(photonUrl, {
             headers: { 'Accept': 'application/json', 'User-Agent': 'DriverConnect-App/1.0' }
-          }, 6000, 1);
+          }, 8000, 1);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const json = await response.json();
           return { data: json, isDirect: true };
@@ -210,7 +199,7 @@ async function geocodeAddress(address, options = {}) {
         name: proxy.name,
         isJsonWrapper: proxy.isJsonWrapper || false,
         fetch: async () => {
-          const response = await fetchWithTimeout(proxy.url, {}, 8000, 1);
+          const response = await fetchWithTimeout(proxy.url, {}, 10000, 1);
           if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
           const json = await response.json();
           // AllOrigins wraps the response in .contents
@@ -232,18 +221,25 @@ async function geocodeAddress(address, options = {}) {
         const result = await method.fetch();
         const data = result.data;
 
-        if (data && data.length > 0 && data[0].lat && data[0].lon) {
-          const coords = {
-            lat: parseFloat(data[0].lat),
-            lng: parseFloat(data[0].lon),
-            source: method.name,
-            searchedName: searchName
-          };
-          // Cache the result
-          cache.geocoding.set(cacheKey, coords);
-          const variationLabel = index > 0 ? ` (simplified: "${searchName}")` : '';
-          console.log(`📍 Geocoded "${address}" to ${coords.lat}, ${coords.lng} (${method.name})${variationLabel}`);
-          return coords;
+        // Photon API returns { features: [{ geometry: { coordinates: [lon, lat] } }] }
+        if (data?.features?.[0]) {
+          const feature = data.features[0];
+          const lon = feature.geometry.coordinates[0];
+          const lat = feature.geometry.coordinates[1];
+
+          if (lat && lon) {
+            const coords = {
+              lat: lat,
+              lng: lon,
+              source: method.name,
+              searchedName: searchName
+            };
+            // Cache the result
+            cache.geocoding.set(cacheKey, coords);
+            const variationLabel = index > 0 ? ` (simplified: "${searchName}")` : '';
+            console.log(`📍 Geocoded "${address}" to ${coords.lat}, ${coords.lng} (${method.name})${variationLabel}`);
+            return coords;
+          }
         }
       } catch (error) {
         // Only log warning for the last name variation and last method
@@ -736,7 +732,7 @@ export async function enrichStopsWithCoordinates(stops, route = null) {
             stop.shipToName || stop.address || 'Unknown',
             coords.lat,
             coords.lng,
-            coords.source || 'nominatim'
+            coords.source || 'photon'
           ).catch(() => {}); // Fire and forget
         }
       }

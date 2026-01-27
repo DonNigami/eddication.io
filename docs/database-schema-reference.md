@@ -3,7 +3,51 @@
 **Project**: DriverConnect - Fuel Delivery Management System
 **Database**: Supabase (PostgreSQL)
 **Project URL**: https://supabase.com/dashboard/project/myplpshpcordggbbtblg
-**Last Updated**: 2026-01-27
+**Last Updated**: 2026-01-27 (Verified from live database)
+
+---
+
+## Database Status (Live Check)
+
+**Total Tables Found**: 16 tables out of 28 migration tables checked
+
+### Tables Found in Production
+
+| # | Table | Status |
+| :--- | :--- | :--- |
+| 1 | `jobdata` | ✅ Exists |
+| 2 | `driver_jobs` | ✅ Exists (not renamed to `trips`) |
+| 3 | `driver_stop` | ✅ Exists (not renamed to `trip_stops`) |
+| 4 | `user_profiles` | ✅ Exists |
+| 5 | `station` | ✅ Exists (singular, not `stations`) |
+| 6 | `customer` | ✅ Exists |
+| 7 | `origin` | ✅ Exists |
+| 8 | `driver_live_locations` | ✅ Exists |
+| 9 | `driver_logs` | ✅ Exists |
+| 10 | `driver_alcohol_checks` | ✅ Exists (not renamed to `alcohol_checks`) |
+| 11 | `fuel_siphoning` | ✅ Exists |
+| 12 | `admin_alerts` | ✅ Exists |
+| 13 | `triggered_alerts` | ✅ Exists |
+| 14 | `app_settings` | ✅ Exists |
+| 15 | `report_schedules` | ✅ Exists |
+| 16 | `review_data` | ✅ Exists |
+
+### Tables NOT Found in Production
+
+| Table | Status | Note |
+| :--- | :--- | :--- |
+| `trips` | ❌ Not found - use `driver_jobs` | Migration rename not applied |
+| `trip_stops` | ❌ Not found - use `driver_stop` | Migration rename not applied |
+| `driver_stops` | ❌ Not found - use `driver_stop` | Old name |
+| `profiles` (CRM) | ❌ Not found | CRM tables not created |
+| `tiers` | ❌ Not found | CRM tables not created |
+| `news_promotions` | ❌ Not found | CRM tables not created |
+| `customer_segments` | ❌ Not found | CRM tables not created |
+| `alcohol_checks` | ❌ Not found - use `driver_alcohol_checks` | Original name |
+| `stations` | ❌ Not found - use `station` | Singular form |
+| `google_chat_webhooks` | ❌ Not found | Not created |
+| `processdata` | ❌ Not found | May have been removed |
+| `admin_logs` | ❌ Not found | May have been removed |
 
 ---
 
@@ -15,10 +59,7 @@
 4. [Driver Tracking](#driver-tracking)
 5. [Safety & Compliance](#safety--compliance)
 6. [Reporting & Monitoring](#reporting--monitoring)
-7. [CRM Tables](#crm-tables)
-8. [Views](#views)
-9. [Storage Buckets](#storage-buckets)
-10. [RLS Policies](#rls-policies)
+7. [RLS Policies](#rls-policies)
 
 ---
 

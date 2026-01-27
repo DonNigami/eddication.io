@@ -1,10 +1,15 @@
 /**
  * Supabase Edge Function: Geocode
  *
- * Geocodes addresses using Nominatim (OpenStreetMap) server-side,
- * avoiding CORS issues.
+ * Geocodes addresses using Photon API (OpenStreetMap-based) server-side,
+ * avoiding CORS issues. Photon has no rate limits unlike Nominatim.
  *
  * Usage: Call via supabase.functions.invoke('geocode', { body: { address, country } })
+ *
+ * Photon API: https://photon.komoot.io/
+ * - Free, no rate limits
+ * - Uses OpenStreetMap data
+ * - Returns coordinates as [lon, lat]
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -15,10 +20,22 @@ interface GeocodeRequest {
   country?: string;
 }
 
-interface NominatimResult {
-  lat: string;
-  lon: string;
-  display_name: string;
+interface PhotonResult {
+  features: PhotonFeature[];
+}
+
+interface PhotonFeature {
+  geometry: {
+    coordinates: [number, number]; // [lon, lat]
+  };
+  properties: {
+    name?: string;
+    city?: string;
+    country?: string;
+    osm_type?: string;
+    osm_id?: number;
+    extent?: [number, number, number, number];
+  };
 }
 
 serve(async (req) => {
@@ -42,23 +59,26 @@ serve(async (req) => {
 
     console.log(`Geocoding address: "${address}" in country: ${country}`);
 
-    // Build Nominatim URL
+    // Build Photon API URL
+    // Photon uses 'q' for search and 'lang' for language preference
+    // For country filtering, we append country code to the query
+    const searchQuery = country && country.toLowerCase() === 'th'
+      ? `${address}, Thailand`
+      : address;
+
     const params = new URLSearchParams({
-      format: 'json',
-      q: address,
+      q: searchQuery,
       limit: '1',
-      countrycodes: country,
-      addressdetails: '1',
-      'accept-language': 'th,en',
+      lang: 'th', // Prefer Thai results
     });
 
-    const nominatimUrl = `https://nominatim.openstreetmap.org/search?${params.toString()}`;
+    const photonUrl = `https://photon.komoot.io/api/?${params.toString()}`;
 
-    // Fetch from Nominatim with timeout
+    // Fetch from Photon API with timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    const response = await fetch(nominatimUrl, {
+    const response = await fetch(photonUrl, {
       headers: {
         'User-Agent': 'DriverConnect-EdgeFunction/1.0',
         'Accept': 'application/json',
@@ -68,19 +88,31 @@ serve(async (req) => {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Nominatim returned ${response.status}`);
+      throw new Error(`Photon API returned ${response.status}`);
     }
 
-    const data: NominatimResult[] = await response.json();
+    const data: PhotonResult = await response.json();
 
-    if (data && data.length > 0 && data[0].lat && data[0].lon) {
-      console.log(`Geocoded "${address}" to ${data[0].lat}, ${data[0].lon}`);
+    if (data?.features?.[0]) {
+      const feature = data.features[0];
+      // Photon returns [lon, lat], we need [lat, lng]
+      const lon = feature.geometry.coordinates[0];
+      const lat = feature.geometry.coordinates[1];
+
+      console.log(`Geocoded "${address}" to ${lat}, ${lon}`);
+
+      // Build display name from properties
+      const props = feature.properties;
+      const displayName = props.name
+        ? `${props.name}${props.city ? `, ${props.city}` : ''}${props.country ? `, ${props.country}` : ''}`
+        : `${lat}, ${lon}`;
+
       return new Response(
         JSON.stringify({
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon),
-          displayName: data[0].display_name,
-          source: 'nominatim',
+          lat,
+          lng: lon,
+          displayName,
+          source: 'photon',
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -95,7 +127,7 @@ serve(async (req) => {
       JSON.stringify({
         lat: null,
         lng: null,
-        source: 'nominatim',
+        source: 'photon',
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -108,6 +140,7 @@ serve(async (req) => {
         lat: null,
         lng: null,
         error: error.message || 'Geocoding failed',
+        source: 'photon',
       }),
       {
         status: 200, // Return 200 with null values instead of error

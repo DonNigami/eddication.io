@@ -30,27 +30,39 @@ This document contains:
 - Database functions and triggers
 - Migration files reference
 
-### Key Database Tables
+### Key Database Tables (Live Status: 16 tables exist)
 
 | Category | Table | Purpose | Key Fields |
 | :--- | :--- | :--- | :--- |
 | **Core Jobs** | `jobdata` | Delivery jobs/stops | reference, ship_to_code, status, checkin/checkout |
-| | `trips` | Trip headers (was driver_jobs) | reference, vehicle_desc, drivers, status |
-| | `trip_stops` | Individual stops (was driver_stops) | trip_id, sequence, destination_name, status |
+| | `driver_jobs` | Trip headers (actual name) | reference, vehicle_desc, drivers, status |
+| | `driver_stop` | Individual stops (actual name) | trip_id, sequence, destination_name, status |
 | **User Mgmt** | `user_profiles` | Driver/user profiles | user_id (LINE), status (PENDING/APPROVED), user_type |
 | **Location** | `station` | Service stations (PTC) | plant code, stationKey, lat/lng |
 | | `customer` | Customer locations | stationKey, name, lat/lng |
 | | `origin` | Job departure points | originKey, routeCode, name |
 | **Tracking** | `driver_live_locations` | Real-time GPS | driver_user_id, lat/lng, last_updated |
 | | `driver_logs` | Audit trail | action, details, location |
-| **Safety** | `alcohol_checks` | Alcohol tests | alcohol_value, image_url, checked_at |
+| **Safety** | `driver_alcohol_checks` | Alcohol tests (actual name) | alcohol_value, image_url, checked_at |
 | | `fuel_siphoning` | Siphoning incidents | liters, siphon_date, evidence_image_url |
 | **Monitoring** | `admin_alerts` | Alert rules | rule_type, threshold, recipients |
 | | `triggered_alerts` | Triggered alerts | alert_rule_id, message, status |
 | | `app_settings` | App config | id, value, type |
-| **CRM** | `profiles` | CRM profiles (separate) | line_user_id, points, tags |
-| | `tiers` | Loyalty tiers | name, min_points, color_theme |
-| | `news_promotions` | News/promotions | title, description, image_url |
+| | `report_schedules` | Report schedules | report_name, frequency, recipients |
+| **Reviews** | `review_data` | Service reviews | rating, signature_url, feedback |
+
+### Tables NOT Found (from migrations)
+
+| Table | Note |
+| :--- | :--- |
+| `trips` | Use `driver_jobs` instead |
+| `trip_stops` | Use `driver_stop` instead |
+| `profiles` (CRM) | CRM tables not created |
+| `tiers` | CRM tables not created |
+| `news_promotions` | CRM tables not created |
+| `customer_segments` | CRM tables not created |
+| `alcohol_checks` | Use `driver_alcohol_checks` instead |
+| `google_chat_webhooks` | Not created |
 
 ### Current RLS Status
 
