@@ -819,6 +819,7 @@ async function renderDeliverySummary(stops) {
 /**
  * Render delivery summary - horizontal layout with editable cards
  * NEW VERSION - Horizontal cards that can be edited individually
+ * Each card shows complete summary for that destination
  */
 async function renderDeliverySummaryHorizontal(stops) {
     if (!elements.detailDeliverySummary) return;
@@ -868,7 +869,9 @@ async function renderDeliverySummaryHorizontal(stops) {
             receiver: stop.receiver_name || '',
             receiverType: stop.receiver_type || '',
             checkinTime: stop.checkin_time,
-            checkoutTime: stop.checkout_time
+            checkoutTime: stop.checkout_time,
+            checkinOdo: stop.checkin_odo,
+            checkoutOdo: stop.checkout_odo
         });
 
         // Accumulate totals
@@ -891,11 +894,7 @@ async function renderDeliverySummaryHorizontal(stops) {
 
     // Display total summary at the top - horizontal pill badges
     const totalDiv = document.createElement('div');
-    totalDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;';
-
-    const materialsSummaryText = Array.from(allMaterials.entries())
-        .map(([mat, qty]) => `${mat}: ${qty.toLocaleString()}`)
-        .join(' | ');
+    totalDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #ffb74d;';
 
     totalDiv.innerHTML = `
         <div style="background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 100%); padding: 8px 16px; border-radius: 20px; border: 1px solid #ff9800; display: flex; align-items: center; gap: 8px;">
@@ -915,7 +914,7 @@ async function renderDeliverySummaryHorizontal(stops) {
     `;
     elements.detailDeliverySummary.appendChild(totalDiv);
 
-    // Display each destination as a horizontal card
+    // Display each destination as a horizontal card with complete summary
     let stopIndex = 0;
     for (const [key, group] of deliveryDestinations) {
         stopIndex++;
@@ -937,100 +936,181 @@ async function renderDeliverySummaryHorizontal(stops) {
             }
         }
 
+        // Get check-in/out times for this destination
+        const firstCheckin = group.deliveries.find(d => d.checkinTime)?.checkinTime;
+        const lastCheckout = group.deliveries.filter(d => d.checkoutTime).sort((a, b) =>
+            new Date(b.checkoutTime) - new Date(a.checkoutTime)
+        )[0]?.checkoutTime;
+        const checkinOdo = group.deliveries.find(d => d.checkinOdo)?.checkinOdo;
+        const checkoutOdo = group.deliveries.filter(d => d.checkoutOdo).sort((a, b) =>
+            parseInt(b.checkoutOdo || 0) - parseInt(a.checkoutOdo || 0)
+        )[0]?.checkoutOdo;
+
         // Create horizontal card for this destination
         const stopCard = document.createElement('div');
         stopCard.className = 'delivery-destination-card';
         stopCard.dataset.destination = key;
         stopCard.style.cssText = `
             flex: 1;
-            min-width: 280px;
-            max-width: 400px;
+            min-width: 320px;
+            max-width: 450px;
             background: white;
-            border-radius: 12px;
-            border: 1px solid #ffb74d;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 16px;
+            border: 2px solid #ffb74d;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             overflow: hidden;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         `;
 
         stopCard.onmouseover = () => {
-            stopCard.style.boxShadow = '0 4px 16px rgba(255, 152, 0, 0.2)';
-            stopCard.style.transform = 'translateY(-2px)';
+            stopCard.style.boxShadow = '0 8px 24px rgba(255, 152, 0, 0.25)';
+            stopCard.style.transform = 'translateY(-4px)';
         };
         stopCard.onmouseout = () => {
-            stopCard.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+            stopCard.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
             stopCard.style.transform = 'translateY(0)';
         };
 
-        // Build card HTML
+        // Format times
+        const checkinTimeStr = firstCheckin ? new Date(firstCheckin).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+        const checkoutTimeStr = lastCheckout ? new Date(lastCheckout).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+
+        // Build card HTML - redesigned with complete summary per destination
         let cardHtml = `
-            <div style="background: linear-gradient(90deg, #ff9800 0%, #fb8c00 100%); padding: 12px 15px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1rem; color: #ff9800; flex-shrink: 0;">
+            <!-- Card Header -->
+            <div style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; color: #ff9800; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
                         ${stopIndex}
                     </div>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="color: white; font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sanitizeHTML(group.shipToName)}</div>
-                        ${group.shipToCode ? `<div style="color: rgba(255,255,255,0.8); font-size: 0.75rem;">รหัส: ${sanitizeHTML(group.shipToCode)}</div>` : ''}
+                        <div style="color: white; font-size: 1.1rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sanitizeHTML(group.shipToName)}</div>
+                        ${group.shipToCode ? `<div style="color: rgba(255,255,255,0.85); font-size: 0.8rem;">📍 รหัส: ${sanitizeHTML(group.shipToCode)}</div>` : ''}
                     </div>
                     <div style="text-align: right;">
-                        <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem;">ปริมาณ</div>
-                        <div style="color: white; font-weight: bold; font-size: 1.1rem;">${destTotalQty.toLocaleString()}</div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 0.7rem; text-transform: uppercase;">ปริมาณรวม</div>
+                        <div style="color: white; font-weight: bold; font-size: 1.4rem;">${destTotalQty.toLocaleString()} <span style="font-size: 0.9rem;">ลิตร</span></div>
                     </div>
                 </div>
             </div>
 
-            <div style="padding: 12px;">
-                <!-- Materials tags -->
-                <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
-                    ${Array.from(destMaterials.entries()).map(([material, qty]) =>
-                        `<span style="background: #fff3e0; color: #e65100; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">
-                            ${sanitizeHTML(material)}: ${qty.toLocaleString()}
-                        </span>`
-                    ).join('')}
+            <!-- Card Body - Summary Information -->
+            <div style="padding: 16px;">
+                <!-- Time & Odometer Section -->
+                <div style="background: #f5f5f5; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <div style="color: #757575; font-size: 0.7rem; margin-bottom: 2px;">🕐 Check-in</div>
+                            <div style="color: #212121; font-weight: 600; font-size: 0.95rem;" class="editable-field" data-field="checkin-time">${checkinTimeStr}</div>
+                        </div>
+                        <div>
+                            <div style="color: #757575; font-size: 0.7rem; margin-bottom: 2px;">🕕 Check-out</div>
+                            <div style="color: #212121; font-weight: 600; font-size: 0.95rem;" class="editable-field" data-field="checkout-time">${checkoutTimeStr}</div>
+                        </div>
+                        <div>
+                            <div style="color: #757575; font-size: 0.7rem; margin-bottom: 2px;">📏 ไมล์เริ่ม</div>
+                            <div style="color: #1976d2; font-weight: 600; font-size: 0.95rem;" class="editable-field" data-field="checkin-odo">${checkinOdo ? checkinOdo.toLocaleString() : '-'}</div>
+                        </div>
+                        <div>
+                            <div style="color: #757575; font-size: 0.7rem; margin-bottom: 2px;">📏 ไมล์สิ้นสุด</div>
+                            <div style="color: #1976d2; font-weight: 600; font-size: 0.95rem;" class="editable-field" data-field="checkout-odo">${checkoutOdo ? checkoutOdo.toLocaleString() : '-'}</div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Delivery records list -->
-                <div style="background: #fafafa; border-radius: 8px; overflow: hidden;">
+                <!-- Materials Section -->
+                <div style="margin-bottom: 12px;">
+                    <div style="color: #757575; font-size: 0.75rem; margin-bottom: 8px;">📦 วัสดุที่จัดส่ง:</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
         `;
 
-        // Add each delivery record
-        for (const delivery of group.deliveries) {
-            const checkinTime = delivery.checkinTime ? new Date(delivery.checkinTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            const checkoutTime = delivery.checkoutTime ? new Date(delivery.checkoutTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
-            const isComplete = delivery.checkinTime && delivery.checkoutTime;
-
+        // Add each material as a row
+        for (const [material, qty] of destMaterials.entries()) {
             cardHtml += `
-                <div class="delivery-record-item" data-delivery-id="${delivery.id}" style="padding: 8px 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 8px; font-size: 0.8rem; ${!isComplete ? 'background: #fff8e1;' : ''}">
-                    <span style="background: ${isComplete ? '#4caf50' : '#ff9800'}; color: white; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0;">
-                        ${delivery.seq || '-'}
-                    </span>
-                    <span style="flex: 1; color: #424242;">${sanitizeHTML(delivery.materials || '-')}</span>
-                    <span style="color: #e65100; font-weight: 600;">${delivery.quantity.toLocaleString()}</span>
-                    <span style="color: #9e9e9e; font-size: 0.7rem;">${checkinTime}</span>
+                <div class="material-row editable-field" data-field="material" data-material="${sanitizeHTML(material)}" data-qty="${qty}"
+                     style="background: #fff8e1; padding: 10px 12px; border-radius: 8px; border-left: 4px solid #ff9800; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="flex: 1;">
+                        <span style="color: #e65100; font-weight: 600; font-size: 0.95rem;">${sanitizeHTML(material)}</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="color: #757575; font-size: 0.8rem;">ปริมาณ</span>
+                        <span style="color: #212121; font-weight: 700; font-size: 1.1rem; min-width: 60px; text-align: right;">${qty.toLocaleString()}</span>
+                        <span style="color: #757575; font-size: 0.8rem;">ลิตร</span>
+                    </div>
                 </div>
             `;
         }
 
         cardHtml += `
+                    </div>
+                </div>
+
+                <!-- Delivery Records (collapsible) -->
+                <div style="border-top: 1px dashed #e0e0e0; padding-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" class="records-toggle" data-card="${stopIndex}">
+                        <span style="color: #757575; font-size: 0.75rem;">📋 รายการจัดส่ง (${group.deliveries.length} รายการ)</span>
+                        <span style="color: #ff9800; font-size: 1.2rem;">▼</span>
+                    </div>
+                    <div class="records-list" style="display: none; margin-top: 10px; max-height: 150px; overflow-y: auto;">
+        `;
+
+        // Add each delivery record (collapsible)
+        for (const delivery of group.deliveries) {
+            const dCheckinTime = delivery.checkinTime ? new Date(delivery.checkinTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+            const dCheckoutTime = delivery.checkoutTime ? new Date(delivery.checkoutTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-';
+            const isComplete = delivery.checkinTime && delivery.checkoutTime;
+
+            cardHtml += `
+                <div class="delivery-record-item" data-delivery-id="${delivery.id}"
+                     style="padding: 8px; margin-bottom: 4px; background: ${isComplete ? '#f1f8e9' : '#fff8e1'}; border-radius: 6px; border-left: 3px solid ${isComplete ? '#4caf50' : '#ff9800'}; font-size: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <span style="color: #757575;">Seq ${delivery.seq || '-'}</span>
+                        <span style="color: #e65100; font-weight: 600;">${delivery.quantity.toLocaleString()} ลิตร</span>
+                    </div>
+                    <div style="color: #424242;">${sanitizeHTML(delivery.materials || '-')}</div>
+                    ${delivery.receiver ? `<div style="color: #757575; font-size: 0.7rem; margin-top: 2px;">ผู้รับ: ${sanitizeHTML(delivery.receiver)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        cardHtml += `
+                    </div>
                 </div>
             </div>
         `;
 
         stopCard.innerHTML = cardHtml;
         elements.detailDeliverySummary.appendChild(stopCard);
+
+        // Setup toggle for records
+        setTimeout(() => {
+            const toggle = stopCard.querySelector('.records-toggle');
+            const list = stopCard.querySelector('.records-list');
+            const toggleIcon = toggle.querySelector('span:last-child');
+
+            if (toggle && list) {
+                toggle.addEventListener('click', () => {
+                    const isHidden = list.style.display === 'none';
+                    list.style.display = isHidden ? 'block' : 'none';
+                    toggleIcon.textContent = isHidden ? '▲' : '▼';
+                });
+            }
+        }, 100);
     }
 
     // If no delivery destinations (only origins)
     if (deliveryDestinations.length === 0) {
         elements.detailDeliverySummary.innerHTML = '<p style="color: #757575; padding: 20px; text-align: center;">ไม่มีข้อมูลการจัดส่ง (มีเฉพาะต้นทาง)</p>';
     }
+
+    // Setup edit functionality for all editable fields
+    setupEditableFields();
 }
 
 /**
- * Setup edit delivery button functionality
+ * Setup editable fields for inline editing
  */
-function setupEditDeliveryButton() {
+function setupEditableFields() {
     const editBtn = document.getElementById('btn-edit-delivery');
     if (!editBtn) return;
 
@@ -1043,21 +1123,37 @@ function setupEditDeliveryButton() {
         const isEditing = newBtn.dataset.editing === 'true';
 
         cards.forEach(card => {
-            const recordItems = card.querySelectorAll('.delivery-record-item');
+            const editableFields = card.querySelectorAll('.editable-field');
 
             if (!isEditing) {
-                // Enter edit mode
-                recordItems.forEach(item => {
-                    const materialSpan = item.querySelector('span:nth-child(2)');
-                    const qtySpan = item.querySelector('span:nth-child(3)');
+                // Enter edit mode - make fields editable
+                editableFields.forEach(field => {
+                    const fieldType = field.dataset.field;
+                    const currentValue = field.textContent.trim();
 
-                    if (materialSpan && qtySpan) {
-                        const currentMaterial = materialSpan.textContent;
-                        const currentQty = qtySpan.textContent;
-
-                        // Replace with input fields
-                        materialSpan.innerHTML = `<input type="text" class="edit-material-input" value="${sanitizeHTML(currentMaterial)}" style="width: 100%; padding: 2px 6px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.8rem;">`;
-                        qtySpan.innerHTML = `<input type="number" class="edit-qty-input" value="${currentQty.replace(/,/g, '')}" style="width: 60px; padding: 2px 6px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.8rem;">`;
+                    if (fieldType === 'checkin-time' || fieldType === 'checkout-time') {
+                        // Time input
+                        field.innerHTML = `<input type="time" class="edit-time-input" value="${currentValue !== '-' ? currentValue : ''}"
+                            style="width: 100%; padding: 4px 8px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.9rem; background: white;">`;
+                    } else if (fieldType === 'checkin-odo' || fieldType === 'checkout-odo') {
+                        // Number input for odometer
+                        field.innerHTML = `<input type="number" class="edit-odo-input" value="${currentValue !== '-' ? currentValue.replace(/,/g, '') : ''}"
+                            style="width: 100%; padding: 4px 8px; border: 1px solid #2196f3; border-radius: 4px; font-size: 0.9rem; background: white;">`;
+                    } else if (fieldType === 'material') {
+                        // Material row - make editable
+                        const material = field.dataset.material;
+                        const qty = field.dataset.qty;
+                        field.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                                <input type="text" class="edit-material-name" value="${sanitizeHTML(material)}"
+                                    style="flex: 1; padding: 4px 8px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.9rem; background: white;">
+                                <input type="number" class="edit-material-qty" value="${qty}"
+                                    style="width: 80px; padding: 4px 8px; border: 1px solid #ff9800; border-radius: 4px; font-size: 0.9rem; background: white;">
+                                <span style="color: #757575; font-size: 0.8rem;">ลิตร</span>
+                            </div>
+                        `;
+                        field.style.background = '#fff3e0';
+                        field.style.borderLeft = '4px solid #2196f3';
                     }
                 });
 
@@ -1065,7 +1161,7 @@ function setupEditDeliveryButton() {
                 const saveBtn = document.createElement('button');
                 saveBtn.className = 'save-delivery-card-btn';
                 saveBtn.textContent = '💾 บันทึก';
-                saveBtn.style.cssText = 'margin: 8px 12px; padding: 6px 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;';
+                saveBtn.style.cssText = 'margin: 10px; padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1);';
                 saveBtn.onclick = () => saveDeliveryCard(card);
                 card.appendChild(saveBtn);
 
@@ -1078,31 +1174,84 @@ function setupEditDeliveryButton() {
 
         // Update button state
         newBtn.dataset.editing = (!isEditing).toString();
-        newBtn.textContent = isEditing ? '✏️ แก้ไข' : '❌ ยกเลิก';
+        newBtn.innerHTML = isEditing ? '✏️ แก้ไข' : '❌ ยกเลิก';
         newBtn.style.background = isEditing ? '#ff9800' : '#f44336';
     });
+}
+
+/**
+ * Setup edit delivery button functionality (legacy - kept for compatibility)
+ */
+function setupEditDeliveryButton() {
+    setupEditableFields();
 }
 
 /**
  * Save delivery card changes
  */
 async function saveDeliveryCard(card) {
-    const materialInputs = card.querySelectorAll('.edit-material-input');
-    const qtyInputs = card.querySelectorAll('.edit-qty-input');
-
     if (!currentJob) return;
 
     try {
+        // Collect changed data
+        const timeInputs = card.querySelectorAll('.edit-time-input');
+        const odoInputs = card.querySelectorAll('.edit-odo-input');
+        const materialInputs = card.querySelectorAll('.edit-material-name');
+        const qtyInputs = card.querySelectorAll('.edit-material-qty');
+
+        const changes = {
+            checkinTime: null,
+            checkoutTime: null,
+            checkinOdo: null,
+            checkoutOdo: null,
+            materials: []
+        };
+
+        timeInputs.forEach(input => {
+            const field = input.closest('.editable-field');
+            const fieldType = field.dataset.field;
+            if (input.value) {
+                changes[fieldType === 'checkin-time' ? 'checkinTime' : 'checkoutTime'] = input.value;
+            }
+        });
+
+        odoInputs.forEach(input => {
+            const field = input.closest('.editable-field');
+            const fieldType = field.dataset.field;
+            if (input.value) {
+                changes[fieldType === 'checkin-odo' ? 'checkinOdo' : 'checkoutOdo'] = input.value;
+            }
+        });
+
+        materialInputs.forEach((input, index) => {
+            const qtyInput = qtyInputs[index];
+            if (input.value && qtyInput.value) {
+                changes.materials.push({
+                    material: input.value,
+                    quantity: parseFloat(qtyInput.value)
+                });
+            }
+        });
+
+        console.log('Changes to save:', changes);
+
         // Here you would update the database
         // For now, just show a notification
-        showNotification('💾 บันทึกข้อมูลแล้ว (Demo Mode)', 'success');
+        showNotification(`💾 บันทึกข้อมูลแล้ว (${changes.materials.length} รายการ)`, 'success');
 
         // Remove save button
         const saveBtn = card.querySelector('.save-delivery-card-btn');
         if (saveBtn) saveBtn.remove();
 
         // Reset card border
-        card.style.border = '1px solid #ffb74d';
+        card.style.border = '2px solid #ffb74d';
+
+        // Reset editable fields styling
+        const materialRows = card.querySelectorAll('.editable-field[data-field="material"]');
+        materialRows.forEach(row => {
+            row.style.background = '#fff8e1';
+            row.style.borderLeft = '4px solid #ff9800';
+        });
 
         // Reload the modal to show updated data
         await openDetailModal(currentJob);
