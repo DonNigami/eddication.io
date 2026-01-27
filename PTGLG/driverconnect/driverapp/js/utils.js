@@ -136,6 +136,23 @@ export function formatThaiDate(date = new Date()) {
 }
 
 /**
+ * Format duration in milliseconds to Thai time string
+ * @param {number} ms - Duration in milliseconds
+ * @returns {string} Formatted duration (e.g., "2 ชม. 30 นาที" or "45 นาที")
+ */
+export function formatDuration(ms) {
+  if (!ms || ms < 0) return '-';
+
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+
+  if (hours > 0) {
+    return `${hours} ชม. ${minutes} นาที`;
+  }
+  return `${minutes} นาที`;
+}
+
+/**
  * Haptic Feedback (Vibration)
  * Provides tactile feedback for user actions
  */

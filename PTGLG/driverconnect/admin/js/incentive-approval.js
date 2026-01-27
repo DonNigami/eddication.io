@@ -854,6 +854,9 @@ async function renderDeliverySummaryHorizontal(stops) {
                 shipToCode,
                 shipToName,
                 isOrigin,
+                hasPumping: false,
+                hasTransfer: false,
+                receiverNames: new Set(),
                 deliveries: []
             });
         }
@@ -868,11 +871,23 @@ async function renderDeliverySummaryHorizontal(stops) {
             quantity: parseFloat(stop.total_qty) || 0,
             receiver: stop.receiver_name || '',
             receiverType: stop.receiver_type || '',
+            hasPumping: stop.has_pumping || false,
+            hasTransfer: stop.has_transfer || false,
             checkinTime: stop.checkin_time,
             checkoutTime: stop.checkout_time,
             checkinOdo: stop.checkin_odo,
             checkoutOdo: stop.checkout_odo
         });
+
+        // Aggregate has_pumping and has_transfer for this destination
+        if (stop.has_pumping) group.hasPumping = true;
+        if (stop.has_transfer) group.hasTransfer = true;
+
+        // Aggregate receiver names
+        if (stop.receiver_name) {
+            if (!group.receiverNames) group.receiverNames = new Set();
+            group.receiverNames.add(stop.receiver_name);
+        }
 
         // Accumulate totals
         totalQuantity += parseFloat(stop.total_qty) || 0;
@@ -891,6 +906,8 @@ async function renderDeliverySummaryHorizontal(stops) {
 
     const deliveryDestinations = Array.from(destinationGroups.entries()).filter(([key, group]) => !group.isOrigin);
     const totalStops = deliveryDestinations.length;
+    const pumpingStops = deliveryDestinations.filter(([key, group]) => group.hasPumping).length;
+    const transferStops = deliveryDestinations.filter(([key, group]) => group.hasTransfer).length;
 
     // Display total summary at the top - horizontal pill badges
     const totalDiv = document.createElement('div');
@@ -905,6 +922,18 @@ async function renderDeliverySummaryHorizontal(stops) {
                 <span style="color: #212121;">รวม ${totalQuantity.toLocaleString()} ลิตร</span>
             </div>
         </div>
+        ${pumpingStops > 0 ? `
+            <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); padding: 6px 14px; border-radius: 20px; border: 1px solid #2196f3; display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 1rem;">⛽</span>
+                <span style="color: #1976d2; font-weight: 600;">ปั่น ${pumpingStops} จุด</span>
+            </div>
+        ` : ''}
+        ${transferStops > 0 ? `
+            <div style="background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%); padding: 6px 14px; border-radius: 20px; border: 1px solid #ff9800; display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 1rem;">🔄</span>
+                <span style="color: #e65100; font-weight: 600;">โยก ${transferStops} จุด</span>
+            </div>
+        ` : ''}
         ${Array.from(allMaterials.entries()).map(([mat, qty]) => `
             <div style="background: white; padding: 6px 14px; border-radius: 20px; border: 1px solid #ffcc80; display: flex; align-items: center; gap: 6px;">
                 <span style="color: #e65100; font-weight: 500;">${sanitizeHTML(mat)}</span>
@@ -996,6 +1025,37 @@ async function renderDeliverySummaryHorizontal(stops) {
 
             <!-- Card Body - Summary Information -->
             <div style="padding: 16px;">
+                <!-- Pumping/Transfer Status Section -->
+                <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        ${group.hasPumping ? `
+                            <div style="background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid #2196f3; display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 1rem;">⛽</span>
+                                <span style="color: #1976d2; font-weight: 600; font-size: 0.85rem;">ปั่นน้ำมัน</span>
+                            </div>
+                        ` : ''}
+                        ${group.hasTransfer ? `
+                            <div style="background: white; padding: 6px 12px; border-radius: 20px; border: 1px solid #ff9800; display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 1rem;">🔄</span>
+                                <span style="color: #e65100; font-weight: 600; font-size: 0.85rem;">โยกน้ำมัน</span>
+                            </div>
+                        ` : ''}
+                        ${!group.hasPumping && !group.hasTransfer ? `
+                            <span style="color: #757575; font-size: 0.85rem;">ไม่มีการปั่น/โยก</span>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Receiver Section -->
+                ${group.receiverNames && group.receiverNames.size > 0 ? `
+                    <div style="background: #fff3e0; border-radius: 10px; padding: 12px; margin-bottom: 12px; border-left: 4px solid #ff9800;">
+                        <div style="color: #757575; font-size: 0.7rem; margin-bottom: 4px;">👤 ผู้รับน้ำมัน:</div>
+                        <div style="color: #e65100; font-weight: 600; font-size: 0.95rem;">
+                            ${Array.from(group.receiverNames).map(r => sanitizeHTML(r)).join(', ')}
+                        </div>
+                    </div>
+                ` : ''}
+
                 <!-- Time & Odometer Section -->
                 <div style="background: #f5f5f5; border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -1062,13 +1122,26 @@ async function renderDeliverySummaryHorizontal(stops) {
 
             cardHtml += `
                 <div class="delivery-record-item" data-delivery-id="${delivery.id}"
-                     style="padding: 8px; margin-bottom: 4px; background: ${isComplete ? '#f1f8e9' : '#fff8e1'}; border-radius: 6px; border-left: 3px solid ${isComplete ? '#4caf50' : '#ff9800'}; font-size: 0.75rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                        <span style="color: #757575;">Seq ${delivery.seq || '-'}</span>
-                        <span style="color: #e65100; font-weight: 600;">${delivery.quantity.toLocaleString()} ลิตร</span>
+                     style="padding: 10px; margin-bottom: 6px; background: ${isComplete ? '#f1f8e9' : '#fff8e1'}; border-radius: 8px; border-left: 4px solid ${isComplete ? '#4caf50' : '#ff9800'}; font-size: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
+                        <span style="color: #757575; font-weight: 600;">Seq ${delivery.seq || '-'}</span>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            ${delivery.hasPumping ? '<span style="background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">⛽ ปั่น</span>' : ''}
+                            ${delivery.hasTransfer ? '<span style="background: #fff3e0; color: #e65100; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem;">🔄 โยก</span>' : ''}
+                        </div>
                     </div>
-                    <div style="color: #424242;">${sanitizeHTML(delivery.materials || '-')}</div>
-                    ${delivery.receiver ? `<div style="color: #757575; font-size: 0.7rem; margin-top: 2px;">ผู้รับ: ${sanitizeHTML(delivery.receiver)}</div>` : ''}
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                        <div style="color: #424242;">${sanitizeHTML(delivery.materials || '-')}</div>
+                        <div style="color: #e65100; font-weight: 700;">${delivery.quantity.toLocaleString()} ลิตร</div>
+                    </div>
+                    ${delivery.receiver ? `
+                        <div style="color: #616161; font-size: 0.75rem; margin-top: 4px; padding-top: 4px; border-top: 1px dashed #bdbdbd;">
+                            👤 ผู้รับ: ${sanitizeHTML(delivery.receiver)}${delivery.receiverType ? ` (${sanitizeHTML(delivery.receiverType)})` : ''}
+                        </div>
+                    ` : ''}
+                    <div style="color: #757575; font-size: 0.7rem; margin-top: 4px;">
+                        🕐 ${dCheckinTime} - ${dCheckoutTime}
+                    </div>
                 </div>
             `;
         }

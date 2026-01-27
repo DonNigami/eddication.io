@@ -8,7 +8,7 @@ let lastLocalUpdateTime = 0;
 const REALTIME_DEBOUNCE_MS = 2000; // Ignore realtime updates for 2s after local update
 
 import { LIFF_ID, APP_CONFIG } from './config.js';
-import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64, vibrateSuccess, vibrateError, vibrateWarning, vibrateNotification, vibrateImpact } from './utils.js';
+import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64, vibrateSuccess, vibrateError, vibrateWarning, vibrateNotification, vibrateImpact, formatDuration } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
 import { initSupabase, SupabaseAPI } from './supabase-api.js';
 import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords, haversineDistanceMeters } from './gps.js';
@@ -125,6 +125,7 @@ async function search(isSilent = false) {
 
     renderSummary(d, source);
     renderAlcoholSection();
+    renderTripDashboard(stops, reference);
     renderTimeline(stops, reference);
     recordLastUpdated();
 
@@ -223,6 +224,157 @@ function renderAlcoholSection() {
 
   container.innerHTML = html;
   container.classList.remove('hidden');
+}
+
+/**
+ * Render Trip Dashboard with grouped stops
+ * Groups stops by shipToCode/shipToName for mini dots display
+ */
+function renderTripDashboard(stops, reference) {
+  const dashboard = document.getElementById('tripDashboard');
+  const refEl = document.getElementById('tripRef');
+  const completedEl = document.getElementById('tripCompleted');
+  const durationEl = document.getElementById('tripDuration');
+  const progressPercentEl = document.getElementById('tripProgressPercent');
+  const progressFillEl = document.getElementById('tripProgressFill');
+  const stopsMiniEl = document.getElementById('tripStopsMini');
+
+  if (!dashboard) return;
+
+  // Hide if no stops or no reference
+  if (!stops || stops.length === 0 || !reference) {
+    dashboard.classList.add('hidden');
+    return;
+  }
+
+  dashboard.classList.remove('hidden');
+
+  // Reference
+  if (refEl) {
+    refEl.textContent = reference;
+  }
+
+  // Filter out "คลังศรีราชา" stops (same as timeline)
+  const filteredStops = stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
+
+  // Group stops by shipToCode for counting and mini dots
+  const grouped = {};
+  const groupOrder = [];
+
+  filteredStops.forEach(stop => {
+    const key = stop.shipToCode && stop.shipToCode.trim()
+      ? stop.shipToCode
+      : stop.shipToName || `seq_${stop.seq}`;
+
+    if (!grouped[key]) {
+      grouped[key] = {
+        shipToCode: stop.shipToCode,
+        shipToName: stop.shipToName,
+        seq: stop.seq,
+        allSeqs: [stop.seq],
+        stops: []
+      };
+      groupOrder.push(key);
+    } else {
+      if (!grouped[key].allSeqs.includes(stop.seq)) {
+        grouped[key].allSeqs.push(stop.seq);
+      }
+    }
+    grouped[key].stops.push(stop);
+  });
+
+  // Count completed stops (all items in group checked out)
+  let completedCount = 0;
+  let inProgressCount = 0;
+  let firstCheckinTime = null;
+  let lastCheckoutTime = null;
+
+  groupOrder.forEach(key => {
+    const group = grouped[key];
+    // Group is complete only if ALL stops in group are checked out
+    const groupCompleted = group.stops.every(s => !!s.checkOutTime);
+    const groupInProgress = group.stops.some(s => !!s.checkInTime) && !groupCompleted;
+
+    if (groupCompleted) {
+      completedCount++;
+    } else if (groupInProgress) {
+      inProgressCount++;
+    }
+
+    // Track times from individual stops
+    group.stops.forEach(stop => {
+      if (stop.checkOutTime) {
+        const coTime = new Date(stop.checkOutTime);
+        if (!lastCheckoutTime || coTime > lastCheckoutTime) {
+          lastCheckoutTime = coTime;
+        }
+      }
+      if (stop.checkInTime) {
+        const ciTime = new Date(stop.checkInTime);
+        if (!firstCheckinTime || ciTime < firstCheckinTime) {
+          firstCheckinTime = ciTime;
+        }
+      }
+    });
+  });
+
+  const totalGroups = groupOrder.length;
+
+  // Update completed count
+  if (completedEl) {
+    completedEl.textContent = `${completedCount}/${totalGroups}`;
+  }
+
+  // Update duration
+  if (durationEl) {
+    if (firstCheckinTime) {
+      const endTime = lastCheckoutTime || new Date();
+      const durationMs = endTime - firstCheckinTime;
+      durationEl.textContent = formatDuration(durationMs);
+    } else {
+      durationEl.textContent = '-';
+    }
+  }
+
+  // Update progress bar
+  const progressPercent = totalGroups > 0 ? Math.round((completedCount / totalGroups) * 100) : 0;
+  if (progressPercentEl) {
+    progressPercentEl.textContent = `${progressPercent}%`;
+  }
+  if (progressFillEl) {
+    progressFillEl.style.width = `${progressPercent}%`;
+  }
+
+  // Render mini stop dots (GROUPED by shipToCode/shipToName)
+  if (stopsMiniEl) {
+    let dotsHtml = '';
+    groupOrder.forEach(key => {
+      const group = grouped[key];
+      const seq = group.seq || '?';
+      const allSeqsStr = group.allSeqs.length > 1 ? group.allSeqs.join(', ') : seq;
+      let dotClass = 'trip-stop-dot';
+
+      // Check group status
+      const groupCompleted = group.stops.every(s => !!s.checkOutTime);
+      const groupInProgress = group.stops.some(s => !!s.checkInTime) && !groupCompleted;
+
+      if (groupCompleted) {
+        dotClass += ' completed';
+      } else if (groupInProgress) {
+        dotClass += ' in-progress';
+      } else {
+        dotClass += ' pending';
+      }
+
+      // Show badge for multiple items in group
+      const countBadge = group.stops.length > 1
+        ? `<span class="trip-stop-dot-count">${group.stops.length}</span>`
+        : '';
+
+      dotsHtml += `<div class="${dotClass}" title="จุดที่ ${allSeqsStr} - ${group.shipToName}">${seq}${countBadge}</div>`;
+    });
+    stopsMiniEl.innerHTML = dotsHtml;
+  }
 }
 
 // Track current job reference to prevent mixing timeline items from different jobs
