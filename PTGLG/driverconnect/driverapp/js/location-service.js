@@ -410,7 +410,6 @@ export async function getOriginConfig(route = null) {
       const { data } = await supabase
         .from('origin')
         .select('originKey, name, lat, lng, radiusMeters, routeCode')
-        .order('id', { ascending: true })
         .limit(1)
         .maybeSingle();
 
@@ -486,8 +485,8 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     if (stillUncachedCodes.length > 0) {
       const { data: stationData, error: stationError } = await supabase
         .from('station')
-        .select('stationkey, name, lat, lng, radiusmeters')
-        .in('stationkey', stillUncachedCodes);
+        .select('stationKey, name, lat, lng, radiusMeters')
+        .in('stationKey', stillUncachedCodes);
 
       if (stationError) {
         // Check if table doesn't exist or permission denied
@@ -502,11 +501,11 @@ export async function getCustomerCoordinates(shipToCodes = []) {
           const lng = parseFloat(s.lng);
 
           if (!isNaN(lat) && !isNaN(lng)) {
-            cache.customers.set(s.stationkey, {
+            cache.customers.set(s.stationKey, {
               name: s.name,
               lat,
               lng,
-              radiusMeters: s.radiusmeters
+              radiusMeters: s.radiusMeters
             });
           }
         });
@@ -561,14 +560,14 @@ async function getStationByName(name) {
   // Check cache first
   const cached = Array.from(cache.customers.entries()).find(([key, value]) => value.name === name);
   if (cached) {
-    return { stationkey: cached[0], ...cached[1] };
+    return { stationKey: cached[0], ...cached[1] };
   }
 
   try {
     // Try exact match first - more reliable for Thai names
     const { data: stationData, error } = await supabase
       .from('station')
-      .select('stationkey, name, lat, lng, radiusmeters')
+      .select('stationKey, name, lat, lng, radiusMeters')
       .eq('name', name)
       .limit(1)
       .maybeSingle();
@@ -589,11 +588,11 @@ async function getStationByName(name) {
       const lat = parseFloat(stationData.lat);
       const lng = parseFloat(stationData.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
-        cache.customers.set(stationData.stationkey, {
+        cache.customers.set(stationData.stationKey, {
           name: stationData.name,
           lat,
           lng,
-          radiusMeters: stationData.radiusmeters
+          radiusMeters: stationData.radiusMeters
         });
         return stationData;
       }

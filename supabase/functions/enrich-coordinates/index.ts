@@ -68,7 +68,6 @@ serve(async (req) => {
         .from('origin')
         .select('*')
         .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
-        .eq('active', true)
         .limit(1)
         .maybeSingle();
 
