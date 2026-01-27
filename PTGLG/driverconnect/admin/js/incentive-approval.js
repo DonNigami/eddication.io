@@ -69,6 +69,50 @@ let allJobs = [];
 // Incentive rate (baht per km) - should be configurable from settings
 const DEFAULT_RATE_PER_KM = 2.0;
 
+// Cache for origin keys from origin table
+let originKeysCache = new Set();
+let originCacheLoaded = false;
+
+/**
+ * Load origin keys from origin table
+ */
+async function loadOriginKeys() {
+    if (originCacheLoaded) return originKeysCache;
+
+    try {
+        const { data, error } = await supabase
+            .from('origin')
+            .select('originKey');
+
+        if (error) {
+            console.warn('Could not load origin table:', error);
+            // Return empty set if origin table doesn't exist or can't be accessed
+            return new Set();
+        }
+
+        originKeysCache = new Set((data || []).map(o => o.originKey));
+        originCacheLoaded = true;
+        console.log('🏠 Loaded origin keys:', Array.from(originKeysCache));
+        return originKeysCache;
+    } catch (e) {
+        console.warn('Error loading origin keys:', e);
+        return new Set();
+    }
+}
+
+/**
+ * Check if a ship_to_code is an origin point
+ */
+async function isOriginPoint(shipToCode) {
+    if (!shipToCode) return false;
+
+    // Load origin keys if not already loaded
+    const origins = await loadOriginKeys();
+
+    // Check if ship_to_code exists in origin table
+    return origins.has(shipToCode);
+}
+
 /**
  * Set DOM elements for the module
  */
@@ -136,7 +180,7 @@ export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending
             );
         }
 
-        renderTable(filteredJobs);
+        await renderTable(filteredJobs);
 
     } catch (error) {
         console.error('Error loading incentive jobs:', error);
@@ -149,9 +193,9 @@ export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending
 /**
  * Calculate unique delivery stops count (excluding origin)
  * @param {Array} jobs - Array of job records for a single reference
- * @returns {number} Count of unique delivery destinations
+ * @returns {Promise<number>} Count of unique delivery destinations
  */
-function calculateUniqueStops(jobs) {
+async function calculateUniqueStops(jobs) {
     // Use Set to track unique ship_to_code values, falling back to ship_to_name
     const uniqueDestinations = new Set();
 
@@ -161,41 +205,31 @@ function calculateUniqueStops(jobs) {
             seq: j.seq,
             ship_to_code: j.ship_to_code,
             ship_to_name: j.ship_to_name,
-            is_origin_stop: j.is_origin_stop,
             destination: j.destination
         }))
     });
 
-    jobs.forEach(job => {
+    // Load origin keys for comparison
+    const origins = await loadOriginKeys();
+    console.log('🏠 Origin keys for comparison:', Array.from(origins));
+
+    for (const job of jobs) {
         // Get column values - database uses snake_case
         const shipToCode = job.ship_to_code || '';
         const shipToName = job.ship_to_name || '';
 
-        // Check if this is an origin point
-        // 1. Use is_origin_stop column from database if available
-        // 2. Fallback to database logic: ship_to LIKE 'ZSF%' OR ship_to_name LIKE '%PTC-STA-%'
-        let isOrigin = false;
-        if (job.is_origin_stop === true) {
-            isOrigin = true;
-        } else if (typeof job.is_origin_stop === 'string') {
-            isOrigin = job.is_origin_stop === 'true' || job.is_origin_stop === 't';
-        } else {
-            // Fallback to database pattern matching logic
-            const codeUpper = (shipToCode || '').toUpperCase();
-            const nameUpper = (shipToName || '').toUpperCase();
-            isOrigin = codeUpper.startsWith('ZSF') || nameUpper.includes('PTC-STA-');
-        }
+        // Check if this is an origin point by looking up in origin table
+        const isOrigin = await isOriginPoint(shipToCode);
 
         console.log('📍 Processing stop:', {
             shipToCode,
             shipToName,
-            isOrigin,
-            is_origin_stop_col: job.is_origin_stop
+            isOrigin
         });
 
         if (isOrigin) {
-            console.log('⏭️ Skipping origin point');
-            return; // Skip origin
+            console.log('⏭️ Skipping origin point:', shipToCode);
+            continue; // Skip origin
         }
 
         // Use ship_to_code if available, otherwise use ship_to_name
@@ -203,10 +237,10 @@ function calculateUniqueStops(jobs) {
         if (key && key.trim() !== '') {
             uniqueDestinations.add(key.trim());
         }
-    });
+    }
 
     const result = uniqueDestinations.size;
-    console.log('✅ Unique stops count:', result, 'destinations:', Array.from(uniqueDestinations));
+    console.log('✅ Unique delivery stops count:', result, 'destinations:', Array.from(uniqueDestinations));
 
     return result;
 }
@@ -214,7 +248,7 @@ function calculateUniqueStops(jobs) {
 /**
  * Render the incentive table
  */
-function renderTable(jobs) {
+async function renderTable(jobs) {
     elements.tbody.innerHTML = '';
 
     if (jobs.length === 0) {
@@ -242,10 +276,10 @@ function renderTable(jobs) {
         }
     });
 
-    // Calculate unique stops for each reference
-    Object.keys(groupedJobs).forEach(reference => {
-        groupedJobs[reference].stop_count = calculateUniqueStops(groupedJobs[reference].all_jobs);
-    });
+    // Calculate unique stops for each reference (now async)
+    for (const reference of Object.keys(groupedJobs)) {
+        groupedJobs[reference].stop_count = await calculateUniqueStops(groupedJobs[reference].all_jobs);
+    }
 
     // Render rows
     Object.values(groupedJobs).forEach(job => {
@@ -414,7 +448,7 @@ export async function openDetailModal(job) {
 
     // Load all stops for this reference to calculate unique stops correctly
     const stops = await loadJobStops(job.reference);
-    const uniqueStopsCount = calculateUniqueStops(stops);
+    const uniqueStopsCount = await calculateUniqueStops(stops);
 
     // Calculate totals
     const rate = job.incentive_rate || DEFAULT_RATE_PER_KM;
@@ -428,7 +462,7 @@ export async function openDetailModal(job) {
 
     // Render stops detail
     if (elements.detailStops) {
-        renderStopsDetail(stops);
+        await renderStopsDetail(stops);
     }
 
     // Notes
@@ -472,7 +506,7 @@ async function loadJobStops(reference) {
 /**
  * Render stops detail
  */
-function renderStopsDetail(stops) {
+async function renderStopsDetail(stops) {
     if (!elements.detailStops) return;
 
     elements.detailStops.innerHTML = '';
@@ -482,26 +516,17 @@ function renderStopsDetail(stops) {
         return;
     }
 
-    stops.forEach((stop, index) => {
+    // Load origin keys once for all stops
+    const origins = await loadOriginKeys();
+
+    for (const [index, stop] of stops.entries()) {
         const stopDiv = document.createElement('div');
         stopDiv.style.cssText = 'display: flex; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-color);';
 
-        // Check if this is an origin point (using same logic as calculateUniqueStops)
+        // Check if this is an origin point by looking up in origin table
         const shipToCode = stop.ship_to_code || '';
         const shipToName = stop.ship_to_name || '';
-
-        // Use is_origin_stop column from database
-        let isOrigin = false;
-        if (stop.is_origin_stop === true) {
-            isOrigin = true;
-        } else if (typeof stop.is_origin_stop === 'string') {
-            isOrigin = stop.is_origin_stop === 'true' || stop.is_origin_stop === 't';
-        } else {
-            // Fallback to database pattern matching logic
-            const codeUpper = (shipToCode || '').toUpperCase();
-            const nameUpper = (shipToName || '').toUpperCase();
-            isOrigin = codeUpper.startsWith('ZSF') || nameUpper.includes('PTC-STA-');
-        }
+        const isOrigin = origins.has(shipToCode);
 
         // Get destination name
         const destinationName = shipToName || stop.destination || '-';
@@ -528,15 +553,16 @@ function renderStopsDetail(stops) {
         `;
 
         elements.detailStops.appendChild(stopDiv);
-    });
+    }
 
     // Add summary of unique delivery stops
-    const uniqueCount = calculateUniqueStops(stops);
+    const uniqueCount = await calculateUniqueStops(stops);
+    const originCount = stops.length - uniqueCount;
     const summaryDiv = document.createElement('div');
     summaryDiv.style.cssText = 'margin-top: 15px; padding: 10px; background: var(--card-bg); border-radius: 8px; font-size: 0.9rem;';
     summaryDiv.innerHTML = `
         <strong>สรุป:</strong> ทั้งหมด ${stops.length} จุด |
-        <span style="color: #78909c;">ต้นทาง ${stops.length - uniqueCount} จุด</span> |
+        <span style="color: #78909c;">ต้นทาง ${originCount} จุด</span> |
         <span style="color: #4caf50;">จุดส่งจริง ${uniqueCount} จุด</span> (ไม่ซ้ำกัน)
     `;
     elements.detailStops.appendChild(summaryDiv);
