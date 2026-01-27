@@ -34,7 +34,8 @@
                     <li class="nav-section-header">🚚 Operations Management</li>
                     <li><a href="#" class="nav-link" data-target="jobs">🚚 Job Management</a></li>
                     <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ B100 Jobs</a></li>
-                    <li><a href="#" class="nav-link" data-target="holiday-work">🎌 Holiday Work</a></li>
+                    <li><a href="#" class="nav-link" data-target="incentive-approval">💰 Incentive Approval</a></li>
+                    <li><a href="#" class="nav-link" data-target="payment-processing">🏦 Payment Processing</a></li>
                     
                     <!-- Fleet & Maintenance -->
                     <li class="nav-section-header">🔧 Fleet & Maintenance</li>
@@ -389,62 +390,337 @@
                 <!-- Content will be loaded dynamically from debug-import-content.html -->
             </section>
 
-            <!-- Holiday Work Section -->
-            <section id="holiday-work" class="content-section hidden">
-                <h1>🎊 Holiday Work Approval</h1>
-                
+            <!-- Incentive Approval Section -->
+            <section id="incentive-approval" class="content-section hidden">
+                <h1>💰 Incentive Approval</h1>
+                <p style="color: var(--text-sub); margin-bottom: 20px;">ตรวจสอบและอนุมัติข้อมูลการเดินทางของคนขับเพื่อคำนวณค่า incentive</p>
+
                 <!-- Summary Cards -->
                 <div class="kpi-cards" style="margin-bottom: 20px;">
                     <div class="kpi-card">
-                        <h3>รอการอนุมัติ</h3>
-                        <p id="pending-holiday-count" style="color: #ff9800;">0</p>
+                        <h3>รอตรวจสอบ</h3>
+                        <p id="pending-incentive-count" style="color: #ff9800;">0</p>
                     </div>
                     <div class="kpi-card">
-                        <h3>อนุมัติแล้ว</h3>
-                        <p id="approved-holiday-count" style="color: #4caf50;">0</p>
+                        <h3>รอการชำระ</h3>
+                        <p id="ready-payment-count" style="color: #2196f3;">0</p>
                     </div>
                     <div class="kpi-card">
-                        <h3>ปฏิเสธ</h3>
-                        <p id="rejected-holiday-count" style="color: #f44336;">0</p>
+                        <h3>ชำระแล้ว</h3>
+                        <p id="paid-incentive-count" style="color: #4caf50;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ปฏิเสธ/แก้ไข</h3>
+                        <p id="rejected-incentive-count" style="color: #f44336;">0</p>
                     </div>
                 </div>
-                
+
                 <!-- Filters -->
-                <div class="holiday-work-controls" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
-                    <input type="text" id="holiday-work-search" placeholder="🔍 ค้นหา Reference, คนขับ..." style="flex: 1; min-width: 200px; padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
-                    
-                    <select id="holiday-status-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
+                <div class="incentive-controls" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="incentive-search" placeholder="🔍 ค้นหา Reference, คนขับ, ทะเบียนรถ..." style="flex: 1; min-width: 200px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+
+                    <select id="incentive-status-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
                         <option value="all">📋 ทั้งหมด</option>
-                        <option value="pending" selected>⏳ รอการอนุมัติ</option>
-                        <option value="approved">✅ อนุมัติแล้ว</option>
-                        <option value="rejected">❌ ปฏิเสธ</option>
+                        <option value="pending" selected>⏳ รอตรวจสอบ</option>
+                        <option value="ready">💵 รอการชำระ</option>
+                        <option value="paid">✅ ชำระแล้ว</option>
+                        <option value="rejected">❌ ปฏิเสธ/แก้ไข</option>
                     </select>
-                    
-                    <input type="date" id="holiday-date-from" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
-                    <input type="date" id="holiday-date-to" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border);">
-                    
-                    <button id="holiday-refresh-btn" style="padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+
+                    <input type="date" id="incentive-date-from" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                    <input type="date" id="incentive-date-to" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+
+                    <button id="incentive-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
                         🔄 Refresh
                     </button>
                 </div>
-                
+
                 <!-- Table -->
                 <div class="table-container" style="margin-top: 20px;">
-                    <table id="holiday-work-table">
+                    <table id="incentive-table">
                         <thead>
                             <tr>
                                 <th>Reference</th>
-                                <th>วันที่ปิดงาน</th>
+                                <th>วันที่ทำงาน</th>
                                 <th>คนขับ</th>
-                                <th>รถ</th>
-                                <th>จำนวนจุด</th>
-                                <th>เหตุผล/หมายเหตุ</th>
+                                <th>ทะเบียนรถ</th>
+                                <th>จุดส่ง</th>
+                                <th>ระยะทาง (km)</th>
+                                <th>Incentive</th>
                                 <th>สถานะ</th>
-                                <th>ผู้อนุมัติ</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
-                        <tbody id="holiday-work-tbody">
+                        <tbody id="incentive-tbody">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                    <p>กำลังโหลดข้อมูล...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Incentive Detail & Approval Modal -->
+                <div id="incentive-detail-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                        <span class="close-button" id="incentive-modal-close">&times;</span>
+
+                        <!-- Tabs -->
+                        <div class="modal-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 20px;">
+                            <button class="modal-tab active" data-tab="detail" style="padding: 10px 20px; background: none; border: none; border-bottom: 2px solid var(--primary-color); color: var(--primary-color); cursor: pointer;">
+                                📋 รายละเอียดการเดินทาง
+                            </button>
+                            <button class="modal-tab" data-tab="map" style="padding: 10px 20px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-color); cursor: pointer;">
+                                🗺️ แผนที่
+                            </button>
+                            <button class="modal-tab" data-tab="edit" style="padding: 10px 20px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-color); cursor: pointer;">
+                                ✏️ แก้ไขข้อมูล
+                            </button>
+                        </div>
+
+                        <h2 id="incentive-modal-title">💰 ตรวจสอบ Incentive</h2>
+
+                        <!-- Tab Content: Detail -->
+                        <div id="tab-detail" class="tab-content active">
+                            <!-- Trip Summary -->
+                            <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <h3 style="margin-bottom: 10px;">📊 สรุปการเดินทาง</h3>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                    <div>
+                                        <small style="color: var(--text-sub);">Reference</small>
+                                        <p id="detail-reference" style="font-size: 1.2em; font-weight: bold; margin: 0;">-</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">คนขับ</small>
+                                        <p id="detail-driver" style="font-size: 1.1em; margin: 0;">-</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">ทะเบียนรถ</small>
+                                        <p id="detail-vehicle" style="font-size: 1.1em; margin: 0;">-</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">วันที่ทำงาน</small>
+                                        <p id="detail-date" style="margin: 0;">-</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Stops Detail -->
+                            <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <h3 style="margin-bottom: 10px;">📍 รายละเอียดจุดส่ง</h3>
+                                <div id="detail-stops" style="max-height: 300px; overflow-y: auto;">
+                                    <!-- Stops will be populated here -->
+                                </div>
+                            </div>
+
+                            <!-- Incentive Calculation -->
+                            <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <h3 style="margin-bottom: 10px;">💰 การคำนวณ Incentive</h3>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                    <div>
+                                        <small style="color: var(--text-sub);">ระยะทางรวม</small>
+                                        <p id="detail-distance" style="font-size: 1.2em; margin: 0;">0 km</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">จำนวนจุดส่ง</small>
+                                        <p id="detail-stops-count" style="font-size: 1.2em; margin: 0;">0 จุด</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">อัตรา incentive/กม.</small>
+                                        <p id="detail-rate" style="font-size: 1.2em; margin: 0;">฿0</p>
+                                    </div>
+                                    <div>
+                                        <small style="color: var(--text-sub);">Incentive รวม</small>
+                                        <p id="detail-amount" style="font-size: 1.5em; font-weight: bold; color: #4caf50; margin: 0;">฿0</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Driver Notes -->
+                            <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                                <h3 style="margin-bottom: 10px;">📝 หมายเหตุจากคนขับ</h3>
+                                <p id="detail-notes" style="margin: 0; color: var(--text-sub);">ไม่มีหมายเหตุ</p>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button type="button" id="btn-approve-incentive" style="flex: 1; min-width: 150px; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    ✅ อนุมัติ &amp; ส่งชำระ
+                                </button>
+                                <button type="button" id="btn-request-correction" style="flex: 1; min-width: 150px; padding: 12px; background: #ff9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    📝 ขอแก้ไข
+                                </button>
+                                <button type="button" id="btn-reject-incentive" style="flex: 1; min-width: 150px; padding: 12px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    ❌ ปฏิเสธ
+                                </button>
+                                <button type="button" class="cancel-btn" id="btn-cancel-incentive" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                    ปิด
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tab Content: Map -->
+                        <div id="tab-map" class="tab-content" style="display: none;">
+                            <div id="incentive-map" style="height: 400px; border-radius: 8px; margin-bottom: 20px;"></div>
+                            <p style="color: var(--text-sub); font-size: 0.9em;">* แสดงเส้นทางการเดินทางจริงจาก GPS data</p>
+                        </div>
+
+                        <!-- Tab Content: Edit -->
+                        <div id="tab-edit" class="tab-content" style="display: none;">
+                            <h3 style="margin-bottom: 15px;">✏️ แก้ไขข้อมูลการเดินทาง</h3>
+                            <form id="incentive-edit-form">
+                                <input type="hidden" id="edit-reference">
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                    <div>
+                                        <label for="edit-distance">ระยะทาง (km):</label>
+                                        <input type="number" id="edit-distance" step="0.1" min="0" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                    </div>
+                                    <div>
+                                        <label for="edit-stops-count">จำนวนจุดส่ง:</label>
+                                        <input type="number" id="edit-stops-count" min="1" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                    </div>
+                                    <div>
+                                        <label for="edit-rate">อัตรา (บาท/km):</label>
+                                        <input type="number" id="edit-rate" step="0.01" min="0" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                    </div>
+                                    <div>
+                                        <label for="edit-amount">Incentive (บาท):</label>
+                                        <input type="number" id="edit-amount" step="0.01" min="0" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 15px;">
+                                    <label for="edit-notes">หมายเหตุการแก้ไข:</label>
+                                    <textarea id="edit-notes" rows="3" placeholder="ระบุเหตุผลในการแก้ไข..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); resize: vertical;"></textarea>
+                                </div>
+
+                                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                    <button type="submit" style="flex: 1; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                        💾 บันทึกการแก้ไข
+                                    </button>
+                                    <button type="button" class="cancel-btn" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                        ยกเลิก
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Correction Request Modal -->
+                <div id="correction-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 500px;">
+                        <span class="close-button" id="correction-modal-close">&times;</span>
+                        <h2>📝 ขอให้แก้ไขข้อมูล</h2>
+                        <p style="color: var(--text-sub); margin-bottom: 15px;">ระบุสิ่งที่ต้องการให้คนขับแก้ไข</p>
+
+                        <form id="correction-form">
+                            <input type="hidden" id="correction-reference">
+
+                            <label for="correction-reason">เหตุผล:</label>
+                            <select id="correction-reason" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); margin-bottom: 15px;">
+                                <option value="">-- เลือกเหตุผล --</option>
+                                <option value="missing_checkin">ขาด Check-in/Check-out</option>
+                                <option value="wrong_location">ตำแหน่งไม่ถูกต้อง</option>
+                                <option value="missing_photo">ขาดรูปถ่ายหลักฐาน</option>
+                                <option value="incorrect_data">ข้อมูลไม่ถูกต้อง</option>
+                                <option value="other">อื่นๆ</option>
+                            </select>
+
+                            <label for="correction-detail">รายละเอียดเพิ่มเติม:</label>
+                            <textarea id="correction-detail" rows="4" required placeholder="ระบุรายละเอียดที่ต้องการให้แก้ไข..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); resize: vertical;"></textarea>
+
+                            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                <button type="submit" style="flex: 1; padding: 12px; background: #ff9800; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    📤 ส่งคำขอ
+                                </button>
+                                <button type="button" class="cancel-btn" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                    ยกเลิก
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Payment Processing Section -->
+            <section id="payment-processing" class="content-section hidden">
+                <h1>🏦 Payment Processing</h1>
+                <p style="color: var(--text-sub); margin-bottom: 20px;">จัดการการชำระเงิน incentive ให้คนขับ</p>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>รอชำระ</h3>
+                        <p id="payment-pending-count" style="color: #ff9800;">0</p>
+                        <small id="payment-pending-amount" style="color: #ff9800;">฿0</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>กำลังดำเนินการ</h3>
+                        <p id="payment-processing-count" style="color: #2196f3;">0</p>
+                        <small id="payment-processing-amount" style="color: #2196f3;">฿0</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ชำระแล้ว (เดือนนี้)</h3>
+                        <p id="payment-completed-count" style="color: #4caf50;">0</p>
+                        <small id="payment-completed-amount" style="color: #4caf50;">฿0</small>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>รอโอนเงิน (ธนาคาร)</h3>
+                        <p id="payment-transfer-count" style="color: #9c27b0;">0</p>
+                        <small id="payment-transfer-amount" style="color: #9c27b0;">฿0</small>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="payment-controls" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="payment-search" placeholder="🔍 ค้นหา Reference, คนขับ..." style="flex: 1; min-width: 200px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+
+                    <select id="payment-status-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        <option value="all">📋 ทั้งหมด</option>
+                        <option value="ready" selected>💵 รอชำระ</option>
+                        <option value="processing">⏳ กำลังดำเนินการ</option>
+                        <option value="paid">✅ ชำระแล้ว</option>
+                        <option value="transfer_pending">🏦 รอโอนเงิน</option>
+                    </select>
+
+                    <select id="payment-driver-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        <option value="">คนขับทั้งหมด</option>
+                    </select>
+
+                    <select id="payment-period-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        <option value="all">ทุกงวด</option>
+                        <option value="current" selected>งวดปัจจุบัน</option>
+                        <option value="last_month">งวดเดือนที่แล้ว</option>
+                    </select>
+
+                    <button id="payment-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🔄 Refresh
+                    </button>
+                    <button id="payment-export-btn" style="padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        📥 Export สรุป
+                    </button>
+                </div>
+
+                <!-- Payment Table -->
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="payment-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="payment-select-all"></th>
+                                <th>Reference</th>
+                                <th>คนขับ</th>
+                                <th>บัญชีธนาคาร</th>
+                                <th>ระยะทาง</th>
+                                <th>Incentive</th>
+                                <th>สถานะ</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payment-tbody">
                             <tr>
                                 <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-sub);">
                                     <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
@@ -455,43 +731,64 @@
                     </table>
                 </div>
 
-                <!-- Approve/Reject Modal -->
-                <div id="holiday-approval-modal" class="modal hidden">
-                    <div class="modal-content" style="max-width: 600px;">
-                        <span class="close-button" id="holiday-approval-modal-close">&times;</span>
-                        <h2 id="approval-modal-title">อนุมัติการทำงานวันหยุด</h2>
-                        
-                        <div style="background: var(--bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <p><strong>Reference:</strong> <span id="approval-reference"></span></p>
-                            <p><strong>คนขับ:</strong> <span id="approval-driver"></span></p>
-                            <p><strong>รถ:</strong> <span id="approval-vehicle"></span></p>
-                            <p><strong>วันที่:</strong> <span id="approval-date"></span></p>
-                            <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px;">
-                                <strong>เหตุผลจากคนขับ:</strong>
-                                <p id="approval-notes" style="margin: 5px 0; color: var(--text-main);"></p>
-                            </div>
+                <!-- Bulk Payment Action Bar -->
+                <div id="payment-bulk-actions" class="bulk-actions-bar" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--card-bg); padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); z-index: 100;">
+                    <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+                        <span>เลือก <strong id="payment-selected-count">0</strong> รายการ รวม <strong id="payment-selected-amount">฿0</strong></span>
+                        <div style="display: flex; gap: 10px;">
+                            <button id="payment-bank-transfer-btn" style="padding: 10px 20px; background: #9c27b0; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                🏦 โอนเงิน (ธนาคาร)
+                            </button>
+                            <button id="payment-bulk-paid-btn" style="padding: 10px 20px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                ✅ ตรวจสอบการชำระเงิน
+                            </button>
+                            <button id="payment-clear-selection-btn" style="padding: 10px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                ยกเลิกการเลือก
+                            </button>
                         </div>
-                        
-                        <form id="holiday-approval-form">
-                            <input type="hidden" id="approval-job-id">
-                            <input type="hidden" id="approval-reference-input">
-                            <input type="hidden" id="approval-action">
-                            
-                            <label for="approval-comment">ความคิดเห็น/หมายเหตุ: <span id="approval-comment-required" style="color: red; display: none;">*</span></label>
-                            <textarea id="approval-comment" rows="3" placeholder="ระบุความคิดเห็นหรือเหตุผล..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border); resize: vertical;"></textarea>
-                            
-                            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                                <button type="submit" id="approve-btn" style="flex: 1; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                                    ✅ อนุมัติ
-                                </button>
-                                <button type="button" id="reject-btn" style="flex: 1; padding: 12px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                                    ❌ ปฏิเสธ
-                                </button>
-                                <button type="button" class="cancel-btn" style="padding: 12px 20px; background: var(--border); color: var(--text-main); border: none; border-radius: 5px; cursor: pointer;">
-                                    ยกเลิก
-                                </button>
-                            </div>
-                        </form>
+                    </div>
+                </div>
+
+                <!-- Payment Detail Modal -->
+                <div id="payment-detail-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <span class="close-button" id="payment-modal-close">&times;</span>
+                        <h2 id="payment-modal-title">💵 รายละเอียดการชำระเงิน</h2>
+
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <p><strong>Reference:</strong> <span id="payment-detail-reference"></span></p>
+                            <p><strong>คนขับ:</strong> <span id="payment-detail-driver"></span></p>
+                            <p><strong>ธนาคาร:</strong> <span id="payment-detail-bank"></span> <span id="payment-detail-account"></span></p>
+                            <p><strong>จำนวนเงิน:</strong> <span id="payment-detail-amount" style="font-size: 1.5em; font-weight: bold; color: #4caf50;"></span></p>
+                            <p><strong>สถานะ:</strong> <span id="payment-detail-status"></span></p>
+                        </div>
+
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3>📊 สรุปการเดินทาง</h3>
+                            <p><strong>ระยะทาง:</strong> <span id="payment-detail-distance"></span> km</p>
+                            <p><strong>จำนวนจุด:</strong> <span id="payment-detail-stops"></span> จุด</p>
+                            <p><strong>อัตรา:</strong> ฿<span id="payment-detail-rate"></span> /km</p>
+                        </div>
+
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3>📝 หมายเหตุ</h3>
+                            <textarea id="payment-detail-notes" rows="3" placeholder="เพิ่มหมายเหตุ..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); resize: vertical;"></textarea>
+                        </div>
+
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button type="button" id="btn-mark-paid" style="flex: 1; min-width: 120px; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                ✅ ชำระแล้ว
+                            </button>
+                            <button type="button" id="btn-bank-transfer" style="flex: 1; min-width: 120px; padding: 12px; background: #9c27b0; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                🏦 โอนเงิน
+                            </button>
+                            <button type="button" id="btn-save-payment-notes" style="padding: 12px 20px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                💾 บันทึกหมายเหตุ
+                            </button>
+                            <button type="button" class="cancel-btn" id="btn-close-payment" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                ปิด
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>

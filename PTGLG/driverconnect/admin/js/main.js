@@ -23,14 +23,33 @@ import { setSettingsElements, loadSettings, saveSettings } from './settings.js';
 import { setAlertsElements, loadAlerts, updateAlertsBadge } from './alerts.js';
 import { setLogsElements, loadLogs } from './logs.js';
 import {
-    setHolidayWorkElements,
-    loadHolidayWorkJobs,
-    subscribeToHolidayWorkUpdates,
-    unsubscribeFromHolidayWorkUpdates,
-    openHolidayApprovalModal,
-    closeHolidayApprovalModal,
-    handleHolidayApprovalSubmit
-} from './holiday-work.js';
+    setIncentiveApprovalElements,
+    loadIncentiveJobs,
+    subscribeToIncentiveUpdates,
+    unsubscribeFromIncentiveUpdates,
+    openDetailModal as openIncentiveDetailModal,
+    closeDetailModal as closeIncentiveDetailModal,
+    approveIncentive,
+    rejectIncentive,
+    requestCorrection,
+    editIncentive,
+    openCorrectionModal,
+    closeCorrectionModal
+} from './incentive-approval.js';
+import {
+    setPaymentProcessingElements,
+    loadPayments,
+    selectAll,
+    clearSelection,
+    openDetailModal as openPaymentDetailModal,
+    closeDetailModal as closePaymentDetailModal,
+    markAsPaid,
+    markForTransfer,
+    bulkMarkAsPaid,
+    bulkMarkForTransfer,
+    savePaymentNotes,
+    exportPaymentSummary
+} from './payment-processing.js';
 import {
     setBreakdownElements,
     loadVehicleBreakdowns,
@@ -147,30 +166,82 @@ function setupDOMElements() {
         searchUserId: document.getElementById('log-search-user-id')
     });
 
-    // Holiday Work
-    setHolidayWorkElements({
-        tableBody: document.getElementById('holiday-work-tbody'),
-        search: document.getElementById('holiday-work-search'),
-        statusFilter: document.getElementById('holiday-status-filter'),
-        dateFrom: document.getElementById('holiday-date-from'),
-        dateTo: document.getElementById('holiday-date-to'),
-        refreshBtn: document.getElementById('holiday-refresh-btn'),
-        pendingCount: document.getElementById('pending-holiday-count'),
-        approvedCount: document.getElementById('approved-holiday-count'),
-        rejectedCount: document.getElementById('rejected-holiday-count'),
-        approvalModal: document.getElementById('holiday-approval-modal'),
-        approvalForm: document.getElementById('holiday-approval-form'),
-        referenceInput: document.getElementById('approval-reference-input'),
-        reference: document.getElementById('approval-reference'),
-        driver: document.getElementById('approval-driver'),
-        vehicle: document.getElementById('approval-vehicle'),
-        date: document.getElementById('approval-date'),
-        notes: document.getElementById('approval-notes'),
-        comment: document.getElementById('approval-comment'),
-        action: document.getElementById('approval-action'),
-        modalTitle: document.getElementById('approval-modal-title'),
-        approveBtn: document.getElementById('approve-btn'),
-        rejectBtn: document.getElementById('reject-btn')
+    // Incentive Approval
+    setIncentiveApprovalElements({
+        tbody: document.getElementById('incentive-tbody'),
+        search: document.getElementById('incentive-search'),
+        statusFilter: document.getElementById('incentive-status-filter'),
+        dateFrom: document.getElementById('incentive-date-from'),
+        dateTo: document.getElementById('incentive-date-to'),
+        refreshBtn: document.getElementById('incentive-refresh-btn'),
+        pendingCount: document.getElementById('pending-incentive-count'),
+        readyPaymentCount: document.getElementById('ready-payment-count'),
+        paidCount: document.getElementById('paid-incentive-count'),
+        rejectedCount: document.getElementById('rejected-incentive-count'),
+        detailModal: document.getElementById('incentive-detail-modal'),
+        modalClose: document.getElementById('incentive-modal-close'),
+        detailReference: document.getElementById('detail-reference'),
+        detailDriver: document.getElementById('detail-driver'),
+        detailVehicle: document.getElementById('detail-vehicle'),
+        detailDate: document.getElementById('detail-date'),
+        detailStops: document.getElementById('detail-stops'),
+        detailDistance: document.getElementById('detail-distance'),
+        detailStopsCount: document.getElementById('detail-stops-count'),
+        detailRate: document.getElementById('detail-rate'),
+        detailAmount: document.getElementById('detail-amount'),
+        detailNotes: document.getElementById('detail-notes'),
+        editForm: document.getElementById('incentive-edit-form'),
+        editReference: document.getElementById('edit-reference'),
+        editDistance: document.getElementById('edit-distance'),
+        editStopsCount: document.getElementById('edit-stops-count'),
+        editRate: document.getElementById('edit-rate'),
+        editAmount: document.getElementById('edit-amount'),
+        editNotes: document.getElementById('edit-notes'),
+        correctionModal: document.getElementById('correction-modal'),
+        correctionModalClose: document.getElementById('correction-modal-close'),
+        correctionForm: document.getElementById('correction-form'),
+        correctionReference: document.getElementById('correction-reference'),
+        correctionReason: document.getElementById('correction-reason'),
+        correctionDetail: document.getElementById('correction-detail'),
+        incentiveMap: document.getElementById('incentive-map')
+    });
+
+    // Payment Processing
+    setPaymentProcessingElements({
+        tbody: document.getElementById('payment-tbody'),
+        search: document.getElementById('payment-search'),
+        statusFilter: document.getElementById('payment-status-filter'),
+        driverFilter: document.getElementById('payment-driver-filter'),
+        periodFilter: document.getElementById('payment-period-filter'),
+        refreshBtn: document.getElementById('payment-refresh-btn'),
+        exportBtn: document.getElementById('payment-export-btn'),
+        selectAllCheckbox: document.getElementById('payment-select-all'),
+        bulkActionsBar: document.getElementById('payment-bulk-actions'),
+        selectedCount: document.getElementById('payment-selected-count'),
+        selectedAmount: document.getElementById('payment-selected-amount'),
+        bankTransferBtn: document.getElementById('payment-bank-transfer-btn'),
+        bulkPaidBtn: document.getElementById('payment-bulk-paid-btn'),
+        clearSelectionBtn: document.getElementById('payment-clear-selection-btn'),
+        pendingCount: document.getElementById('payment-pending-count'),
+        pendingAmount: document.getElementById('payment-pending-amount'),
+        processingCount: document.getElementById('payment-processing-count'),
+        processingAmount: document.getElementById('payment-processing-amount'),
+        completedCount: document.getElementById('payment-completed-count'),
+        completedAmount: document.getElementById('payment-completed-amount'),
+        transferCount: document.getElementById('payment-transfer-count'),
+        transferAmount: document.getElementById('payment-transfer-amount'),
+        detailModal: document.getElementById('payment-detail-modal'),
+        modalClose: document.getElementById('payment-modal-close'),
+        detailReference: document.getElementById('payment-detail-reference'),
+        detailDriver: document.getElementById('payment-detail-driver'),
+        detailBank: document.getElementById('payment-detail-bank'),
+        detailAccount: document.getElementById('payment-detail-account'),
+        detailAmount: document.getElementById('payment-detail-amount'),
+        detailStatus: document.getElementById('payment-detail-status'),
+        detailDistance: document.getElementById('payment-detail-distance'),
+        detailStops: document.getElementById('payment-detail-stops'),
+        detailRate: document.getElementById('payment-detail-rate'),
+        detailNotes: document.getElementById('payment-detail-notes')
     });
 
     // Breakdown
@@ -290,38 +361,190 @@ function setupEventListeners() {
         settingsForm.addEventListener('submit', saveSettings);
     }
 
-    // Holiday work search
-    const holidayWorkSearch = document.getElementById('holiday-work-search');
-    const holidayStatusFilter = document.getElementById('holiday-status-filter');
-    const holidayRefreshBtn = document.getElementById('holiday-refresh-btn');
+    // Incentive Approval
+    const incentiveSearch = document.getElementById('incentive-search');
+    const incentiveStatusFilter = document.getElementById('incentive-status-filter');
+    const incentiveRefreshBtn = document.getElementById('incentive-refresh-btn');
 
-    if (holidayWorkSearch) {
-        holidayWorkSearch.addEventListener('input', debounce((e) => {
-            loadHolidayWorkJobs(e.target.value, holidayStatusFilter?.value);
+    if (incentiveSearch) {
+        incentiveSearch.addEventListener('input', debounce((e) => {
+            loadIncentiveJobs(e.target.value, incentiveStatusFilter?.value);
         }, 300));
     }
 
-    if (holidayStatusFilter) {
-        holidayStatusFilter.addEventListener('change', () => {
-            loadHolidayWorkJobs(holidayWorkSearch?.value, holidayStatusFilter.value);
+    if (incentiveStatusFilter) {
+        incentiveStatusFilter.addEventListener('change', () => {
+            loadIncentiveJobs(incentiveSearch?.value, incentiveStatusFilter.value);
         });
     }
 
-    if (holidayRefreshBtn) {
-        holidayRefreshBtn.addEventListener('click', () => {
-            loadHolidayWorkJobs(holidayWorkSearch?.value, holidayStatusFilter?.value);
+    if (incentiveRefreshBtn) {
+        incentiveRefreshBtn.addEventListener('click', () => {
+            loadIncentiveJobs(incentiveSearch?.value, incentiveStatusFilter?.value);
         });
     }
 
-    // Holiday approval modal
-    const holidayApprovalModalClose = document.getElementById('holiday-approval-modal-close');
-    if (holidayApprovalModalClose) {
-        holidayApprovalModalClose.addEventListener('click', closeHolidayApprovalModal);
+    // Incentive detail modal
+    const incentiveModalClose = document.getElementById('incentive-modal-close');
+    if (incentiveModalClose) {
+        incentiveModalClose.addEventListener('click', closeIncentiveDetailModal);
     }
 
-    const holidayApprovalForm = document.getElementById('holiday-approval-form');
-    if (holidayApprovalForm) {
-        holidayApprovalForm.addEventListener('submit', (e) => handleHolidayApprovalSubmit(e, liff));
+    const btnCancelIncentive = document.getElementById('btn-cancel-incentive');
+    if (btnCancelIncentive) {
+        btnCancelIncentive.addEventListener('click', closeIncentiveDetailModal);
+    }
+
+    const btnApproveIncentive = document.getElementById('btn-approve-incentive');
+    if (btnApproveIncentive) {
+        btnApproveIncentive.addEventListener('click', () => approveIncentive(liff));
+    }
+
+    const btnRequestCorrection = document.getElementById('btn-request-correction');
+    if (btnRequestCorrection) {
+        btnRequestCorrection.addEventListener('click', openCorrectionModal);
+    }
+
+    const btnRejectIncentive = document.getElementById('btn-reject-incentive');
+    if (btnRejectIncentive) {
+        btnRejectIncentive.addEventListener('click', () => {
+            const reason = prompt('ระบุเหตุผลในการปฏิเสธ:');
+            if (reason) {
+                rejectIncentive(reason);
+            }
+        });
+    }
+
+    // Incentive edit form
+    const incentiveEditForm = document.getElementById('incentive-edit-form');
+    if (incentiveEditForm) {
+        incentiveEditForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            editIncentive({
+                distance: parseFloat(document.getElementById('edit-distance').value),
+                stops: parseInt(document.getElementById('edit-stops-count').value),
+                rate: parseFloat(document.getElementById('edit-rate').value),
+                amount: parseFloat(document.getElementById('edit-amount').value),
+                notes: document.getElementById('edit-notes').value
+            });
+        });
+    }
+
+    // Auto-calculate amount when distance or rate changes
+    const editDistance = document.getElementById('edit-distance');
+    const editRate = document.getElementById('edit-rate');
+    const editAmount = document.getElementById('edit-amount');
+
+    const calculateAmount = () => {
+        if (editDistance && editRate && editAmount) {
+            const distance = parseFloat(editDistance.value) || 0;
+            const rate = parseFloat(editRate.value) || 0;
+            editAmount.value = (distance * rate).toFixed(2);
+        }
+    };
+
+    if (editDistance) editDistance.addEventListener('input', calculateAmount);
+    if (editRate) editRate.addEventListener('input', calculateAmount);
+
+    // Correction modal
+    const correctionModalClose = document.getElementById('correction-modal-close');
+    if (correctionModalClose) {
+        correctionModalClose.addEventListener('click', closeCorrectionModal);
+    }
+
+    const correctionForm = document.getElementById('correction-form');
+    if (correctionForm) {
+        correctionForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const reason = document.getElementById('correction-reason').value;
+            const detail = document.getElementById('correction-detail').value;
+            requestCorrection(reason, detail);
+        });
+    }
+
+    // Payment Processing
+    const paymentSearch = document.getElementById('payment-search');
+    const paymentStatusFilter = document.getElementById('payment-status-filter');
+    const paymentDriverFilter = document.getElementById('payment-driver-filter');
+    const paymentPeriodFilter = document.getElementById('payment-period-filter');
+    const paymentRefreshBtn = document.getElementById('payment-refresh-btn');
+
+    const loadPaymentFiltered = () => {
+        loadPayments({
+            search: paymentSearch?.value,
+            status: paymentStatusFilter?.value,
+            driver: paymentDriverFilter?.value,
+            period: paymentPeriodFilter?.value
+        });
+    };
+
+    if (paymentSearch) paymentSearch.addEventListener('input', debounce(loadPaymentFiltered, 300));
+    if (paymentStatusFilter) paymentStatusFilter.addEventListener('change', loadPaymentFiltered);
+    if (paymentDriverFilter) paymentDriverFilter.addEventListener('change', loadPaymentFiltered);
+    if (paymentPeriodFilter) paymentPeriodFilter.addEventListener('change', loadPaymentFiltered);
+    if (paymentRefreshBtn) paymentRefreshBtn.addEventListener('click', loadPaymentFiltered);
+
+    // Payment select all
+    const paymentSelectAll = document.getElementById('payment-select-all');
+    if (paymentSelectAll) {
+        paymentSelectAll.addEventListener('change', (e) => selectAll(e.target.checked));
+    }
+
+    // Payment bulk actions
+    const paymentClearSelectionBtn = document.getElementById('payment-clear-selection-btn');
+    if (paymentClearSelectionBtn) {
+        paymentClearSelectionBtn.addEventListener('click', clearSelection);
+    }
+
+    const paymentBulkPaidBtn = document.getElementById('payment-bulk-paid-btn');
+    if (paymentBulkPaidBtn) {
+        paymentBulkPaidBtn.addEventListener('click', bulkMarkAsPaid);
+    }
+
+    const paymentBankTransferBtn = document.getElementById('payment-bank-transfer-btn');
+    if (paymentBankTransferBtn) {
+        paymentBankTransferBtn.addEventListener('click', bulkMarkForTransfer);
+    }
+
+    const paymentExportBtn = document.getElementById('payment-export-btn');
+    if (paymentExportBtn) {
+        paymentExportBtn.addEventListener('click', exportPaymentSummary);
+    }
+
+    // Payment detail modal
+    const paymentModalClose = document.getElementById('payment-modal-close');
+    if (paymentModalClose) {
+        paymentModalClose.addEventListener('click', closePaymentDetailModal);
+    }
+
+    const btnClosePayment = document.getElementById('btn-close-payment');
+    if (btnClosePayment) {
+        btnClosePayment.addEventListener('click', closePaymentDetailModal);
+    }
+
+    const btnMarkPaid = document.getElementById('btn-mark-paid');
+    if (btnMarkPaid) {
+        btnMarkPaid.addEventListener('click', () => {
+            const reference = document.getElementById('payment-detail-modal')?.dataset.reference;
+            if (reference) markAsPaid(reference);
+        });
+    }
+
+    const btnBankTransfer = document.getElementById('btn-bank-transfer');
+    if (btnBankTransfer) {
+        btnBankTransfer.addEventListener('click', () => {
+            const reference = document.getElementById('payment-detail-modal')?.dataset.reference;
+            if (reference) markForTransfer(reference);
+        });
+    }
+
+    const btnSavePaymentNotes = document.getElementById('btn-save-payment-notes');
+    if (btnSavePaymentNotes) {
+        btnSavePaymentNotes.addEventListener('click', () => {
+            const reference = document.getElementById('payment-detail-modal')?.dataset.reference;
+            const notes = document.getElementById('payment-detail-notes')?.value;
+            if (reference) savePaymentNotes(reference, notes);
+        });
     }
 
     // Vehicle breakdown
@@ -482,8 +705,11 @@ export async function loadSectionData(targetId) {
         case 'debug-import-tool':
             await loadDebugImportTool();
             break;
-        case 'holiday-work':
-            await loadHolidayWorkJobs();
+        case 'incentive-approval':
+            await loadIncentiveJobs();
+            break;
+        case 'payment-processing':
+            await loadPayments();
             break;
         case 'vehicle-breakdown':
         case 'breakdown':
