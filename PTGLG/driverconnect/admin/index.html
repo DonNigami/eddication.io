@@ -1049,7 +1049,10 @@ This admin panel interfaces with the following Supabase database tables:
                             <textarea id="breakdown-reason" rows="3" placeholder="Describe the breakdown reason..." required></textarea>
 
                             <label for="breakdown-new-vehicle">New Vehicle Plate (optional):</label>
-                            <input type="text" id="breakdown-new-vehicle" placeholder="Enter new vehicle plate if changing">
+                            <select id="breakdown-new-vehicle">
+                                <option value="">-- เลือกทะเบียนรถใหม่ --</option>
+                            </select>
+                            <small style="color: var(--text-sub);">รายการรถที่เคยใช้งานจะถูกดึงจากข้อมูลเดิม</small>
 
                             <div class="breakdown-preview hidden" id="breakdown-preview">
                                 <p><strong>New Reference will be:</strong> <span id="breakdown-new-ref-preview"></span></p>

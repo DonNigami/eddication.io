@@ -23,6 +23,9 @@ let breakdownNewVehicle = null;
 // Cache for active jobs
 let activeJobsCache = [];
 
+// Cache for historical vehicles
+let historicalVehicles = [];
+
 const BREAKDOWN_TABLE_COLUMNS = 6;
 
 /**
@@ -161,6 +164,31 @@ CREATE POLICY "vehicle_breakdown_update_policy" ON public.vehicle_breakdown
 }
 
 /**
+ * Fetch historical vehicles from jobdata
+ */
+async function fetchHistoricalVehicles() {
+    try {
+        const { data, error } = await supabase
+            .from('jobdata')
+            .select('vehicle_desc')
+            .not('vehicle_desc', 'is', null)
+            .not('vehicle_desc', 'eq', '')
+            .order('created_at', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        // Get unique vehicle descriptions
+        const uniqueVehicles = [...new Set(data?.map(d => d.vehicle_desc).filter(v => v) || [])];
+        historicalVehicles = uniqueVehicles;
+        return uniqueVehicles;
+    } catch (error) {
+        console.error('Error fetching historical vehicles:', error);
+        return [];
+    }
+}
+
+/**
  * Open breakdown modal
  */
 export async function openBreakdownModal() {
@@ -179,13 +207,15 @@ export async function openBreakdownModal() {
 
         if (error) throw error;
 
-        // Group jobs by reference + ship_to_name combination
+        // Group jobs by reference + ship_to_name combination (no spaces in group key)
         const groupedJobs = [];
         const groupKeyMap = new Map(); // key -> index in groupedJobs
 
         (activeJobs || []).forEach(job => {
             const shipToName = job.ship_to_name || job.ship_to_code || 'shiptoname';
-            const groupKey = `${job.reference}-${shipToName}`;
+            // Remove all spaces for consistent grouping and searching
+            const cleanShipToName = shipToName.replace(/\s+/g, '');
+            const groupKey = `${job.reference}-${cleanShipToName}`;
 
             if (groupKeyMap.has(groupKey)) {
                 // Add to existing group
@@ -198,6 +228,7 @@ export async function openBreakdownModal() {
                     groupKey: groupKey,
                     reference: job.reference,
                     shipToName: shipToName,
+                    cleanShipToName: cleanShipToName, // Store clean version for display
                     drivers: job.drivers,
                     vehicleDesc: job.vehicle_desc,
                     jobIds: [job.id]
@@ -212,8 +243,21 @@ export async function openBreakdownModal() {
             groupedJobs.forEach(group => {
                 const option = document.createElement('option');
                 option.value = group.groupKey;
+                // Display shows clean group key (no spaces) for easy copying/searching
                 option.textContent = `${group.groupKey} - ${group.drivers} (${group.vehicleDesc || 'N/A'})`;
                 breakdownJobSelect.appendChild(option);
+            });
+        }
+
+        // Fetch and populate historical vehicles dropdown
+        const vehicles = await fetchHistoricalVehicles();
+        if (breakdownNewVehicle && breakdownNewVehicle.tagName === 'SELECT') {
+            breakdownNewVehicle.innerHTML = '<option value="">-- เลือกทะเบียนรถใหม่ --</option>';
+            vehicles.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle;
+                option.textContent = vehicle;
+                breakdownNewVehicle.appendChild(option);
             });
         }
 
@@ -254,12 +298,14 @@ export async function handleBreakdownJobSelect() {
 }
 
 /**
- * Generate breakdown reference
+ * Generate breakdown reference (no spaces for easy searching)
  * @param {string} originalRef - Original job reference
- * @returns {string} New reference (format: originalRef-shiptoname)
+ * @returns {string} New reference (format: originalRef-shiptoname, no spaces)
  */
 export function generateBreakdownReference(originalRef, newShipToName = 'shiptoname') {
-    return `${originalRef}-${newShipToName}`;
+    // Remove all spaces from shipToName for easy searching
+    const cleanShipToName = newShipToName.replace(/\s+/g, '');
+    return `${originalRef}-${cleanShipToName}`;
 }
 
 /**
@@ -282,7 +328,7 @@ export async function handleBreakdownSubmit(event) {
         return;
     }
     if (!newVehicle) {
-        showNotification('Please enter new vehicle', 'error');
+        showNotification('Please select new vehicle', 'error');
         return;
     }
 
@@ -294,19 +340,24 @@ export async function handleBreakdownSubmit(event) {
             return;
         }
 
-        // Get first job from group to fetch additional details
-        const { data: firstJob, error: jobError } = await supabase
+        // Get all jobs in this group
+        const { data: groupJobs, error: groupJobsError } = await supabase
             .from('jobdata')
             .select('*')
-            .eq('id', group.jobIds[0])
-            .single();
+            .in('id', group.jobIds);
 
-        if (jobError) throw jobError;
+        if (groupJobsError) throw groupJobsError;
 
-        // Generate new reference for breakdown (format: reference-shipToName)
-        const newRef = generateBreakdownReference(group.reference, group.shipToName);
+        if (!groupJobs || groupJobs.length === 0) {
+            showNotification('ไม่พบข้อมูลงาน', 'error');
+            return;
+        }
+
+        // Generate new reference for breakdown (no spaces: reference-cleanupShipToName)
+        const newRef = generateBreakdownReference(group.reference, group.cleanShipToName || group.shipToName);
 
         // Get driver user_id if available
+        const firstJob = groupJobs[0];
         const driverUserId = firstJob.driver_user_id || null;
 
         // Create breakdown record
@@ -332,6 +383,52 @@ export async function handleBreakdownSubmit(event) {
             .from('jobdata')
             .update({ status: 'breakdown' })
             .in('id', group.jobIds);
+
+        // Create new jobdata rows for the new reference
+        // This allows drivers to search and continue the job with the new reference
+        const newJobdataRows = groupJobs.map(job => ({
+            reference: newRef,
+            shipment_no: job.shipment_no,
+            ship_to_code: job.ship_to_code,
+            ship_to_name: job.ship_to_name,
+            destination: job.destination,
+            status: 'pending', // Reset to pending for new job
+            checkin_time: null,
+            checkin_lat: null,
+            checkin_lng: null,
+            checkin_odo: null,
+            checkout_time: null,
+            checkout_lat: null,
+            checkout_lng: null,
+            checkout_odo: null,
+            vehicle_desc: newVehicle, // New vehicle
+            drivers: job.drivers,
+            seq: job.seq,
+            route: job.route,
+            is_origin_stop: job.is_origin_stop,
+            materials: job.materials,
+            total_qty: job.total_qty,
+            dest_lat: job.dest_lat,
+            dest_lng: job.dest_lng,
+            radius_m: job.radius_m,
+            distance_km: job.distance_km,
+            job_closed_at: null,
+            end_odo: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            breakdown_from_ref: group.reference // Track original reference
+        }));
+
+        const { error: insertError } = await supabase
+            .from('jobdata')
+            .insert(newJobdataRows);
+
+        if (insertError) {
+            console.warn('Warning: Could not create jobdata rows for new reference:', insertError);
+            showNotification(`Breakdown processed but warning: could not create searchable records`, 'warning');
+        } else {
+            console.log(`✅ Created ${newJobdataRows.length} jobdata rows for new reference: ${newRef}`);
+        }
 
         showNotification(`Breakdown processed. New reference: ${newRef}`, 'success');
         closeBreakdownModal();

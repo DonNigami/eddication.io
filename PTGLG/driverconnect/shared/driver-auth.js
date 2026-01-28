@@ -294,12 +294,43 @@ export class DriverAuth {
                 return false;
             }
 
-            const hasAccess = !!data;
-            if (!hasAccess) {
-                console.warn(`⚠️ DriverAuth: LIFF ID ${liffId} not assigned to reference ${reference}`);
+            // If directly assigned, grant access
+            if (data) {
+                console.log(`✅ DriverAuth: LIFF ID ${liffId} directly assigned to reference ${reference}`);
+                return true;
             }
 
-            return hasAccess;
+            // Check if this is a breakdown reference (format: original-shipToName)
+            // If so, verify access to the original reference
+            if (reference.includes('-')) {
+                const parts = reference.split('-');
+                if (parts.length > 1) {
+                    // Try to get breakdown_from_ref from jobdata
+                    const { data: jobdataRow } = await supabase
+                        .from('jobdata')
+                        .select('breakdown_from_ref')
+                        .eq('reference', reference)
+                        .maybeSingle();
+
+                    const originalRef = jobdataRow?.breakdown_from_ref || parts[0];
+
+                    // Check if driver was assigned to the original reference
+                    const { data: originalData, error: originalError } = await supabase
+                        .from('driver_jobs')
+                        .select('id')
+                        .eq('reference', originalRef)
+                        .eq('driver_liff_id', liffId)
+                        .maybeSingle();
+
+                    if (!originalError && originalData) {
+                        console.log(`✅ DriverAuth: LIFF ID ${liffId} assigned to original reference ${originalRef} (breakdown: ${reference})`);
+                        return true;
+                    }
+                }
+            }
+
+            console.warn(`⚠️ DriverAuth: LIFF ID ${liffId} not assigned to reference ${reference}`);
+            return false;
         } catch (err) {
             console.error('❌ DriverAuth.verifyJobAccess exception:', err);
             return false;
