@@ -426,13 +426,14 @@ export const SupabaseAPI = {
   /**
    * Update stop status
    * Requires DriverAuth verification before allowing updates
+   * Updates ALL rows with the same shipToCode or shipToName (for grouped stops)
    */
-  async updateStop({ reference, seq, shipToCode, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
+  async updateStop({ reference, seq, shipToCode, shipToName, status, type, userId, lat, lng, odo, receiverName, receiverType, hasPumping, hasTransfer }) {
     console.log('🔄 Supabase: Updating stop status for ref', reference, 'type', type);
 
     // Phase 1.5: Verify driver has access to this job before updating
     // userId in LIFF auth IS the liffId
-    const hasAccess = await DriverAuth.verifyCheckInAccess(userId, reference, shipToCode);
+    const hasAccess = await DriverAuth.verifyCheckInAccess(userId, reference, shipToCode, shipToName);
     if (!hasAccess) {
       console.warn(`⚠️ Unauthorized update attempt by LIFF ID ${userId} on reference ${reference}`);
       return {
@@ -470,7 +471,7 @@ export const SupabaseAPI = {
         jobdataUpdate.unload_done_time = now;
       }
 
-      // Update jobdata table - by ship_to_code if available, otherwise by seq
+      // Update jobdata table - by ship_to_code if available, otherwise by ship_to_name, otherwise by seq
       const query = supabase
         .from(TABLES.JOBDATA)
         .update(jobdataUpdate)
@@ -479,6 +480,9 @@ export const SupabaseAPI = {
       if (shipToCode) {
         console.log(`...targeting ship_to_code: ${shipToCode}`);
         query.eq('ship_to_code', shipToCode);
+      } else if (shipToName) {
+        console.log(`...targeting ship_to_name: ${shipToName}`);
+        query.eq('ship_to_name', shipToName);
       } else {
         console.log(`...targeting seq: ${seq}`);
         query.eq('seq', seq);

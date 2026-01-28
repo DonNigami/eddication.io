@@ -313,9 +313,10 @@ export class DriverAuth {
      * @param {string} liffId - The driver's LIFF ID
      * @param {string} reference - Job reference number
      * @param {string|null} shipToCode - Optional ship_to_code for stop-level verification
+     * @param {string|null} shipToName - Optional ship_to_name for stop-level verification (fallback when shipToCode is empty)
      * @returns {Promise<boolean>} - True if driver can check-in to this stop
      */
-    static async verifyCheckInAccess(liffId, reference, shipToCode = null) {
+    static async verifyCheckInAccess(liffId, reference, shipToCode = null, shipToName = null) {
         // First verify job access
         const hasJobAccess = await this.verifyJobAccess(liffId, reference);
         if (!hasJobAccess) {
@@ -335,6 +336,25 @@ export class DriverAuth {
 
                 if (error || !data) {
                     console.warn(`⚠️ DriverAuth: ShipToCode ${shipToCode} not found in reference ${reference}`);
+                    return false;
+                }
+            } catch (err) {
+                console.error('❌ DriverAuth.verifyCheckInAccess exception:', err);
+                return false;
+            }
+        } else if (shipToName) {
+            // Fallback to shipToName verification when shipToCode is not available
+            try {
+                const supabase = supabaseClient;
+                const { data, error } = await supabase
+                    .from('jobdata')
+                    .select('id')
+                    .eq('reference', reference)
+                    .eq('ship_to_name', shipToName)
+                    .maybeSingle();
+
+                if (error || !data) {
+                    console.warn(`⚠️ DriverAuth: ShipToName ${shipToName} not found in reference ${reference}`);
                     return false;
                 }
             } catch (err) {

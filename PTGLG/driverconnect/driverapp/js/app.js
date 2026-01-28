@@ -501,33 +501,39 @@ function renderTimeline(stops, jobReference = null) {
 
     if (!hasCheckOut) allCheckout = false;
 
-    // Collect all materials from stops in this group
+    // Collect all materials with quantities from stops in this group
     const allMaterials = group.stops
-      .map(s => s.materials)
-      .filter(m => m)
+      .filter(s => s.materials)
+      .map(s => {
+        const mat = s.materials || '';
+        const qty = s.totalQty || s.qty || '';
+        return qty ? `${mat} (${qty})` : mat;
+      })
       .join(', ');
 
     // Use the first stop for button actions
     const stop = firstStop;
+    // Pass shipToName as fallback for grouping when shipToCode is empty
     const jsShipToCode = group.shipToCode ? `'${group.shipToCode.replace(/'/g, "\\'")}'` : 'null';
+    const jsShipToName = group.shipToName ? `'${(group.shipToName || '').replace(/'/g, "\\'")}'` : 'null';
 
     let btnHtml = '';
     if (isOrigin) {
       if (!hasCheckIn) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode}, ${jsShipToName})">Check-in</button>`;
       } else if (!hasCheckOut) {
-        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode}, ${jsShipToName})">Check-out</button>`;
       }
     } else {
       // Destination Stop State Machine
       if (!hasCheckIn) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-in</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.startCheckin('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode}, ${jsShipToName})">Check-in</button>`;
       } else if (!stop.fuelingTime) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงน้ำมัน</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doFuel('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode}, ${jsShipToName})">ลงน้ำมัน</button>`;
       } else if (!stop.unloadDoneTime) {
-        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">ลงเสร็จ</button>`;
+        btnHtml += `<button class="btn-small btn-outline" onclick="window.DriverApp.doUnload('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode}, ${jsShipToName})">ลงเสร็จ</button>`;
       } else if (!hasCheckOut) {
-        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode})">Check-out</button>`;
+        btnHtml += `<button class="btn-small" onclick="window.DriverApp.startCheckout('${stop.rowIndex}', ${stop.seq}, ${jsShipToCode}, ${jsShipToName})">Check-out</button>`;
       }
     }
 
@@ -607,7 +613,7 @@ function renderTimeline(stops, jobReference = null) {
 // ============================================
 // ACTION FUNCTIONS
 // ============================================
-async function startCheckin(rowIndex, seq, shipToCode) {
+async function startCheckin(rowIndex, seq, shipToCode, shipToName) {
   const currentReference = StateManager.get(StateKeys.CURRENT_REFERENCE);
   const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
@@ -649,7 +655,7 @@ async function startCheckin(rowIndex, seq, shipToCode) {
 
     if (!formValues) return;
 
-    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, formValues.odo);
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, shipToName, formValues.odo);
 
   // --- Destination Stop Check-in ---
   } else {
@@ -711,17 +717,17 @@ async function startCheckin(rowIndex, seq, shipToCode) {
 
     if (!formValues) return;
 
-    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, formValues.odo, formValues.receiverName, formValues.receiverType);
+    await updateStopStatus(rowIndex, 'CHECKIN', 'checkin', seq, shipToCode, shipToName, formValues.odo, formValues.receiverName, formValues.receiverType);
   }
 }
 
-async function startCheckout(rowIndex, seq, shipToCode) {
+async function startCheckout(rowIndex, seq, shipToCode, shipToName) {
   const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
   const stop = lastStops.find(s => s.rowIndex === rowIndex);
   const isOrigin = stop && stop.isOriginStop;
 
   if (isOrigin) {
-    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, shipToCode);
+    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, shipToCode, shipToName);
   } else {
     const { value: formValues } = await Swal.fire({
       icon: 'question',
@@ -743,19 +749,19 @@ async function startCheckout(rowIndex, seq, shipToCode) {
     });
 
     if (!formValues) return;
-    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, shipToCode, null, null, null, formValues.hasPumping, formValues.hasTransfer);
+    await updateStopStatus(rowIndex, 'CHECKOUT', 'checkout', seq, shipToCode, shipToName, null, null, null, formValues.hasPumping, formValues.hasTransfer);
   }
 }
 
-async function doFuel(rowIndex, seq, shipToCode) {
-  await updateStopStatus(rowIndex, 'FUELING', 'fuel', seq, shipToCode);
+async function doFuel(rowIndex, seq, shipToCode, shipToName) {
+  await updateStopStatus(rowIndex, 'FUELING', 'fuel', seq, shipToCode, shipToName);
 }
 
-async function doUnload(rowIndex, seq, shipToCode) {
-  await updateStopStatus(rowIndex, 'UNLOAD_DONE', 'unload', seq, shipToCode);
+async function doUnload(rowIndex, seq, shipToCode, shipToName) {
+  await updateStopStatus(rowIndex, 'UNLOAD_DONE', 'unload', seq, shipToCode, shipToName);
 }
 
-async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo, receiverName, receiverType, hasPumping, hasTransfer) {
+async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, shipToName, odo, receiverName, receiverType, hasPumping, hasTransfer) {
   const currentUserId = StateManager.get(StateKeys.USER_ID);
   const isAdminMode = StateManager.get(StateKeys.IS_ADMIN_MODE);
   const lastStops = StateManager.get(StateKeys.LAST_STOPS) || [];
@@ -795,6 +801,7 @@ async function updateStopStatus(rowIndex, newStatus, type, seq, shipToCode, odo,
       reference: currentReference,
       seq: seq,
       shipToCode: shipToCode,
+      shipToName: shipToName,
       status: newStatus,
       type,
       userId: currentUserId,

@@ -100,7 +100,7 @@ function showQuickActions(stop) {
   }
 
   quickActionsStop.textContent = stop.shipToName || stop.stopName || `จุดที่ ${stop.stop_number}`;
-  
+
   // Generate buttons based on stop status
   let buttons = '';
 
@@ -108,15 +108,17 @@ function showQuickActions(stop) {
   const rowIndex = stop.rowIndex ?? stop.id ?? '';
   const seq = stop.seq ?? stop.stop_number ?? 0;
   const shipToCode = stop.shipToCode ?? stop.shipToCode ?? '';
+  // Escape shipToName for use in onclick attribute
+  const shipToName = stop.shipToName ? (stop.shipToName || '').replace(/'/g, "\\'") : '';
 
   if (!stop.checkinTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.startCheckin(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">✅ Check-in</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.startCheckin(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\', \'' + shipToName + '\')">✅ Check-in</button>';
   } else if (!stop.fuelTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.doFuel(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">⛽ ลงน้ำมัน</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.doFuel(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\', \'' + shipToName + '\')">⛽ ลงน้ำมัน</button>';
   } else if (!stop.unloadTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.doUnload(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">📦 ลงเสร็จ</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.doUnload(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\', \'' + shipToName + '\')">📦 ลงเสร็จ</button>';
   } else if (!stop.checkoutTime) {
-    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.startCheckout(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\')">🏁 Check-out</button>';
+    buttons += '<button class="quick-action-btn" onclick="window.DriverApp?.startCheckout(\'' + rowIndex + '\', ' + seq + ', \'' + shipToCode + '\', \'' + shipToName + '\')">🏁 Check-out</button>';
   }
 
   quickActionsButtons.innerHTML = buttons;
