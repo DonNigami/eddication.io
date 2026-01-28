@@ -371,7 +371,7 @@ function renderTripDashboard(stops, reference) {
         ? `<span class="trip-stop-dot-count">${group.stops.length}</span>`
         : '';
 
-      dotsHtml += `<div class="${dotClass}" title="จุดที่ ${allSeqsStr} - ${group.shipToName}">${seq}${countBadge}</div>`;
+      dotsHtml += `<div class="${dotClass}" title="${group.shipToName || 'จุดที่ ' + allSeqsStr}">${seq}${countBadge}</div>`;
     });
     stopsMiniEl.innerHTML = dotsHtml;
   }
@@ -557,8 +557,14 @@ function renderTimeline(stops, jobReference = null) {
         </span>
       `;
     } else {
-      // Single: "จุดที่ X" + location name
-      labelHtml = `<span class="timeline-stop-label">จุดที่ ${group.seq}</span>`;
+      // Single: Show location name (ship_to_name) directly
+      const seqBadge = `<span class="seq-badge">${group.seq}</span>`;
+      labelHtml = `
+        <span class="timeline-stop-label">
+          ${locationName}
+          <span class="timeline-badges">${seqBadge}</span>
+        </span>
+      `;
     }
 
     li.innerHTML = `
@@ -568,7 +574,7 @@ function renderTimeline(stops, jobReference = null) {
           ${labelHtml}
           <span class="timeline-status">${escapeHtml(firstStop.status) || '-'}</span>
         </div>
-        ${!isGrouped ? `<div class="timeline-sub">${locationName}</div>` : ''}
+        <!-- Location name now shown in main label -->
         ${allMaterials ? `<div class="materials-text">${escapeHtml(allMaterials)}</div>` : ''}
         <div class="action-row">${btnHtml}</div>
       </div>

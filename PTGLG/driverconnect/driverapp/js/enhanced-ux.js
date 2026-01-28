@@ -99,7 +99,7 @@ function showQuickActions(stop) {
     return;
   }
 
-  quickActionsStop.textContent = stop.stopName || `จุดที่ ${stop.stop_number}`;
+  quickActionsStop.textContent = stop.shipToName || stop.stopName || `จุดที่ ${stop.stop_number}`;
   
   // Generate buttons based on stop status
   let buttons = '';
