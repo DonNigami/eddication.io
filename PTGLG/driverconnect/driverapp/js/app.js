@@ -502,14 +502,15 @@ function renderTimeline(stops, jobReference = null) {
     if (!hasCheckOut) allCheckout = false;
 
     // Collect all materials with quantities from stops in this group
+    // Display as vertical list instead of comma-separated
     const allMaterials = group.stops
       .filter(s => s.materials)
       .map(s => {
         const mat = s.materials || '';
         const qty = s.totalQty || s.qty || '';
-        return qty ? `${mat} (${qty})` : mat;
+        return qty ? `<div class="material-item">• ${escapeHtml(mat)} <span class="material-qty">(${qty})</span></div>` : `<div class="material-item">• ${escapeHtml(mat)}</div>`;
       })
-      .join(', ');
+      .join('');
 
     // Use the first stop for button actions
     const stop = firstStop;
@@ -581,7 +582,7 @@ function renderTimeline(stops, jobReference = null) {
           <span class="timeline-status">${escapeHtml(firstStop.status) || '-'}</span>
         </div>
         <!-- Location name now shown in main label -->
-        ${allMaterials ? `<div class="materials-text">${escapeHtml(allMaterials)}</div>` : ''}
+        ${allMaterials ? `<div class="materials-text">${allMaterials}</div>` : ''}
         <div class="action-row">${btnHtml}</div>
       </div>
     `;
