@@ -169,12 +169,12 @@ export async function openBreakdownModal() {
     if (breakdownForm) breakdownForm.reset();
     if (breakdownJobDetails) breakdownJobDetails.classList.add('hidden');
 
-    // Load active jobs for selection
+    // Load active jobs for selection (jobs not yet closed)
     try {
         const { data: activeJobs, error } = await supabase
             .from('jobdata')
-            .select('id, reference, drivers, vehicle_desc')
-            .eq('status', 'active')
+            .select('id, reference, drivers, vehicle_desc, job_closed_at')
+            .is('job_closed_at', null)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -182,7 +182,7 @@ export async function openBreakdownModal() {
         activeJobsCache = activeJobs || [];
 
         if (breakdownJobSelect) {
-            breakdownJobSelect.innerHTML = '<option value="">-- Select Job --</option>';
+            breakdownJobSelect.innerHTML = '<option value="">-- เลือกงานที่กำลังดำเนินการ --</option>';
             activeJobsCache.forEach(job => {
                 const option = document.createElement('option');
                 option.value = job.id;
