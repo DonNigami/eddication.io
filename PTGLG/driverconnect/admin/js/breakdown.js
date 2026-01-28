@@ -63,7 +63,7 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
             .order('created_at', { ascending: false });
 
         if (searchTerm) {
-            query = query.or(`reference.ilike.%${searchTerm}%,original_ref.ilike.%${searchTerm}%,driver.ilike.%${searchTerm}%`);
+            query = query.or(`reference.ilike.%${searchTerm}%,original_ref.ilike.%${searchTerm}%,driver_name.ilike.%${searchTerm}%`);
         }
 
         const { data: breakdowns, error } = await query;
@@ -80,9 +80,9 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
 
             row.insertCell().textContent = bd.original_ref || 'N/A';
             row.insertCell().textContent = bd.reference || 'N/A';
-            row.insertCell().textContent = bd.driver || 'N/A';
+            row.insertCell().textContent = bd.driver_name || 'N/A';
+            row.insertCell().textContent = `${bd.original_vehicle} → ${bd.new_vehicle}` || 'N/A';
             row.insertCell().textContent = bd.reason || 'N/A';
-            row.insertCell().textContent = bd.created_at ? new Date(bd.created_at).toLocaleDateString() : 'N/A';
 
             // Status cell
             const statusCell = row.insertCell();
@@ -94,7 +94,69 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
 
     } catch (error) {
         console.error('Error loading breakdowns:', error);
-        breakdownTableBody.innerHTML = `<tr><td colspan="${BREAKDOWN_TABLE_COLUMNS}">Error: ${sanitizeHTML(error.message)}</td></tr>`;
+
+        // Check if table doesn't exist
+        if (error.code === 'PGRST204' || error.code === 'PGRST116' || error.message?.includes('Could not find the table')) {
+            breakdownTableBody.innerHTML = `
+                <tr>
+                    <td colspan="${BREAKDOWN_TABLE_COLUMNS}" style="text-align: center; padding: 30px;">
+                        <div style="color: #ff9800; font-size: 48px; margin-bottom: 15px;">⚠️</div>
+                        <h4 style="margin-bottom: 10px;">Table Not Found</h4>
+                        <p style="color: #888; margin-bottom: 15px;">The <code>vehicle_breakdown</code> table doesn't exist.</p>
+                        <details style="text-align: left; max-width: 700px; margin: 0 auto;">
+                            <summary style="cursor: pointer; color: #2196f3; padding: 10px; background: #333; border-radius: 5px; margin-bottom: 10px;">
+                                📋 Click to view SQL to create the table
+                            </summary>
+                            <pre style="background: #1a1a1a; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; color: #a5d6a7;">-- Migration file created: supabase/migrations/20260128_create_vehicle_breakdown_table.sql
+-- Run in Supabase Dashboard > SQL Editor
+
+CREATE TABLE IF NOT EXISTS public.vehicle_breakdown (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    reference TEXT NOT NULL UNIQUE,
+    original_ref TEXT NOT NULL,
+    driver_name TEXT NOT NULL,
+    driver_user_id TEXT,
+    original_vehicle TEXT NOT NULL,
+    new_vehicle TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'resolved', 'cancelled')),
+    resolved_at TIMESTAMPTZ,
+    resolved_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_vehicle_breakdown_reference ON public.vehicle_breakdown(reference);
+CREATE INDEX IF NOT EXISTS idx_vehicle_breakdown_original_ref ON public.vehicle_breakdown(original_ref);
+CREATE INDEX IF NOT EXISTS idx_vehicle_breakdown_driver_user_id ON public.vehicle_breakdown(driver_user_id);
+CREATE INDEX IF NOT EXISTS idx_vehicle_breakdown_status ON public.vehicle_breakdown(status);
+CREATE INDEX IF NOT EXISTS idx_vehicle_breakdown_created_at ON public.vehicle_breakdown(created_at DESC);
+
+-- Enable RLS
+ALTER TABLE public.vehicle_breakdown ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies
+CREATE POLICY "vehicle_breakdown_select_policy" ON public.vehicle_breakdown
+    FOR SELECT USING (true);
+
+CREATE POLICY "vehicle_breakdown_insert_policy" ON public.vehicle_breakdown
+    FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "vehicle_breakdown_update_policy" ON public.vehicle_breakdown
+    FOR UPDATE USING (true);</pre>
+                        </details>
+                        <p style="color: #666; font-size: 12px; margin-top: 15px;">
+                            <a href="https://supabase.com/dashboard/project/myplpshpcordggbbtblg/sql/new" target="_blank" style="color: #2196f3;">
+                                🔗 Open Supabase SQL Editor
+                            </a>
+                        </p>
+                    </td>
+                </tr>
+            `;
+        } else {
+            breakdownTableBody.innerHTML = `<tr><td colspan="${BREAKDOWN_TABLE_COLUMNS}">Error: ${sanitizeHTML(error.message)}</td></tr>`;
+        }
     }
 }
 
@@ -214,15 +276,19 @@ export async function handleBreakdownSubmit(event) {
         // Generate new reference for breakdown
         const newRef = generateBreakdownReference(originalJob.reference);
 
+        // Get driver user_id if available
+        const driverUserId = originalJob.driver_user_id || null;
+
         // Create breakdown record
         const breakdownRecord = {
             reference: newRef,
             original_ref: originalJob.reference,
-            driver: originalJob.drivers,
-            vehicle: newVehicle,
+            driver_name: originalJob.drivers || 'N/A',
+            driver_user_id: driverUserId,
+            original_vehicle: originalJob.vehicle_desc || 'N/A',
+            new_vehicle: newVehicle,
             reason: reason,
-            status: 'pending',
-            created_at: new Date().toISOString()
+            status: 'pending'
         };
 
         const { error: breakdownError } = await supabase
