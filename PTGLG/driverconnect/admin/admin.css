@@ -213,8 +213,8 @@ body {
 
 /* === Scrollbar - Refined === */
 ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -224,6 +224,8 @@ body {
 ::-webkit-scrollbar-thumb {
     background: var(--border-default);
     border-radius: var(--radius-full);
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -512,6 +514,7 @@ a:hover {
     flex-direction: column;
     overflow: hidden;
     background: var(--bg-deep);
+    position: relative;
 }
 
 /* === Notification Bell === */
@@ -699,7 +702,9 @@ a:hover {
     display: none;
     padding: var(--space-8);
     overflow-y: auto;
+    overflow-x: hidden;
     height: 100%;
+    max-height: calc(100vh - var(--header-height));
     max-width: var(--container-max);
     margin: 0 auto;
 }
