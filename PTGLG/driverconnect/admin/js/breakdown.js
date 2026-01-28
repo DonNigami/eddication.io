@@ -58,45 +58,39 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
 
     try {
         let query = supabase
-            .from('jobdata')
+            .from('vehicle_breakdown')
             .select('*')
-            .eq('is_vehicle_breakdown', true)
             .order('created_at', { ascending: false });
 
         if (searchTerm) {
-            query = query.or(`reference.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
+            query = query.or(`reference.ilike.%${searchTerm}%,original_ref.ilike.%${searchTerm}%,driver.ilike.%${searchTerm}%`);
         }
 
         const { data: breakdowns, error } = await query;
         if (error) throw error;
 
         breakdownTableBody.innerHTML = '';
-        if (breakdowns.length === 0) {
+        if (!breakdowns || breakdowns.length === 0) {
             breakdownTableBody.innerHTML = `<tr><td colspan="${BREAKDOWN_TABLE_COLUMNS}">No breakdown records found.</td></tr>`;
             return;
         }
 
-        // For each breakdown, fetch replacement job info
-        for (const bd of breakdowns) {
+        breakdowns.forEach(bd => {
             const row = breakdownTableBody.insertRow();
-            let newRef = '-';
 
-            if (bd.replacement_job_id) {
-                const { data: replacement } = await supabase
-                    .from('jobdata')
-                    .select('reference')
-                    .eq('id', bd.replacement_job_id)
-                    .maybeSingle();
-                if (replacement) newRef = replacement.reference;
-            }
-
+            row.insertCell().textContent = bd.original_ref || 'N/A';
             row.insertCell().textContent = bd.reference || 'N/A';
-            row.insertCell().textContent = bd.drivers || 'N/A';
-            row.insertCell().textContent = bd.vehicle_desc || 'N/A';
-            row.insertCell().textContent = bd.breakdown_reason || 'N/A';
-            row.insertCell().textContent = newRef;
-            row.insertCell().textContent = bd.created_at ? new Date(bd.created_at).toLocaleString() : 'N/A';
-        }
+            row.insertCell().textContent = bd.driver || 'N/A';
+            row.insertCell().textContent = bd.reason || 'N/A';
+            row.insertCell().textContent = bd.created_at ? new Date(bd.created_at).toLocaleDateString() : 'N/A';
+
+            // Status cell
+            const statusCell = row.insertCell();
+            const statusSpan = document.createElement('span');
+            statusSpan.className = `status-badge badge-${bd.status || 'pending'}`;
+            statusSpan.textContent = bd.status || 'pending';
+            statusCell.appendChild(statusSpan);
+        });
 
     } catch (error) {
         console.error('Error loading breakdowns:', error);
@@ -217,46 +211,33 @@ export async function handleBreakdownSubmit(event) {
 
         if (jobError) throw jobError;
 
-        // Mark original as breakdown
-        const { error: updateError } = await supabase
-            .from('jobdata')
-            .update({
-                is_vehicle_breakdown: true,
-                breakdown_reason: reason,
-                status: 'breakdown'
-            })
-            .eq('id', jobId);
-
-        if (updateError) throw updateError;
-
-        // Create replacement job
+        // Generate new reference for breakdown
         const newRef = generateBreakdownReference(originalJob.reference);
-        const replacementJob = {
+
+        // Create breakdown record
+        const breakdownRecord = {
             reference: newRef,
-            shipment_no: originalJob.shipment_no,
-            drivers: originalJob.drivers,
-            vehicle_desc: newVehicle,
-            status: 'active',
-            is_vehicle_breakdown: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            original_ref: originalJob.reference,
+            driver: originalJob.drivers,
+            vehicle: newVehicle,
+            reason: reason,
+            status: 'pending',
+            created_at: new Date().toISOString()
         };
 
-        const { data: newJob, error: insertError } = await supabase
-            .from('jobdata')
-            .insert([replacementJob])
-            .select()
-            .single();
+        const { error: breakdownError } = await supabase
+            .from('vehicle_breakdown')
+            .insert([breakdownRecord]);
 
-        if (insertError) throw insertError;
+        if (breakdownError) throw breakdownError;
 
-        // Link replacement job
+        // Mark original job status as breakdown
         await supabase
             .from('jobdata')
-            .update({ replacement_job_id: newJob.id })
+            .update({ status: 'breakdown' })
             .eq('id', jobId);
 
-        showNotification(`Breakdown processed. New job: ${newRef}`, 'success');
+        showNotification(`Breakdown processed. New reference: ${newRef}`, 'success');
         closeBreakdownModal();
         await loadVehicleBreakdowns(breakdownSearch?.value);
 
