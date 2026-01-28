@@ -173,7 +173,7 @@ export async function openBreakdownModal() {
     try {
         const { data: activeJobs, error } = await supabase
             .from('jobdata')
-            .select('id, reference, drivers, vehicle_desc, job_closed_at')
+            .select('id, reference, drivers, vehicle_desc, job_closed_at, ship_to_name, ship_to_code')
             .is('job_closed_at', null)
             .order('created_at', { ascending: false });
 
@@ -187,6 +187,7 @@ export async function openBreakdownModal() {
                 const option = document.createElement('option');
                 option.value = job.id;
                 option.textContent = `${job.reference} - ${job.drivers} (${job.vehicle_desc || 'N/A'})`;
+                option.dataset.shipToName = job.ship_to_name || job.ship_to_code || 'shiptoname';
                 breakdownJobSelect.appendChild(option);
             });
         }
@@ -230,13 +231,10 @@ export async function handleBreakdownJobSelect() {
 /**
  * Generate breakdown reference
  * @param {string} originalRef - Original job reference
- * @returns {string} New reference
+ * @returns {string} New reference (format: originalRef-shiptoname)
  */
-export function generateBreakdownReference(originalRef) {
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0].replace(/-/g, '');
-    const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-    return `BRK-${dateStr}-${random}`;
+export function generateBreakdownReference(originalRef, newShipToName = 'shiptoname') {
+    return `${originalRef}-${newShipToName}`;
 }
 
 /**
@@ -273,8 +271,12 @@ export async function handleBreakdownSubmit(event) {
 
         if (jobError) throw jobError;
 
-        // Generate new reference for breakdown
-        const newRef = generateBreakdownReference(originalJob.reference);
+        // Get shipToName from selected option
+        const selectedOption = breakdownJobSelect?.selectedOptions[0];
+        const shipToName = selectedOption?.dataset?.shipToName || originalJob.ship_to_name || originalJob.ship_to_code || 'shiptoname';
+
+        // Generate new reference for breakdown (format: originalRef-shipToName)
+        const newRef = generateBreakdownReference(originalJob.reference, shipToName);
 
         // Get driver user_id if available
         const driverUserId = originalJob.driver_user_id || null;
