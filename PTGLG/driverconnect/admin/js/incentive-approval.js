@@ -53,8 +53,11 @@ const elements = {
     perfDriverNames: null,
     perfVehicleStatus: null,
 
-    // Edit delivery button
+    // Edit buttons
     editDeliveryBtn: null,
+    editHolidayBtn: null,
+    editDriverCountBtn: null,
+    editDriverNamesBtn: null,
 
     // Edit form
     editForm: null,
@@ -579,6 +582,9 @@ export async function openDetailModal(job) {
 
     // Setup edit delivery button
     setupEditDeliveryButton();
+
+    // Setup performance summary edit buttons
+    setupPerformanceEditButtons();
 
     // Setup tab switching
     setupModalTabs();
@@ -1274,6 +1280,209 @@ function setupEditableFields() {
  */
 function setupEditDeliveryButton() {
     setupEditableFields();
+}
+
+/**
+ * Setup performance summary edit buttons
+ */
+function setupPerformanceEditButtons() {
+    // Holiday work edit button
+    const holidayEditBtn = document.getElementById('btn-edit-holiday');
+    if (holidayEditBtn) {
+        const newHolidayBtn = holidayEditBtn.cloneNode(true);
+        holidayEditBtn.parentNode.replaceChild(newHolidayBtn, holidayEditBtn);
+
+        newHolidayBtn.addEventListener('click', () => {
+            const isEditing = newHolidayBtn.dataset.editing === 'true';
+            const displayEl = document.getElementById('perf-holiday-work');
+
+            if (!isEditing) {
+                const currentValue = displayEl.textContent.trim();
+                displayEl.innerHTML = `<select id="edit-holiday-select" style="padding: 4px 8px; border: 1px solid #1976d2; border-radius: 4px; font-size: 1rem; background: white; color: #212121;">
+                    <option value="No" ${currentValue === 'No' ? 'selected' : ''}>No</option>
+                    <option value="Yes" ${currentValue === 'Yes' ? 'selected' : ''}>Yes</option>
+                </select>
+                <button id="save-holiday-btn" style="margin-left: 4px; padding: 4px 8px; background: #4caf50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">💾</button>
+                <button id="cancel-holiday-btn" style="margin-left: 2px; padding: 4px 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">✕</button>`;
+
+                document.getElementById('save-holiday-btn').onclick = () => saveHolidayWork();
+                document.getElementById('cancel-holiday-btn').onclick = () => cancelHolidayEdit(currentValue);
+                newHolidayBtn.dataset.editing = 'true';
+            }
+        });
+    }
+
+    // Driver count edit button
+    const driverCountEditBtn = document.getElementById('btn-edit-driver-count');
+    if (driverCountEditBtn) {
+        const newDriverCountBtn = driverCountEditBtn.cloneNode(true);
+        driverCountEditBtn.parentNode.replaceChild(newDriverCountBtn, driverCountEditBtn);
+
+        newDriverCountBtn.addEventListener('click', () => {
+            const isEditing = newDriverCountBtn.dataset.editing === 'true';
+            const displayEl = document.getElementById('perf-driver-count');
+
+            if (!isEditing) {
+                const currentValue = displayEl.textContent.trim();
+                displayEl.innerHTML = `<input type="number" id="edit-driver-count-input" value="${currentValue !== '-' ? currentValue : '1'}" min="1" max="5" style="padding: 4px 8px; border: 1px solid #1976d2; border-radius: 4px; font-size: 1rem; background: white; color: #212121; width: 60px;">
+                <button id="save-driver-count-btn" style="margin-left: 4px; padding: 4px 8px; background: #4caf50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">💾</button>
+                <button id="cancel-driver-count-btn" style="margin-left: 2px; padding: 4px 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">✕</button>`;
+
+                document.getElementById('save-driver-count-btn').onclick = () => saveDriverCount();
+                document.getElementById('cancel-driver-count-btn').onclick = () => cancelDriverCountEdit(currentValue);
+                newDriverCountBtn.dataset.editing = 'true';
+            }
+        });
+    }
+
+    // Driver names edit button
+    const driverNamesEditBtn = document.getElementById('btn-edit-driver-names');
+    if (driverNamesEditBtn) {
+        const newDriverNamesBtn = driverNamesEditBtn.cloneNode(true);
+        driverNamesEditBtn.parentNode.replaceChild(newDriverNamesBtn, driverNamesEditBtn);
+
+        newDriverNamesBtn.addEventListener('click', () => {
+            const isEditing = newDriverNamesBtn.dataset.editing === 'true';
+            const displayEl = document.getElementById('perf-driver-names');
+
+            if (!isEditing) {
+                const currentValue = displayEl.textContent.trim();
+                displayEl.innerHTML = `<input type="text" id="edit-driver-names-input" value="${currentValue !== '-' ? currentValue : ''}" placeholder="ชื่อคนขับ" style="padding: 4px 8px; border: 1px solid #1976d2; border-radius: 4px; font-size: 0.9rem; background: white; color: #212121; width: 100%;">
+                <button id="save-driver-names-btn" style="margin-left: 4px; padding: 4px 8px; background: #4caf50; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">💾</button>
+                <button id="cancel-driver-names-btn" style="margin-left: 2px; padding: 4px 8px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 0.7rem;">✕</button>`;
+
+                document.getElementById('save-driver-names-btn').onclick = () => saveDriverNames();
+                document.getElementById('cancel-driver-names-btn').onclick = () => cancelDriverNamesEdit(currentValue);
+                newDriverNamesBtn.dataset.editing = 'true';
+            }
+        });
+    }
+}
+
+/**
+ * Save holiday work
+ */
+async function saveHolidayWork() {
+    if (!currentJob) return;
+
+    const select = document.getElementById('edit-holiday-select');
+    const newValue = select.value;
+
+    try {
+        const { error } = await supabase
+            .from('jobdata')
+            .update({ holiday_work: newValue })
+            .eq('reference', currentJob.reference);
+
+        if (error) throw error;
+
+        showNotification('💾 บันทึกการทำงานวันหยุดแล้ว', 'success');
+
+        // Reset edit button
+        const editBtn = document.getElementById('btn-edit-holiday');
+        if (editBtn) editBtn.dataset.editing = 'false';
+
+        // Reload modal
+        await openDetailModal(currentJob);
+    } catch (error) {
+        console.error('Error saving holiday work:', error);
+        showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Cancel holiday work edit
+ */
+function cancelHolidayEdit(originalValue) {
+    const displayEl = document.getElementById('perf-holiday-work');
+    displayEl.textContent = originalValue;
+
+    const editBtn = document.getElementById('btn-edit-holiday');
+    if (editBtn) editBtn.dataset.editing = 'false';
+}
+
+/**
+ * Save driver count
+ */
+async function saveDriverCount() {
+    if (!currentJob) return;
+
+    const input = document.getElementById('edit-driver-count-input');
+    const newValue = parseInt(input.value);
+
+    try {
+        const { error } = await supabase
+            .from('jobdata')
+            .update({ driver_count: newValue })
+            .eq('reference', currentJob.reference);
+
+        if (error) throw error;
+
+        showNotification('💾 บันทึกจำนวนคนขับแล้ว', 'success');
+
+        // Reset edit button
+        const editBtn = document.getElementById('btn-edit-driver-count');
+        if (editBtn) editBtn.dataset.editing = 'false';
+
+        // Reload modal
+        await openDetailModal(currentJob);
+    } catch (error) {
+        console.error('Error saving driver count:', error);
+        showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Cancel driver count edit
+ */
+function cancelDriverCountEdit(originalValue) {
+    const displayEl = document.getElementById('perf-driver-count');
+    displayEl.textContent = originalValue;
+
+    const editBtn = document.getElementById('btn-edit-driver-count');
+    if (editBtn) editBtn.dataset.editing = 'false';
+}
+
+/**
+ * Save driver names
+ */
+async function saveDriverNames() {
+    if (!currentJob) return;
+
+    const input = document.getElementById('edit-driver-names-input');
+    const newValue = input.value.trim();
+
+    try {
+        const { error } = await supabase
+            .from('jobdata')
+            .update({ drivers: newValue })
+            .eq('reference', currentJob.reference);
+
+        if (error) throw error;
+
+        showNotification('💾 บันทึกรายชื่อคนขับแล้ว', 'success');
+
+        // Reset edit button
+        const editBtn = document.getElementById('btn-edit-driver-names');
+        if (editBtn) editBtn.dataset.editing = 'false';
+
+        // Reload modal
+        await openDetailModal(currentJob);
+    } catch (error) {
+        console.error('Error saving driver names:', error);
+        showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Cancel driver names edit
+ */
+function cancelDriverNamesEdit(originalValue) {
+    const displayEl = document.getElementById('perf-driver-names');
+    displayEl.textContent = originalValue;
+
+    const editBtn = document.getElementById('btn-edit-driver-names');
+    if (editBtn) editBtn.dataset.editing = 'false';
 }
 
 /**
