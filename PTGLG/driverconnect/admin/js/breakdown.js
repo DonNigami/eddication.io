@@ -415,8 +415,7 @@ export async function handleBreakdownSubmit(event) {
             job_closed_at: null,
             end_odo: null,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            breakdown_from_ref: group.reference // Track original reference
+            updated_at: new Date().toISOString()
         }));
 
         const { error: insertError } = await supabase
