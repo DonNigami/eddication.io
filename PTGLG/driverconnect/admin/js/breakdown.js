@@ -179,15 +179,40 @@ export async function openBreakdownModal() {
 
         if (error) throw error;
 
-        activeJobsCache = activeJobs || [];
+        // Group jobs by reference + ship_to_name combination
+        const groupedJobs = [];
+        const groupKeyMap = new Map(); // key -> index in groupedJobs
+
+        (activeJobs || []).forEach(job => {
+            const shipToName = job.ship_to_name || job.ship_to_code || 'shiptoname';
+            const groupKey = `${job.reference}-${shipToName}`;
+
+            if (groupKeyMap.has(groupKey)) {
+                // Add to existing group
+                const existingIndex = groupKeyMap.get(groupKey);
+                groupedJobs[existingIndex].jobIds.push(job.id);
+            } else {
+                // Create new group
+                groupKeyMap.set(groupKey, groupedJobs.length);
+                groupedJobs.push({
+                    groupKey: groupKey,
+                    reference: job.reference,
+                    shipToName: shipToName,
+                    drivers: job.drivers,
+                    vehicleDesc: job.vehicle_desc,
+                    jobIds: [job.id]
+                });
+            }
+        });
+
+        activeJobsCache = groupedJobs;
 
         if (breakdownJobSelect) {
             breakdownJobSelect.innerHTML = '<option value="">-- เลือกงานที่กำลังดำเนินการ --</option>';
-            activeJobsCache.forEach(job => {
+            groupedJobs.forEach(group => {
                 const option = document.createElement('option');
-                option.value = job.id;
-                option.textContent = `${job.reference} - ${job.drivers} (${job.vehicle_desc || 'N/A'})`;
-                option.dataset.shipToName = job.ship_to_name || job.ship_to_code || 'shiptoname';
+                option.value = group.groupKey;
+                option.textContent = `${group.groupKey} - ${group.drivers} (${group.vehicleDesc || 'N/A'})`;
                 breakdownJobSelect.appendChild(option);
             });
         }
@@ -212,18 +237,18 @@ export function closeBreakdownModal() {
  * Handle breakdown job selection change
  */
 export async function handleBreakdownJobSelect() {
-    const jobId = breakdownJobSelect?.value;
-    if (!jobId) {
+    const groupKey = breakdownJobSelect?.value;
+    if (!groupKey) {
         if (breakdownJobDetails) breakdownJobDetails.classList.add('hidden');
         return;
     }
 
-    const job = activeJobsCache.find(j => j.id === jobId);
-    if (!job) return;
+    const group = activeJobsCache.find(g => g.groupKey === groupKey);
+    if (!group) return;
 
-    if (breakdownOriginalRef) breakdownOriginalRef.textContent = job.reference || 'N/A';
-    if (breakdownDriver) breakdownDriver.textContent = job.drivers || 'N/A';
-    if (breakdownVehicle) breakdownVehicle.textContent = job.vehicle_desc || 'N/A';
+    if (breakdownOriginalRef) breakdownOriginalRef.textContent = group.reference || 'N/A';
+    if (breakdownDriver) breakdownDriver.textContent = group.drivers || 'N/A';
+    if (breakdownVehicle) breakdownVehicle.textContent = group.vehicleDesc || 'N/A';
 
     if (breakdownJobDetails) breakdownJobDetails.classList.remove('hidden');
 }
@@ -244,11 +269,11 @@ export function generateBreakdownReference(originalRef, newShipToName = 'shipton
 export async function handleBreakdownSubmit(event) {
     event.preventDefault();
 
-    const jobId = breakdownJobSelect?.value;
+    const groupKey = breakdownJobSelect?.value;
     const reason = breakdownReason?.value;
     const newVehicle = breakdownNewVehicle?.value;
 
-    if (!jobId) {
+    if (!groupKey) {
         showNotification('Please select a job', 'error');
         return;
     }
@@ -262,32 +287,35 @@ export async function handleBreakdownSubmit(event) {
     }
 
     try {
-        // Get original job
-        const { data: originalJob, error: jobError } = await supabase
+        // Get the selected group
+        const group = activeJobsCache.find(g => g.groupKey === groupKey);
+        if (!group) {
+            showNotification('Selected job group not found', 'error');
+            return;
+        }
+
+        // Get first job from group to fetch additional details
+        const { data: firstJob, error: jobError } = await supabase
             .from('jobdata')
             .select('*')
-            .eq('id', jobId)
+            .eq('id', group.jobIds[0])
             .single();
 
         if (jobError) throw jobError;
 
-        // Get shipToName from selected option
-        const selectedOption = breakdownJobSelect?.selectedOptions[0];
-        const shipToName = selectedOption?.dataset?.shipToName || originalJob.ship_to_name || originalJob.ship_to_code || 'shiptoname';
-
-        // Generate new reference for breakdown (format: originalRef-shipToName)
-        const newRef = generateBreakdownReference(originalJob.reference, shipToName);
+        // Generate new reference for breakdown (format: reference-shipToName)
+        const newRef = generateBreakdownReference(group.reference, group.shipToName);
 
         // Get driver user_id if available
-        const driverUserId = originalJob.driver_user_id || null;
+        const driverUserId = firstJob.driver_user_id || null;
 
         // Create breakdown record
         const breakdownRecord = {
             reference: newRef,
-            original_ref: originalJob.reference,
-            driver_name: originalJob.drivers || 'N/A',
+            original_ref: group.reference,
+            driver_name: group.drivers || 'N/A',
             driver_user_id: driverUserId,
-            original_vehicle: originalJob.vehicle_desc || 'N/A',
+            original_vehicle: group.vehicleDesc || 'N/A',
             new_vehicle: newVehicle,
             reason: reason,
             status: 'pending'
@@ -299,11 +327,11 @@ export async function handleBreakdownSubmit(event) {
 
         if (breakdownError) throw breakdownError;
 
-        // Mark original job status as breakdown
+        // Mark all jobs in the group as breakdown
         await supabase
             .from('jobdata')
             .update({ status: 'breakdown' })
-            .eq('id', jobId);
+            .in('id', group.jobIds);
 
         showNotification(`Breakdown processed. New reference: ${newRef}`, 'success');
         closeBreakdownModal();
