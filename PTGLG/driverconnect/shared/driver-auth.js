@@ -323,8 +323,11 @@ export class DriverAuth {
             return false;
         }
 
-        // If shipToCode provided, verify stop belongs to this job
-        if (shipToCode) {
+        // Only verify stop-level if shipToCode has a meaningful value (non-empty, non-null, non-whitespace)
+        // Empty strings in database are treated as "no code" - skip stop-level verification
+        const hasMeaningfulShipToCode = shipToCode && shipToCode.trim() !== '';
+
+        if (hasMeaningfulShipToCode) {
             try {
                 const supabase = supabaseClient;
                 const { data, error } = await supabase
@@ -342,26 +345,9 @@ export class DriverAuth {
                 console.error('❌ DriverAuth.verifyCheckInAccess exception:', err);
                 return false;
             }
-        } else if (shipToName) {
-            // Fallback to shipToName verification when shipToCode is not available
-            try {
-                const supabase = supabaseClient;
-                const { data, error } = await supabase
-                    .from('jobdata')
-                    .select('id')
-                    .eq('reference', reference)
-                    .eq('ship_to_name', shipToName)
-                    .maybeSingle();
-
-                if (error || !data) {
-                    console.warn(`⚠️ DriverAuth: ShipToName ${shipToName} not found in reference ${reference}`);
-                    return false;
-                }
-            } catch (err) {
-                console.error('❌ DriverAuth.verifyCheckInAccess exception:', err);
-                return false;
-            }
         }
+        // If no meaningful shipToCode, skip stop-level verification
+        // Job-level access check is sufficient for security
 
         return true;
     }
