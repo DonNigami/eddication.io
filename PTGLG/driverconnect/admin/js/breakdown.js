@@ -58,7 +58,7 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
 
     try {
         let query = supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .select('*')
             .eq('is_vehicle_breakdown', true)
             .order('created_at', { ascending: false });
@@ -83,7 +83,7 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
 
             if (bd.replacement_job_id) {
                 const { data: replacement } = await supabase
-                    .from('driver_jobs')
+                    .from('jobdata')
                     .select('reference')
                     .eq('id', bd.replacement_job_id)
                     .maybeSingle();
@@ -92,7 +92,7 @@ export async function loadVehicleBreakdowns(searchTerm = '') {
 
             row.insertCell().textContent = bd.reference || 'N/A';
             row.insertCell().textContent = bd.drivers || 'N/A';
-            row.insertCell().textContent = bd.vehicle_plate || 'N/A';
+            row.insertCell().textContent = bd.vehicle_desc || 'N/A';
             row.insertCell().textContent = bd.breakdown_reason || 'N/A';
             row.insertCell().textContent = newRef;
             row.insertCell().textContent = bd.created_at ? new Date(bd.created_at).toLocaleString() : 'N/A';
@@ -116,8 +116,8 @@ export async function openBreakdownModal() {
     // Load active jobs for selection
     try {
         const { data: activeJobs, error } = await supabase
-            .from('driver_jobs')
-            .select('id, reference, drivers, vehicle_plate')
+            .from('jobdata')
+            .select('id, reference, drivers, vehicle_desc')
             .eq('status', 'active')
             .order('created_at', { ascending: false });
 
@@ -130,7 +130,7 @@ export async function openBreakdownModal() {
             activeJobsCache.forEach(job => {
                 const option = document.createElement('option');
                 option.value = job.id;
-                option.textContent = `${job.reference} - ${job.drivers} (${job.vehicle_plate || 'N/A'})`;
+                option.textContent = `${job.reference} - ${job.drivers} (${job.vehicle_desc || 'N/A'})`;
                 breakdownJobSelect.appendChild(option);
             });
         }
@@ -166,7 +166,7 @@ export async function handleBreakdownJobSelect() {
 
     if (breakdownOriginalRef) breakdownOriginalRef.textContent = job.reference || 'N/A';
     if (breakdownDriver) breakdownDriver.textContent = job.drivers || 'N/A';
-    if (breakdownVehicle) breakdownVehicle.textContent = job.vehicle_plate || 'N/A';
+    if (breakdownVehicle) breakdownVehicle.textContent = job.vehicle_desc || 'N/A';
 
     if (breakdownJobDetails) breakdownJobDetails.classList.remove('hidden');
 }
@@ -210,7 +210,7 @@ export async function handleBreakdownSubmit(event) {
     try {
         // Get original job
         const { data: originalJob, error: jobError } = await supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .select('*')
             .eq('id', jobId)
             .single();
@@ -219,7 +219,7 @@ export async function handleBreakdownSubmit(event) {
 
         // Mark original as breakdown
         const { error: updateError } = await supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .update({
                 is_vehicle_breakdown: true,
                 breakdown_reason: reason,
@@ -235,7 +235,7 @@ export async function handleBreakdownSubmit(event) {
             reference: newRef,
             shipment_no: originalJob.shipment_no,
             drivers: originalJob.drivers,
-            vehicle_plate: newVehicle,
+            vehicle_desc: newVehicle,
             status: 'active',
             is_vehicle_breakdown: false,
             created_at: new Date().toISOString(),
@@ -243,7 +243,7 @@ export async function handleBreakdownSubmit(event) {
         };
 
         const { data: newJob, error: insertError } = await supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .insert([replacementJob])
             .select()
             .single();
@@ -252,7 +252,7 @@ export async function handleBreakdownSubmit(event) {
 
         // Link replacement job
         await supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .update({ replacement_job_id: newJob.id })
             .eq('id', jobId);
 

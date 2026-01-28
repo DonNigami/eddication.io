@@ -92,7 +92,7 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
             row.insertCell().textContent = job.reference || 'N/A';
             row.insertCell().textContent = job.drivers || 'N/A';
             row.insertCell().textContent = job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A';
-            row.insertCell().textContent = job.vehicle_plate || 'N/A';
+            row.insertCell().textContent = job.vehicle_desc || 'N/A';
             row.insertCell().textContent = job.b100_amount
                 ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })
                 : '0.00';
@@ -131,6 +131,65 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
 }
 
 /**
+ * Load origins from database and populate dropdowns
+ */
+async function loadOrigins() {
+    try {
+        const { data: origins, error } = await supabase
+            .from('origin')
+            .select('originKey, name')
+            .order('name');
+
+        if (error) throw error;
+
+        const optionsHTML = '<option value="">-- Select Origin/Destination --</option>' +
+            (origins?.map(origin =>
+                `<option value="${origin.originKey}">${sanitizeHTML(origin.name)} (${origin.originKey})</option>`
+            ).join('') || '');
+
+        if (b100OriginSelect) {
+            b100OriginSelect.innerHTML = optionsHTML;
+        }
+        if (b100DestinationSelect) {
+            b100DestinationSelect.innerHTML = optionsHTML;
+        }
+    } catch (error) {
+        console.error('Error loading origins:', error);
+        const defaultOption = '<option value="">-- Select Location --</option>';
+        if (b100OriginSelect) b100OriginSelect.innerHTML = defaultOption;
+        if (b100DestinationSelect) b100DestinationSelect.innerHTML = defaultOption;
+    }
+}
+
+/**
+ * Load drivers from database and populate dropdown
+ */
+async function loadDrivers() {
+    try {
+        const { data: drivers } = await supabase
+            .from('user_profiles')
+            .select('user_id, display_name')
+            .eq('role', 'driver')
+            .order('display_name');
+
+        if (b100DriverSelect) {
+            b100DriverSelect.innerHTML = '<option value="">-- เลือกคนขับ --</option>';
+            drivers?.forEach(driver => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify({ id: driver.user_id, name: driver.display_name });
+                option.textContent = driver.display_name || driver.user_id;
+                b100DriverSelect.appendChild(option);
+            });
+        }
+    } catch (e) {
+        console.warn('Could not load drivers:', e);
+        if (b100DriverSelect) {
+            b100DriverSelect.innerHTML = '<option value="">-- เลือกคนขับ --</option>';
+        }
+    }
+}
+
+/**
  * Open B100 modal for create
  */
 export async function openB100Modal() {
@@ -150,26 +209,11 @@ export async function openB100Modal() {
         b100ReferenceInput.value = `B100-${today}-${String((count || 0) + 1).padStart(3, '0')}`;
     }
 
-    // Load drivers
-    try {
-        const { data: drivers } = await supabase
-            .from('user_profiles')
-            .select('user_id, display_name')
-            .eq('user_type', 'DRIVER')
-            .order('display_name');
-
-        if (b100DriverSelect) {
-            b100DriverSelect.innerHTML = '<option value="">-- Select Driver --</option>';
-            drivers?.forEach(driver => {
-                const option = document.createElement('option');
-                option.value = JSON.stringify({ id: driver.user_id, name: driver.display_name });
-                option.textContent = driver.display_name || driver.user_id;
-                b100DriverSelect.appendChild(option);
-            });
-        }
-    } catch (e) {
-        console.warn('Could not load drivers:', e);
-    }
+    // Load origins and drivers in parallel
+    await Promise.all([
+        loadOrigins(),
+        loadDrivers()
+    ]);
 
     b100Modal.classList.remove('hidden');
 }
@@ -212,7 +256,7 @@ export async function handleB100Submit(event) {
             reference: reference,
             drivers: driver.name,
             driver_user_id: driver.id,
-            vehicle_plate: vehicle,
+            vehicle_desc: vehicle,
             b100_origin: origin,
             b100_destination: destination,
             b100_materials: materials,
