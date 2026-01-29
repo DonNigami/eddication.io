@@ -400,7 +400,6 @@ export async function handleBreakdownSubmit(event) {
             checkout_time: null,
             checkout_lat: null,
             checkout_lng: null,
-            checkout_odo: null,
             vehicle_desc: newVehicle, // New vehicle
             drivers: job.drivers,
             seq: job.seq,
@@ -413,9 +412,9 @@ export async function handleBreakdownSubmit(event) {
             radius_m: job.radius_m,
             distance_km: job.distance_km,
             job_closed_at: null,
-            end_odo: null,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            breakdown_from_ref: job.reference
         }));
 
         const { error: insertError } = await supabase
