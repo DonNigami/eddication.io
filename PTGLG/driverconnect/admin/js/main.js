@@ -59,6 +59,13 @@ import {
     handleBreakdownSubmit
 } from './breakdown.js';
 import {
+    setBreakdownReportsElements,
+    loadBreakdownReports,
+    openReportModal,
+    closeReportModal,
+    handleReportActionSubmit
+} from './breakdown-reports.js';
+import {
     setSiphoningElements,
     loadFuelSiphoning,
     openSiphoningModal,
@@ -274,6 +281,44 @@ function setupDOMElements() {
         vehicle: document.getElementById('breakdown-vehicle'),
         reason: document.getElementById('breakdown-reason'),
         newVehicle: document.getElementById('breakdown-new-vehicle')
+    });
+
+    // Breakdown Reports (Driver-Submitted)
+    setBreakdownReportsElements({
+        tableBody: document.getElementById('breakdown-reports-tbody'),
+        searchInput: document.getElementById('br-search'),
+        statusFilter: document.getElementById('br-status-filter'),
+        typeFilter: document.getElementById('br-type-filter'),
+        refreshBtn: document.getElementById('br-refresh-btn'),
+        modal: document.getElementById('breakdown-report-modal'),
+        modalClose: document.getElementById('br-modal-close'),
+        modalCancel: document.getElementById('br-modal-cancel'),
+        actionForm: document.getElementById('br-action-form'),
+        pendingCount: document.getElementById('br-pending-count'),
+        inProgressCount: document.getElementById('br-in-progress-count'),
+        resolvedCount: document.getElementById('br-resolved-count'),
+        totalCount: document.getElementById('br-total-count'),
+        modalTitle: document.getElementById('br-modal-title'),
+        detailType: document.getElementById('br-detail-type'),
+        detailStatus: document.getElementById('br-detail-status'),
+        detailTime: document.getElementById('br-detail-time'),
+        detailDriverName: document.getElementById('br-detail-driver-name'),
+        detailDriverId: document.getElementById('br-detail-driver-id'),
+        detailVehicle: document.getElementById('br-detail-vehicle'),
+        detailReference: document.getElementById('br-detail-reference'),
+        detailIncompleteStops: document.getElementById('br-detail-incomplete-stops'),
+        detailLocation: document.getElementById('br-detail-location'),
+        detailLatLng: document.getElementById('br-detail-lat-lng'),
+        detailMapLink: document.getElementById('br-detail-map-link'),
+        detailPhotoContainer: document.getElementById('br-detail-photo-container'),
+        detailPhoto: document.getElementById('br-detail-photo'),
+        detailDescription: document.getElementById('br-detail-description'),
+        detailRequestNewVehicle: document.getElementById('br-detail-request-new-vehicle'),
+        detailRequestCloseTrip: document.getElementById('br-detail-request-close-trip'),
+        actionReportId: document.getElementById('br-report-id'),
+        actionStatus: document.getElementById('br-action-status'),
+        actionVehicle: document.getElementById('br-action-vehicle'),
+        actionNotes: document.getElementById('br-action-notes')
     });
 
     // Siphoning
@@ -582,6 +627,51 @@ function setupEventListeners() {
     }
 
     const breakdownJobSelect = document.getElementById('breakdown-job-select');
+
+    // Breakdown Reports (Driver-Submitted)
+    const brSearch = document.getElementById('br-search');
+    const brStatusFilter = document.getElementById('br-status-filter');
+    const brTypeFilter = document.getElementById('br-type-filter');
+    const brRefreshBtn = document.getElementById('br-refresh-btn');
+
+    if (brSearch) {
+        brSearch.addEventListener('input', debounce(() => {
+            loadBreakdownReports();
+        }, 300));
+    }
+
+    if (brStatusFilter) {
+        brStatusFilter.addEventListener('change', () => {
+            loadBreakdownReports();
+        });
+    }
+
+    if (brTypeFilter) {
+        brTypeFilter.addEventListener('change', () => {
+            loadBreakdownReports();
+        });
+    }
+
+    if (brRefreshBtn) {
+        brRefreshBtn.addEventListener('click', () => {
+            loadBreakdownReports();
+        });
+    }
+
+    const brModalClose = document.getElementById('br-modal-close');
+    if (brModalClose) {
+        brModalClose.addEventListener('click', closeReportModal);
+    }
+
+    const brModalCancel = document.getElementById('br-modal-cancel');
+    if (brModalCancel) {
+        brModalCancel.addEventListener('click', closeReportModal);
+    }
+
+    const brActionForm = document.getElementById('br-action-form');
+    if (brActionForm) {
+        brActionForm.addEventListener('submit', handleReportActionSubmit);
+    }
     if (breakdownJobSelect) {
         breakdownJobSelect.addEventListener('change', handleBreakdownJobSelect);
     }
@@ -726,6 +816,9 @@ export async function loadSectionData(targetId) {
             break;
         case 'payment-processing':
             await loadPayments();
+            break;
+        case 'breakdown-reports':
+            await loadBreakdownReports();
             break;
         case 'vehicle-breakdown':
         case 'breakdown':

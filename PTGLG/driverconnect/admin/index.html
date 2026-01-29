@@ -175,6 +175,7 @@ This admin panel interfaces with the following Supabase database tables:
                     
                     <!-- Fleet & Maintenance -->
                     <li class="nav-section-header">🔧 Fleet & Maintenance</li>
+                    <li><a href="#" class="nav-link" data-target="breakdown-reports">🚨 Breakdown Reports</a></li>
                     <li><a href="#" class="nav-link" data-target="vehicle-breakdown">🔧 Vehicle Breakdown</a></li>
                     <li><a href="#" class="nav-link" data-target="fuel-siphoning">⛽ Fuel Siphoning</a></li>
                     
@@ -999,6 +1000,192 @@ This admin panel interfaces with the following Supabase database tables:
                             <button type="button" class="cancel-btn" id="btn-close-payment" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
                                 ปิด
                             </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Breakdown Reports Section (Driver-Submitted) -->
+            <section id="breakdown-reports" class="content-section hidden">
+                <h1>🚨 รายงานเหตุขัดข้อง/อุบัติเหตุ</h1>
+                <p style="color: var(--text-sub); margin-bottom: 20px;">รายงานที่คนขับส่งมาจากแอปพลิเคชัน</p>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>รอดำเนินการ</h3>
+                        <p id="br-pending-count" style="color: #ff9800;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>กำลังดำเนินการ</h3>
+                        <p id="br-in-progress-count" style="color: #2196f3;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>เสร็จสิ้น</h3>
+                        <p id="br-resolved-count" style="color: #4caf50;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ทั้งหมด</h3>
+                        <p id="br-total-count">0</p>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="br-controls" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="br-search" placeholder="🔍 ค้นหา Reference, คนขับ, ทะเบียนรถ..." style="flex: 1; min-width: 200px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+
+                    <select id="br-status-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        <option value="all">📋 ทั้งหมด</option>
+                        <option value="pending" selected>⏳ รอดำเนินการ</option>
+                        <option value="acknowledged">👌 รับทราบแล้ว</option>
+                        <option value="in_progress">🔧 กำลังดำเนินการ</option>
+                        <option value="resolved">✅ เสร็จสิ้น</option>
+                        <option value="cancelled">❌ ยกเลิก</option>
+                    </select>
+
+                    <select id="br-type-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        <option value="all">📋 ทุกประเภท</option>
+                        <option value="breakdown">🔧 ขัดข้อง</option>
+                        <option value="accident">🚗 อุบัติเหตุ</option>
+                        <option value="maintenance">🔧 ซ่อมบำรุง</option>
+                        <option value="emergency">🚨 ฉุกเฉิน</option>
+                    </select>
+
+                    <button id="br-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🔄 Refresh
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-container" style="margin-top: 20px;">
+                    <table id="breakdown-reports-table">
+                        <thead>
+                            <tr>
+                                <th>เวลา</th>
+                                <th>ประเภท</th>
+                                <th>คนขับ</th>
+                                <th>ทะเบียนรถ</th>
+                                <th>Reference</th>
+                                <th>รายละเอียด</th>
+                                <th>สถานะ</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="breakdown-reports-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                    <p>กำลังโหลดข้อมูล...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Breakdown Report Detail Modal -->
+                <div id="breakdown-report-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                        <span class="close-button" id="br-modal-close">&times;</span>
+
+                        <h2 id="br-modal-title">🚨 รายละเอียดการแจ้ง</h2>
+
+                        <!-- Report Info -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                                <div>
+                                    <small style="color: var(--text-sub);">ประเภท</small>
+                                    <p id="br-detail-type" style="font-size: 1.1em; margin: 0;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">สถานะ</small>
+                                    <p id="br-detail-status" style="font-size: 1.1em; margin: 0;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">เวลาแจ้ง</small>
+                                    <p id="br-detail-time" style="margin: 0;">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Driver & Vehicle Info -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3 style="margin-bottom: 10px;">👤 คนขับ & ยานพาหนะ</h3>
+                            <p><strong>ชื่อคนขับ:</strong> <span id="br-detail-driver-name">-</span></p>
+                            <p><strong>LINE User ID:</strong> <span id="br-detail-driver-id">-</span></p>
+                            <p><strong>ทะเบียนรถ:</strong> <span id="br-detail-vehicle">-</span></p>
+                            <p><strong>Reference:</strong> <span id="br-detail-reference">-</span> <span id="br-detail-incomplete-stops" style="color: #ff9800;"></span></p>
+                        </div>
+
+                        <!-- Location -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3 style="margin-bottom: 10px;">📍 ตำแหน่ง</h3>
+                            <p><strong>พิกัด:</strong> <span id="br-detail-location">-</span></p>
+                            <p id="br-detail-lat-lng" style="color: var(--text-sub); font-size: 0.9em;"></p>
+                            <a id="br-detail-map-link" href="#" target="_blank" style="color: var(--primary-color); display: none;">🗺️ เปิดใน Google Maps</a>
+                        </div>
+
+                        <!-- Photo -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;" id="br-detail-photo-container" style="display: none;">
+                            <h3 style="margin-bottom: 10px;">📷 รูปภาพประกอบ</h3>
+                            <img id="br-detail-photo" src="" alt="Breakdown Photo" style="max-width: 100%; border-radius: 8px;">
+                        </div>
+
+                        <!-- Description -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3 style="margin-bottom: 10px;">📝 รายละเอียด</h3>
+                            <p id="br-detail-description" style="margin: 0;">-</p>
+                        </div>
+
+                        <!-- Driver Requests -->
+                        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #ffb74d;">
+                            <h3 style="margin-bottom: 10px; color: #e65100;">🙏 คำขอจากคนขับ</h3>
+                            <p id="br-detail-request-new-vehicle" style="display: none;">✅ ขอยานพาหนะใหม่</p>
+                            <p id="br-detail-request-close-trip" style="display: none;">✅ ขอปิดงาน</p>
+                        </div>
+
+                        <!-- Admin Action Form -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3 style="margin-bottom: 10px;">🔧 ดำเนินการ</h3>
+                            <form id="br-action-form">
+                                <input type="hidden" id="br-report-id">
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                    <div>
+                                        <label for="br-action-status">สถานะ:</label>
+                                        <select id="br-action-status" required style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                            <option value="pending">⏳ รอดำเนินการ</option>
+                                            <option value="acknowledged">👌 รับทราบแล้ว</option>
+                                            <option value="in_progress">🔧 กำลังดำเนินการ</option>
+                                            <option value="resolved">✅ เสร็จสิ้น</option>
+                                            <option value="cancelled">❌ ยกเลิก</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="br-action-vehicle">กำหนดยานพาหนะใหม่:</label>
+                                        <input type="text" id="br-action-vehicle" placeholder="เช่น กข-1234" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 15px;">
+                                    <label for="br-action-notes">บันทึกข้อความ:</label>
+                                    <textarea id="br-action-notes" rows="3" placeholder="ระบุรายละเอียดการดำเนินการ..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); resize: vertical;"></textarea>
+                                </div>
+
+                                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                                    <button type="submit" style="flex: 1; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                        💾 บันทึก
+                                    </button>
+                                    <button type="button" class="cancel-btn" id="br-modal-cancel" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                        ปิด
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Admin Notes History -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;" id="br-admin-notes-container" style="display: none;">
+                            <h3 style="margin-bottom: 10px;">📜 ประวัติการดำเนินการ</h3>
+                            <div id="br-admin-notes-history"></div>
                         </div>
                     </div>
                 </div>
