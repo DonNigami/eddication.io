@@ -175,6 +175,11 @@ This application interfaces with the following Supabase database tables:
           <span>🔧 เลือกงานจาก Vehicle Breakdown</span>
         </button>
 
+        <!-- Report Breakdown/Accident Button -->
+        <button id="btnReportBreakdown" class="btn-report-breakdown">
+          <span>🚨 แจ้งรถเสีย / อุบัติเหตุ</span>
+        </button>
+
         <!-- Force Refresh Button (shown when job is loaded) -->
         <button id="btnForceRefresh" class="btn-refresh hidden" style="width:100%;margin-top:8px;">
           <span>🔄 รีเฟรชสถานะล่าสุด</span>
@@ -313,6 +318,81 @@ This application interfaces with the following Supabase database tables:
 
           <button id="btnConfirmBreakdown" class="btn-breakdown-confirm">
             <span>✅ ยืนยันสร้างงานใหม่</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Breakdown/Accident Modal -->
+  <div id="reportBreakdownModal" class="breakdown-modal hidden" role="dialog" aria-modal="true" aria-labelledby="reportBreakdownModalTitle">
+    <div class="breakdown-modal-backdrop" id="reportBreakdownModalBackdrop"></div>
+    <div class="breakdown-modal-content">
+      <div class="breakdown-modal-header">
+        <h2 id="reportBreakdownModalTitle">🚨 แจ้งรถเสีย / อุบัติเหตุ</h2>
+        <button class="breakdown-modal-close" id="reportBreakdownModalClose" aria-label="ปิด">×</button>
+      </div>
+      <div class="breakdown-modal-body">
+        <p class="breakdown-modal-desc">แจ้งเหตุฉุกเฉินเพื่อให้แอดมินตรวจสอบและดำเนินการต่อ</p>
+
+        <!-- Current job info (if any) -->
+        <div id="reportBreakdownCurrentJob" class="report-breakdown-current-job hidden">
+          <div class="report-breakdown-job-header">
+            <span class="report-breakdown-job-label">งานปัจจุบัน:</span>
+            <span id="reportBreakdownCurrentRef" class="report-breakdown-job-ref"></span>
+          </div>
+        </div>
+
+        <!-- Report form -->
+        <div class="breakdown-report-form">
+          <!-- Type -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownType">ประเภทการแจ้ง <span class="required">*</span></label>
+            <select id="reportBreakdownType" class="breakdown-report-select">
+              <option value="">-- เลือกประเภท --</option>
+              <option value="breakdown">🔧 รถเสีย</option>
+              <option value="accident">🚗 อุบัติเหตุ</option>
+              <option value="maintenance">🔨 เข้าซ่อมบำรุง</option>
+              <option value="emergency">🚨 เหตุฉุกเฉินอื่นๆ</option>
+            </select>
+          </div>
+
+          <!-- Description -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownDesc">รายละเอียด <span class="required">*</span></label>
+            <textarea id="reportBreakdownDesc" class="breakdown-report-textarea" rows="3" placeholder="ระบุรายละเอียด เช่น อาการรถเสีย, สถานที่เกิดเหตุ, ผู้ได้รับบาดเจ็บ ฯลฯ"></textarea>
+          </div>
+
+          <!-- Location -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownLocation">สถานที่เกิดเหตุ</label>
+            <input id="reportBreakdownLocation" type="text" class="breakdown-report-input" placeholder="ระบุสถานที่หรือใช้พิกัดปัจจุบัน">
+            <button type="button" id="btnUseCurrentLocation" class="btn-small btn-outline" style="margin-top:4px;">
+              📍 ใช้พิกัดปัจจุบัน
+            </button>
+          </div>
+
+          <!-- Request -->
+          <div class="breakdown-report-field">
+            <label>คำขอแสดงความต้องการ:</label>
+            <label class="breakdown-report-checkbox">
+              <input type="checkbox" id="reportRequestNewVehicle" checked>
+              <span>ส่งรถคันอื่นมาดำเนินการต่อ</span>
+            </label>
+            <label class="breakdown-report-checkbox">
+              <input type="checkbox" id="reportRequestCloseTrip">
+              <span>ปิดจบทริปนี้</span>
+            </label>
+          </div>
+
+          <!-- Photo (optional) -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownPhoto">รูปถ่ายประกอบ (ถ้ามี)</label>
+            <input id="reportBreakdownPhoto" type="file" accept="image/*" capture="environment" class="breakdown-report-file">
+          </div>
+
+          <button id="btnSubmitReport" class="btn-breakdown-confirm">
+            <span>📤 ส่งแจ้งแอดมิน</span>
           </button>
         </div>
       </div>
