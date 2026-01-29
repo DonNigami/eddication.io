@@ -170,6 +170,11 @@ This application interfaces with the following Supabase database tables:
           <span>ค้นหา / ดึงงาน</span>
         </button>
 
+        <!-- Vehicle Breakdown Button -->
+        <button id="btnBreakdown" class="btn-breakdown">
+          <span>🔧 เลือกงานจาก Vehicle Breakdown</span>
+        </button>
+
         <!-- Force Refresh Button (shown when job is loaded) -->
         <button id="btnForceRefresh" class="btn-refresh hidden" style="width:100%;margin-top:8px;">
           <span>🔄 รีเฟรชสถานะล่าสุด</span>
@@ -246,8 +251,76 @@ This application interfaces with the following Supabase database tables:
   <!-- Enhanced UX Features (ES Module) -->
   <script type="module" src="js/enhanced-ux.js"></script>
 
+  <!-- Vehicle Breakdown Modal -->
+  <div id="breakdownModal" class="breakdown-modal hidden" role="dialog" aria-modal="true" aria-labelledby="breakdownModalTitle">
+    <div class="breakdown-modal-backdrop" id="breakdownModalBackdrop"></div>
+    <div class="breakdown-modal-content">
+      <div class="breakdown-modal-header">
+        <h2 id="breakdownModalTitle">🔧 เลือกงานจาก Vehicle Breakdown</h2>
+        <button class="breakdown-modal-close" id="breakdownModalClose" aria-label="ปิด">×</button>
+      </div>
+      <div class="breakdown-modal-body">
+        <p class="breakdown-modal-desc">เลือกงานที่มีจุดส่งค้างอยู่ (ยังไม่ Check-out) เพื่อดำเนินการต่อด้วยรถคันใหม่</p>
+
+        <!-- Filter options -->
+        <div class="breakdown-filter">
+          <input id="breakdownSearch" type="text" placeholder="ค้นหา Reference..." class="breakdown-search-input" />
+        </div>
+
+        <!-- Job list -->
+        <div id="breakdownJobList" class="breakdown-job-list">
+          <div class="breakdown-loading">กำลังโหลดข้อมูล...</div>
+        </div>
+
+        <!-- Selected job info -->
+        <div id="breakdownSelectedInfo" class="breakdown-selected-info hidden">
+          <div class="breakdown-selected-header">
+            <span class="breakdown-selected-label">งานที่เลือก:</span>
+            <span id="breakdownSelectedRef" class="breakdown-selected-ref"></span>
+          </div>
+          <div class="breakdown-selected-details">
+            <div class="breakdown-detail-item">
+              <span class="breakdown-detail-label">ชื่อรถ:</span>
+              <span id="breakdownSelectedVehicle"></span>
+            </div>
+            <div class="breakdown-detail-item">
+              <span class="breakdown-detail-label">คนขับ:</span>
+              <span id="breakdownSelectedDriver"></span>
+            </div>
+            <div class="breakdown-detail-item">
+              <span class="breakdown-detail-label">จุดค้าง:</span>
+              <span id="breakdownSelectedStops"></span>
+            </div>
+          </div>
+
+          <!-- New vehicle selection -->
+          <div class="breakdown-new-vehicle-section">
+            <label for="breakdownNewVehicle">ทะเบียนรถคันใหม่</label>
+            <input id="breakdownNewVehicle" type="text" placeholder="กรอกทะเบียนรถใหม่" class="breakdown-new-vehicle-input" />
+          </div>
+
+          <!-- Reason -->
+          <div class="breakdown-reason-section">
+            <label for="breakdownReason">สาเหตุ</label>
+            <select id="breakdownReason" class="breakdown-reason-select">
+              <option value="">-- เลือกสาเหตุ --</option>
+              <option value="breakdown">รถเสีย</option>
+              <option value="accident">อุบัติเหตุ</option>
+              <option value="maintenance">เข้าซ่อมบำรุง</option>
+              <option value="other">อื่นๆ</option>
+            </select>
+          </div>
+
+          <button id="btnConfirmBreakdown" class="btn-breakdown-confirm">
+            <span>✅ ยืนยันสร้างงานใหม่</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Script (ES Module) -->
-  <script type="module" src="js/app.js?v=20260127000000"></script>
+  <script type="module" src="js/app.js?v=20260129000001"></script>
 </body>
 
 </html>

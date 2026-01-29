@@ -22,6 +22,7 @@ import {
 import { liveTracking } from './live-tracking.js';
 import { StateManager, StateKeys, ErrorCodes, getErrorInfo } from './state-manager.js';
 import { initEnhancedUX } from './enhanced-ux.js';
+import { initBreakdownModal } from './breakdown.js';
 
 // ============================================
 // SEARCH FUNCTION
@@ -1275,6 +1276,9 @@ async function initApp() {
 
   // Initialize Enhanced UX features (pull-to-refresh, notifications, etc.)
   initEnhancedUX();
+
+  // Initialize breakdown modal
+  initBreakdownModal();
 
   // Check GPS
   checkGpsStatus();
