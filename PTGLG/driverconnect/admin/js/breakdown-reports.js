@@ -49,6 +49,9 @@ let actionNotes = null;
 // Current reports cache
 let reportsCache = [];
 
+// Vehicle cache for dropdown
+let vehiclesCache = [];
+
 // Status labels
 const STATUS_LABELS = {
     'pending': '<span style="color: #ff9800;">⏳ รอดำเนินการ</span>',
@@ -107,12 +110,60 @@ export function setBreakdownReportsElements(elements) {
 }
 
 /**
+ * Fetch vehicles from jobdata for dropdown
+ */
+export async function fetchVehiclesForDropdown() {
+    const vehicleDatalist = document.getElementById('br-vehicle-list');
+    if (!vehicleDatalist) return;
+
+    try {
+        const { data, error } = await supabase
+            .from('jobdata')
+            .select('vehicle_desc')
+            .not('vehicle_desc', 'is', null)
+            .not('vehicle_desc', 'eq', '')
+            .order('created_at', { ascending: false })
+            .limit(500);
+
+        if (error) throw error;
+
+        // Get unique vehicle descriptions
+        const uniqueVehicles = [...new Set(data?.map(d => d.vehicle_desc).filter(v => v) || [])];
+        vehiclesCache = uniqueVehicles.sort();
+
+        // Populate datalist
+        vehicleDatalist.innerHTML = '';
+        if (vehiclesCache.length === 0) {
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = '-- ไม่พบข้อมูลรถ --';
+            vehicleDatalist.appendChild(option);
+        } else {
+            vehiclesCache.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle;
+                vehicleDatalist.appendChild(option);
+            });
+        }
+
+        console.log(`✅ Loaded ${vehiclesCache.length} vehicles for dropdown`);
+    } catch (error) {
+        console.error('Error fetching vehicles:', error);
+    }
+}
+
+/**
  * Load breakdown reports from database
  */
 export async function loadBreakdownReports() {
     if (!reportsTableBody) {
         console.error('Breakdown reports table body not set');
         return;
+    }
+
+    // Fetch vehicles for dropdown on first load
+    if (vehiclesCache.length === 0) {
+        fetchVehiclesForDropdown();
     }
 
     reportsTableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px;">

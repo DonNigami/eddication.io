@@ -1162,7 +1162,10 @@ This admin panel interfaces with the following Supabase database tables:
                                     </div>
                                     <div>
                                         <label for="br-action-vehicle">กำหนดยานพาหนะใหม่:</label>
-                                        <input type="text" id="br-action-vehicle" placeholder="เช่น กข-1234" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                        <input type="text" id="br-action-vehicle" list="br-vehicle-list" placeholder="ค้นหาหรือพิมพ์ทะเบียนรถ..." style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                        <datalist id="br-vehicle-list">
+                                            <option value="">-- กำลังโหลด --</option>
+                                        </datalist>
                                     </div>
                                 </div>
 
