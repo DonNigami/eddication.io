@@ -180,7 +180,10 @@ function mapRowToDatabase(row) {
 
       // Type conversions
       if (dbCol === 'distance' || dbCol === 'delivery_qty') {
-        value = parseFloat(value) || null;
+        // Remove thousands separators (comma) before parsing
+        // "15,000" should become "15000" not 15
+        const cleanedValue = String(value).replace(/,/g, '');
+        value = parseFloat(cleanedValue) || null;
       } else if (dbCol.includes('_date') && value) {
         // Convert date format
         value = convertDateFormat(value);
