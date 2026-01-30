@@ -21,10 +21,18 @@ let jobDetailsReferenceTitle = null;
 let detailJobReference = null;
 let detailJobShipmentNo = null;
 let detailJobDriver = null;
+let detailJobVehicle = null;
+let detailJobRoute = null;
 let detailJobStatus = null;
-let detailJobTripEnded = null;
+let detailJobClosed = null;
 let detailJobCreatedAt = null;
 let detailJobUpdatedAt = null;
+// Incentive & Payment fields
+let detailJobIncentiveApproved = null;
+let detailJobIncentiveAmount = null;
+let detailJobIncentiveStops = null;
+let detailJobPaymentStatus = null;
+let detailJobPaidAt = null;
 let jobDetailsStopsTableBody = null;
 let jobDetailsAlcoholTableBody = null;
 let jobDetailsLogsTableBody = null;
@@ -50,10 +58,19 @@ export function setJobElements(elements) {
     detailJobReference = elements.detailReference;
     detailJobShipmentNo = elements.detailShipmentNo;
     detailJobDriver = elements.detailDriver;
+    detailJobVehicle = elements.detailVehicle;
+    detailJobRoute = elements.detailRoute;
     detailJobStatus = elements.detailStatus;
-    detailJobTripEnded = elements.detailTripEnded;
+    detailJobClosed = elements.detailClosed;
     detailJobCreatedAt = elements.detailCreatedAt;
     detailJobUpdatedAt = elements.detailUpdatedAt;
+    // Incentive & Payment
+    detailJobIncentiveApproved = elements.detailIncentiveApproved;
+    detailJobIncentiveAmount = elements.detailIncentiveAmount;
+    detailJobIncentiveStops = elements.detailIncentiveStops;
+    detailJobPaymentStatus = elements.detailPaymentStatus;
+    detailJobPaidAt = elements.detailPaidAt;
+    // Tables
     jobDetailsStopsTableBody = elements.stopsTableBody;
     jobDetailsAlcoholTableBody = elements.alcoholTableBody;
     jobDetailsLogsTableBody = elements.logsTableBody;
@@ -273,10 +290,19 @@ export async function openJobDetailsModal(reference) {
     if (detailJobReference) detailJobReference.textContent = 'Loading...';
     if (detailJobShipmentNo) detailJobShipmentNo.textContent = 'Loading...';
     if (detailJobDriver) detailJobDriver.textContent = 'Loading...';
+    if (detailJobVehicle) detailJobVehicle.textContent = 'Loading...';
+    if (detailJobRoute) detailJobRoute.textContent = 'Loading...';
     if (detailJobStatus) detailJobStatus.textContent = 'Loading...';
-    if (detailJobTripEnded) detailJobTripEnded.textContent = 'Loading...';
+    if (detailJobClosed) detailJobClosed.textContent = 'Loading...';
     if (detailJobCreatedAt) detailJobCreatedAt.textContent = 'Loading...';
     if (detailJobUpdatedAt) detailJobUpdatedAt.textContent = 'Loading...';
+    // Incentive & Payment
+    if (detailJobIncentiveApproved) detailJobIncentiveApproved.textContent = 'Loading...';
+    if (detailJobIncentiveAmount) detailJobIncentiveAmount.textContent = 'Loading...';
+    if (detailJobIncentiveStops) detailJobIncentiveStops.textContent = 'Loading...';
+    if (detailJobPaymentStatus) detailJobPaymentStatus.textContent = 'Loading...';
+    if (detailJobPaidAt) detailJobPaidAt.textContent = 'Loading...';
+    // Tables
     if (jobDetailsStopsTableBody) jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="7">Loading stops...</td></tr>';
     if (jobDetailsAlcoholTableBody) jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">Loading alcohol checks...</td></tr>';
     if (jobDetailsLogsTableBody) jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="5">Loading driver logs...</td></tr>';
@@ -300,19 +326,29 @@ export async function openJobDetailsModal(reference) {
         // Get first row as the main job data
         const job = jobRows[0];
 
+        // Basic Info
         if (jobDetailsReferenceTitle) jobDetailsReferenceTitle.textContent = job.reference || 'N/A';
         if (detailJobReference) detailJobReference.textContent = job.reference || 'N/A';
         if (detailJobShipmentNo) detailJobShipmentNo.textContent = job.shipment_no || 'N/A';
         if (detailJobDriver) detailJobDriver.textContent = job.drivers || 'N/A';
+        if (detailJobVehicle) detailJobVehicle.textContent = job.vehicle_desc || 'N/A';
+        if (detailJobRoute) detailJobRoute.textContent = job.route || 'N/A';
         if (detailJobStatus) detailJobStatus.textContent = job.status || 'N/A';
-        if (detailJobTripEnded) detailJobTripEnded.textContent = job.job_closed_at ? 'Yes' : 'No';
+        if (detailJobClosed) detailJobClosed.textContent = job.job_closed_at ? (job.job_closed_at instanceof Date ? job.job_closed_at.toLocaleString() : new Date(job.job_closed_at).toLocaleString()) : 'No';
         if (detailJobCreatedAt) detailJobCreatedAt.textContent = job.created_at ? new Date(job.created_at).toLocaleString() : 'N/A';
         if (detailJobUpdatedAt) detailJobUpdatedAt.textContent = job.updated_at ? new Date(job.updated_at).toLocaleString() : 'N/A';
+
+        // Incentive & Payment
+        if (detailJobIncentiveApproved) detailJobIncentiveApproved.textContent = job.incentive_approved ? 'Yes' : 'No';
+        if (detailJobIncentiveAmount) detailJobIncentiveAmount.textContent = job.incentive_amount ? `฿${parseFloat(job.incentive_amount).toFixed(2)}` : 'N/A';
+        if (detailJobIncentiveStops) detailJobIncentiveStops.textContent = job.incentive_stops || jobRows.length || '0';
+        if (detailJobPaymentStatus) detailJobPaymentStatus.textContent = job.payment_status || 'N/A';
+        if (detailJobPaidAt) detailJobPaidAt.textContent = job.paid_at ? new Date(job.paid_at).toLocaleString() : 'N/A';
 
         // Display all stops from jobdata (each row is a stop)
         if (jobDetailsStopsTableBody) {
             jobDetailsStopsTableBody.innerHTML = '';
-            if (jobRows.length === 0) {
+            if (!jobRows || jobRows.length === 0) {
                 jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="7">No stops found.</td></tr>';
             } else {
                 jobRows.forEach(stop => {
