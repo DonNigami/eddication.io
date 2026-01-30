@@ -672,13 +672,35 @@
                   <input type="file" id="photoRear" name="photoRear" accept="image/*" capture="environment" required />
                   <div class="note">
                     • ถ่ายให้เห็นทั้ง <strong>ประตูหลัง + ซีล/กุญแจ</strong><br />
-                    • ระบบจะบีบอัดรูปให้อัตโนมัติ เพื่อลดเวลาส่งข้อมูล
+                    • ระบบจะบีบอัดรูปและบันทึกลง Google Drive อัตโนมัติ
                   </div>
-      
+
                   <div id="previewBox" class="image-preview">
                     <span>รูปตัวอย่าง:</span>
                     <img id="previewImage" alt="ตัวอย่างรูปท้ายรถ" />
                   </div>
+
+                  <div id="photoLinkBox" class="image-preview" style="display:none; background:#f0fdf4; border-color:#86efac;">
+                    <span style="color:#166534;">✓ บันทึกลง Drive แล้ว</span>
+                    <a id="photoDriveLink" href="#" target="_blank" style="font-size:0.75rem; color:#1d4ed8; word-break:break-all;">เปิดดูรูปใน Drive</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Step 6: Return to Base -->
+            <div class="timeline-item">
+              <div class="timeline-number">6</div>
+              <div class="timeline-content">
+                <div class="field">
+                  <label for="returnTime">เวลากลับ</label>
+                  <div class="field-inline">
+                    <input type="datetime-local" id="returnTime" name="returnTime" />
+                    <button type="button" class="btn btn-xs btn-ghost" onclick="setNow('returnTime')">
+                      ตอนนี้
+                    </button>
+                  </div>
+                  <div class="note">บันทึกเวลาเมื่อกลับถึงฐาน/จุดรับสินค้า</div>
                 </div>
               </div>
             </div>
@@ -824,7 +846,7 @@
       // Fields to persist in localStorage
       const persistentFields = [
         "reference", "truckPlate", "arriveDcTime", "loadStartTime", "loadEndTime",
-        "docStartTime", "docEndTime", "departTime", "remark",
+        "docStartTime", "docEndTime", "departTime", "returnTime", "remark",
         "problemReference", "problemTruckPlate", "problemType", "problemDetail",
         "searchBooking"
       ];
@@ -917,6 +939,7 @@
       { id: "docStartTime", label: "ยื่นเอกสาร (เริ่ม)" },
       { id: "docEndTime", label: "ยื่นเอกสาร (เสร็จ)" },
       { id: "departTime", label: "ออกจาก DC" },
+      { id: "returnTime", label: "เวลากลับ" },
     ];
 
     function timeToMinutes(t) {
@@ -1007,22 +1030,94 @@
       el.addEventListener("blur", () => validateTimeSteps(false));
     });
 
-    /* -------- Preview รูป DC -------- */
+    /* -------- Preview รูป DC & Save to Drive -------- */
     const photoInput = document.getElementById("photoRear");
     const previewBox = document.getElementById("previewBox");
     const previewImage = document.getElementById("previewImage");
+    const photoLinkBox = document.getElementById("photoLinkBox");
+    const photoDriveLink = document.getElementById("photoDriveLink");
 
-    photoInput.addEventListener("change", function () {
+    // Load saved Drive link on page load
+    const savedPhotoLink = loadFromLocalStorage("dc_photoDriveLink");
+    if (savedPhotoLink) {
+      photoLinkBox.style.display = "block";
+      photoDriveLink.href = savedPhotoLink;
+      photoDriveLink.textContent = savedPhotoLink;
+    }
+
+    photoInput.addEventListener("change", async function () {
       const file = this.files && this.files[0];
       if (!file) {
         previewBox.style.display = "none";
         previewImage.src = "";
+        photoLinkBox.style.display = "none";
+        saveToLocalStorage("dc_photoDriveLink", "");
         return;
       }
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = async function (e) {
         previewImage.src = e.target.result;
         previewBox.style.display = "block";
+
+        // Show loading state
+        photoLinkBox.style.display = "block";
+        photoLinkBox.style.background = "#eff6ff";
+        photoLinkBox.style.borderColor = "#bfdbfe";
+        photoDriveLink.innerHTML = "<span style='color:#1d4ed8;'>⏳ กำลังบันทึกลง Drive...</span>";
+
+        try {
+          // Resize image
+          const resizedBase64 = await resizeImage(file);
+
+          // Save to Drive via Apps Script
+          const payload = {
+            action: "savePhotoToDrive",
+            imageBase64: resizedBase64,
+            reference: document.getElementById("reference").value.trim().replace(/\D/g, ""),
+            truckPlate: document.getElementById("truckPlate").value.trim()
+          };
+
+          const res = await fetchWithTimeout(SCRIPT_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8", "Accept": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const result = await res.json().catch(() => ({}));
+
+          if (result && result.success && result.data && result.data.url) {
+            // Success - save link to localStorage
+            saveToLocalStorage("dc_photoDriveLink", result.data.url);
+            photoLinkBox.style.background = "#f0fdf4";
+            photoLinkBox.style.borderColor = "#86efac";
+            photoDriveLink.href = result.data.url;
+            photoDriveLink.textContent = result.data.url;
+            photoDriveLink.innerHTML = "";
+            photoDriveLink.appendChild(document.createTextNode("✓ บันทึกลง Drive แล้ว - "));
+            const linkSpan = document.createElement("span");
+            linkSpan.textContent = "เปิดดูรูปใน Drive";
+            linkSpan.style.color = "#1d4ed8";
+            const linkAnchor = document.createElement("a");
+            linkAnchor.href = result.data.url;
+            linkAnchor.target = "_blank";
+            linkAnchor.style.fontSize = "0.75rem";
+            linkAnchor.style.color = "#1d4ed8";
+            linkAnchor.style.wordBreak = "break-all";
+            linkAnchor.textContent = result.data.url;
+            photoDriveLink.innerHTML = "✓ บันทึกลง Drive แล้ว<br>";
+            photoDriveLink.appendChild(linkAnchor);
+          } else {
+            // Failed - still show preview but warn user
+            photoLinkBox.style.background = "#fef3c7";
+            photoLinkBox.style.borderColor = "#fcd34d";
+            photoDriveLink.innerHTML = "<span style='color:#92400e;'>⚠️ บันทึกลง Drive ไม่สำเร็จ รูปจะถูกส่งพร้อมฟอร์ม</span>";
+          }
+        } catch (err) {
+          console.error("Save to Drive error:", err);
+          photoLinkBox.style.background = "#fef3c7";
+          photoLinkBox.style.borderColor = "#fcd34d";
+          photoDriveLink.innerHTML = "<span style='color:#92400e;'>⚠️ บันทึกลง Drive ไม่สำเร็จ รูปจะถูกส่งพร้อมฟอร์ม</span>";
+        }
       };
       reader.readAsDataURL(file);
     });
@@ -1089,6 +1184,7 @@
       const docStartRaw = document.getElementById("docStartTime").value.trim();
       const docEndRaw = document.getElementById("docEndTime").value.trim();
       const departRaw = document.getElementById("departTime").value.trim();
+      const returnRaw = document.getElementById("returnTime").value.trim();
 
       const remark = document.getElementById("remark").value.trim();
       const file = photoInput.files && photoInput.files[0];
@@ -1153,6 +1249,7 @@
           docStartTime: formatTimeForPayload(docStartRaw),
           docEndTime: formatTimeForPayload(docEndRaw),
           departTime: formatTimeForPayload(departRaw),
+          returnTime: formatTimeForPayload(returnRaw),
           remark: remark,
           imageBase64: imageBase64,
         };
@@ -1177,12 +1274,15 @@
           // Clear localStorage for DC form fields
           const dcFormFields = [
             "reference", "truckPlate", "arriveDcTime", "loadStartTime", "loadEndTime",
-            "docStartTime", "docEndTime", "departTime", "remark"
+            "docStartTime", "docEndTime", "departTime", "returnTime", "remark"
           ];
           dcFormFields.forEach(id => clearLocalStorageField(id));
+          // Clear photo Drive link
+          clearLocalStorageField("dc_photoDriveLink");
 
           previewBox.style.display = "none";
           previewImage.src = "";
+          photoLinkBox.style.display = "none";
           clearTimeErrors();
         } else {
           Swal.fire({
