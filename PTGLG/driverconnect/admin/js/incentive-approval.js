@@ -143,6 +143,11 @@ export function setIncentiveApprovalElements(els) {
 }
 
 /**
+ * Export calculateIncentiveDistance for use in other modules
+ */
+export { calculateIncentiveDistance };
+
+/**
  * Load incentive jobs for approval
  */
 export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending') {
@@ -210,6 +215,56 @@ export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending
             ❌ เกิดข้อผิดพลาด: ${sanitizeHTML(error.message)}
         </td></tr>`;
     }
+}
+
+/**
+ * Calculate incentive distance based on MAX distance per ship_to_code
+ * Formula: Sum of (MAX distance per ship_to_code) x 2 (round trip)
+ * @param {Array} jobs - Array of job records for a single reference
+ * @returns {Promise<number>} Total incentive distance in km
+ */
+async function calculateIncentiveDistance(jobs) {
+    // Load origin keys once
+    const origins = await loadOriginKeys();
+
+    // Group by ship_to_code to find MAX distance for each unique destination
+    const distanceByShipToCode = new Map();
+
+    for (const job of jobs) {
+        const shipToCode = job.ship_to || job.ship_to_code || '';
+        const distance = parseFloat(job.distance_km) || 0;
+
+        // Skip if no valid distance or ship_to_code
+        if (!shipToCode || shipToCode.trim() === '' || distance <= 0) {
+            continue;
+        }
+
+        // Check if this is an origin point - exclude from calculation
+        const isOrigin = origins.has(shipToCode);
+        if (isOrigin) {
+            console.log('⏭️ Skipping origin point for distance:', shipToCode);
+            continue;
+        }
+
+        // Keep MAX distance for this ship_to_code
+        const currentMax = distanceByShipToCode.get(shipToCode) || 0;
+        if (distance > currentMax) {
+            distanceByShipToCode.set(shipToCode, distance);
+        }
+    }
+
+    // Sum all MAX distances and multiply by 2 (round trip)
+    const oneWayDistance = Array.from(distanceByShipCode.values()).reduce((sum, dist) => sum + dist, 0);
+    const roundTripDistance = oneWayDistance * 2;
+
+    console.log('📏 Incentive Distance Calculation:', {
+        uniqueDestinations: distanceByShipToCode.size,
+        oneWayDistance: oneWayDistance.toFixed(1),
+        roundTripDistance: roundTripDistance.toFixed(1),
+        breakdown: Array.from(distanceByShipCode.entries()).map(([code, dist]) => `${code}: ${dist}km`)
+    });
+
+    return roundTripDistance;
 }
 
 /**
@@ -290,19 +345,18 @@ async function renderTable(jobs) {
             groupedJobs[job.reference] = {
                 ...job,
                 all_jobs: [job],
-                total_distance: parseFloat(job.distance_km) || 0,
                 all_seqs: [job.seq]
             };
         } else {
             groupedJobs[job.reference].all_jobs.push(job);
             groupedJobs[job.reference].all_seqs.push(job.seq);
-            groupedJobs[job.reference].total_distance += parseFloat(job.distance_km) || 0;
         }
     });
 
-    // Calculate unique stops for each reference (now async)
+    // Calculate unique stops and incentive distance for each reference
     for (const reference of Object.keys(groupedJobs)) {
         groupedJobs[reference].stop_count = await calculateUniqueStops(groupedJobs[reference].all_jobs);
+        groupedJobs[reference].total_distance = await calculateIncentiveDistance(groupedJobs[reference].all_jobs);
     }
 
     // Render rows
@@ -518,8 +572,8 @@ export async function openDetailModal(job) {
     const stops = await loadJobStops(job.reference);
     const uniqueStopsCount = await calculateUniqueStops(stops);
 
-    // Calculate performance metrics
-    const totalDistance = job.total_distance || 0;
+    // Calculate incentive distance using the new formula (MAX per ship_to_code x 2)
+    const totalDistance = await calculateIncentiveDistance(stops);
     const rate = job.incentive_rate || DEFAULT_RATE_PER_KM;
     const amount = totalDistance * rate;
 
@@ -817,18 +871,66 @@ async function renderStopsDetail(stops) {
     // Summary for incentive calculation
     const uniqueDeliveryCount = new Set(deliveryStops).size;
     const uniqueOriginCount = new Set(originStops).size;
+
+    // Calculate incentive distance breakdown for display
+    const maxDistanceByCode = new Map();
+    for (const [key, group] of groupedStops.entries()) {
+        if (group.isOrigin) continue;
+
+        // Find MAX distance for this ship_to_code
+        let maxDist = 0;
+        for (const record of group.records) {
+            const dist = parseFloat(record.distance_km) || 0;
+            if (dist > maxDist) maxDist = dist;
+        }
+        if (maxDist > 0) {
+            maxDistanceByCode.set(group.shipToCode || key, {
+                name: group.shipToName,
+                distance: maxDist
+            });
+        }
+    }
+
+    const oneWayDistance = Array.from(maxDistanceByCode.values()).reduce((sum, d) => sum + d.distance, 0);
+    const roundTripDistance = oneWayDistance * 2;
+
     const summaryDiv = document.createElement('div');
     summaryDiv.style.cssText = 'margin-top: 16px; padding: 14px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border-radius: 8px; border: 1px solid #81c784; box-shadow: 0 2px 6px rgba(76, 175, 80, 0.15);';
     summaryDiv.innerHTML = `
         <div style="font-size: 1.05rem; font-weight: bold; color: #2e7d32; margin-bottom: 6px;">
-            💰 คำนวณ Incentive
+            💰 คำนวณ Incentive (ระยะทางไป-กลับ)
         </div>
-        <div style="font-size: 0.95rem; color: #1b5e20;">
+        <div style="font-size: 0.95rem; color: #1b5e20; margin-bottom: 8px;">
             จุดส่งจริงที่นับรับ: <strong style="font-size: 1.1rem;">${uniqueDeliveryCount} จุด</strong>
             <span style="color: #4caf50;">(ไม่รวมต้นทาง ${uniqueOriginCount} จุด)</span>
         </div>
+        <div style="font-size: 0.85rem; color: #2e7d32; margin-bottom: 6px;">
+            📏 สูตรคำนวณ: รวม(ระยะทางสูงสุดต่อจุดส่ง) × 2
+        </div>
+        <div style="font-size: 0.85rem; color: #1b5e20;">
+            ระยะทางไป: <strong>${oneWayDistance.toFixed(1)}</strong> กม. |
+            ระยะทางไป-กลับ: <strong style="font-size: 1.1rem;">${roundTripDistance.toFixed(1)}</strong> กม.
+        </div>
     `;
     elements.detailStops.appendChild(summaryDiv);
+
+    // Add detailed breakdown if there are multiple distances
+    if (maxDistanceByCode.size > 0) {
+        const breakdownDiv = document.createElement('div');
+        breakdownDiv.style.cssText = 'margin-top: 12px; padding: 12px; background: #fff8e1; border-radius: 8px; border: 1px solid #ffb74d;';
+        breakdownDiv.innerHTML = `
+            <div style="font-size: 0.85rem; font-weight: bold; color: #e65100; margin-bottom: 8px;">
+                📊 รายละเอียดระยะทาง (MAX ต่อจุดส่ง)
+            </div>
+            ${Array.from(maxDistanceByCode.entries()).map(([code, data]) => `
+                <div style="font-size: 0.8rem; color: #424242; padding: 4px 0; border-bottom: 1px dashed #ffe0b2;">
+                    <span style="font-weight: 500;">${sanitizeHTML(data.name || code)}</span>
+                    <span style="float: right; color: #1976d2; font-weight: 600;">${data.distance.toFixed(1)} กม.</span>
+                </div>
+            `).join('')}
+        `;
+        elements.detailStops.appendChild(breakdownDiv);
+    }
 }
 
 /**
@@ -1691,8 +1793,13 @@ export async function approveIncentive(liff) {
 
     try {
         const lineProfile = await liff.getProfile();
+
+        // Calculate incentive distance using the correct formula
+        const stops = await loadJobStops(currentJob.reference);
+        const totalDistance = await calculateIncentiveDistance(stops);
+        const uniqueStopsCount = await calculateUniqueStops(stops);
+
         const rate = currentJob.incentive_rate || DEFAULT_RATE_PER_KM;
-        const totalDistance = currentJob.total_distance || 0;
         const amount = totalDistance * rate;
 
         const { error } = await supabase
@@ -1703,7 +1810,7 @@ export async function approveIncentive(liff) {
                 incentive_approved_at: new Date().toISOString(),
                 incentive_amount: amount,
                 incentive_distance: totalDistance,
-                incentive_stops: currentJob.stop_count,
+                incentive_stops: uniqueStopsCount,
                 incentive_rate: rate,
                 updated_at: new Date().toISOString()
             })
