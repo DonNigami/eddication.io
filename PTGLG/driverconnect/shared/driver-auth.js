@@ -339,6 +339,12 @@ export class DriverAuth {
      * @returns {Promise<boolean>} - True if driver can check-in to this stop
      */
     static async verifyCheckInAccess(liffId, reference, shipToCode = null, shipToName = null) {
+        // Bypass all checks if configured (consistent with verifyJobAccess behavior)
+        if (DriverAuthConfig.BYPASS_JOB_ACCESS_CHECK) {
+            console.log('✅ DriverAuth: Check-in access check bypassed (config)');
+            return true;
+        }
+
         // First verify job access
         const hasJobAccess = await this.verifyJobAccess(liffId, reference);
         if (!hasJobAccess) {
@@ -352,14 +358,15 @@ export class DriverAuth {
         if (hasMeaningfulShipToCode) {
             try {
                 const supabase = supabaseClient;
+                // Use .limit(1) instead of .maybeSingle() to handle multiple rows with same ship_to_code
                 const { data, error } = await supabase
                     .from('jobdata')
                     .select('id')
                     .eq('reference', reference)
                     .eq('ship_to_code', shipToCode)
-                    .maybeSingle();
+                    .limit(1);
 
-                if (error || !data) {
+                if (error || !data || data.length === 0) {
                     console.warn(`⚠️ DriverAuth: ShipToCode ${shipToCode} not found in reference ${reference}`);
                     return false;
                 }
