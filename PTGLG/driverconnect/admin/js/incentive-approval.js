@@ -254,14 +254,14 @@ async function calculateIncentiveDistance(jobs) {
     }
 
     // Sum all MAX distances and multiply by 2 (round trip)
-    const oneWayDistance = Array.from(distanceByShipCode.values()).reduce((sum, dist) => sum + dist, 0);
+    const oneWayDistance = Array.from(distanceByShipToCode.values()).reduce((sum, dist) => sum + dist, 0);
     const roundTripDistance = oneWayDistance * 2;
 
     console.log('📏 Incentive Distance Calculation:', {
         uniqueDestinations: distanceByShipToCode.size,
         oneWayDistance: oneWayDistance.toFixed(1),
         roundTripDistance: roundTripDistance.toFixed(1),
-        breakdown: Array.from(distanceByShipCode.entries()).map(([code, dist]) => `${code}: ${dist}km`)
+        breakdown: Array.from(distanceByShipToCode.entries()).map(([code, dist]) => `${code}: ${dist}km`)
     });
 
     return roundTripDistance;
