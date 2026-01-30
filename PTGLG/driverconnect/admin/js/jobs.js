@@ -134,6 +134,12 @@ export async function loadJobs(searchTerm = '') {
 
             const actionCell = row.insertCell();
 
+            // Edit button
+            const editButton = createActionButton('edit-job-btn', 'Edit', () => {
+                openJobModal(job);
+            });
+            actionCell.appendChild(editButton);
+
             // Details button
             const detailsButton = document.createElement('button');
             detailsButton.className = 'view-details-btn';
@@ -141,6 +147,7 @@ export async function loadJobs(searchTerm = '') {
             detailsButton.dataset.reference = job.reference;
             detailsButton.textContent = 'Details';
             detailsButton.addEventListener('click', () => openJobDetailsModal(job.reference));
+            detailsButton.style.marginLeft = '5px';
             actionCell.appendChild(detailsButton);
 
             // Delete button
@@ -148,6 +155,7 @@ export async function loadJobs(searchTerm = '') {
                 handleDeleteJob(job.reference);
             });
             deleteButton.style.backgroundColor = '#e74c3c';
+            deleteButton.style.marginLeft = '5px';
             actionCell.appendChild(deleteButton);
         });
 
