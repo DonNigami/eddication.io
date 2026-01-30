@@ -218,8 +218,8 @@ export async function loadIncentiveJobs(searchTerm = '', statusFilter = 'pending
 }
 
 /**
- * Calculate incentive distance based on MAX distance per ship_to_code
- * Formula: Sum of (MAX distance per ship_to_code) x 2 (round trip)
+ * Calculate incentive distance based on MAX distance per ship_to_name
+ * Formula: Sum of (MAX distance_km per ship_to_name in same reference) x 2 (round trip)
  * @param {Array} jobs - Array of job records for a single reference
  * @returns {Promise<number>} Total incentive distance in km
  */
@@ -227,41 +227,42 @@ async function calculateIncentiveDistance(jobs) {
     // Load origin keys once
     const origins = await loadOriginKeys();
 
-    // Group by ship_to_code to find MAX distance for each unique destination
-    const distanceByShipToCode = new Map();
+    // Group by ship_to_name to find MAX distance for each unique destination
+    const distanceByShipToName = new Map();
 
     for (const job of jobs) {
         const shipToCode = job.ship_to || job.ship_to_code || '';
+        const shipToName = job.ship_to_name || '';
         const distance = parseFloat(job.distance_km) || 0;
 
-        // Skip if no valid distance or ship_to_code
-        if (!shipToCode || shipToCode.trim() === '' || distance <= 0) {
+        // Skip if no valid distance or ship_to_name
+        if (!shipToName || shipToName.trim() === '' || distance <= 0) {
             continue;
         }
 
         // Check if this is an origin point - exclude from calculation
         const isOrigin = origins.has(shipToCode);
         if (isOrigin) {
-            console.log('⏭️ Skipping origin point for distance:', shipToCode);
+            console.log('⏭️ Skipping origin point for distance:', shipToName, `(${shipToCode})`);
             continue;
         }
 
-        // Keep MAX distance for this ship_to_code
-        const currentMax = distanceByShipToCode.get(shipToCode) || 0;
+        // Use ship_to_name as key, keep MAX distance for this destination
+        const currentMax = distanceByShipToName.get(shipToName) || 0;
         if (distance > currentMax) {
-            distanceByShipToCode.set(shipToCode, distance);
+            distanceByShipToName.set(shipToName, distance);
         }
     }
 
     // Sum all MAX distances and multiply by 2 (round trip)
-    const oneWayDistance = Array.from(distanceByShipToCode.values()).reduce((sum, dist) => sum + dist, 0);
+    const oneWayDistance = Array.from(distanceByShipToName.values()).reduce((sum, dist) => sum + dist, 0);
     const roundTripDistance = oneWayDistance * 2;
 
     console.log('📏 Incentive Distance Calculation:', {
-        uniqueDestinations: distanceByShipToCode.size,
+        uniqueDestinations: distanceByShipToName.size,
         oneWayDistance: oneWayDistance.toFixed(1),
         roundTripDistance: roundTripDistance.toFixed(1),
-        breakdown: Array.from(distanceByShipToCode.entries()).map(([code, dist]) => `${code}: ${dist}km`)
+        breakdown: Array.from(distanceByShipToName.entries()).map(([name, dist]) => `${name}: ${dist}km`)
     });
 
     return roundTripDistance;
@@ -872,26 +873,29 @@ async function renderStopsDetail(stops) {
     const uniqueDeliveryCount = new Set(deliveryStops).size;
     const uniqueOriginCount = new Set(originStops).size;
 
-    // Calculate incentive distance breakdown for display
-    const maxDistanceByCode = new Map();
+    // Calculate incentive distance breakdown for display - Group by ship_to_name
+    const maxDistanceByName = new Map();
     for (const [key, group] of groupedStops.entries()) {
         if (group.isOrigin) continue;
 
-        // Find MAX distance for this ship_to_code
+        // Find MAX distance for this ship_to_name
         let maxDist = 0;
         for (const record of group.records) {
             const dist = parseFloat(record.distance_km) || 0;
             if (dist > maxDist) maxDist = dist;
         }
         if (maxDist > 0) {
-            maxDistanceByCode.set(group.shipToCode || key, {
-                name: group.shipToName,
+            const name = group.shipToName || key;
+            // Use ship_to_name as key to avoid duplicates
+            maxDistanceByName.set(name, {
+                name: name,
+                code: group.shipToCode,
                 distance: maxDist
             });
         }
     }
 
-    const oneWayDistance = Array.from(maxDistanceByCode.values()).reduce((sum, d) => sum + d.distance, 0);
+    const oneWayDistance = Array.from(maxDistanceByName.values()).reduce((sum, d) => sum + d.distance, 0);
     const roundTripDistance = oneWayDistance * 2;
 
     const summaryDiv = document.createElement('div');
@@ -905,7 +909,7 @@ async function renderStopsDetail(stops) {
             <span style="color: #4caf50;">(ไม่รวมต้นทาง ${uniqueOriginCount} จุด)</span>
         </div>
         <div style="font-size: 0.85rem; color: #2e7d32; margin-bottom: 6px;">
-            📏 สูตรคำนวณ: รวม(ระยะทางสูงสุดต่อจุดส่ง) × 2
+            📏 สูตรคำนวณ: รวม(ระยะทางสูงสุดต่อชื่อจุดส่ง) × 2
         </div>
         <div style="font-size: 0.85rem; color: #1b5e20;">
             ระยะทางไป: <strong>${oneWayDistance.toFixed(1)}</strong> กม. |
@@ -915,16 +919,17 @@ async function renderStopsDetail(stops) {
     elements.detailStops.appendChild(summaryDiv);
 
     // Add detailed breakdown if there are multiple distances
-    if (maxDistanceByCode.size > 0) {
+    if (maxDistanceByName.size > 0) {
         const breakdownDiv = document.createElement('div');
         breakdownDiv.style.cssText = 'margin-top: 12px; padding: 12px; background: #fff8e1; border-radius: 8px; border: 1px solid #ffb74d;';
         breakdownDiv.innerHTML = `
             <div style="font-size: 0.85rem; font-weight: bold; color: #e65100; margin-bottom: 8px;">
-                📊 รายละเอียดระยะทาง (MAX ต่อจุดส่ง)
+                📊 รายละเอียดระยะทาง (MAX ต่อชื่อจุดส่ง)
             </div>
-            ${Array.from(maxDistanceByCode.entries()).map(([code, data]) => `
+            ${Array.from(maxDistanceByName.values()).map((data) => `
                 <div style="font-size: 0.8rem; color: #424242; padding: 4px 0; border-bottom: 1px dashed #ffe0b2;">
-                    <span style="font-weight: 500;">${sanitizeHTML(data.name || code)}</span>
+                    <span style="font-weight: 500;">${sanitizeHTML(data.name)}</span>
+                    ${data.code ? `<span style="color: #757575; font-size: 0.75rem;"> (${sanitizeHTML(data.code)})</span>` : ''}
                     <span style="float: right; color: #1976d2; font-weight: 600;">${data.distance.toFixed(1)} กม.</span>
                 </div>
             `).join('')}
