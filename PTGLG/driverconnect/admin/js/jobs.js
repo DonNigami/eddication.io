@@ -72,8 +72,10 @@ export async function loadJobs(searchTerm = '') {
     jobsTableBody.innerHTML = `<tr><td colspan="${JOBS_TABLE_COLUMNS}">Loading jobs...</td></tr>`;
 
     try {
+        // Query from jobdata table - get unique references with their data
+        // jobdata has one row per stop, so we need to get distinct references
         let query = supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .select('*')
             .order('created_at', { ascending: false });
 
@@ -81,48 +83,55 @@ export async function loadJobs(searchTerm = '') {
             query = query.or(`reference.ilike.%${searchTerm}%,shipment_no.ilike.%${searchTerm}%,drivers.ilike.%${searchTerm}%`);
         }
 
-        const { data: jobs, error } = await query;
+        const { data: allRows, error } = await query;
 
         if (error) throw error;
 
         jobsTableBody.innerHTML = '';
-        if (jobs.length === 0) {
+
+        if (!allRows || allRows.length === 0) {
             jobsTableBody.innerHTML = `<tr><td colspan="${JOBS_TABLE_COLUMNS}">No jobs found.</td></tr>`;
             return;
         }
 
+        // Group by reference (since jobdata has one row per stop)
+        const jobsMap = new Map();
+        allRows.forEach(row => {
+            if (!jobsMap.has(row.reference)) {
+                jobsMap.set(row.reference, row);
+            }
+        });
+
+        const jobs = Array.from(jobsMap.values());
+
         jobs.forEach(job => {
             const row = jobsTableBody.insertRow();
             row.dataset.jobId = job.id;
+            row.dataset.reference = job.reference;
 
             row.insertCell().textContent = job.reference || 'N/A';
             row.insertCell().textContent = job.shipment_no || 'N/A';
             row.insertCell().textContent = job.drivers || 'N/A';
             row.insertCell().textContent = job.status || 'N/A';
-            row.insertCell().textContent = job.trip_ended ? 'Yes' : 'No';
+            row.insertCell().textContent = job.job_closed_at ? 'Yes' : 'No';
 
             const actionCell = row.insertCell();
-
-            // Edit button
-            const editButton = createActionButton('edit-job-btn', 'Edit', () => {
-                openJobModal(job);
-            });
-            actionCell.appendChild(editButton);
-
-            // Delete button
-            const deleteButton = createActionButton('delete-job-btn', 'Delete', () => {
-                handleDeleteJob(job.id);
-            });
-            deleteButton.style.backgroundColor = '#e74c3c';
-            actionCell.appendChild(deleteButton);
 
             // Details button
             const detailsButton = document.createElement('button');
             detailsButton.className = 'view-details-btn';
             detailsButton.dataset.jobId = job.id;
+            detailsButton.dataset.reference = job.reference;
             detailsButton.textContent = 'Details';
-            detailsButton.addEventListener('click', () => openJobDetailsModal(job.id));
+            detailsButton.addEventListener('click', () => openJobDetailsModal(job.reference));
             actionCell.appendChild(detailsButton);
+
+            // Delete button
+            const deleteButton = createActionButton('delete-job-btn', 'Delete', () => {
+                handleDeleteJob(job.reference);
+            });
+            deleteButton.style.backgroundColor = '#e74c3c';
+            actionCell.appendChild(deleteButton);
         });
 
     } catch (error) {
@@ -165,7 +174,8 @@ export function openJobModal(job = null) {
         if (jobShipmentNoInput) jobShipmentNoInput.value = job.shipment_no || '';
         if (jobDriverInput) jobDriverInput.value = job.drivers || '';
         if (jobStatusInput) jobStatusInput.value = job.status || 'pending';
-        if (jobTripEndedInput) jobTripEndedInput.checked = job.trip_ended || false;
+        // Use job_closed_at instead of trip_ended
+        if (jobTripEndedInput) jobTripEndedInput.checked = !!job.job_closed_at;
     }
     if (jobModal) jobModal.classList.remove('hidden');
 }
@@ -185,24 +195,28 @@ export async function handleJobSubmit(event) {
     event.preventDefault();
 
     const jobId = jobIdInput?.value;
+    const reference = jobReferenceInput?.value || '';
+
     const jobData = {
-        reference: jobReferenceInput?.value || '',
+        reference: reference,
         shipment_no: jobShipmentNoInput?.value || '',
         drivers: jobDriverInput?.value || '',
         status: jobStatusInput?.value || 'pending',
-        trip_ended: jobTripEndedInput?.checked || false,
+        job_closed_at: jobTripEndedInput?.checked ? new Date().toISOString() : null,
         updated_at: new Date().toISOString()
     };
 
     try {
         let error = null;
         if (jobId) {
-            // Update existing job
-            ({ error } = await supabase.from('driver_jobs').update(jobData).eq('id', jobId));
+            // Update existing job (by id in jobdata)
+            ({ error } = await supabase.from('jobdata').update(jobData).eq('id', jobId));
         } else {
             // Create new job
             jobData.created_at = new Date().toISOString();
-            ({ error } = await supabase.from('driver_jobs').insert([jobData]));
+            jobData.seq = 1; // Default sequence
+            jobData.is_origin_stop = true; // Mark as origin stop by default
+            ({ error } = await supabase.from('jobdata').insert([jobData]));
         }
 
         if (error) throw error;
@@ -219,18 +233,18 @@ export async function handleJobSubmit(event) {
 
 /**
  * Handle job delete
- * @param {string} jobId - Job ID to delete
+ * @param {string} reference - Job reference to delete (deletes all rows with same reference)
  */
-export async function handleDeleteJob(jobId) {
-    if (!confirm('Are you sure you want to delete this job?')) {
+export async function handleDeleteJob(reference) {
+    if (!confirm(`Are you sure you want to delete job ${reference}? This will delete all stops for this job.`)) {
         return;
     }
 
     try {
         const { error } = await supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .delete()
-            .eq('id', jobId);
+            .eq('reference', reference);
 
         if (error) throw error;
 
@@ -244,9 +258,9 @@ export async function handleDeleteJob(jobId) {
 
 /**
  * Open job details modal
- * @param {string} jobId - Job ID to show details for
+ * @param {string} reference - Job reference to show details for
  */
-export async function openJobDetailsModal(jobId) {
+export async function openJobDetailsModal(reference) {
     if (!jobDetailsModal) {
         console.error('Job details modal not set');
         return;
@@ -263,70 +277,75 @@ export async function openJobDetailsModal(jobId) {
     if (detailJobTripEnded) detailJobTripEnded.textContent = 'Loading...';
     if (detailJobCreatedAt) detailJobCreatedAt.textContent = 'Loading...';
     if (detailJobUpdatedAt) detailJobUpdatedAt.textContent = 'Loading...';
-    if (jobDetailsStopsTableBody) jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="5">Loading stops...</td></tr>';
+    if (jobDetailsStopsTableBody) jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="7">Loading stops...</td></tr>';
     if (jobDetailsAlcoholTableBody) jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">Loading alcohol checks...</td></tr>';
-    if (jobDetailsLogsTableBody) jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="4">Loading driver logs...</td></tr>';
+    if (jobDetailsLogsTableBody) jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="5">Loading driver logs...</td></tr>';
 
     try {
-        // Fetch Job Data
-        const { data: job, error: jobError } = await supabase
-            .from('driver_jobs')
+        // Fetch all rows for this reference from jobdata
+        const { data: jobRows, error: jobError } = await supabase
+            .from('jobdata')
             .select('*')
-            .eq('id', jobId)
-            .single();
+            .eq('reference', reference)
+            .order('seq', { ascending: true });
+
         if (jobError) throw jobError;
+
+        if (!jobRows || jobRows.length === 0) {
+            showNotification('Job not found', 'error');
+            closeJobDetailsModal();
+            return;
+        }
+
+        // Get first row as the main job data
+        const job = jobRows[0];
 
         if (jobDetailsReferenceTitle) jobDetailsReferenceTitle.textContent = job.reference || 'N/A';
         if (detailJobReference) detailJobReference.textContent = job.reference || 'N/A';
         if (detailJobShipmentNo) detailJobShipmentNo.textContent = job.shipment_no || 'N/A';
         if (detailJobDriver) detailJobDriver.textContent = job.drivers || 'N/A';
         if (detailJobStatus) detailJobStatus.textContent = job.status || 'N/A';
-        if (detailJobTripEnded) detailJobTripEnded.textContent = job.trip_ended ? 'Yes' : 'No';
-        if (detailJobCreatedAt) detailJobCreatedAt.textContent = new Date(job.created_at).toLocaleString();
-        if (detailJobUpdatedAt) detailJobUpdatedAt.textContent = new Date(job.updated_at).toLocaleString();
+        if (detailJobTripEnded) detailJobTripEnded.textContent = job.job_closed_at ? 'Yes' : 'No';
+        if (detailJobCreatedAt) detailJobCreatedAt.textContent = job.created_at ? new Date(job.created_at).toLocaleString() : 'N/A';
+        if (detailJobUpdatedAt) detailJobUpdatedAt.textContent = job.updated_at ? new Date(job.updated_at).toLocaleString() : 'N/A';
 
-        // Fetch Trip Stops
-        const { data: driverStops, error: stopsError } = await supabase
-            .from('driver_stop')
-            .select('*')
-            .eq('reference', job.reference)
-            .order('sequence', { ascending: true });
-        if (stopsError) throw stopsError;
-
+        // Display all stops from jobdata (each row is a stop)
         if (jobDetailsStopsTableBody) {
             jobDetailsStopsTableBody.innerHTML = '';
-            if (driverStops.length === 0) {
-                jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="5">No stops found.</td></tr>';
+            if (jobRows.length === 0) {
+                jobDetailsStopsTableBody.innerHTML = '<tr><td colspan="7">No stops found.</td></tr>';
             } else {
-                driverStops.forEach(stop => {
+                jobRows.forEach(stop => {
                     const row = jobDetailsStopsTableBody.insertRow();
-                    row.insertCell().textContent = stop.sequence || 'N/A';
-                    row.insertCell().textContent = stop.destination_name || 'N/A';
+                    row.insertCell().textContent = stop.seq || 'N/A';
+                    row.insertCell().textContent = stop.ship_to_code || 'N/A';
+                    row.insertCell().textContent = stop.destination || 'N/A';
+                    row.insertCell().textContent = stop.is_origin_stop ? 'Yes' : 'No';
                     row.insertCell().textContent = stop.status || 'N/A';
-                    row.insertCell().textContent = stop.check_in_time ? new Date(stop.check_in_time).toLocaleString() : 'N/A';
-                    row.insertCell().textContent = stop.check_out_time ? new Date(stop.check_out_time).toLocaleString() : 'N/A';
+                    row.insertCell().textContent = stop.checkin_time ? new Date(stop.checkin_time).toLocaleString() : 'N/A';
+                    row.insertCell().textContent = stop.checkout_time ? new Date(stop.checkout_time).toLocaleString() : 'N/A';
                 });
             }
         }
 
-        // Fetch Alcohol Checks
-        const { data: driverAlcoholChecks, error: alcoholError } = await supabase
-            .from('driver_alcohol_checks')
+        // Fetch Alcohol Checks from alcohol_checks table (uses reference)
+        const { data: alcoholChecks, error: alcoholError } = await supabase
+            .from('alcohol_checks')
             .select('*')
-            .eq('job_id', jobId)
+            .eq('reference', reference)
             .order('checked_at', { ascending: false });
-        if (alcoholError) throw alcoholError;
+        if (alcoholError) console.warn('Alcohol checks error:', alcoholError);
 
         if (jobDetailsAlcoholTableBody) {
             jobDetailsAlcoholTableBody.innerHTML = '';
-            if (driverAlcoholChecks.length === 0) {
+            if (!alcoholChecks || alcoholChecks.length === 0) {
                 jobDetailsAlcoholTableBody.innerHTML = '<tr><td colspan="4">No alcohol checks found.</td></tr>';
             } else {
-                driverAlcoholChecks.forEach(check => {
+                alcoholChecks.forEach(check => {
                     const row = jobDetailsAlcoholTableBody.insertRow();
-                    row.insertCell().textContent = check.checked_by || 'N/A';
+                    row.insertCell().textContent = check.driver_name || 'N/A';
                     row.insertCell().textContent = check.alcohol_value || 'N/A';
-                    row.insertCell().textContent = new Date(check.checked_at).toLocaleString();
+                    row.insertCell().textContent = check.checked_at ? new Date(check.checked_at).toLocaleString() : 'N/A';
                     const imageCell = row.insertCell();
                     if (check.image_url) {
                         const link = document.createElement('a');
@@ -341,25 +360,27 @@ export async function openJobDetailsModal(jobId) {
             }
         }
 
-        // Fetch Driver Logs
-        const { data: driverLogs, error: logsError } = await supabase
-            .from('driver_logs')
+        // Fetch Admin Logs from admin_logs table (uses reference)
+        const { data: adminLogs, error: logsError } = await supabase
+            .from('admin_logs')
             .select('*')
-            .eq('job_id', jobId)
-            .order('created_at', { ascending: false });
-        if (logsError) throw logsError;
+            .eq('reference', reference)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        if (logsError) console.warn('Admin logs error:', logsError);
 
         if (jobDetailsLogsTableBody) {
             jobDetailsLogsTableBody.innerHTML = '';
-            if (driverLogs.length === 0) {
-                jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="4">No driver logs found.</td></tr>';
+            if (!adminLogs || adminLogs.length === 0) {
+                jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="5">No logs found.</td></tr>';
             } else {
-                driverLogs.forEach(log => {
+                adminLogs.forEach(log => {
                     const row = jobDetailsLogsTableBody.insertRow();
-                    row.insertCell().textContent = new Date(log.created_at).toLocaleString();
+                    row.insertCell().textContent = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
                     row.insertCell().textContent = log.action || 'N/A';
                     row.insertCell().textContent = log.user_id || 'N/A';
-                    row.insertCell().textContent = log.location ? `Lat: ${log.location.lat}, Lng: ${log.location.lng}` : 'N/A';
+                    row.insertCell().textContent = log.user_name || 'N/A';
+                    row.insertCell().textContent = log.location ? `Lat: ${log.location?.lat}, Lng: ${log.location?.lng}` : 'N/A';
                 });
             }
         }
