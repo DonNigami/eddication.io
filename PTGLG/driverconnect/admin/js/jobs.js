@@ -328,13 +328,14 @@ export async function openJobDetailsModal(reference) {
             }
         }
 
-        // Fetch Alcohol Checks from alcohol_checks table (uses reference)
+        // Fetch Alcohol Checks from driver_alcohol_checks table (uses reference)
         const { data: alcoholChecks, error: alcoholError } = await supabase
-            .from('alcohol_checks')
+            .from('driver_alcohol_checks')
             .select('*')
             .eq('reference', reference)
             .order('checked_at', { ascending: false });
         if (alcoholError) console.warn('Alcohol checks error:', alcoholError);
+        console.log('Alcohol checks for', reference, ':', alcoholChecks);
 
         if (jobDetailsAlcoholTableBody) {
             jobDetailsAlcoholTableBody.innerHTML = '';
@@ -360,21 +361,22 @@ export async function openJobDetailsModal(reference) {
             }
         }
 
-        // Fetch Admin Logs from admin_logs table (uses reference)
-        const { data: adminLogs, error: logsError } = await supabase
-            .from('admin_logs')
+        // Fetch Driver Logs from driver_logs table
+        const { data: driverLogs, error: logsError } = await supabase
+            .from('driver_logs')
             .select('*')
             .eq('reference', reference)
             .order('created_at', { ascending: false })
             .limit(50);
-        if (logsError) console.warn('Admin logs error:', logsError);
+        if (logsError) console.warn('Driver logs error:', logsError);
+        console.log('Driver logs for', reference, ':', driverLogs);
 
         if (jobDetailsLogsTableBody) {
             jobDetailsLogsTableBody.innerHTML = '';
-            if (!adminLogs || adminLogs.length === 0) {
+            if (!driverLogs || driverLogs.length === 0) {
                 jobDetailsLogsTableBody.innerHTML = '<tr><td colspan="5">No logs found.</td></tr>';
             } else {
-                adminLogs.forEach(log => {
+                driverLogs.forEach(log => {
                     const row = jobDetailsLogsTableBody.insertRow();
                     row.insertCell().textContent = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
                     row.insertCell().textContent = log.action || 'N/A';
