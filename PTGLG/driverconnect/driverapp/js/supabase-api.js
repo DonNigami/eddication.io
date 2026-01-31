@@ -22,7 +22,8 @@ const TABLES = {
   DRIVER_LOGS: 'driver_logs',
   JOBDATA: 'jobdata',
   USER_PROFILES: 'user_profiles',
-  PROCESS_DATA: 'process_data'
+  PROCESS_DATA: 'process_data',
+  DRIVER_MASTER: 'driver_master'
 };
 
 // Storage bucket name (migration PENDING)
@@ -1058,6 +1059,27 @@ export const SupabaseAPI = {
       .subscribe();
 
     return realtimeSubscription;
+  },
+
+  /**
+   * Fetch all drivers from driver_master table
+   * @returns {Promise<Array>} Array of driver objects with driver_name, employee_code, etc.
+   */
+  async fetchDrivers() {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.DRIVER_MASTER)
+        .select('employee_code, driver_name, driver_sap_code, section, truck_type, position')
+        .order('driver_name', { ascending: true });
+
+      if (error) throw error;
+
+      console.log('✅ Fetched', data?.length || 0, 'drivers from driver_master');
+      return { success: true, drivers: data || [] };
+    } catch (err) {
+      console.error('❌ Supabase fetchDrivers error:', err);
+      return { success: false, message: err.message, drivers: [] };
+    }
   },
 
   /**
