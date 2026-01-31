@@ -26,6 +26,9 @@ import {
     getLiff
 } from './js/main.js';
 
+// Import auto-refresh
+import { initAutoRefresh } from './js/auto-refresh.js';
+
 // Global state (for backwards compatibility)
 let holidayWorkRealtimeChannel = null;
 let jobActivityRealtimeChannel = null;
@@ -146,6 +149,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup navigation
     setupNavigation();
+
+    // Initialize auto-refresh (5 minutes)
+    initAutoRefresh();
 
     console.log('✅ DriverConnect Admin Panel initialized');
 });
