@@ -29,6 +29,9 @@ import {
 // Import auto-refresh
 import { initAutoRefresh } from './js/auto-refresh.js';
 
+// Import registration approval
+import { loadRegistrations as loadRegistrationApprovals } from './js/registration-approval.js';
+
 // Global state (for backwards compatibility)
 let holidayWorkRealtimeChannel = null;
 let jobActivityRealtimeChannel = null;
@@ -135,6 +138,11 @@ function setupNavigation() {
 async function loadSectionData(targetId) {
     const { loadSectionData } = await import('./js/main.js');
     await loadSectionData(targetId);
+
+    // Load registration approvals if needed
+    if (targetId === 'registration-approval') {
+        await loadRegistrationApprovals();
+    }
 }
 
 // DOM Content Loaded handler
@@ -160,5 +168,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 export {
     initializeLIFF,
     setupNavigation,
-    loadSectionData
+    loadSectionData,
+    loadRegistrationApprovals
 };

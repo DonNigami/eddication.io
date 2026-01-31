@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ลงทะเบียนพนักงานขับรถ | DriverConnect</title>
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00B900;
+            --primary-dark: #009900;
+            --success: #00C853;
+            --warning: #FFA000;
+            --error: #D32F2F;
+            --bg: #F5F5F5;
+            --card-bg: #FFFFFF;
+            --text: #212121;
+            --text-sub: #616161;
+            --border: #E0E0E0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f0f0f0;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+        }
+
+        /* App Container */
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: var(--card-bg);
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 24px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+
+        .profile-picture {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 4px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Content */
+        .content {
+            padding: 20px;
+        }
+
+        /* Profile Section */
+        .profile-section {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .profile-section img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .profile-section-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .profile-section-info p {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        /* Status Card */
+        .status-card {
+            background: var(--bg);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .status-card.pending {
+            border-left-color: var(--warning);
+            background: #FFF8E1;
+        }
+
+        .status-card.approved {
+            border-left-color: var(--success);
+            background: #E8F5E9;
+        }
+
+        .status-card.rejected {
+            border-left-color: var(--error);
+            background: #FFEBEE;
+        }
+
+        /* Form */
+        .form-section {
+            margin-bottom: 24px;
+        }
+
+        .form-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary);
+            display: inline-block;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .form-group label .required {
+            color: var(--error);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 185, 0, 0.1);
+        }
+
+        .form-group .help-text {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .form-group.error input,
+        .form-group.error select {
+            border-color: var(--error);
+        }
+
+        .form-group .error-message {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        /* Message Box */
+        .message-box {
+            text-align: center;
+            padding: 40px 20px;
+            min-height: 50vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin-bottom: 20px;
+        }
+
+        .message-box.success .message-icon {
+            background: var(--success);
+            color: white;
+        }
+
+        .message-box.pending .message-icon {
+            background: var(--warning);
+            color: white;
+        }
+
+        .message-box.approved .message-icon {
+            background: var(--success);
+            color: white;
+        }
+
+        .message-box.error .message-icon {
+            background: var(--error);
+            color: white;
+        }
+
+        .message-box h2 {
+            font-size: 22px;
+            margin-bottom: 12px;
+        }
+
+        .message-box p {
+            color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: var(--bg);
+            border-radius: 20px;
+            font-weight: 600;
+            margin: 16px 0;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #323232;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10000;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Hidden */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <img src="https://asv-ptgenergy-backoffice-api-prod.azurewebsites.net/images/annual01.png"
+             alt="PT Energy Logo" class="logo">
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 16px; color: var(--text-sub);">กำลังโหลด...</p>
+    </div>
+
+    <!-- App Container -->
+    <div id="app" class="app-container hidden">
+        <!-- Header -->
+        <div class="header">
+            <img id="linePicture" src="" alt="Profile" class="profile-picture"
+                 onerror="this.src='https://via.placeholder.com/80'">
+            <h1>ลงทะเบียนพนักงานขับรถ</h1>
+            <p id="lineDisplayName" style="font-size: 14px; opacity: 0.9;">กำลังโหลด...</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Profile Info -->
+            <div id="profileSection" class="profile-section hidden">
+                <img id="profilePicture" src="" alt="Profile" onerror="this.src='https://via.placeholder.com/50'">
+                <div class="profile-section-info">
+                    <h3 id="profileName">-</h3>
+                    <p>LINE User ID: <span id="profileUserId" style="font-family: monospace;">-</span></p>
+                </div>
+            </div>
+
+            <!-- Status Card -->
+            <div id="statusSection" class="hidden">
+                <!-- Will be populated by JS -->
+            </div>
+
+            <!-- Registration Form -->
+            <form id="registrationForm" class="hidden">
+                <!-- Driver Information -->
+                <div class="form-section">
+                    <span class="form-section-title">ข้อมูลพนักงาน</span>
+
+                    <div class="form-group">
+                        <label>รหัสพนักงาน <span class="required">*</span></label>
+                        <input type="text" id="employeeCode" placeholder="เช่น EMP001" required>
+                        <small class="help-text">รหัสพนักงานของคุณ</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ชื่อ-นามสกุล <span class="required">*</span></label>
+                        <input type="text" id="driverName" placeholder="ชื่อ-นามสกุล" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>รหัส SAP <span class="required">*</span></label>
+                        <input type="text" id="driverSapCode" placeholder="เช่น SAP001" required>
+                        <small class="help-text">รหัสพนักงานในระบบ SAP</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>เบอร์โทรศัพท์</label>
+                        <input type="tel" id="phoneNumber" placeholder="08xxxxxxxx">
+                        <small class="help-text">เบอร์โทรศัพท์ที่ติดต่อได้</small>
+                    </div>
+                </div>
+
+                <!-- Work Information -->
+                <div class="form-section">
+                    <span class="form-section-title">ข้อมูลการทำงาน</span>
+
+                    <div class="form-group">
+                        <label>แผนก/ฝ่าย <span class="required">*</span></label>
+                        <select id="section" required>
+                            <option value="">-- เลือกแผนก --</option>
+                            <option value="Transport">ฝ่ายขนส่ง (Transport)</option>
+                            <option value="Logistics">ฝ่ายโลจิสติกส์ (Logistics)</option>
+                            <option value="Warehouse">ฝ่ายคลังสินค้า (Warehouse)</option>
+                            <option value="Delivery">ฝ่ายส่งสินค้า (Delivery)</option>
+                            <option value="Operation">ฝ่ายปฏิบัติการ (Operation)</option>
+                            <option value="Other">อื่นๆ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ประเภทรถ <span class="required">*</span></label>
+                        <select id="truckType" required>
+                            <option value="">-- เลือกประเภทรถ --</option>
+                            <option value="10-Wheeler">รถ 10 ล้อ (10-Wheeler)</option>
+                            <option value="6-Wheeler">รถ 6 ล้อ (6-Wheeler)</option>
+                            <option value="4-Wheeler">รถ 4 ล้อ (4-Wheeler)</option>
+                            <option value="Trailer">รถพ่วง (Trailer)</option>
+                            <option value="Tanker">รถแทงค์ (Tanker)</option>
+                            <option value="Other">อื่นๆ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>ตำแหน่ง <span class="required">*</span></label>
+                        <select id="position" required>
+                            <option value="">-- เลือกตำแหน่ง --</option>
+                            <option value="Driver">พนักงานขับรถ (Driver)</option>
+                            <option value="Assistant">พนักงานขับรถผู้ช่วย (Assistant)</option>
+                            <option value="Contractor">พนักงานขับรถ รปก. (Contractor)</option>
+                            <option value="Lead Driver">หัวหน้าคนขับ (Lead Driver)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <span class="btn-text">ส่งคำขอลงทะเบียน</span>
+                </button>
+            </form>
+
+            <!-- Success Message -->
+            <div id="successMessage" class="message-box hidden">
+                <div class="message-icon">✓</div>
+                <h2>ลงทะเบียนสำเร็จ!</h2>
+                <p>ข้อมูลของคุณถูกบันทึกเรียบร้อยแล้ว</p>
+                <span class="status-badge">สถานะ: รอตรวจสอบ (PENDING)</span>
+                <p style="margin-top: 16px;">ทางผู้ดูแลระบบจะตรวจสอบและอนุมัติภายใน 24 ชั่วโมง</p>
+                <button class="btn btn-secondary" style="max-width: 240px; margin-top: 24px;" onclick="liff.closeWindow()">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+
+            <!-- Pending Message -->
+            <div id="pendingMessage" class="message-box hidden">
+                <div class="message-icon">⏳</div>
+                <h2>ข้อมูลของคุณอยู่ระหว่างการตรวจสอบ</h2>
+                <span class="status-badge">สถานะ: รอตรวจสอบ (PENDING)</span>
+                <p style="margin-top: 16px;">ทางผู้ดูแลระบบจะตรวจสอบและอนุมัติภายใน 24 ชั่วโมง</p>
+                <button class="btn btn-secondary" style="max-width: 240px; margin-top: 24px;" onclick="liff.closeWindow()">
+                    ปิดหน้าต่าง
+                </button>
+            </div>
+
+            <!-- Approved Message -->
+            <div id="approvedMessage" class="message-box hidden">
+                <div class="message-icon">✓</div>
+                <h2>บัญชีของคุณได้รับการอนุมัติแล้ว!</h2>
+                <span class="status-badge">สถานะ: อนุมัติแล้ว (APPROVED)</span>
+                <p style="margin-top: 16px;">คุณสามารถใช้งานแอปพลิเคชันได้ทันที</p>
+                <button class="btn btn-primary" style="max-width: 240px; margin-top: 24px;" id="goToAppBtn">
+                    เข้าสู่แอปพลิเคชัน
+                </button>
+            </div>
+
+            <!-- Rejected Message -->
+            <div id="rejectedMessage" class="message-box hidden">
+                <div class="message-icon">✕</div>
+                <h2>ข้อมูลของคุณไม่ผ่านการอนุมัติ</h2>
+                <span class="status-badge">สถานะ: ไม่อนุมัติ (REJECTED)</span>
+                <p id="rejectReason" style="margin-top: 16px; color: var(--error);"></p>
+                <button class="btn btn-secondary" style="max-width: 240px; margin-top: 24px;" onclick="location.reload()">
+                    ลงทะเบียนใหม่
+                </button>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="message-box hidden">
+                <div class="message-icon">⚠</div>
+                <h2>เกิดข้อผิดพลาด</h2>
+                <p id="errorText">กรุณาลองอีกครั้งหรือติดต่อผู้ดูแลระบบ</p>
+                <button class="btn btn-secondary" style="max-width: 240px; margin-top: 24px;" onclick="location.reload()">
+                    ลองอีกครั้ง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast" style="display: none;"></div>
+
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            LIFF_ID: '2007705394-V1GJOjgN',
+            SUPABASE_URL: 'https://myplpshpcordggbbtblg.supabase.co',
+            SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8',
+            APP_URL: './index.html' // Relative path to main app
+        };
+
+        // State
+        let liffProfile = null;
+        let supabase = null;
+
+        // DOM Elements
+        const loadingScreen = document.getElementById('loadingScreen');
+        const app = document.getElementById('app');
+        const registrationForm = document.getElementById('registrationForm');
+        const profileSection = document.getElementById('profileSection');
+        const statusSection = document.getElementById('statusSection');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Initialize
+        async function init() {
+            try {
+                // Initialize Supabase
+                supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+
+                // Initialize LIFF
+                await liff.init({ liffId: CONFIG.LIFF_ID });
+
+                // Check login
+                if (!liff.isLoggedIn()) {
+                    liff.login({ redirectUri: window.location.href });
+                    return;
+                }
+
+                // Get LINE Profile
+                liffProfile = await liff.getProfile();
+                console.log('LINE Profile:', liffProfile);
+
+                // Update UI with LINE profile
+                document.getElementById('linePicture').src = liffProfile.pictureUrl || 'https://via.placeholder.com/80';
+                document.getElementById('lineDisplayName').textContent = liffProfile.displayName;
+                document.getElementById('profilePicture').src = liffProfile.pictureUrl || 'https://via.placeholder.com/50';
+                document.getElementById('profileName').textContent = liffProfile.displayName;
+                document.getElementById('profileUserId').textContent = liffProfile.userId.substring(0, 10) + '...';
+
+                // Show app
+                loadingScreen.classList.add('hidden');
+                app.classList.remove('hidden');
+                profileSection.classList.remove('hidden');
+
+                // Check existing registration
+                await checkRegistration();
+
+                // Setup form submit
+                registrationForm.addEventListener('submit', handleFormSubmit);
+
+            } catch (error) {
+                console.error('Init error:', error);
+                showError('ไม่สามารถเริ่มแอปพลิเคชันได้: ' + error.message);
+            }
+        }
+
+        // Check existing registration
+        async function checkRegistration() {
+            try {
+                const { data, error } = await supabase
+                    .from('register_data')
+                    .select('*')
+                    .eq('line_user_id', liffProfile.userId)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    handleExistingRegistration(data[0]);
+                } else {
+                    showForm();
+                }
+
+            } catch (error) {
+                console.error('Check registration error:', error);
+                showForm(); // Show form on error
+            }
+        }
+
+        // Handle existing registration
+        function handleExistingRegistration(reg) {
+            hideAll();
+
+            const statusHtml = `
+                <div class="status-card ${reg.registration_status.toLowerCase()}">
+                    <strong>สถานะการลงทะเบียน:</strong>
+                    <span>${getStatusText(reg.registration_status)}</span>
+                </div>
+            `;
+            statusSection.innerHTML = statusHtml;
+            statusSection.classList.remove('hidden');
+
+            switch (reg.registration_status) {
+                case 'PENDING':
+                    document.getElementById('pendingMessage').classList.remove('hidden');
+                    break;
+                case 'APPROVED':
+                    document.getElementById('approvedMessage').classList.remove('hidden');
+                    break;
+                case 'REJECTED':
+                    document.getElementById('rejectedMessage').classList.remove('hidden');
+                    if (reg.review_notes) {
+                        document.getElementById('rejectReason').textContent = reg.review_notes;
+                    }
+                    break;
+                case 'REQUIRES_CHANGES':
+                    showForm(reg);
+                    showToast('กรุณาแก้ไขข้อมูลตามที่ระบุ', 'warning');
+                    break;
+                default:
+                    showForm();
+            }
+        }
+
+        function getStatusText(status) {
+            const texts = {
+                'PENDING': '⏳ รอตรวจสอบ',
+                'APPROVED': '✓ อนุมัติแล้ว',
+                'REJECTED': '✕ ไม่อนุมัติ',
+                'REQUIRES_CHANGES': '✏️ ต้องแก้ไข'
+            };
+            return texts[status] || status;
+        }
+
+        // Show form
+        function showForm(existingData = null) {
+            hideAll();
+            profileSection.classList.remove('hidden');
+            registrationForm.classList.remove('hidden');
+
+            if (existingData) {
+                document.getElementById('employeeCode').value = existingData.employee_code || '';
+                document.getElementById('driverName').value = existingData.driver_name || '';
+                document.getElementById('driverSapCode').value = existingData.driver_sap_code || '';
+                document.getElementById('phoneNumber').value = existingData.phone_number || '';
+                document.getElementById('section').value = existingData.section || '';
+                document.getElementById('truckType').value = existingData.truck_type || '';
+                document.getElementById('position').value = existingData.position || '';
+            }
+        }
+
+        // Hide all messages
+        function hideAll() {
+            registrationForm.classList.add('hidden');
+            statusSection.classList.add('hidden');
+            document.getElementById('successMessage').classList.add('hidden');
+            document.getElementById('pendingMessage').classList.add('hidden');
+            document.getElementById('approvedMessage').classList.add('hidden');
+            document.getElementById('rejectedMessage').classList.add('hidden');
+            document.getElementById('errorMessage').classList.add('hidden');
+        }
+
+        // Handle form submit
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+
+            if (!validateForm()) return;
+
+            setLoading(true);
+
+            try {
+                const formData = {
+                    line_user_id: liffProfile.userId,
+                    line_display_name: liffProfile.displayName,
+                    line_picture_url: liffProfile.pictureUrl,
+                    employee_code: document.getElementById('employeeCode').value.trim(),
+                    driver_name: document.getElementById('driverName').value.trim(),
+                    driver_sap_code: document.getElementById('driverSapCode').value.trim(),
+                    phone_number: document.getElementById('phoneNumber').value.trim() || null,
+                    section: document.getElementById('section').value,
+                    truck_type: document.getElementById('truckType').value,
+                    position: document.getElementById('position').value,
+                    registration_status: 'PENDING'
+                };
+
+                // Check if updating or inserting
+                const { data: existing } = await supabase
+                    .from('register_data')
+                    .select('id')
+                    .eq('line_user_id', liffProfile.userId)
+                    .limit(1);
+
+                let result;
+                if (existing && existing.length > 0) {
+                    result = await supabase
+                        .from('register_data')
+                        .update(formData)
+                        .eq('id', existing[0].id);
+                } else {
+                    result = await supabase
+                        .from('register_data')
+                        .insert(formData);
+                }
+
+                if (result.error) throw result.error;
+
+                hideAll();
+                profileSection.classList.remove('hidden');
+                document.getElementById('successMessage').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Submit error:', error);
+                showToast('เกิดข้อผิดพลาด: ' + error.message, 'error');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Validate form
+        function validateForm() {
+            let isValid = true;
+            const fields = [
+                { id: 'employeeCode', name: 'รหัสพนักงาน' },
+                { id: 'driverName', name: 'ชื่อ-นามสกุล' },
+                { id: 'driverSapCode', name: 'รหัส SAP' },
+                { id: 'section', name: 'แผนก/ฝ่าย' },
+                { id: 'truckType', name: 'ประเภทรถ' },
+                { id: 'position', name: 'ตำแหน่ง' }
+            ];
+
+            fields.forEach(field => {
+                const el = document.getElementById(field.id);
+                const parent = el.closest('.form-group');
+                const existingMsg = parent.querySelector('.error-message');
+                if (existingMsg) existingMsg.remove();
+                parent.classList.remove('error');
+
+                if (!el.value.trim()) {
+                    parent.classList.add('error');
+                    const msg = document.createElement('span');
+                    msg.className = 'error-message';
+                    msg.textContent = `กรุณากรอก${field.name}`;
+                    parent.appendChild(msg);
+                    isValid = false;
+                }
+            });
+
+            // Phone format
+            const phone = document.getElementById('phoneNumber');
+            const phoneValue = phone.value.trim();
+            if (phoneValue && !/^0[0-9]{8,9}$/.test(phoneValue)) {
+                const parent = phone.closest('.form-group');
+                parent.classList.add('error');
+                const msg = document.createElement('span');
+                msg.className = 'error-message';
+                msg.textContent = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง';
+                parent.appendChild(msg);
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Loading state
+        function setLoading(isLoading) {
+            submitBtn.disabled = isLoading;
+            const btnText = submitBtn.querySelector('.btn-text');
+            const existingSpinner = submitBtn.querySelector('.btn-spinner');
+
+            if (isLoading) {
+                if (!existingSpinner) {
+                    const spinner = document.createElement('span');
+                    spinner.className = 'btn-spinner';
+                    submitBtn.insertBefore(spinner, btnText);
+                }
+                btnText.textContent = ' กำลังบันทึก...';
+            } else {
+                if (existingSpinner) existingSpinner.remove();
+                btnText.textContent = ' ส่งคำขอลงทะเบียน';
+            }
+        }
+
+        // Show error
+        function showError(message) {
+            loadingScreen.classList.add('hidden');
+            app.classList.remove('hidden');
+            hideAll();
+            document.getElementById('errorMessage').classList.remove('hidden');
+            document.getElementById('errorText').textContent = message;
+        }
+
+        // Show toast
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // Go to app button
+        document.getElementById('goToAppBtn')?.addEventListener('click', () => {
+            window.location.href = CONFIG.APP_URL;
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

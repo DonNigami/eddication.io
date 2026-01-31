@@ -182,6 +182,7 @@ This admin panel interfaces with the following Supabase database tables:
                     <!-- System Management -->
                     <li class="nav-section-header">⚙️ System Management</li>
                     <li><a href="#" class="nav-link" data-target="users">👥 User Management</a></li>
+                    <li><a href="#" class="nav-link" data-target="registration-approval">📝 Registration Approval <span id="registration-badge" class="badge hidden">0</span></a></li>
                     <li><a href="#" class="nav-link" data-target="alerts">🚨 Alerts <span id="alerts-badge" class="badge hidden">0</span></a></li>
                     <li><a href="#" class="nav-link" data-target="settings">⚙️ Settings</a></li>
                     
@@ -296,6 +297,184 @@ This admin panel interfaces with the following Supabase database tables:
                             <!-- User rows will be inserted here -->
                         </tbody>
                     </table>
+                </div>
+            </section>
+            <!-- Registration Approval Section -->
+            <section id="registration-approval" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="margin: 0;">📝 อนุมัติการลงทะเบียนพนักงานขับรถ</h1>
+                    <button class="section-refresh-btn" id="registration-refresh-btn" onclick="loadRegistrations()"><span class="btn-icon">🔄</span> Refresh</button>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>รอตรวจสอบ</h3>
+                        <p id="reg-pending-count" style="color: #ff9800;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>อนุมัติแล้ว</h3>
+                        <p id="reg-approved-count" style="color: #4caf50;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ไม่อนุมัติ</h3>
+                        <p id="reg-rejected-count" style="color: #f44336;">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ทั้งหมด</h3>
+                        <p id="reg-total-count">0</p>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <select id="reg-status-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        <option value="all">📋 ทุกสถานะ</option>
+                        <option value="PENDING" selected>⏳ รอตรวจสอบ</option>
+                        <option value="APPROVED">✅ อนุมัติแล้ว</option>
+                        <option value="REJECTED">❌ ไม่อนุมัติ</option>
+                        <option value="REQUIRES_CHANGES">✏️ ต้องแก้ไข</option>
+                    </select>
+                    <input type="text" id="reg-search-input" placeholder="ค้นหาชื่อ/รหัสพนักงาน..." style="flex: 1; min-width: 200px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                    <button onclick="loadRegistrations()" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">ค้นหา</button>
+                </div>
+
+                <!-- Registration Table -->
+                <div class="table-container">
+                    <table id="registration-table">
+                        <thead>
+                            <tr>
+                                <th>วันที่</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>รหัสพนักงาน</th>
+                                <th>รหัส SAP</th>
+                                <th>แผนก</th>
+                                <th>ประเภทรถ</th>
+                                <th>สถานะ</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registration-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                    <p>กำลังโหลดข้อมูล...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Registration Detail Modal -->
+                <div id="registration-detail-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 700px; max-height: 90vh; overflow-y: auto;">
+                        <span class="close-button" id="reg-modal-close">&times;</span>
+                        <h2 id="reg-modal-title">📋 รายละเอียดการลงทะเบียน</h2>
+
+                        <!-- LINE Profile -->
+                        <div style="background: #E3F2FD; padding: 15px; border-radius: 8px; margin: 15px 0; display: flex; align-items: center; gap: 15px;">
+                            <img id="reg-detail-line-picture" src="" alt="Profile" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;" onerror="this.src='https://via.placeholder.com/60'">
+                            <div>
+                                <h3 id="reg-detail-line-name" style="margin: 0;">-</h3>
+                                <p style="margin: 4px 0 0 0; font-size: 12px; color: #666;">LINE User ID: <span id="reg-detail-line-userid" style="font-family: monospace;">-</span></p>
+                            </div>
+                        </div>
+
+                        <!-- Driver Information -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3 style="margin-bottom: 12px;">👤 ข้อมูลพนักงาน</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                                <div>
+                                    <small style="color: var(--text-sub);">รหัสพนักงาน</small>
+                                    <p id="reg-detail-employee-code" style="margin: 0; font-weight: 600;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">ชื่อ-นามสกุล</small>
+                                    <p id="reg-detail-driver-name" style="margin: 0;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">รหัส SAP</small>
+                                    <p id="reg-detail-sap-code" style="margin: 0; font-weight: 600;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">เบอร์โทร</small>
+                                    <p id="reg-detail-phone" style="margin: 0;">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Work Information -->
+                        <div style="background: var(--card-bg); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h3 style="margin-bottom: 12px;">💼 ข้อมูลการทำงาน</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+                                <div>
+                                    <small style="color: var(--text-sub);">แผนก</small>
+                                    <p id="reg-detail-section" style="margin: 0;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">ประเภทรถ</small>
+                                    <p id="reg-detail-truck-type" style="margin: 0;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">ตำแหน่ง</small>
+                                    <p id="reg-detail-position" style="margin: 0;">-</p>
+                                </div>
+                                <div>
+                                    <small style="color: var(--text-sub);">วันที่ลงทะเบียน</small>
+                                    <p id="reg-detail-created" style="margin: 0;">-</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Review Notes -->
+                        <div id="reg-review-section" style="background: #FFF3E0; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #FFB74D;" style="display: none;">
+                            <h3 style="margin-bottom: 8px; color: #E65100;">📝 หมายเหตุการตรวจสอบ</h3>
+                            <p id="reg-detail-review-notes" style="margin: 0;"></p>
+                            <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">
+                                ตรวจสอบโดย: <span id="reg-detail-reviewed-by"></span> |
+                                เมื่อ: <span id="reg-detail-reviewed-at"></span>
+                            </p>
+                        </div>
+
+                        <!-- Actions -->
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+                            <button type="button" id="btn-approve-registration" style="flex: 1; min-width: 120px; padding: 12px; background: #4caf50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                ✅ อนุมัติ
+                            </button>
+                            <button type="button" id="btn-request-changes" style="flex: 1; min-width: 120px; padding: 12px; background: #2196f3; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                ✏️ ขอแก้ไข
+                            </button>
+                            <button type="button" id="btn-reject-registration" style="flex: 1; min-width: 120px; padding: 12px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                ❌ ปฏิเสธ
+                            </button>
+                            <button type="button" id="btn-copy-driver-master" style="padding: 12px 20px; background: #9c27b0; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                📋 คัดลอก→driver_master
+                            </button>
+                            <button type="button" class="cancel-btn" id="btn-close-registration" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                ปิด
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reject/Changes Modal -->
+                <div id="reg-review-modal" class="modal hidden">
+                    <div class="modal-content" style="max-width: 500px;">
+                        <span class="close-button" id="reg-review-modal-close">&times;</span>
+                        <h2 id="reg-review-title">📝 บันทึกหมายเหตุ</h2>
+                        <p id="reg-review-desc" style="color: var(--text-sub); margin-bottom: 15px;"></p>
+
+                        <textarea id="reg-review-notes" rows="4" placeholder="ระบุรายละเอียด..." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color); resize: vertical; font-family: inherit;"></textarea>
+
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="button" id="btn-confirm-review" style="flex: 1; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                                ยืนยัน
+                            </button>
+                            <button type="button" class="cancel-btn" id="btn-cancel-review" style="padding: 12px 20px; background: var(--border-color); color: var(--text-color); border: none; border-radius: 5px; cursor: pointer;">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>
             <section id="jobs" class="content-section hidden">
@@ -1658,6 +1837,9 @@ This admin panel interfaces with the following Supabase database tables:
 
     <!-- Auto-Refresh Logic -->
     <script type="module" src="js/auto-refresh.js"></script>
+
+    <!-- Registration Approval Logic -->
+    <script type="module" src="js/registration-approval.js"></script>
 
     <!-- Logistics Performance Logic -->
     <script type="module" src="logistics-performance.js"></script>
