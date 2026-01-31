@@ -151,9 +151,9 @@ function createRegistrationRow(reg) {
             <td>${formatDate(reg.created_at)}</td>
             <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <img src="${reg.line_picture_url || 'https://via.placeholder.com/30'}"
+                    <img src="${reg.line_picture_url || 'data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23ddd'/%3E%3C/svg%3E'}"
                          alt="" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;"
-                         onerror="this.src='https://via.placeholder.com/30'">
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23ddd'/%3E%3C/svg%3E'">
                     <span>${escapeHtml(reg.driver_name)}</span>
                 </div>
             </td>
@@ -273,7 +273,7 @@ async function openRegistrationDetail(id) {
         currentRegistration = data;
 
         // Populate modal
-        document.getElementById('reg-detail-line-picture').src = data.line_picture_url || 'https://via.placeholder.com/60';
+        document.getElementById('reg-detail-line-picture').src = data.line_picture_url || 'data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%23ddd'/%3E%3C/svg%3E';
         document.getElementById('reg-detail-line-name').textContent = data.line_display_name || '-';
         document.getElementById('reg-detail-line-userid').textContent = data.line_user_id || '-';
 

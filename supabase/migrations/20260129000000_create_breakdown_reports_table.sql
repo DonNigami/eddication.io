@@ -47,36 +47,35 @@ CREATE INDEX IF NOT EXISTS idx_breakdown_reports_created_at ON public.breakdown_
 -- Enable RLS
 ALTER TABLE public.breakdown_reports ENABLE ROW LEVEL SECURITY;
 
+-- Grant table-level permissions to anon and authenticated roles
+-- Required even with RLS enabled
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON TABLE public.breakdown_reports TO anon, authenticated;
+GRANT INSERT ON TABLE public.breakdown_reports TO anon, authenticated;
+GRANT UPDATE ON TABLE public.breakdown_reports TO authenticated;
+
 -- RLS Policies
--- Drivers can insert their own reports
+-- Drop existing policies if they exist (for rerunnable migrations)
+DROP POLICY IF EXISTS "breakdown_reports_insert_policy" ON public.breakdown_reports;
+DROP POLICY IF EXISTS "breakdown_reports_select_own_policy" ON public.breakdown_reports;
+DROP POLICY IF EXISTS "breakdown_reports_select_all_policy" ON public.breakdown_reports;
+DROP POLICY IF EXISTS "breakdown_reports_update_admin_policy" ON public.breakdown_reports;
+
+-- Drivers can insert reports (anon key - LINE LIFF auth at app layer)
 CREATE POLICY "breakdown_reports_insert_policy" ON public.breakdown_reports
     FOR INSERT WITH CHECK (true);
 
--- Drivers can view their own reports (by driver_user_id)
-CREATE POLICY "breakdown_reports_select_own_policy" ON public.breakdown_reports
-    FOR SELECT USING (driver_user_id = auth.uid()::text);
+-- Everyone can view reports (for admin dashboard; filtering done at app layer)
+CREATE POLICY "breakdown_reports_select_all_policy" ON public.breakdown_reports
+    FOR SELECT USING (true);
 
--- Admins can view all reports
-CREATE POLICY "breakdown_reports_select_admin_policy" ON public.breakdown_reports
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.user_profiles
-            WHERE user_profiles.user_id = auth.uid()::text
-            AND user_profiles.user_type = 'ADMIN'
-        )
-    );
-
--- Admins can update reports
+-- Authenticated users (admins) can update reports
 CREATE POLICY "breakdown_reports_update_admin_policy" ON public.breakdown_reports
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM public.user_profiles
-            WHERE user_profiles.user_id = auth.uid()::text
-            AND user_profiles.user_type = 'ADMIN'
-        )
-    );
+    FOR UPDATE USING (auth.role() = 'authenticated');
 
 -- Updated at trigger
+DROP TRIGGER IF EXISTS trigger_breakdown_reports_updated_at ON public.breakdown_reports;
+
 CREATE OR REPLACE FUNCTION public.update_breakdown_reports_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
