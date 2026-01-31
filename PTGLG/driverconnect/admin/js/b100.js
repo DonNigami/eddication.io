@@ -21,7 +21,6 @@ let b100OriginSelect = null;
 let b100DestinationSelect = null;
 let b100MaterialsSelect = null;
 let b100QuantityInput = null;
-let b100AmountInput = null;
 let b100NotesInput = null;
 
 const B100_TABLE_COLUMNS = 7;
@@ -45,7 +44,6 @@ export function setB100Elements(elements) {
     b100DestinationSelect = elements.destinationSelect;
     b100MaterialsSelect = elements.materialsSelect;
     b100QuantityInput = elements.quantityInput;
-    b100AmountInput = elements.amountInput;
     b100NotesInput = elements.notesInput;
 }
 
@@ -66,7 +64,7 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
         let query = supabase
             .from('jobdata')
             .select('*')
-            .eq('is_b100', true)
+            .like('reference', 'B100-%')
             .order('created_at', { ascending: false });
 
         if (searchTerm) {
@@ -74,7 +72,7 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
         }
 
         if (statusFilter) {
-            query = query.eq('b100_status', statusFilter);
+            query = query.eq('status', statusFilter);
         }
 
         const { data: jobs, error } = await query;
@@ -93,20 +91,20 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
             row.insertCell().textContent = job.drivers || 'N/A';
             row.insertCell().textContent = job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A';
             row.insertCell().textContent = job.vehicle_desc || 'N/A';
-            row.insertCell().textContent = job.b100_amount
-                ? job.b100_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })
+            row.insertCell().textContent = job.total_qty
+                ? parseFloat(job.total_qty).toLocaleString('th-TH', { minimumFractionDigits: 2 })
                 : '0.00';
 
             // Status
             const statusCell = row.insertCell();
             const statusSpan = document.createElement('span');
-            statusSpan.className = `status-badge badge-b100-${job.b100_status}`;
-            statusSpan.textContent = job.b100_status || 'pending';
+            statusSpan.className = `status-badge badge-b100-${job.status}`;
+            statusSpan.textContent = job.status || 'pending';
             statusCell.appendChild(statusSpan);
 
             // Actions
             const actionCell = row.insertCell();
-            if (job.b100_status !== 'paid') {
+            if (job.status !== 'paid') {
                 const paidButton = document.createElement('button');
                 paidButton.className = 'mark-paid-btn';
                 paidButton.dataset.jobId = job.id;
@@ -114,7 +112,7 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
                 paidButton.addEventListener('click', () => updateB100Status(job.id, 'paid'));
                 actionCell.appendChild(paidButton);
             }
-            if (job.b100_status === 'pending') {
+            if (job.status === 'pending') {
                 const outstandingButton = document.createElement('button');
                 outstandingButton.className = 'mark-outstanding-btn';
                 outstandingButton.dataset.jobId = job.id;
@@ -305,7 +303,6 @@ export async function handleB100Submit(event) {
     const destination = b100DestinationSelect?.value;
     const materials = b100MaterialsSelect?.value;
     const quantity = parseFloat(b100QuantityInput?.value) || 0;
-    const amount = parseFloat(b100AmountInput?.value) || 0;
     const notes = b100NotesInput?.value;
     const reference = b100ReferenceInput?.value;
 
@@ -319,15 +316,12 @@ export async function handleB100Submit(event) {
             reference: reference,
             drivers: driverData,
             vehicle_desc: vehicle,
-            b100_origin: origin,
+            ship_to_code: origin,
             ship_to_name: destination,
-            b100_materials: materials,
-            b100_quantity: quantity,
-            b100_amount: amount,
-            b100_notes: notes,
-            b100_status: 'pending',
-            is_b100: true,
-            status: 'active',
+            materials: materials,
+            total_qty: quantity,
+            notes: notes,
+            status: 'pending',
             seq: 1,
             is_origin_stop: true,
             created_at: new Date().toISOString(),
@@ -356,7 +350,7 @@ export async function updateB100Status(jobId, newStatus) {
     try {
         const { error } = await supabase
             .from('jobdata')
-            .update({ b100_status: newStatus, updated_at: new Date().toISOString() })
+            .update({ status: newStatus, updated_at: new Date().toISOString() })
             .eq('id', jobId);
 
         if (error) throw error;
