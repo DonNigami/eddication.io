@@ -207,6 +207,24 @@ function setupRefreshButtons() {
             showRefreshNotification('Breakdown Reports');
         });
     }
+
+    // Global refresh button - refreshes the current active section
+    const globalRefreshBtn = document.getElementById('global-refresh-btn');
+    if (globalRefreshBtn) {
+        globalRefreshBtn.addEventListener('click', () => {
+            refreshCurrentSection();
+            const indicator = document.getElementById('last-refresh-indicator');
+            if (indicator) {
+                const now = new Date();
+                indicator.textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+            }
+            // Add visual feedback
+            globalRefreshBtn.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                globalRefreshBtn.style.transform = '';
+            }, 500);
+        });
+    }
 }
 
 /**

@@ -82,6 +82,7 @@ import {
 } from './b100.js';
 import { initNotificationBell, toggleNotificationDropdown, markAllNotificationsAsRead } from './notifications.js';
 import { setupRealtimeSubscriptions, cleanupRealtimeSubscriptions } from './realtime.js';
+import { initAutoRefresh } from './auto-refresh.js';
 
 // Global LIFF instance
 let liff = null;
@@ -103,6 +104,9 @@ export async function initializeApp() {
 
     // Setup event listeners
     setupEventListeners();
+
+    // Initialize auto-refresh
+    initAutoRefresh();
 
     console.log('✅ App initialized');
 }
