@@ -325,6 +325,17 @@ PTGLG/driverconnect/
 
 ## Progress Log
 
+### 2026-01-31
+
+- ✅ **Driver Name Selection Enhancement**: Close Job Driver Confirmation
+  - Feature: Replace radio buttons with searchable driver dropdown from `driver_master` table
+  - Created: `supabase-api.js:fetchDrivers()` - Fetch all drivers from driver_master table
+  - Updated: `app.js:closeJob()` - Use `<input list="driverList">` with `<datalist>` for searchable selection
+  - Migration: `20260131000003_add_confirmed_drivers_to_jobdata.sql` - Add `confirmed_driver1`, `confirmed_driver2` columns
+  - Pre-fill driver inputs with values from `jobdata.drivers` as defaults
+  - Users can type to search or click to select from dropdown
+  - Store confirmed driver names when closing job
+
 ### 2026-01-25
 - ✅ **Phase 2.3 Completed**: Driver App Improvements
   - Created: `driverapp/js/state-manager.js` - Centralized state with subscriptions, batch updates, persistence
