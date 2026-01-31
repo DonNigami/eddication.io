@@ -313,25 +313,53 @@ async function openRegistrationDetail(id) {
 
 /**
  * Approve registration
+ * - Updates register_data table with APPROVED status
+ * - Creates/updates user_profiles entry with status=APPROVED, user_type=DRIVER
  */
 async function approveRegistration() {
     if (!currentRegistration) return;
 
     if (!confirm('ยืนยันการอนุมัติการลงทะเบียน?')) return;
 
+    const adminUserId = getCurrentUserId();
+    const now = new Date().toISOString();
+
     try {
-        const { error } = await supabase
+        // 1. Update register_data table
+        const { error: regError } = await supabase
             .from('register_data')
             .update({
                 registration_status: 'APPROVED',
-                reviewed_by: getCurrentUserId(),
-                reviewed_at: new Date().toISOString()
+                reviewed_by: adminUserId,
+                reviewed_at: now
             })
             .eq('id', currentRegistration.id);
 
-        if (error) throw error;
+        if (regError) throw regError;
 
-        showToast('อนุมัติเรียบร้อยแล้ว', 'success');
+        // 2. Upsert to user_profiles table (create or update)
+        const userProfileData = {
+            user_id: currentRegistration.line_user_id,
+            display_name: currentRegistration.line_display_name || currentRegistration.driver_name,
+            picture_url: currentRegistration.line_picture_url,
+            status: 'APPROVED',
+            user_type: 'DRIVER',
+            approved_by: adminUserId,
+            approved_at: now
+        };
+
+        const { error: profileError } = await supabase
+            .from('user_profiles')
+            .upsert(userProfileData, {
+                onConflict: 'user_id'
+            });
+
+        if (profileError) {
+            console.warn('Failed to upsert user_profiles:', profileError);
+            // Continue anyway - register_data was updated successfully
+        }
+
+        showToast('อนุมัติเรียบร้อยแล้ว (บันทึกลง user_profiles)', 'success');
         closeModals();
         loadRegistrations();
 
@@ -446,14 +474,38 @@ async function copyToDriverMaster() {
 
         // Also approve if pending
         if (currentRegistration.registration_status === 'PENDING') {
+            const adminUserId = getCurrentUserId();
+            const now = new Date().toISOString();
+
             await supabase
                 .from('register_data')
                 .update({
                     registration_status: 'APPROVED',
-                    reviewed_by: getCurrentUserId(),
-                    reviewed_at: new Date().toISOString()
+                    reviewed_by: adminUserId,
+                    reviewed_at: now
                 })
                 .eq('id', currentRegistration.id);
+
+            // Also upsert to user_profiles
+            const userProfileData = {
+                user_id: currentRegistration.line_user_id,
+                display_name: currentRegistration.line_display_name || currentRegistration.driver_name,
+                picture_url: currentRegistration.line_picture_url,
+                status: 'APPROVED',
+                user_type: 'DRIVER',
+                approved_by: adminUserId,
+                approved_at: now
+            };
+
+            const { error: profileError } = await supabase
+                .from('user_profiles')
+                .upsert(userProfileData, {
+                    onConflict: 'user_id'
+                });
+
+            if (profileError) {
+                console.warn('Failed to upsert user_profiles:', profileError);
+            }
 
             loadRegistrations();
         }
