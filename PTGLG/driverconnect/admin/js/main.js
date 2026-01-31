@@ -365,8 +365,7 @@ function setupDOMElements() {
         originSelect: document.getElementById('b100-origin'),
         destinationSelect: document.getElementById('b100-destination'),
         materialsSelect: document.getElementById('b100-materials'),
-        quantityInput: document.getElementById('b100-quantity'),
-        notesInput: document.getElementById('b100-notes')
+        quantityInput: document.getElementById('b100-quantity')
     });
 
     // Map Playback

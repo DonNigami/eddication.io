@@ -21,7 +21,6 @@ let b100OriginSelect = null;
 let b100DestinationSelect = null;
 let b100MaterialsSelect = null;
 let b100QuantityInput = null;
-let b100NotesInput = null;
 
 const B100_TABLE_COLUMNS = 7;
 
@@ -44,7 +43,6 @@ export function setB100Elements(elements) {
     b100DestinationSelect = elements.destinationSelect;
     b100MaterialsSelect = elements.materialsSelect;
     b100QuantityInput = elements.quantityInput;
-    b100NotesInput = elements.notesInput;
 }
 
 /**
@@ -303,7 +301,6 @@ export async function handleB100Submit(event) {
     const destination = b100DestinationSelect?.value;
     const materials = b100MaterialsSelect?.value;
     const quantity = parseFloat(b100QuantityInput?.value) || 0;
-    const notes = b100NotesInput?.value;
     const reference = b100ReferenceInput?.value;
 
     if (!driverData || !vehicle || !origin || !destination || quantity <= 0) {
@@ -320,7 +317,6 @@ export async function handleB100Submit(event) {
             ship_to_name: destination,
             materials: materials,
             total_qty: quantity,
-            notes: notes,
             status: 'pending',
             seq: 1,
             is_origin_stop: true,
