@@ -198,7 +198,7 @@ This admin panel interfaces with the following Supabase database tables:
             </div>
         </aside>
         <main class="main-content">
-            <!-- Notification Bell -->
+            <!-- Notification Bell & Refresh -->
             <div class="notification-bell-container">
                 <button class="notification-bell" id="notificationBell" title="การแจ้งเตือน">
                     🔔
@@ -206,16 +206,16 @@ This admin panel interfaces with the following Supabase database tables:
                 </button>
 
                 <!-- Global Refresh Button -->
-                <button id="global-refresh-btn" title="Refresh Current Section" style="margin-left: 15px; padding: 8px 12px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
-                    🔄
+                <button class="global-refresh-btn" id="global-refresh-btn" title="Refresh Current Section">
+                    <span class="refresh-icon">🔄</span>
                 </button>
 
                 <!-- Last Refresh Indicator -->
-                <div class="last-refresh-container" style="margin-left: 15px; color: var(--text-sub); font-size: 0.85rem;">
-                    <span id="last-refresh-indicator">Last refresh: -</span>
-                    <span id="auto-refresh-status" style="margin-left: 10px; color: #4caf50;">● Auto-refresh ON (5 min)</span>
+                <div class="last-refresh-container">
+                    <div class="last-refresh-indicator" id="last-refresh-indicator">Last refresh: -</div>
+                    <div class="auto-refresh-status" id="auto-refresh-status">Auto-refresh: ON (5 min)</div>
                 </div>
-                
+
                 <div class="notification-dropdown" id="notificationDropdown">
                     <div class="notification-dropdown-header">
                         <h3>🔔 การแจ้งเตือน</h3>
@@ -233,7 +233,7 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="dashboard" class="content-section active">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">Dashboard</h1>
-                    <button class="section-refresh-btn" id="dashboard-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                    <button class="section-refresh-btn" id="dashboard-refresh-btn" class="section-refresh-btn"><span class="btn-icon">🔄</span> Refresh</button>
                 </div>
                 <div class="kpi-cards">
                     <div class="kpi-card">
@@ -299,7 +299,7 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="jobs" class="content-section hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">Job Management</h1>
-                    <button class="section-refresh-btn" id="jobs-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                    <button class="section-refresh-btn" id="jobs-refresh-btn" class="section-refresh-btn"><span class="btn-icon">🔄</span> Refresh</button>
                 </div>
                 <div class="job-controls" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <input type="text" id="job-search-input" placeholder="Search by Reference No., Shipment No., or Driver" style="flex: 1; min-width: 200px;">
@@ -1215,7 +1215,7 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="vehicle-breakdown" class="content-section hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">Vehicle Breakdown Management</h1>
-                    <button class="section-refresh-btn" id="vehicle-breakdown-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                    <button class="section-refresh-btn" id="vehicle-breakdown-refresh-btn" class="section-refresh-btn"><span class="btn-icon">🔄</span> Refresh</button>
                 </div>
                 <div class="breakdown-controls" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <input type="text" id="breakdown-search" placeholder="Search by Reference, Driver..." style="flex: 1; min-width: 200px;">
@@ -1278,7 +1278,7 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="fuel-siphoning" class="content-section hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">Fuel Siphoning Records</h1>
-                    <button class="section-refresh-btn" id="fuel-siphoning-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                    <button class="section-refresh-btn" id="fuel-siphoning-refresh-btn" class="section-refresh-btn"><span class="btn-icon">🔄</span> Refresh</button>
                 </div>
                 <div class="siphoning-controls" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <input type="text" id="siphoning-search" placeholder="Search by Station, Driver, Vehicle..." style="flex: 1; min-width: 150px;">
@@ -1360,7 +1360,7 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="b100-jobs" class="content-section hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">B100 Jobs Management</h1>
-                    <button class="section-refresh-btn" id="b100-refresh-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer;">🔄 Refresh</button>
+                    <button class="section-refresh-btn" id="b100-refresh-btn" class="section-refresh-btn"><span class="btn-icon">🔄</span> Refresh</button>
                 </div>
                 <div class="b100-controls" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
                     <input type="text" id="b100-search" placeholder="Search by Reference, Driver..." style="flex: 1; min-width: 200px;">
