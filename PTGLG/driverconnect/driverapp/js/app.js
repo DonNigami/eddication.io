@@ -976,7 +976,7 @@ async function closeJob() {
   // Build driver options from currentDrivers (from jobdata)
   // Also include "ไม่มี" option for driver 2 when only 1 driver
   const driverOptions = currentDrivers.length > 0
-    ? currentDrivers.map(d => `<option value="${sanitizeHTML(d)}">${sanitizeHTML(d)}</option>`).join('')
+    ? currentDrivers.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('')
     : '<option value="">ไม่พบรายชื่อ</option>';
 
   const noDriverOption = '<option value="">ไม่มี</option>';
@@ -1005,7 +1005,7 @@ async function closeJob() {
           </div>
 
           <small style="color:#666; display:block; margin-top:4px;">
-            * รายชื่อจากงาน ${sanitizeHTML(currentReference)}
+            * รายชื่อจากงาน ${escapeHtml(currentReference)}
           </small>
         </div>
         <hr style="border:none; border-top: 1px solid #eee; margin: 15px 0;">
