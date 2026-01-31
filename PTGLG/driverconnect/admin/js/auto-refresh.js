@@ -40,10 +40,10 @@ export function initAutoRefresh() {
     // Set up manual refresh buttons
     setupRefreshButtons();
 
-    // Initialize auto-refresh status indicator
-    const autoRefreshStatus = document.getElementById('auto-refresh-status');
-    if (autoRefreshStatus) {
-        autoRefreshStatus.textContent = 'Auto-refresh: ON (5 min)';
+    // Initialize last refresh indicator
+    const indicator = document.getElementById('last-refresh-indicator');
+    if (indicator) {
+        indicator.textContent = 'อัปเดตล่าสุด: ตอนนี้';
     }
 
     console.log('✅ Auto-refresh initialized (5 minutes)');
@@ -53,19 +53,17 @@ export function initAutoRefresh() {
  * Handle visibility change - pause when tab is hidden
  */
 function handleVisibilityChange() {
-    const autoRefreshStatus = document.getElementById('auto-refresh-status');
+    const autoRefreshDot = document.querySelector('.auto-refresh-dot');
     if (document.hidden) {
         stopAutoRefresh();
-        if (autoRefreshStatus) {
-            autoRefreshStatus.textContent = 'Auto-refresh: PAUSED';
-            autoRefreshStatus.classList.add('paused');
+        if (autoRefreshDot) {
+            autoRefreshDot.classList.add('paused');
         }
         console.log('⏸️ Auto-refresh paused (tab hidden)');
     } else {
         startAutoRefresh();
-        if (autoRefreshStatus) {
-            autoRefreshStatus.textContent = 'Auto-refresh: ON (5 min)';
-            autoRefreshStatus.classList.remove('paused');
+        if (autoRefreshDot) {
+            autoRefreshDot.classList.remove('paused');
         }
         console.log('▶️ Auto-refresh resumed (tab visible)');
     }
@@ -228,15 +226,15 @@ function setupRefreshButtons() {
     if (globalRefreshBtn) {
         globalRefreshBtn.addEventListener('click', async () => {
             // Add spinning animation
-            globalRefreshBtn.classList.add('spinning');
+            globalRefreshBtn.classList.add('refreshing');
 
             // Refresh the current section
             await refreshCurrentSection();
 
-            // Remove spinning class after a short delay
+            // Remove spinning class after animation completes
             setTimeout(() => {
-                globalRefreshBtn.classList.remove('spinning');
-            }, 200);
+                globalRefreshBtn.classList.remove('refreshing');
+            }, 800);
         });
     }
 }
@@ -252,10 +250,18 @@ function refreshCurrentSection() {
     refreshSection(sectionId);
 
     // Update last refresh indicator
+    updateRefreshIndicator();
+}
+
+/**
+ * Update the last refresh indicator
+ */
+function updateRefreshIndicator() {
     const indicator = document.getElementById('last-refresh-indicator');
     if (indicator) {
         const now = new Date();
-        indicator.textContent = `Last refresh: ${now.toLocaleTimeString()}`;
+        const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+        indicator.textContent = `อัปเดตล่าสุด: ${timeStr}`;
     }
 }
 
@@ -339,14 +345,11 @@ async function refreshSection(sectionId) {
  */
 function showRefreshNotification(sectionName = 'Data') {
     // Update last refresh indicator
-    const indicator = document.getElementById('last-refresh-indicator');
-    if (indicator) {
-        const now = new Date();
-        indicator.textContent = `Last refresh: ${now.toLocaleTimeString()}`;
-    }
+    updateRefreshIndicator();
 
     // Animate the section refresh button if it exists
-    const sectionRefreshBtn = document.getElementById(`${getSectionIdFromName(sectionName)}-refresh-btn`);
+    const sectionId = getSectionIdFromName(sectionName);
+    const sectionRefreshBtn = document.getElementById(`${sectionId}-refresh-btn`);
     if (sectionRefreshBtn && sectionRefreshBtn.classList.contains('section-refresh-btn')) {
         const icon = sectionRefreshBtn.querySelector('.btn-icon');
         if (icon) {
@@ -383,19 +386,17 @@ function getSectionIdFromName(sectionName) {
  */
 export function setAutoRefreshEnabled(enabled) {
     isAutoRefreshEnabled = enabled;
-    const autoRefreshStatus = document.getElementById('auto-refresh-status');
+    const autoRefreshDot = document.querySelector('.auto-refresh-dot');
 
     if (enabled) {
         startAutoRefresh();
-        if (autoRefreshStatus) {
-            autoRefreshStatus.textContent = 'Auto-refresh: ON (5 min)';
-            autoRefreshStatus.classList.remove('paused');
+        if (autoRefreshDot) {
+            autoRefreshDot.classList.remove('paused');
         }
     } else {
         stopAutoRefresh();
-        if (autoRefreshStatus) {
-            autoRefreshStatus.textContent = 'Auto-refresh: OFF';
-            autoRefreshStatus.classList.add('paused');
+        if (autoRefreshDot) {
+            autoRefreshDot.classList.add('paused');
         }
     }
 }
