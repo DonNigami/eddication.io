@@ -162,30 +162,94 @@ async function loadOrigins() {
 }
 
 /**
- * Load drivers from database and populate dropdown
+ * Load drivers from jobdata and populate dropdown
  */
 async function loadDrivers() {
     try {
-        const { data: drivers } = await supabase
-            .from('user_profiles')
-            .select('user_id, display_name')
-            .eq('role', 'driver')
-            .order('display_name');
+        // Fetch unique drivers from jobdata table
+        const { data: jobData, error } = await supabase
+            .from('jobdata')
+            .select('drivers')
+            .not('drivers', 'is', null)
+            .not('drivers', 'eq', '')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Parse and collect unique drivers (drivers field is comma-separated)
+        const driversSet = new Set();
+        jobData?.forEach(row => {
+            if (row.drivers) {
+                // Split by comma and trim each name
+                const names = row.drivers.split(',').map(d => d.trim()).filter(d => d);
+                names.forEach(name => driversSet.add(name));
+            }
+        });
+
+        // Convert to array and sort
+        const uniqueDrivers = Array.from(driversSet).sort();
 
         if (b100DriverSelect) {
             b100DriverSelect.innerHTML = '<option value="">-- เลือกคนขับ --</option>';
-            drivers?.forEach(driver => {
+            uniqueDrivers.forEach(driverName => {
                 const option = document.createElement('option');
-                option.value = JSON.stringify({ id: driver.user_id, name: driver.display_name });
-                option.textContent = driver.display_name || driver.user_id;
+                option.value = driverName;
+                option.textContent = sanitizeHTML(driverName);
                 b100DriverSelect.appendChild(option);
             });
         }
+
+        console.log(`Loaded ${uniqueDrivers.length} unique drivers from jobdata`);
     } catch (e) {
-        console.warn('Could not load drivers:', e);
+        console.warn('Could not load drivers from jobdata:', e);
         if (b100DriverSelect) {
             b100DriverSelect.innerHTML = '<option value="">-- เลือกคนขับ --</option>';
         }
+    }
+}
+
+/**
+ * Load vehicles from jobdata and populate datalist for searchable input
+ */
+async function loadVehicles() {
+    try {
+        // Fetch unique vehicles from jobdata table
+        const { data: jobData, error } = await supabase
+            .from('jobdata')
+            .select('vehicle_desc')
+            .not('vehicle_desc', 'is', null)
+            .not('vehicle_desc', 'eq', '')
+            .order('vehicle_desc', { ascending: true });
+
+        if (error) throw error;
+
+        // Collect unique vehicles
+        const vehiclesSet = new Set();
+        jobData?.forEach(row => {
+            if (row.vehicle_desc) {
+                vehiclesSet.add(row.vehicle_desc.trim());
+            }
+        });
+
+        // Convert to array and sort
+        const uniqueVehicles = Array.from(vehiclesSet).sort();
+
+        // Get the vehicle input and its datalist
+        const vehicleInput = document.getElementById('b100-vehicle');
+        const vehicleDatalist = document.getElementById('b100-vehicle-list');
+
+        if (vehicleDatalist) {
+            vehicleDatalist.innerHTML = '';
+            uniqueVehicles.forEach(vehicle => {
+                const option = document.createElement('option');
+                option.value = vehicle;
+                vehicleDatalist.appendChild(option);
+            });
+        }
+
+        console.log(`Loaded ${uniqueVehicles.length} unique vehicles from jobdata`);
+    } catch (e) {
+        console.warn('Could not load vehicles from jobdata:', e);
     }
 }
 
@@ -209,10 +273,11 @@ export async function openB100Modal() {
         b100ReferenceInput.value = `B100-${today}-${String((count || 0) + 1).padStart(3, '0')}`;
     }
 
-    // Load origins and drivers in parallel
+    // Load origins, drivers, and vehicles in parallel
     await Promise.all([
         loadOrigins(),
-        loadDrivers()
+        loadDrivers(),
+        loadVehicles()
     ]);
 
     b100Modal.classList.remove('hidden');
@@ -249,13 +314,10 @@ export async function handleB100Submit(event) {
         return;
     }
 
-    const driver = JSON.parse(driverData);
-
     try {
         const jobData = {
             reference: reference,
-            drivers: driver.name,
-            driver_user_id: driver.id,
+            drivers: driverData,
             vehicle_desc: vehicle,
             b100_origin: origin,
             b100_destination: destination,

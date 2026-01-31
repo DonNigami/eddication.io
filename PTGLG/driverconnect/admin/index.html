@@ -1380,7 +1380,8 @@ This admin panel interfaces with the following Supabase database tables:
                             </select>
 
                             <label for="b100-vehicle">Vehicle Plate:</label>
-                            <input type="text" id="b100-vehicle" required placeholder="e.g., กข-1234">
+                            <input type="text" id="b100-vehicle" list="b100-vehicle-list" required placeholder="e.g., กข-1234">
+                            <datalist id="b100-vehicle-list"></datalist>
 
                             <label for="b100-origin">ต้นทาง (Origin):</label>
                             <select id="b100-origin" required>
