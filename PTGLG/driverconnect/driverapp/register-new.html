@@ -651,10 +651,7 @@
         // Initialize
         async function init() {
             try {
-                // Initialize Supabase
-                supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-
-                // Initialize LIFF
+                // Initialize LIFF first to get line_user_id
                 await liff.init({ liffId: CONFIG.LIFF_ID });
 
                 // Check login
@@ -666,6 +663,19 @@
                 // Get LINE Profile
                 liffProfile = await liff.getProfile();
                 console.log('LINE Profile:', liffProfile);
+
+                // Initialize Supabase with LINE user context for RLS
+                supabaseClient = window.supabase.createClient(
+                    CONFIG.SUPABASE_URL,
+                    CONFIG.SUPABASE_ANON_KEY,
+                    {
+                        global: {
+                            headers: {
+                                'line_user_id': liffProfile.userId
+                            }
+                        }
+                    }
+                );
 
                 // Update UI with LINE profile
                 document.getElementById('linePicture').src = liffProfile.pictureUrl || 'data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Ccircle%20cx%3D%2212%22%20cy%3D%2212%22%20r%3D%2212%22%20fill%3D%22%23ddd%22%2F%3E%3C%2Fsvg%3E';
