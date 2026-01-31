@@ -357,6 +357,83 @@
             }
         }
 
+        /* Readonly Field */
+        .readonly-field {
+            background: #f0f0f0;
+            color: #616161;
+            cursor: not-allowed;
+        }
+
+        /* Search Results */
+        .search-results {
+            margin-top: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .search-result-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .search-result-item:hover {
+            border-color: var(--primary);
+            background: #f0f8f0;
+        }
+
+        .search-result-item.selected {
+            border-color: var(--primary);
+            background: #e8f5e9;
+        }
+
+        .search-result-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text);
+        }
+
+        .search-result-code {
+            font-size: 13px;
+            color: var(--primary);
+            margin-top: 4px;
+        }
+
+        .search-result-details {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        .search-no-result {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-sub);
+        }
+
+        .search-loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-sub);
+        }
+
+        .search-loading::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f0f0f0;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
         /* Hidden */
         .hidden {
             display: none !important;
@@ -400,80 +477,85 @@
 
             <!-- Registration Form -->
             <form id="registrationForm" class="hidden">
-                <!-- Driver Information -->
+                <!-- Search Section -->
                 <div class="form-section">
-                    <span class="form-section-title">ข้อมูลพนักงาน</span>
+                    <span class="form-section-title">ค้นหาข้อมูลพนักงาน</span>
 
                     <div class="form-group">
-                        <label>รหัสพนักงาน <span class="required">*</span></label>
-                        <input type="text" id="employeeCode" placeholder="เช่น EMP001" required>
-                        <small class="help-text">รหัสพนักงานของคุณ</small>
+                        <label>ค้นหาจากรหัสพนักงาน หรือ ชื่อ-นามสกุล <span class="required">*</span></label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="searchInput" placeholder="รหัสพนักงาน หรือ ชื่อ" style="flex: 1;" required>
+                            <button type="button" class="btn btn-primary" id="searchBtn" style="width: auto; padding: 12px 20px;">
+                                <span class="btn-text">ค้นหา</span>
+                            </button>
+                        </div>
+                        <small class="help-text">พิมพ์รหัสพนักงาน หรือ ชื่อ-นามสกุล บางส่วน</small>
                     </div>
 
-                    <div class="form-group">
-                        <label>ชื่อ-นามสกุล <span class="required">*</span></label>
-                        <input type="text" id="driverName" placeholder="ชื่อ-นามสกุล" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>รหัส SAP <span class="required">*</span></label>
-                        <input type="text" id="driverSapCode" placeholder="เช่น SAP001" required>
-                        <small class="help-text">รหัสพนักงานในระบบ SAP</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>เบอร์โทรศัพท์</label>
-                        <input type="tel" id="phoneNumber" placeholder="08xxxxxxxx">
-                        <small class="help-text">เบอร์โทรศัพท์ที่ติดต่อได้</small>
-                    </div>
+                    <!-- Search Results -->
+                    <div id="searchResults" class="search-results hidden"></div>
                 </div>
 
-                <!-- Work Information -->
-                <div class="form-section">
-                    <span class="form-section-title">ข้อมูลการทำงาน</span>
+                <!-- Driver Info (Auto-filled) -->
+                <div id="driverInfoSection" class="hidden">
+                    <div class="form-section">
+                        <span class="form-section-title">ข้อมูลพนักงาน (จากระบบ)</span>
 
-                    <div class="form-group">
-                        <label>แผนก/ฝ่าย <span class="required">*</span></label>
-                        <select id="section" required>
-                            <option value="">-- เลือกแผนก --</option>
-                            <option value="Transport">ฝ่ายขนส่ง (Transport)</option>
-                            <option value="Logistics">ฝ่ายโลจิสติกส์ (Logistics)</option>
-                            <option value="Warehouse">ฝ่ายคลังสินค้า (Warehouse)</option>
-                            <option value="Delivery">ฝ่ายส่งสินค้า (Delivery)</option>
-                            <option value="Operation">ฝ่ายปฏิบัติการ (Operation)</option>
-                            <option value="Other">อื่นๆ</option>
-                        </select>
+                        <div class="form-group">
+                            <label>รหัสพนักงาน</label>
+                            <input type="text" id="employeeCode" readonly class="readonly-field">
+                        </div>
+
+                        <div class="form-group">
+                            <label>ชื่อ-นามสกุล</label>
+                            <input type="text" id="driverName" readonly class="readonly-field">
+                        </div>
+
+                        <div class="form-group">
+                            <label>รหัส SAP</label>
+                            <input type="text" id="driverSapCode" readonly class="readonly-field">
+                        </div>
+
+                        <div class="form-group">
+                            <label>แผนก/ฝ่าย</label>
+                            <input type="text" id="sectionDisplay" readonly class="readonly-field">
+                            <input type="hidden" id="section">
+                        </div>
+
+                        <div class="form-group">
+                            <label>ประเภทรถ</label>
+                            <input type="text" id="truckTypeDisplay" readonly class="readonly-field">
+                            <input type="hidden" id="truckType">
+                        </div>
+
+                        <div class="form-group">
+                            <label>ตำแหน่ง</label>
+                            <input type="text" id="positionDisplay" readonly class="readonly-field">
+                            <input type="hidden" id="position">
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>ประเภทรถ <span class="required">*</span></label>
-                        <select id="truckType" required>
-                            <option value="">-- เลือกประเภทรถ --</option>
-                            <option value="10-Wheeler">รถ 10 ล้อ (10-Wheeler)</option>
-                            <option value="6-Wheeler">รถ 6 ล้อ (6-Wheeler)</option>
-                            <option value="4-Wheeler">รถ 4 ล้อ (4-Wheeler)</option>
-                            <option value="Trailer">รถพ่วง (Trailer)</option>
-                            <option value="Tanker">รถแทงค์ (Tanker)</option>
-                            <option value="Other">อื่นๆ</option>
-                        </select>
+                    <!-- Phone Number (User Input) -->
+                    <div class="form-section">
+                        <span class="form-section-title">ข้อมูลติดต่อ</span>
+
+                        <div class="form-group">
+                            <label>เบอร์โทรศัพท์ <span class="required">*</span></label>
+                            <input type="tel" id="phoneNumber" placeholder="08xxxxxxxx" required>
+                            <small class="help-text">เบอร์โทรศัพท์ที่ติดต่อได้</small>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label>ตำแหน่ง <span class="required">*</span></label>
-                        <select id="position" required>
-                            <option value="">-- เลือกตำแหน่ง --</option>
-                            <option value="Driver">พนักงานขับรถ (Driver)</option>
-                            <option value="Assistant">พนักงานขับรถผู้ช่วย (Assistant)</option>
-                            <option value="Contractor">พนักงานขับรถ รปก. (Contractor)</option>
-                            <option value="Lead Driver">หัวหน้าคนขับ (Lead Driver)</option>
-                        </select>
-                    </div>
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="btn-text">ส่งคำขอลงทะเบียน</span>
+                    </button>
+
+                    <!-- Change Driver Button -->
+                    <button type="button" class="btn btn-secondary" id="changeDriverBtn" style="margin-top: 12px;">
+                        ค้นหาคนอื่น
+                    </button>
                 </div>
-
-                <!-- Submit Button -->
-                <button type="submit" class="btn btn-primary" id="submitBtn">
-                    <span class="btn-text">ส่งคำขอลงทะเบียน</span>
-                </button>
             </form>
 
             <!-- Success Message -->
@@ -551,6 +633,7 @@
         // State
         let liffProfile = null;
         let supabaseClient = null;
+        let selectedDriver = null;
 
         // DOM Elements
         const loadingScreen = document.getElementById('loadingScreen');
@@ -559,6 +642,11 @@
         const profileSection = document.getElementById('profileSection');
         const statusSection = document.getElementById('statusSection');
         const submitBtn = document.getElementById('submitBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchResults = document.getElementById('searchResults');
+        const driverInfoSection = document.getElementById('driverInfoSection');
+        const changeDriverBtn = document.getElementById('changeDriverBtn');
 
         // Initialize
         async function init() {
@@ -677,15 +765,17 @@
             hideAll();
             profileSection.classList.remove('hidden');
             registrationForm.classList.remove('hidden');
+            driverInfoSection.classList.add('hidden');
+
+            // Clear search
+            searchInput.value = '';
+            searchResults.innerHTML = '';
+            searchResults.classList.add('hidden');
+            selectedDriver = null;
 
             if (existingData) {
-                document.getElementById('employeeCode').value = existingData.employee_code || '';
-                document.getElementById('driverName').value = existingData.driver_name || '';
-                document.getElementById('driverSapCode').value = existingData.driver_sap_code || '';
-                document.getElementById('phoneNumber').value = existingData.phone_number || '';
-                document.getElementById('section').value = existingData.section || '';
-                document.getElementById('truckType').value = existingData.truck_type || '';
-                document.getElementById('position').value = existingData.position || '';
+                // If has existing data, search and pre-select the driver
+                searchDriverByCode(existingData.employee_code);
             }
         }
 
@@ -700,6 +790,163 @@
             document.getElementById('errorMessage').classList.add('hidden');
         }
 
+        // ========== Search Functions ==========
+
+        // Search driver by employee code (for existing data)
+        async function searchDriverByCode(employeeCode) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('driver_master')
+                    .select('*')
+                    .eq('employee_code', employeeCode)
+                    .limit(1);
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    selectDriver(data[0]);
+                }
+            } catch (error) {
+                console.error('Search by code error:', error);
+            }
+        }
+
+        // Search drivers from driver_master
+        async function searchDrivers(query) {
+            if (!query || query.trim().length < 2) {
+                searchResults.innerHTML = '<div class="search-no-result">พิมพ์อย่างน้อย 2 ตัวอักษร</div>';
+                searchResults.classList.remove('hidden');
+                return;
+            }
+
+            searchResults.innerHTML = '<div class="search-loading">กำลังค้นหา...</div>';
+            searchResults.classList.remove('hidden');
+
+            try {
+                const searchTerm = query.trim();
+
+                // Search by employee_code (exact match) OR driver_name (partial match)
+                const { data, error } = await supabaseClient
+                    .from('driver_master')
+                    .select('*')
+                    .or(`employee_code.ilike.%${searchTerm}%,driver_name.ilike.%${searchTerm}%`)
+                    .limit(10);
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    searchResults.innerHTML = '<div class="search-no-result">ไม่พบข้อมูลพนักงาน</div>';
+                    return;
+                }
+
+                displaySearchResults(data);
+
+            } catch (error) {
+                console.error('Search error:', error);
+                searchResults.innerHTML = '<div class="search-no-result">เกิดข้อผิดพลาดในการค้นหา</div>';
+            }
+        }
+
+        // Display search results
+        function displaySearchResults(drivers) {
+            const html = drivers.map(driver => `
+                <div class="search-result-item" data-code="${driver.employee_code}">
+                    <div class="search-result-name">${driver.driver_name}</div>
+                    <div class="search-result-code">รหัส: ${driver.employee_code} | SAP: ${driver.driver_sap_code}</div>
+                    <div class="search-result-details">${getSectionText(driver.section)} | ${getTruckTypeText(driver.truck_type)} | ${getPositionText(driver.position)}</div>
+                </div>
+            `).join('');
+
+            searchResults.innerHTML = html;
+
+            // Add click listeners
+            searchResults.querySelectorAll('.search-result-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const code = item.dataset.code;
+                    const driver = drivers.find(d => d.employee_code === code);
+                    if (driver) {
+                        selectDriver(driver);
+                    }
+                });
+            });
+        }
+
+        // Select a driver from search results
+        function selectDriver(driver) {
+            selectedDriver = driver;
+
+            // Fill form fields
+            document.getElementById('employeeCode').value = driver.employee_code;
+            document.getElementById('driverName').value = driver.driver_name;
+            document.getElementById('driverSapCode').value = driver.driver_sap_code;
+            document.getElementById('section').value = driver.section;
+            document.getElementById('sectionDisplay').value = getSectionText(driver.section);
+            document.getElementById('truckType').value = driver.truck_type;
+            document.getElementById('truckTypeDisplay').value = getTruckTypeText(driver.truck_type);
+            document.getElementById('position').value = driver.position;
+            document.getElementById('positionDisplay').value = getPositionText(driver.position);
+
+            // Show driver info section, hide search results
+            searchResults.classList.add('hidden');
+            searchResults.innerHTML = '';
+            searchInput.value = '';
+            driverInfoSection.classList.remove('hidden');
+        }
+
+        // Get display text for section
+        function getSectionText(section) {
+            const texts = {
+                'Transport': 'ฝ่ายขนส่ง',
+                'Logistics': 'ฝ่ายโลจิสติกส์',
+                'Warehouse': 'ฝ่ายคลังสินค้า',
+                'Delivery': 'ฝ่ายส่งสินค้า',
+                'Operation': 'ฝ่ายปฏิบัติการ',
+                'Other': 'อื่นๆ'
+            };
+            return texts[section] || section;
+        }
+
+        // Get display text for truck type
+        function getTruckTypeText(truckType) {
+            const texts = {
+                '10-Wheeler': 'รถ 10 ล้อ',
+                '6-Wheeler': 'รถ 6 ล้อ',
+                '4-Wheeler': 'รถ 4 ล้อ',
+                'Trailer': 'รถพ่วง',
+                'Tanker': 'รถแทงค์',
+                'Other': 'อื่นๆ'
+            };
+            return texts[truckType] || truckType;
+        }
+
+        // Get display text for position
+        function getPositionText(position) {
+            const texts = {
+                'Driver': 'พนักงานขับรถ',
+                'Assistant': 'พนักงานขับรถผู้ช่วย',
+                'Contractor': 'พนักงานขับรถ รปก.',
+                'Lead Driver': 'หัวหน้าคนขับ'
+            };
+            return texts[position] || position;
+        }
+
+        // Event listeners for search
+        searchBtn.addEventListener('click', () => searchDrivers(searchInput.value));
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchDrivers(searchInput.value);
+            }
+        });
+
+        // Change driver button
+        changeDriverBtn.addEventListener('click', () => {
+            driverInfoSection.classList.add('hidden');
+            selectedDriver = null;
+            document.getElementById('phoneNumber').value = '';
+        });
+
         // Handle form submit
         async function handleFormSubmit(e) {
             e.preventDefault();
@@ -713,18 +960,18 @@
                     line_user_id: liffProfile.userId,
                     line_display_name: liffProfile.displayName,
                     line_picture_url: liffProfile.pictureUrl,
-                    employee_code: document.getElementById('employeeCode').value.trim(),
-                    driver_name: document.getElementById('driverName').value.trim(),
-                    driver_sap_code: document.getElementById('driverSapCode').value.trim(),
+                    employee_code: selectedDriver.employee_code,
+                    driver_name: selectedDriver.driver_name,
+                    driver_sap_code: selectedDriver.driver_sap_code,
                     phone_number: document.getElementById('phoneNumber').value.trim() || null,
-                    section: document.getElementById('section').value,
-                    truck_type: document.getElementById('truckType').value,
-                    position: document.getElementById('position').value,
+                    section: selectedDriver.section,
+                    truck_type: selectedDriver.truck_type,
+                    position: selectedDriver.position,
                     registration_status: 'PENDING'
                 };
 
                 // Check if updating or inserting
-                const { data: existing } = await supabase
+                const { data: existing } = await supabaseClient
                     .from('register_data')
                     .select('id')
                     .eq('line_user_id', liffProfile.userId)
@@ -732,12 +979,12 @@
 
                 let result;
                 if (existing && existing.length > 0) {
-                    result = await supabase
+                    result = await supabaseClient
                         .from('register_data')
                         .update(formData)
                         .eq('id', existing[0].id);
                 } else {
-                    result = await supabase
+                    result = await supabaseClient
                         .from('register_data')
                         .insert(formData);
                 }
@@ -758,43 +1005,39 @@
 
         // Validate form
         function validateForm() {
-            let isValid = true;
-            const fields = [
-                { id: 'employeeCode', name: 'รหัสพนักงาน' },
-                { id: 'driverName', name: 'ชื่อ-นามสกุล' },
-                { id: 'driverSapCode', name: 'รหัส SAP' },
-                { id: 'section', name: 'แผนก/ฝ่าย' },
-                { id: 'truckType', name: 'ประเภทรถ' },
-                { id: 'position', name: 'ตำแหน่ง' }
-            ];
-
-            fields.forEach(field => {
-                const el = document.getElementById(field.id);
-                const parent = el.closest('.form-group');
-                const existingMsg = parent.querySelector('.error-message');
+            // Clear previous errors
+            document.querySelectorAll('.form-group').forEach(group => {
+                group.classList.remove('error');
+                const existingMsg = group.querySelector('.error-message');
                 if (existingMsg) existingMsg.remove();
-                parent.classList.remove('error');
-
-                if (!el.value.trim()) {
-                    parent.classList.add('error');
-                    const msg = document.createElement('span');
-                    msg.className = 'error-message';
-                    msg.textContent = `กรุณากรอก${field.name}`;
-                    parent.appendChild(msg);
-                    isValid = false;
-                }
             });
 
-            // Phone format
+            let isValid = true;
+
+            // Check if driver is selected
+            if (!selectedDriver) {
+                showToast('กรุณาค้นหาและเลือกข้อมูลพนักงาน', 'error');
+                return false;
+            }
+
+            // Validate phone number
             const phone = document.getElementById('phoneNumber');
             const phoneValue = phone.value.trim();
-            if (phoneValue && !/^0[0-9]{8,9}$/.test(phoneValue)) {
-                const parent = phone.closest('.form-group');
-                parent.classList.add('error');
+            const phoneParent = phone.closest('.form-group');
+
+            if (!phoneValue) {
+                phoneParent.classList.add('error');
+                const msg = document.createElement('span');
+                msg.className = 'error-message';
+                msg.textContent = 'กรุณากรอกเบอร์โทรศัพท์';
+                phoneParent.appendChild(msg);
+                isValid = false;
+            } else if (!/^0[0-9]{8,9}$/.test(phoneValue)) {
+                phoneParent.classList.add('error');
                 const msg = document.createElement('span');
                 msg.className = 'error-message';
                 msg.textContent = 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง';
-                parent.appendChild(msg);
+                phoneParent.appendChild(msg);
                 isValid = false;
             }
 
