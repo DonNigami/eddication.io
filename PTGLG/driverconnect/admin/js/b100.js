@@ -64,7 +64,7 @@ export async function loadB100Jobs(searchTerm = '', statusFilter = '') {
 
     try {
         let query = supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .select('*')
             .eq('is_b100', true)
             .order('created_at', { ascending: false });
@@ -309,7 +309,7 @@ export async function handleB100Submit(event) {
     const notes = b100NotesInput?.value;
     const reference = b100ReferenceInput?.value;
 
-    if (!driverData || !vehicle || !origin || !destination || quantity <= 0 || amount <= 0) {
+    if (!driverData || !vehicle || !origin || !destination || quantity <= 0) {
         showNotification('Please fill all required fields', 'error');
         return;
     }
@@ -320,7 +320,7 @@ export async function handleB100Submit(event) {
             drivers: driverData,
             vehicle_desc: vehicle,
             b100_origin: origin,
-            b100_destination: destination,
+            ship_to_name: destination,
             b100_materials: materials,
             b100_quantity: quantity,
             b100_amount: amount,
@@ -328,11 +328,13 @@ export async function handleB100Submit(event) {
             b100_status: 'pending',
             is_b100: true,
             status: 'active',
+            seq: 1,
+            is_origin_stop: true,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
 
-        const { error } = await supabase.from('driver_jobs').insert([jobData]);
+        const { error } = await supabase.from('jobdata').insert([jobData]);
         if (error) throw error;
 
         showNotification('B100 job created successfully', 'success');
@@ -353,7 +355,7 @@ export async function handleB100Submit(event) {
 export async function updateB100Status(jobId, newStatus) {
     try {
         const { error } = await supabase
-            .from('driver_jobs')
+            .from('jobdata')
             .update({ b100_status: newStatus, updated_at: new Date().toISOString() })
             .eq('id', jobId);
 
