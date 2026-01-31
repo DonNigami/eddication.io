@@ -973,15 +973,40 @@ async function closeJob() {
     return;
   }
 
+  // Build driver options from currentDrivers (from jobdata)
+  // Also include "ไม่มี" option for driver 2 when only 1 driver
+  const driverOptions = currentDrivers.length > 0
+    ? currentDrivers.map(d => `<option value="${sanitizeHTML(d)}">${sanitizeHTML(d)}</option>`).join('')
+    : '<option value="">ไม่พบรายชื่อ</option>';
+
+  const noDriverOption = '<option value="">ไม่มี</option>';
+
   const { value: formValues } = await Swal.fire({
     icon: 'question',
     title: 'ปิดงาน',
     html: `
       <div style="text-align:left; font-size: 0.9rem;">
         <div style="margin-bottom: 12px;">
-          <label style="font-weight:bold; display:block; margin-bottom: 5px;">จำนวนคนขับเที่ยวนี้</label>
-          <label style="margin-right: 20px;"><input type="radio" name="driverCount" value="1" checked> 1 คน</label>
-          <label><input type="radio" name="driverCount" value="2"> 2 คน</label>
+          <label style="font-weight:bold; display:block; margin-bottom: 8px;">👤 ยืนยันพนักงานขับรถ</label>
+
+          <div style="margin-bottom: 8px;">
+            <label style="font-weight:normal; display:block; margin-bottom: 4px;">คนที่ 1 <span style="color:red;">*</span></label>
+            <select id="driver1Select" class="swal2-input" style="width:100%; margin:0;">
+              ${driverOptions}
+            </select>
+          </div>
+
+          <div style="margin-bottom: 8px;">
+            <label style="font-weight:normal; display:block; margin-bottom: 4px;">คนที่ 2 (ถ้ามี)</label>
+            <select id="driver2Select" class="swal2-input" style="width:100%; margin:0;">
+              ${noDriverOption}
+              ${driverOptions}
+            </select>
+          </div>
+
+          <small style="color:#666; display:block; margin-top:4px;">
+            * รายชื่อจากงาน ${sanitizeHTML(currentReference)}
+          </small>
         </div>
         <hr style="border:none; border-top: 1px solid #eee; margin: 15px 0;">
         <div style="margin-bottom: 12px;">
@@ -1003,20 +1028,41 @@ async function closeJob() {
     confirmButtonText: 'ยืนยันปิดงาน',
     cancelButtonText: 'ยกเลิก',
     confirmButtonColor: '#1abc9c',
+    didOpen: () => {
+      // Pre-select driver1 if there's at least one driver
+      const driver1Select = document.getElementById('driver1Select');
+      const driver2Select = document.getElementById('driver2Select');
+
+      if (currentDrivers.length > 0 && driver1Select) {
+        driver1Select.value = currentDrivers[0];
+      }
+      // Pre-select driver2 if there are 2 drivers
+      if (currentDrivers.length > 1 && driver2Select) {
+        driver2Select.value = currentDrivers[1];
+      }
+    },
     preConfirm: () => {
-      const driverCount = document.querySelector('input[name="driverCount"]:checked').value;
-      if (!driverCount) {
-        Swal.showValidationMessage('กรุณาเลือกจำนวนคนขับ');
+      const driver1Name = document.getElementById('driver1Select').value;
+      const driver2Name = document.getElementById('driver2Select').value;
+
+      if (!driver1Name) {
+        Swal.showValidationMessage('กรุณาเลือกพนักงานคนที่ 1');
         return false;
       }
+
+      // Calculate driver count based on selections
+      const driverCount = driver2Name ? 2 : 1;
+
       return {
-        driverCount: parseInt(driverCount, 10),
+        driverCount,
+        driver1Name,
+        driver2Name,
         vehicleStatus: document.querySelector('input[name="vehicleStatus"]:checked').value,
         hillFee: document.getElementById('hillFee').checked ? 'yes' : 'no',
         bkkFee: document.getElementById('bkkFee').checked ? 'yes' : 'no',
         repairFee: document.getElementById('repairFee').checked ? 'yes' : 'no',
         isHolidayWork: document.getElementById('swalHolidayWork').checked
-      }
+      };
     }
   });
 
@@ -1076,6 +1122,8 @@ async function closeJob() {
       reference: currentReference,
       userId: currentUserId,
       driverCount: formValues.driverCount,
+      driver1Name: formValues.driver1Name,
+      driver2Name: formValues.driver2Name || null,
       vehicleStatus: formValues.vehicleStatus,
       vehicleDesc: currentVehicleDesc,
       hillFee: formValues.hillFee,

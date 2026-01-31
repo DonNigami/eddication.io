@@ -193,19 +193,24 @@ const EdgeFunctionsAPI = {
    * @returns {Promise<Object>} Result
    */
   async closeJob(params) {
-    const { reference, userId, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee } = params;
-    
-    console.log('📋 [API] Closing job:', reference);
-    
+    const { reference, userId, driverCount, driver1Name, driver2Name, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee, isHolidayWork, holidayWorkNotes } = params;
+
+    console.log('📋 [API] Closing job:', reference, 'with drivers:', { driver1Name, driver2Name });
+
     try {
       const result = await callEdgeFunction('close-job', {
         reference,
         userId,
+        driverCount,
+        driver1Name,
+        driver2Name,
         vehicleStatus,
         vehicleDesc,
         hillFee,
         bkkFee,
         repairFee,
+        isHolidayWork,
+        holidayWorkNotes,
       });
 
       if (result.success) {

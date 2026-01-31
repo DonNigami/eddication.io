@@ -729,8 +729,8 @@ export const SupabaseAPI = {
    * Schema aligned with app/PLAN.md: trips table with job_closed flag
    * Requires DriverAuth verification before allowing close
    */
-  async closeJob({ reference, userId, driverCount, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee, isHolidayWork, holidayWorkNotes }) {
-    console.log('📋 Supabase: Closing job', reference);
+  async closeJob({ reference, userId, driverCount, driver1Name, driver2Name, vehicleStatus, vehicleDesc, hillFee, bkkFee, repairFee, isHolidayWork, holidayWorkNotes }) {
+    console.log('📋 Supabase: Closing job', reference, 'with drivers:', { driver1Name, driver2Name });
 
     // Phase 1.5: Verify driver has access to this job before closing
     const hasAccess = await DriverAuth.verifyJobAccess(userId, reference);
@@ -770,13 +770,15 @@ export const SupabaseAPI = {
         job_closed: true,
         job_closed_at: new Date().toISOString(),
         driver_count: driverCount,
+        confirmed_driver1: driver1Name,
+        confirmed_driver2: driver2Name || null,
         vehicle_status: vehicleStatus,
         closed_by: userId,
         updated_at: new Date().toISOString(),
         processdata_time: new Date().toISOString(),
         is_holiday_work: isHolidayWork
       };
-      
+
       // Add holiday work notes if provided
       if (isHolidayWork && holidayWorkNotes) {
         updateData.holiday_work_notes = holidayWorkNotes;
@@ -794,16 +796,17 @@ export const SupabaseAPI = {
       if (error) throw error;
 
       // Log action
-      const logDetails = { 
-        vehicleStatus, 
-        fees: totalFees, 
-        hillFee, 
-        bkkFee, 
-        repairFee, 
-        driverCount, 
-        isHolidayWork 
+      const logDetails = {
+        vehicleStatus,
+        fees: totalFees,
+        hillFee,
+        bkkFee,
+        repairFee,
+        driverCount,
+        confirmedDrivers: { driver1: driver1Name, driver2: driver2Name },
+        isHolidayWork
       };
-      
+
       // Add notes if holiday work
       if (isHolidayWork && holidayWorkNotes) {
         logDetails.holidayWorkNotes = holidayWorkNotes;
