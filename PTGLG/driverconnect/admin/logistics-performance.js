@@ -862,3 +862,6 @@ function exportToExcel() {
 
 // Export for use in admin.js if needed
 export { initializePerformanceReport, loadPerformanceReport };
+
+// Alias for auto-refresh.js
+export { loadPerformanceReport as loadPerformanceData };

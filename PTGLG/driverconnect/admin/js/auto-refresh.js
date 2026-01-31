@@ -6,16 +6,16 @@
 import { loadB100Jobs } from './b100.js';
 import { loadJobs } from './jobs.js';
 import { loadUsers } from './users.js';
-import { loadDriverReports } from './driver-reports.js';
+import { loadDriverReports } from './reports.js';
 import { loadAlerts } from './alerts.js';
 import { loadLogs } from './logs.js';
-import { loadIncentiveData } from './incentive-approval.js';
-import { loadPaymentData } from './payment-processor.js';
+import { loadIncentiveJobs } from './incentive-approval.js';
+import { loadPayments } from './payment-processing.js';
 import { loadBreakdownReports } from './breakdown-reports.js';
-import { loadPerformanceData } from './logistics-performance.js';
-import { loadDashboardData } from './dashboard.js';
-import { loadVehicleBreakdownData } from './vehicle-breakdown.js';
-import { loadFuelSiphoningData } from './fuel-siphoning.js';
+import { loadPerformanceData } from '../logistics-performance.js';
+import { refreshDashboard } from './dashboard.js';
+import { loadVehicleBreakdowns } from './breakdown.js';
+import { loadFuelSiphoning } from './siphoning.js';
 
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 let autoRefreshTimer = null;
@@ -234,8 +234,8 @@ async function refreshSection(sectionId) {
     try {
         switch (sectionId) {
             case 'dashboard':
-                if (typeof loadDashboardData === 'function') {
-                    await loadDashboardData();
+                if (typeof refreshDashboard === 'function') {
+                    await refreshDashboard();
                 }
                 break;
             case 'jobs':
@@ -267,13 +267,13 @@ async function refreshSection(sectionId) {
                 }
                 break;
             case 'incentive-approval':
-                if (typeof loadIncentiveData === 'function') {
-                    await loadIncentiveData();
+                if (typeof loadIncentiveJobs === 'function') {
+                    await loadIncentiveJobs();
                 }
                 break;
             case 'payment-processing':
-                if (typeof loadPaymentData === 'function') {
-                    await loadPaymentData();
+                if (typeof loadPayments === 'function') {
+                    await loadPayments();
                 }
                 break;
             case 'breakdown-reports':
@@ -282,13 +282,13 @@ async function refreshSection(sectionId) {
                 }
                 break;
             case 'vehicle-breakdown':
-                if (typeof loadVehicleBreakdownData === 'function') {
-                    await loadVehicleBreakdownData();
+                if (typeof loadVehicleBreakdowns === 'function') {
+                    await loadVehicleBreakdowns();
                 }
                 break;
             case 'fuel-siphoning':
-                if (typeof loadFuelSiphoningData === 'function') {
-                    await loadFuelSiphoningData();
+                if (typeof loadFuelSiphoning === 'function') {
+                    await loadFuelSiphoning();
                 }
                 break;
             case 'logistics-performance':
