@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<!--
+================================================================================
+DRIVER TRACKING APP - DATABASE SCHEMA ALIGNMENT
+================================================================================
+
+This application interfaces with the following Supabase database tables:
+
+1. jobdata (Main Job Table)
+   - reference: TEXT (UNIQUE) - Job reference number
+   - shipment_no: TEXT - Shipment document number
+   - drivers: TEXT - Comma-separated driver names
+   - vehicle_desc: TEXT - Vehicle description/plate
+   - route: TEXT - Route code
+   - seq: INTEGER - Stop sequence number
+   - ship_to_code: TEXT - Customer/station code (grouping key)
+   - ship_to_name: TEXT - Customer/station name (destination)
+   - destination: TEXT - Destination address
+   - is_origin_stop: BOOLEAN - TRUE if this is origin/depot point
+   - status: TEXT - pending, checkin, checkout, completed
+   - checkin_time: TIMESTAMPTZ - Check-in timestamp
+   - checkin_lat: NUMERIC - Check-in latitude
+   - checkin_lng: NUMERIC - Check-in longitude
+   - checkin_odo: INTEGER - Odometer at check-in
+   - checkout_time: TIMESTAMPTZ - Check-out timestamp
+   - checkout_lat: NUMERIC - Check-out latitude
+   - checkout_lng: NUMERIC - Check-out longitude
+   - checkout_odo: INTEGER - Odometer at check-out
+   - job_closed_at: TIMESTAMPTZ - Job completion timestamp
+   - end_odo: INTEGER - Final odometer reading
+   - distance_km: NUMERIC - Distance traveled in km
+
+2. alcohol_checks
+   - id: UUID (PK)
+   - reference: TEXT (FK to jobdata.reference)
+   - driver_name: TEXT
+   - alcohol_value: NUMERIC(4,3) - BAC level
+   - image_url: TEXT - Supabase Storage URL
+   - checked_at: TIMESTAMPTZ
+   - checked_by: TEXT - LINE User ID
+
+3. admin_logs
+   - id: UUID (PK)
+   - reference: TEXT
+   - action: TEXT - search, checkin, checkout, close_job
+   - user_id: TEXT - LINE User ID
+   - user_name: TEXT - LINE Display Name
+   - details: JSONB
+   - location: JSONB - {lat, lng}
+   - created_at: TIMESTAMPTZ
+
+4. Location Tables
+   - origin: originKey, name, lat, lng, radiusMeters, routeCode
+   - customer: stationKey, name, lat, lng, radiusMeters
+   - station: stationKey, plant code, lat, lng
+
+================================================================================
+-->
+<head>
+  <base target="_top" />
+  <meta charset="UTF-8" />
+  <title>Driver Tracking (Supabase - Modular)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Driver Tracking Application - ระบบติดตามงานขนส่ง">
+  <meta name="theme-color" content="#1abc9c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <!-- External Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- LIFF SDK - Must load first (no defer) -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+</head>
+
+<body>
+  <!-- Offline Mode Bar -->
+  <div id="offlineBar" class="offline-bar" role="alert" aria-live="assertive">
+    <span class="offline-icon" aria-hidden="true">📵</span>
+    <span>ไม่มีสัญญาณอินเทอร์เน็ต</span>
+    <span id="queueBadge" class="queue-badge" style="display:none;">0 รายการรอส่ง</span>
+  </div>
+
+  <!-- Syncing Bar -->
+  <div id="syncingBar" class="syncing-bar" role="status" aria-live="polite">
+    <span class="spin" aria-hidden="true">🔄</span>
+    <span id="syncingText">กำลังซิงค์ข้อมูล...</span>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" role="region" aria-live="polite" aria-label="การแจ้งเตือน"></div>
+
+  <!-- Quick Actions Floating Bar -->
+  <div id="quickActions" class="quick-actions" role="region" aria-label="การดำเนินการด่วน">
+    <button class="quick-actions-close" id="quickActionsClose" aria-label="ปิดเมนูการดำเนินการด่วน">✕</button>
+    <div class="quick-actions-header">
+      <span class="quick-actions-title">⚡ จุดถัดไป</span>
+      <span id="quickActionsStop" class="quick-actions-stop"></span>
+    </div>
+    <div id="quickActionsButtons" class="quick-actions-buttons">
+      <!-- Buttons will be inserted here by app.js -->
+    </div>
+  </div>
+
+  <!-- Inline Flex Notification -->
+  <div id="inlineFlex" class="inline-flex hidden" role="alert" aria-live="polite">
+    <div class="inline-flex-bar" aria-hidden="true"></div>
+    <div class="inline-flex-title" id="inlineFlexTitle"></div>
+    <div class="inline-flex-text" id="inlineFlexMain"></div>
+    <div class="inline-flex-sub" id="inlineFlexSub"></div>
+  </div>
+
+  <div class="app-shell" id="appShell">
+    <!-- Pull-to-Refresh Indicator -->
+    <div id="ptrIndicator" class="ptr-indicator" aria-hidden="true">
+      <span id="ptrIcon" class="ptr-arrow">↓</span>
+      <span id="ptrText" class="ptr-text"></span>
+      <div class="ptr-spinner"></div>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <div class="title">
+            <span aria-hidden="true">🚚</span> Driver Tracking
+            <span class="badge supabase">Supabase</span>
+            <span class="realtime-dot" title="Realtime Connected" aria-label="เชื่อมต่อ Realtime"></span>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button id="notificationBtn" class="notification-btn" aria-label="ตั้งค่าการแจ้งเตือน">
+              <span aria-hidden="true">🔔</span>
+              <span class="notif-badge hidden" aria-hidden="true"></span>
+            </button>
+            <button id="themeToggle" class="theme-toggle" aria-label="สลับโหมดกลางคืน">
+              <span aria-hidden="true">🌙</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="status" class="status-text" role="status">กำลังโหลดโปรไฟล์จาก LINE...</div>
+
+        <!-- GPS Status Indicator -->
+        <div id="gpsStatus" class="gps-status checking" style="cursor:pointer;" role="status" aria-live="polite" aria-label="สถานะ GPS">
+          <span class="gps-icon" aria-hidden="true">📍</span>
+          <span id="gpsText">กำลังตรวจสอบ GPS...</span>
+          <div class="gps-bars" aria-hidden="true">
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+            <div class="gps-bar"></div>
+          </div>
+          <span id="gpsAccuracy" class="gps-accuracy"></span>
+        </div>
+
+        <div class="field-group">
+          <label for="keyword">เลขอ้างอิงงาน (Reference No.)</label>
+          <input id="keyword" type="text" placeholder="กรอกเลข Reference เช่น 2511S15403" maxlength="50" autocomplete="off" />
+          <div id="keywordError" class="error-message" role="alert"></div>
+        </div>
+
+        <button id="btnSearch">
+          <span>ค้นหา / ดึงงาน</span>
+        </button>
+
+        <!-- Report Breakdown/Accident Button -->
+        <button id="btnReportBreakdown" class="btn-report-breakdown">
+          <span>🚨 แจ้งรถเสีย / อุบัติเหตุ</span>
+        </button>
+
+        <!-- Force Refresh Button (shown when job is loaded) -->
+        <button id="btnForceRefresh" class="btn-refresh hidden" style="width:100%;margin-top:8px;">
+          <span>🔄 รีเฟรชสถานะล่าสุด</span>
+        </button>
+
+        <div id="summary" class="summary-card hidden"></div>
+
+        <div id="alcoholContainer" class="summary-card hidden" style="margin-top:10px;"></div>
+
+        <!-- Trip Dashboard -->
+        <div id="tripDashboard" class="trip-dashboard hidden" role="region" aria-label="สรุปเที่ยว">
+          <div class="trip-dashboard-header">
+            <div class="trip-dashboard-title">
+              <span aria-hidden="true">📊</span> สรุปเที่ยว
+            </div>
+            <div id="tripRef" class="trip-dashboard-ref"></div>
+          </div>
+
+          <div class="trip-stats">
+            <div class="trip-stat">
+              <div id="tripCompleted" class="trip-stat-value">0/0</div>
+              <div class="trip-stat-label">จุดที่เสร็จ</div>
+            </div>
+            <div class="trip-stat">
+              <div id="tripDuration" class="trip-stat-value">-</div>
+              <div class="trip-stat-label">เวลาทำงาน</div>
+            </div>
+          </div>
+
+          <div class="trip-progress">
+            <div class="trip-progress-header">
+              <span>ความคืบหน้า</span>
+              <span id="tripProgressPercent">0%</span>
+            </div>
+            <div class="trip-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+              <div id="tripProgressFill" class="trip-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div id="tripStopsMini" class="trip-stops-mini" aria-label="สถานะจุดส่ง">
+            <!-- Mini stop dots will be rendered here -->
+          </div>
+        </div>
+
+        <div id="timelineContainer" class="timeline-container hidden">
+          <div class="timeline-title">
+            เส้นทางส่งสินค้า
+            <span style="font-size:0.8rem;color:var(--text-sub);">(เรียงตามลำดับจุดส่ง)</span>
+          </div>
+          <ul id="timeline" class="timeline" role="list" aria-label="รายการจุดส่ง"></ul>
+
+          <div id="closeJobContainer" class="hidden" style="margin-top:8px;">
+            <button id="btnCloseJob" class="btn-secondary" style="width:100%;margin-bottom:6px;">ปิดงาน (รถพร้อมใช้งาน)</button>
+            <button id="btnEndTrip" class="btn-secondary" style="width:100%;display:none;">บันทึกจบทริป (เลขไมล์ + จุดจบทริป)</button>
+          </div>
+        </div>
+
+        <div id="lastUpdatedContainer" class="last-updated hidden">
+          <div class="last-updated-text">
+            <span aria-hidden="true">🔄</span>
+            <span id="lastUpdatedText">อัปเดตล่าสุด: -</span>
+          </div>
+          <span id="autoRefreshBadge" class="auto-refresh-badge">Realtime</span>
+        </div>
+
+        <div class="footer-note">
+          เมื่อ Check-in / Check-out สำเร็จ ระบบจะแสดงการ์ดแจ้งเตือนบนจอ<br>
+          <small style="color:#3ecf8e;">Powered by Supabase - Modular Version</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enhanced UX Features (ES Module) -->
+  <script type="module" src="js/enhanced-ux.js"></script>
+
+  <!-- Vehicle Breakdown Modal -->
+  <div id="breakdownModal" class="breakdown-modal hidden" role="dialog" aria-modal="true" aria-labelledby="breakdownModalTitle">
+    <div class="breakdown-modal-backdrop" id="breakdownModalBackdrop"></div>
+    <div class="breakdown-modal-content">
+      <div class="breakdown-modal-header">
+        <h2 id="breakdownModalTitle">🔧 เลือกงานจาก Vehicle Breakdown</h2>
+        <button class="breakdown-modal-close" id="breakdownModalClose" aria-label="ปิด">×</button>
+      </div>
+      <div class="breakdown-modal-body">
+        <p class="breakdown-modal-desc">เลือกงานที่มีจุดส่งค้างอยู่ (ยังไม่ Check-out) เพื่อดำเนินการต่อด้วยรถคันใหม่</p>
+
+        <!-- Filter options -->
+        <div class="breakdown-filter">
+          <input id="breakdownSearch" type="text" placeholder="ค้นหา Reference..." class="breakdown-search-input" />
+        </div>
+
+        <!-- Job list -->
+        <div id="breakdownJobList" class="breakdown-job-list">
+          <div class="breakdown-loading">กำลังโหลดข้อมูล...</div>
+        </div>
+
+        <!-- Selected job info -->
+        <div id="breakdownSelectedInfo" class="breakdown-selected-info hidden">
+          <div class="breakdown-selected-header">
+            <span class="breakdown-selected-label">งานที่เลือก:</span>
+            <span id="breakdownSelectedRef" class="breakdown-selected-ref"></span>
+          </div>
+          <div class="breakdown-selected-details">
+            <div class="breakdown-detail-item">
+              <span class="breakdown-detail-label">ชื่อรถ:</span>
+              <span id="breakdownSelectedVehicle"></span>
+            </div>
+            <div class="breakdown-detail-item">
+              <span class="breakdown-detail-label">คนขับ:</span>
+              <span id="breakdownSelectedDriver"></span>
+            </div>
+            <div class="breakdown-detail-item">
+              <span class="breakdown-detail-label">จุดค้าง:</span>
+              <span id="breakdownSelectedStops"></span>
+            </div>
+          </div>
+
+          <!-- New vehicle selection -->
+          <div class="breakdown-new-vehicle-section">
+            <label for="breakdownNewVehicle">ทะเบียนรถคันใหม่</label>
+            <input id="breakdownNewVehicle" type="text" placeholder="กรอกทะเบียนรถใหม่" class="breakdown-new-vehicle-input" />
+          </div>
+
+          <!-- Reason -->
+          <div class="breakdown-reason-section">
+            <label for="breakdownReason">สาเหตุ</label>
+            <select id="breakdownReason" class="breakdown-reason-select">
+              <option value="">-- เลือกสาเหตุ --</option>
+              <option value="breakdown">รถเสีย</option>
+              <option value="accident">อุบัติเหตุ</option>
+              <option value="maintenance">เข้าซ่อมบำรุง</option>
+              <option value="other">อื่นๆ</option>
+            </select>
+          </div>
+
+          <button id="btnConfirmBreakdown" class="btn-breakdown-confirm">
+            <span>✅ ยืนยันสร้างงานใหม่</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Breakdown/Accident Modal -->
+  <div id="reportBreakdownModal" class="breakdown-modal hidden" role="dialog" aria-modal="true" aria-labelledby="reportBreakdownModalTitle">
+    <div class="breakdown-modal-backdrop" id="reportBreakdownModalBackdrop"></div>
+    <div class="breakdown-modal-content">
+      <div class="breakdown-modal-header">
+        <h2 id="reportBreakdownModalTitle">🚨 แจ้งรถเสีย / อุบัติเหตุ</h2>
+        <button class="breakdown-modal-close" id="reportBreakdownModalClose" aria-label="ปิด">×</button>
+      </div>
+      <div class="breakdown-modal-body">
+        <p class="breakdown-modal-desc">แจ้งเหตุฉุกเฉินเพื่อให้แอดมินตรวจสอบและดำเนินการต่อ</p>
+
+        <!-- Current job info (if any) -->
+        <div id="reportBreakdownCurrentJob" class="report-breakdown-current-job hidden">
+          <div class="report-breakdown-job-header">
+            <span class="report-breakdown-job-label">งานปัจจุบัน:</span>
+            <span id="reportBreakdownCurrentRef" class="report-breakdown-job-ref"></span>
+          </div>
+        </div>
+
+        <!-- Report form -->
+        <div class="breakdown-report-form">
+          <!-- Type -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownType">ประเภทการแจ้ง <span class="required">*</span></label>
+            <select id="reportBreakdownType" class="breakdown-report-select">
+              <option value="">-- เลือกประเภท --</option>
+              <option value="breakdown">🔧 รถเสีย</option>
+              <option value="accident">🚗 อุบัติเหตุ</option>
+              <option value="maintenance">🔨 เข้าซ่อมบำรุง</option>
+              <option value="emergency">🚨 เหตุฉุกเฉินอื่นๆ</option>
+            </select>
+          </div>
+
+          <!-- Description -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownDesc">รายละเอียด <span class="required">*</span></label>
+            <textarea id="reportBreakdownDesc" class="breakdown-report-textarea" rows="3" placeholder="ระบุรายละเอียด เช่น อาการรถเสีย, สถานที่เกิดเหตุ, ผู้ได้รับบาดเจ็บ ฯลฯ"></textarea>
+          </div>
+
+          <!-- Location -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownLocation">สถานที่เกิดเหตุ</label>
+            <input id="reportBreakdownLocation" type="text" class="breakdown-report-input" placeholder="ระบุสถานที่หรือใช้พิกัดปัจจุบัน">
+            <button type="button" id="btnUseCurrentLocation" class="btn-small btn-outline" style="margin-top:4px;">
+              📍 ใช้พิกัดปัจจุบัน
+            </button>
+          </div>
+
+          <!-- Request -->
+          <div class="breakdown-report-field">
+            <label>คำขอแสดงความต้องการ:</label>
+            <label class="breakdown-report-checkbox">
+              <input type="checkbox" id="reportRequestNewVehicle" checked>
+              <span>ส่งรถคันอื่นมาดำเนินการต่อ</span>
+            </label>
+            <label class="breakdown-report-checkbox">
+              <input type="checkbox" id="reportRequestCloseTrip">
+              <span>ปิดจบทริปนี้</span>
+            </label>
+          </div>
+
+          <!-- Photo (optional) -->
+          <div class="breakdown-report-field">
+            <label for="reportBreakdownPhoto">รูปถ่ายประกอบ (ถ้ามี)</label>
+            <input id="reportBreakdownPhoto" type="file" accept="image/*" capture="environment" class="breakdown-report-file">
+          </div>
+
+          <button id="btnSubmitReport" class="btn-breakdown-confirm">
+            <span>📤 ส่งแจ้งแอดมิน</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Script (ES Module) -->
+  <script type="module" src="js/app.js?v=20260129000001"></script>
+</body>
+
+</html>
