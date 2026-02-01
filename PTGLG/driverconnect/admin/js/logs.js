@@ -126,7 +126,7 @@ export async function loadLogs(filters = {}) {
 
     try {
         let query = supabase
-            .from('admin_logs')
+            .from('driver_logs')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(100); // Limit to recent 100 logs for performance
@@ -184,10 +184,15 @@ export async function loadLogs(filters = {}) {
             userCell.style.fontFamily = 'monospace';
             userCell.style.fontSize = '0.9em';
 
-            // Details
+            // Details - show user_name from details or from log
             const detailsCell = row.insertCell();
             const detailsText = formatDetails(log.details);
-            detailsCell.textContent = detailsText;
+            // If no details but we have user_name at top level, show that
+            if (detailsText === '-' && log.user_name) {
+                detailsCell.textContent = sanitizeHTML(log.user_name);
+            } else {
+                detailsCell.textContent = detailsText;
+            }
             detailsCell.title = typeof log.details === 'object'
                 ? JSON.stringify(log.details, null, 2)
                 : (log.details || '-');
