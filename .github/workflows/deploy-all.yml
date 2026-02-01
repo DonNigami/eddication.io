@@ -44,7 +44,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 9
 
       # Build clinic-connect-saas LIFF apps only (web app has build issues)
       - name: Build Clinic Connect LIFF apps
@@ -174,4 +174,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-# Trigger deployment
+
