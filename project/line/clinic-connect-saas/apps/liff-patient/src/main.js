@@ -20,11 +20,65 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // =====================================================
 // LIFF INITIALIZATION
 // =====================================================
+/**
+ * Hide the loading screen - centralized utility
+ * This ensures the loading screen is always hidden, regardless of how the app initializes
+ */
+function hideLoadingScreen() {
+    // Try to find loading screen in current document (parent index.html)
+    let loadingScreen = document.getElementById('loading-screen');
+    // If not found, try in parent document (when loaded as iframe/content)
+    if (!loadingScreen && window.parent !== window) {
+        try {
+            loadingScreen = window.parent.document.getElementById('loading-screen');
+        }
+        catch (e) {
+            // Cross-origin access denied
+        }
+    }
+    if (loadingScreen) {
+        loadingScreen.classList.add('hidden');
+    }
+    // Also try querySelector for any loading screen
+    const allLoadingScreens = document.querySelectorAll('.loading-screen');
+    allLoadingScreens.forEach(screen => screen.classList.add('hidden'));
+}
+/**
+ * Show the main app content
+ */
+function showMainApp() {
+    const mainApp = document.getElementById('main-app');
+    if (mainApp) {
+        mainApp.classList.remove('hidden');
+    }
+}
 async function initializeLiff() {
+    // Set a timeout to ensure loading screen is hidden even if LIFF hangs
+    const loadingTimeout = setTimeout(() => {
+        console.warn('LIFF initialization timeout - showing app anyway');
+        hideLoadingScreen();
+        showMainApp();
+    }, 5000);
     try {
+        // Check if running inside LINE client
+        const isInClient = liff.isInClient();
+        // Only try to initialize if we have a valid LIFF ID
+        if (!LINE_LIFF_ID || LINE_LIFF_ID === 'YOUR_LIFF_ID_HERE') {
+            console.warn('LIFF ID not configured - running in standalone mode');
+            clearTimeout(loadingTimeout);
+            hideLoadingScreen();
+            showMainApp();
+            setDemoUser();
+            return;
+        }
         await liff.init({ liffId: LINE_LIFF_ID });
+        clearTimeout(loadingTimeout);
         if (!liff.isLoggedIn()) {
-            liff.login();
+            // If not logged in, still show the app in demo mode
+            console.warn('User not logged in - running in demo mode');
+            hideLoadingScreen();
+            showMainApp();
+            setDemoUser();
             return;
         }
         // Get user profile
@@ -35,8 +89,8 @@ async function initializeLiff() {
             pictureUrl: profile.picture,
         };
         // Hide loading, show app
-        document.getElementById('loading-screen')?.classList.add('hidden');
-        document.getElementById('main-app')?.classList.remove('hidden');
+        hideLoadingScreen();
+        showMainApp();
         // Update UI with user info
         updateGreeting();
         // Check if user is registered
@@ -51,19 +105,26 @@ async function initializeLiff() {
     }
     catch (error) {
         console.error('LIFF initialization failed:', error);
+        clearTimeout(loadingTimeout);
         // Hide loading screen even on error - prevent stuck screen
-        document.getElementById('loading-screen')?.classList.add('hidden');
-        document.getElementById('main-app')?.classList.remove('hidden');
+        hideLoadingScreen();
+        showMainApp();
         // Show error message to user
         showToast('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาลองใหม่', 'error');
         // Set demo user for development/testing
-        currentUser = {
-            userId: 'demo-user',
-            displayName: 'ผู้ใช้ทดสอบ',
-            pictureUrl: '',
-        };
-        updateGreeting();
+        setDemoUser();
     }
+}
+/**
+ * Set demo user and initialize the app
+ */
+function setDemoUser() {
+    currentUser = {
+        userId: 'demo-user',
+        displayName: 'ผู้ใช้ทดสอบ',
+        pictureUrl: '',
+    };
+    updateGreeting();
 }
 // =====================================================
 // NAVIGATION

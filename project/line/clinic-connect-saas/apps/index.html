@@ -280,6 +280,12 @@
           // Initialize patient app scripts
           await this.loadScripts('./liff-patient/dist/assets/', 'patient');
 
+          // CRITICAL: Ensure loading screen is hidden after app loads
+          // Add timeout safety in case child app's LIFF init hangs
+          setTimeout(() => {
+            this.hideLoading();
+          }, 3000);
+
         } catch (error) {
           console.error('Load patient app error:', error);
           this.showError('ไม่สามารถโหลดหน้าคนไข้ได้');
