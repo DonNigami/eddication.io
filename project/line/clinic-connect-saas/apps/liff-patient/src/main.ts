@@ -717,9 +717,10 @@ async function handleDoctorChange(): Promise<void> {
 
 interface Patient {
   patient_id: string;
-  user_id: string;
+  user_id?: string;
+  line_user_id?: string;
   phone: string;
-  id_card: string;
+  id_card_number: string;
   name: string;
   date_of_birth?: string;
   gender?: string;
@@ -727,15 +728,28 @@ interface Patient {
   allergies?: string;
 }
 
-async function checkUserRegistration(userId: string): Promise<Patient | null> {
+async function checkUserRegistration(lineUserId: string): Promise<Patient | null> {
   try {
-    const { data: patient } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('user_id', userId)
+    // First check if there's a users record with this LINE user_id
+    const { data: user } = await supabase
+      .from('users')
+      .select('user_id')
+      .eq('line_user_id', lineUserId)
       .maybeSingle();
 
-    return patient;
+    if (user) {
+      // User exists, check for patient record
+      const { data: patient } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('user_id', user.user_id)
+        .maybeSingle();
+
+      return patient;
+    }
+
+    // No user record found
+    return null;
   } catch (error) {
     console.error('Error checking registration:', error);
     return null;
@@ -768,23 +782,26 @@ async function handleRegistrationSubmit(e: Event): Promise<void> {
 
   // Validate phone number (Thai format: 10 digits starting with 0)
   const phoneRegex = /^0[0-9]{8,9}$/;
-  if (!phoneRegex.test(phoneInput.value.replace(/-/g, ''))) {
+  const cleanPhone = phoneInput.value.replace(/-/g, '');
+  if (!phoneRegex.test(cleanPhone)) {
     showToast('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง', 'warning');
     return;
   }
 
   // Validate ID card (13 digits for Thai ID)
   const idCardRegex = /^[0-9]{13}$/;
-  if (!idCardRegex.test(idCardInput.value.replace(/-/g, ''))) {
+  const cleanIdCard = idCardInput.value.replace(/-/g, '');
+  if (!idCardRegex.test(cleanIdCard)) {
     showToast('กรุณากรอกเลขบัตรประชาชน 13 หลัก', 'warning');
     return;
   }
 
   try {
+    // Check if ID card already exists
     const { data: existingPatient } = await supabase
       .from('patients')
       .select('patient_id')
-      .eq('id_card', idCardInput.value.replace(/-/g, ''))
+      .eq('id_card_number', cleanIdCard)
       .maybeSingle();
 
     if (existingPatient) {
@@ -792,22 +809,61 @@ async function handleRegistrationSubmit(e: Event): Promise<void> {
       return;
     }
 
+    // First create or get the user record
+    let userId: string | undefined;
+
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('user_id')
+      .eq('line_user_id', currentUser.userId)
+      .maybeSingle();
+
+    if (existingUser) {
+      userId = existingUser.user_id;
+    } else {
+      // Create new user record
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .insert({
+          line_user_id: currentUser.userId,
+          display_name: currentUser.displayName,
+          picture_url: currentUser.pictureUrl,
+          phone: cleanPhone,
+          role: 'patient',
+        })
+        .select('user_id')
+        .single();
+
+      if (userError) {
+        // If we can't create a user (due to RLS), try to insert patient without user_id
+        console.warn('Could not create user record, proceeding with patient only:', userError);
+      } else {
+        userId = newUser.user_id;
+      }
+    }
+
+    // Now create the patient record
     const { data: newPatient, error } = await supabase
       .from('patients')
       .insert({
-        user_id: currentUser.userId,
-        phone: phoneInput.value.replace(/-/g, ''),
-        id_card: idCardInput.value.replace(/-/g, ''),
+        user_id: userId,
+        clinic_id: '00000000-0000-0000-0000-000000000001', // Demo clinic
+        phone: cleanPhone,
+        id_card_number: cleanIdCard,
         name: nameInput.value.trim(),
         date_of_birth: dobInput.value || null,
         gender: genderInput?.value || null,
         chronic_diseases: chronicInput?.value.trim() || null,
         allergies: allergiesInput?.value.trim() || null,
+        first_visit_date: new Date().toISOString().split('T')[0],
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Patient insert error:', error);
+      throw error;
+    }
 
     showToast('ลงทะเบียนสำเร็จ', 'success');
 
@@ -816,6 +872,7 @@ async function handleRegistrationSubmit(e: Event): Promise<void> {
 
     // Navigate to home page
     navigateTo('home');
+    await loadHomePage();
 
   } catch (error) {
     console.error('Registration error:', error);
