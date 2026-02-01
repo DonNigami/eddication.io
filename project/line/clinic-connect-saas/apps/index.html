@@ -95,25 +95,14 @@
     //   (no hash)     -> Role selection
     // =====================================================
 
-    // Get the base URL for this app (handles GitHub Pages subdirectories)
-    function getBaseUrl() {
-      // Get the directory path of the current index.html
-      const path = window.location.pathname;
-      // Remove the index.html filename if present
-      const dirPath = path.replace(/\/(index\.html)?$/, '');
-      return dirPath || '.';
-    }
-
     const router = {
       // Configuration
       config: {
         liffId: '2009024944-uEXRao6i',
         apiBaseUrl: 'https://xklcronrzcervtjnodzs.supabase.co',
         defaultRole: 'patient', // Default if no role detected
-        // Dynamic base URL for fetching sub-apps
-        get baseUrl() {
-          return getBaseUrl();
-        }
+        // Base URL is '.' since apps/ folder is the GitHub Pages deployment root
+        baseUrl: '.'
       },
 
       // Current route info
@@ -271,9 +260,8 @@
         this.showLoading('กำลังโหลด...');
 
         try {
-          // Load patient app HTML (use baseUrl for proper path resolution)
-          const patientAppUrl = `${this.config.baseUrl}/liff-patient/dist/index.html`;
-          const response = await fetch(patientAppUrl);
+          // Load patient app HTML (relative to apps/ folder)
+          const response = await fetch('./liff-patient/dist/index.html');
           if (!response.ok) throw new Error('ไม่สามารถโหลดหน้าคนไข้ได้');
 
           const html = await response.text();
@@ -283,7 +271,7 @@
           this.showMainApp();
 
           // Initialize patient app scripts
-          await this.loadScripts(`${this.config.baseUrl}/liff-patient/dist/assets/`, 'patient');
+          await this.loadScripts('./liff-patient/dist/assets/', 'patient');
 
         } catch (error) {
           console.error('Load patient app error:', error);
@@ -296,9 +284,8 @@
         this.showLoading('กำลังโหลด...');
 
         try {
-          // Load doctor app HTML (use baseUrl for proper path resolution)
-          const doctorAppUrl = `${this.config.baseUrl}/liff-doctor/dist/index.html`;
-          const response = await fetch(doctorAppUrl);
+          // Load doctor app HTML (relative to apps/ folder)
+          const response = await fetch('./liff-doctor/dist/index.html');
           if (!response.ok) throw new Error('ไม่สามารถโหลดหน้าแพทย์ได้');
 
           const html = await response.text();
@@ -308,7 +295,7 @@
           this.showMainApp();
 
           // Initialize doctor app scripts
-          await this.loadScripts(`${this.config.baseUrl}/liff-doctor/dist/assets/`, 'doctor');
+          await this.loadScripts('./liff-doctor/dist/assets/', 'doctor');
 
         } catch (error) {
           console.error('Load doctor app error:', error);
