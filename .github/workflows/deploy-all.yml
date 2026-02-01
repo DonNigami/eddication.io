@@ -46,12 +46,14 @@ jobs:
         with:
           version: 8
 
-      # Build clinic-connect-saas apps
-      - name: Build Clinic Connect apps
+      # Build clinic-connect-saas LIFF apps only (web app has build issues)
+      - name: Build Clinic Connect LIFF apps
         working-directory: ./project/line/clinic-connect-saas
         run: |
           pnpm install --frozen-lockfile
-          pnpm build
+          # Build LIFF apps directly, skipping the web app
+          cd apps/liff-patient && pnpm build
+          cd ../liff-doctor && pnpm build
 
       # Copy full directory structure
       - name: Create deployment structure
