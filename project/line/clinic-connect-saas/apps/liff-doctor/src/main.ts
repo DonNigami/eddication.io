@@ -4,7 +4,14 @@
 
 import { liff } from '@line/liff';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseConfig, lineConfig, AppointmentStatus } from '@clinic/config';
+import { AppointmentStatus } from '@clinic/config';
+
+// =====================================================
+// ENVIRONMENT VARIABLES
+// =====================================================
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const LINE_LIFF_ID = import.meta.env.VITE_LINE_LIFF_ID_DOCTOR || import.meta.env.VITE_LINE_LIFF_ID || '';
 
 // =====================================================
 // TYPES
@@ -16,16 +23,14 @@ interface DoctorProfile {
   title: string;
   specialty: string;
   clinic_id: string;
+  rating_average?: number;
 }
 
 interface QueueItem {
   appointment_id: string;
   queue_number: number;
   status: AppointmentStatus;
-  patient: {
-    name: string;
-    phone: string;
-  };
+  patient: Array<{ name: string; phone: string }>;
   appointment_time: string;
   symptoms: string;
 }
@@ -48,8 +53,8 @@ let pageHistory: string[] = [];
 let currentPatientId: string | null = null;
 
 const supabase = createClient(
-  supabaseConfig.url,
-  supabaseConfig.anonKey
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
 );
 
 // =====================================================
@@ -58,7 +63,7 @@ const supabase = createClient(
 
 async function initializeLiff(): Promise<void> {
   try {
-    await liff.init({ liffId: lineConfig.liffId });
+    await liff.init({ liffId: LINE_LIFF_ID });
 
     if (!liff.isLoggedIn()) {
       liff.login();
@@ -225,8 +230,8 @@ async function loadDashboard(): Promise<void> {
               <span class="queue-status status-${apt.status}">${getStatusText(apt.status)}</span>
             </div>
             <div class="queue-item-body">
-              <div class="patient-name">${apt.patient?.name || '-'}</div>
-              <div class="patient-phone">${apt.patient?.phone || ''}</div>
+              <div class="patient-name">${(apt.patient as any)?.[0]?.name || (apt.patient as any)?.name || '-'}</div>
+              <div class="patient-phone">${(apt.patient as any)?.[0]?.phone || (apt.patient as any)?.phone || ''}</div>
             </div>
             <div class="queue-item-actions">
               ${apt.status === 'confirmed' || apt.status === 'checked_in' ? `
@@ -281,8 +286,8 @@ async function loadQueueList(): Promise<void> {
             <div class="queue-item-full-header">
               <div class="queue-number-large">A${apt.queue_number}</div>
               <div class="queue-info">
-                <div class="patient-name">${apt.patient?.name || '-'}</div>
-                <div class="patient-phone">${apt.patient?.phone || ''}</div>
+                <div class="patient-name">${(apt.patient as any)?.[0]?.name || (apt.patient as any)?.name || '-'}</div>
+                <div class="patient-phone">${(apt.patient as any)?.[0]?.phone || (apt.patient as any)?.phone || ''}</div>
                 ${apt.symptoms ? `<div class="symptoms text-muted">อาการ: ${apt.symptoms}</div>` : ''}
               </div>
               <div class="queue-status-badge status-${apt.status}">
@@ -516,11 +521,11 @@ async function updateQueueManagement(status: string): Promise<void> {
 // DIAGNOSIS PAGE
 // =====================================================
 
-function openDiagnosis(appointmentId: string): Promise<void> {
+async function openDiagnosis(appointmentId: string): Promise<void> {
   currentPatientId = appointmentId;
 
   // Load appointment details
-  loadDiagnosisDetails(appointmentId);
+  await loadDiagnosisDetails(appointmentId);
   navigateTo('diagnosis');
 }
 
@@ -540,9 +545,10 @@ async function loadDiagnosisDetails(appointmentId: string): Promise<void> {
       const nameEl = document.getElementById('diagnosis-patient-name');
       const infoEl = document.getElementById('diagnosis-patient-info');
 
-      if (nameEl) nameEl.textContent = appointment.patient?.name || '-';
+      const patientData = (appointment.patient as any)?.[0] || (appointment.patient as any);
+      if (nameEl) nameEl.textContent = patientData?.name || '-';
       if (infoEl) {
-        infoEl.textContent = `เบอร์: ${appointment.patient?.phone || '-'} | เวลานัด: ${appointment.appointment_time}`;
+        infoEl.textContent = `เบอร์: ${patientData?.phone || '-'} | เวลานัด: ${appointment.appointment_time}`;
       }
 
       // Pre-fill symptoms
@@ -638,7 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('patient-search');
   if (searchInput) {
     searchInput.addEventListener('input', async (e) => {
-      const query = e.target.value;
+      const query = (e.target as HTMLInputElement).value;
       // Implement search
     });
   }
