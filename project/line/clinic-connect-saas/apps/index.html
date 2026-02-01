@@ -74,7 +74,14 @@
   </div>
 
   <!-- LIFF SDK -->
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js"></script>
+  <script>
+    // Fallback if LIFF SDK fails to load
+    window.liffLoadTimeout = setTimeout(() => {
+      console.warn('LIFF SDK load timeout - app will run without LIFF');
+      window.liff = null;
+    }, 3000);
+  </script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js" onload="clearTimeout(window.liffLoadTimeout)"></script>
 
   <!-- Router Script -->
   <script>
@@ -125,17 +132,12 @@
       async init() {
         this.showLoading('กำลังเริ่มต้น...');
 
-        // Set a timeout to show role selection if LIFF takes too long
-        const initTimeout = setTimeout(() => {
-          console.warn('LIFF initialization timeout, showing role selection');
-          this.hideLoading();
-          this.showRoleSelection();
-        }, 5000); // 5 second timeout
-
         try {
-          // Initialize LIFF
+          // Initialize LIFF (will skip if not available)
           await this.initLiff();
-          clearTimeout(initTimeout);
+
+          // Hide loading now that init is done
+          this.hideLoading();
 
           // Handle hash change
           window.addEventListener('hashchange', () => this.handleRoute());
@@ -144,10 +146,9 @@
           this.handleRoute();
 
         } catch (error) {
-          clearTimeout(initTimeout);
           console.error('Router init error:', error);
           this.hideLoading();
-          this.showRoleSelection();
+          this.handleRoute(); // Show role selection on error
         }
       },
 
@@ -155,18 +156,19 @@
       async initLiff() {
         const liffId = this.config.liffId;
 
-        if (!liffId || liffId === 'YOUR_LIFF_ID_HERE') {
-          console.warn('LIFF ID not configured, running in dev mode');
-          this.hideLoading();
-          return;
-        }
-
         // Use window.liff since we've ensured it's loaded
         const liff = window.liff;
 
+        // If LIFF SDK didn't load, just continue without it
         if (!liff) {
-          console.error('LIFF SDK not loaded');
-          this.hideLoading();
+          console.warn('LIFF SDK not available, running without LINE integration');
+          this.currentUser = null;
+          this.userRole = this.config.defaultRole;
+          return;
+        }
+
+        if (!liffId || liffId === 'YOUR_LIFF_ID_HERE') {
+          console.warn('LIFF ID not configured, running in dev mode');
           return;
         }
 
@@ -175,29 +177,18 @@
           console.log('LIFF initialized successfully');
         } catch (error) {
           console.error('LIFF init error:', error);
-          this.hideLoading();
-          this.showRoleSelection();
+          // Continue without LIFF
           return;
         }
 
         // Check if logged in
         if (!liff.isLoggedIn()) {
-          // Check if we're in LINE app or external browser
-          if (!liff.isInClient()) {
-            // External browser - redirect to login
-            console.log('Not logged in, redirecting to LINE login...');
-            liff.login();
-            return;
-          }
-          // In LINE app but not logged in - this shouldn't happen
-          // but let's show role selection anyway
-          console.log('In LINE app but not logged in, showing role selection');
-          this.hideLoading();
-          this.showRoleSelection();
+          console.log('User not logged in to LINE');
+          // Continue without LIFF
           return;
         }
 
-        console.log('User is logged in');
+        console.log('User is logged in to LINE');
 
         // Get user profile
         try {
