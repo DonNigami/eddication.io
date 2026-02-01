@@ -114,18 +114,7 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
-  packages/config:
-    dependencies:
-      '@supabase/supabase-js':
-        specifier: ^2.39.3
-        version: 2.93.3
-    devDependencies:
-      '@types/node':
-        specifier: ^20.11.0
-        version: 20.19.30
-      typescript:
-        specifier: ^5.3.3
-        version: 5.9.3
+  packages/config: {}
 
   packages/env:
     devDependencies:
