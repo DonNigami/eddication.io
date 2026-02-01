@@ -9,8 +9,8 @@
 // =====================================================
 
 export const supabaseConfig = {
-  url: import.meta.env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
-  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '',
+  url: import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : undefined) || '',
+  anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : undefined) || '',
 } as const;
 
 // =====================================================
@@ -18,8 +18,8 @@ export const supabaseConfig = {
 // =====================================================
 
 export const lineConfig = {
-  liffId: import.meta.env.VITE_LINE_LIFF_ID || process.env.VITE_LINE_LIFF_ID || '',
-  channelId: import.meta.env.VITE_LINE_CHANNEL_ID || process.env.VITE_LINE_CHANNEL_ID || '',
+  liffId: import.meta.env.VITE_LINE_LIFF_ID || (typeof process !== 'undefined' ? process.env.VITE_LINE_LIFF_ID : undefined) || '',
+  channelId: import.meta.env.VITE_LINE_CHANNEL_ID || (typeof process !== 'undefined' ? process.env.VITE_LINE_CHANNEL_ID : undefined) || '',
 } as const;
 
 // =====================================================
@@ -29,8 +29,8 @@ export const lineConfig = {
 export const appConfig = {
   name: 'ClinicConnect',
   version: '1.0.0',
-  environment: import.meta.env.MODE || process.env.NODE_ENV || 'development',
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || process.env.VITE_API_BASE_URL || '/api',
+  environment: import.meta.env.MODE || (typeof process !== 'undefined' ? process.env.NODE_ENV : undefined) || 'development',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || (typeof process !== 'undefined' ? process.env.VITE_API_BASE_URL : undefined) || '/api',
 } as const;
 
 // =====================================================

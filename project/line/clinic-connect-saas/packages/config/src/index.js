@@ -2,45 +2,29 @@
  * ClinicConnect SaaS - Shared Configuration
  *
  * Environment variables and shared constants
- *
- * Note: This package is shared between Vite (LIFF) and Next.js (Web) apps.
- * Vite uses import.meta.env, Next.js uses process.env.
  */
-
-// Safely get env - works with both Vite and Next.js
-const getEnv = (key) => {
-    // Try Vite first
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-        return import.meta.env[key] || '';
-    }
-    // Fallback to Next.js / Node.js
-    return process.env[key] || '';
-};
-
 // =====================================================
 // SUPABASE CONFIG
 // =====================================================
 export const supabaseConfig = {
-    url: getEnv('VITE_SUPABASE_URL') || getEnv('NEXT_PUBLIC_SUPABASE_URL') || '',
-    anonKey: getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || '',
+    url: import.meta.env.VITE_SUPABASE_URL || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_URL : undefined) || '',
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || (typeof process !== 'undefined' ? process.env.VITE_SUPABASE_ANON_KEY : undefined) || '',
 };
-
 // =====================================================
 // LINE CONFIG
 // =====================================================
 export const lineConfig = {
-    liffId: getEnv('VITE_LINE_LIFF_ID') || getEnv('NEXT_PUBLIC_LINE_LIFF_ID') || '',
-    channelId: getEnv('VITE_LINE_CHANNEL_ID') || getEnv('NEXT_PUBLIC_LINE_CHANNEL_ID') || '',
+    liffId: import.meta.env.VITE_LINE_LIFF_ID || (typeof process !== 'undefined' ? process.env.VITE_LINE_LIFF_ID : undefined) || '',
+    channelId: import.meta.env.VITE_LINE_CHANNEL_ID || (typeof process !== 'undefined' ? process.env.VITE_LINE_CHANNEL_ID : undefined) || '',
 };
-
 // =====================================================
 // APP CONFIG
 // =====================================================
 export const appConfig = {
     name: 'ClinicConnect',
     version: '1.0.0',
-    environment: (typeof import.meta !== 'undefined' && import.meta.env?.MODE) || process.env.NODE_ENV || 'development',
-    apiBaseUrl: getEnv('VITE_API_BASE_URL') || getEnv('NEXT_PUBLIC_API_BASE_URL') || '/api',
+    environment: import.meta.env.MODE || (typeof process !== 'undefined' ? process.env.NODE_ENV : undefined) || 'development',
+    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || (typeof process !== 'undefined' ? process.env.VITE_API_BASE_URL : undefined) || '/api',
 };
 // =====================================================
 // APPOINTMENT STATUS

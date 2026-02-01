@@ -4,7 +4,14 @@
 
 import { liff } from '@line/liff';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseConfig, lineConfig, AppointmentStatus } from '@clinic/config';
+import { AppointmentStatus } from '@clinic/config';
+
+// =====================================================
+// ENVIRONMENT VARIABLES
+// =====================================================
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const LINE_LIFF_ID = import.meta.env.VITE_LINE_LIFF_ID || '';
 
 // =====================================================
 // TYPES
@@ -47,8 +54,8 @@ let pageHistory: string[] = [];
 
 // Supabase client
 const supabase = createClient(
-  supabaseConfig.url,
-  supabaseConfig.anonKey
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
 );
 
 // =====================================================
@@ -57,7 +64,7 @@ const supabase = createClient(
 
 async function initializeLiff(): Promise<void> {
   try {
-    await liff.init({ liffId: lineConfig.liffId });
+    await liff.init({ liffId: LINE_LIFF_ID });
 
     if (!liff.isLoggedIn()) {
       liff.login();
@@ -149,7 +156,7 @@ function updateBottomNav(activePage: string): void {
 function updateGreeting(): void {
   const greetingEl = document.getElementById('user-greeting');
   if (greetingEl && currentUser) {
-    greetingEl.textContent = `👋 สวัสดี, ${currentUser.displayName}`;
+    greetingEl.textContent = `สวัสดี, ${currentUser.displayName}`;
   }
 }
 
@@ -230,9 +237,14 @@ async function loadNextAppointment(): Promise<void> {
       const appointment = appointments[0];
       container.innerHTML = `
         <div class="appointment-info">
-          <div class="appointment-icon">👨‍⚕️</div>
+          <div class="appointment-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9-9-5-2-3 3V4a2 2 0 01-2 2v2a2 2 0 012 2z" />
+              <path d="M12 7v5a2 2 0 002 2" />
+            </svg>
+          </div>
           <div class="appointment-details">
-            <div class="appointment-doctor">${appointment.doctor?.name || 'แพทย์'}</div>
+            <div class="appointment-doctor">${((appointment.doctor as any)?.[0]?.name || (appointment.doctor as any)?.name) || 'แพทย์'}</div>
             <div class="appointment-datetime">
               ${formatDate(appointment.appointment_date)} · ${formatTime(appointment.appointment_time)}
             </div>
@@ -268,7 +280,7 @@ async function loadMyQueue(): Promise<void> {
       .from('queue_management')
       .select('*')
       .eq('date', today)
-      .single();
+      .maybeSingle();
 
     if (!queueData) {
       container.innerHTML = `<div class="queue-placeholder"><p>ไม่มีคิววันนี้</p></div>`;
@@ -281,7 +293,7 @@ async function loadMyQueue(): Promise<void> {
       .select('queue_number, status, doctor:doctors(name)')
       .eq('appointment_date', today)
       .in('status', ['confirmed', 'checked_in', 'in_consultation'])
-      .single();
+      .maybeSingle();
 
     if (myAppointment) {
       const waitingAhead = Math.max(0, queueData.current_queue - myAppointment.queue_number);
@@ -301,7 +313,7 @@ async function loadMyQueue(): Promise<void> {
         <div class="queue-estimate">
           เวลารอคอยโดยประมาณ ~${waitMinutes} นาที
           <br>
-          <small>แพทย์: ${myAppointment.doctor?.name || '-'}</small>
+          <small>แพทย์: ${((myAppointment.doctor as any)?.[0]?.name || (myAppointment.doctor as any)?.name) || '-'}</small>
         </div>
       `;
     } else {
@@ -411,7 +423,7 @@ async function loadRecordsPage(): Promise<void> {
         <div class="card mb-md">
           <div class="card-body">
             <div class="flex justify-between mb-sm">
-              <strong>${record.doctor?.title || ''} ${record.doctor?.name || 'แพทย์'}</strong>
+              <strong>${((record.doctor as any)?.[0]?.title || (record.doctor as any)?.title) || ''} ${((record.doctor as any)?.[0]?.name || (record.doctor as any)?.name) || 'แพทย์'}</strong>
               <span class="text-muted">${formatDate(record.created_at)}</span>
             </div>
             <div class="mb-sm">
@@ -484,7 +496,7 @@ async function loadProfilePage(): Promise<void> {
       .from('patients')
       .select('*')
       .eq('user_id', currentUser.userId)
-      .single();
+      .maybeSingle();
 
     container.innerHTML = `
       <div class="text-center mb-lg">
@@ -605,7 +617,7 @@ async function loadTimeSlots(date: string): Promise<void> {
       .from('doctors')
       .select('available_time_start, available_time_end, appointment_duration_minutes')
       .eq('doctor_id', doctorId)
-      .single();
+      .maybeSingle();
 
     const startTime = doctor?.available_time_start || '09:00';
     const endTime = doctor?.available_time_end || '17:00';

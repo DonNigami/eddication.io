@@ -3,84 +3,75 @@
  */
 import { liff } from '@line/liff';
 import { createClient } from '@supabase/supabase-js';
-import { supabaseConfig, lineConfig } from '@clinic/config';
 // =====================================================
-TYPES
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    interface;
-User;
-{
-    userId: string;
-    displayName: string;
-    pictureUrl ?  : string;
-    email ?  : string;
-}
+// ENVIRONMENT VARIABLES
 // =====================================================
-STATE
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    let;
-currentUser: User | null;
-null;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const LINE_LIFF_ID = import.meta.env.VITE_LINE_LIFF_ID || '';
+// =====================================================
+// STATE
+// =====================================================
+let currentUser = null;
 let currentPage = 'home';
 let pageHistory = [];
 // Supabase client
-const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // =====================================================
-LIFF;
-INITIALIZATION
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    async function initializeLiff() {
-        try {
-            await liff.init({ liffId: lineConfig.liffId });
-            if (!liff.isLoggedIn()) {
-                liff.login();
-                return;
-            }
-            // Get user profile
-            const profile = liff.getDecodedIDToken();
-            currentUser = {
-                userId: profile.sub,
-                displayName: profile.name || 'ผู้ใช้',
-                pictureUrl: profile.picture,
-            };
-            // Hide loading, show app
-            document.getElementById('loading-screen')?.classList.add('hidden');
-            document.getElementById('main-app')?.classList.remove('hidden');
-            // Update UI with user info
-            updateGreeting();
-            // Load initial data
-            await loadHomePage();
-        }
-        catch (error) {
-            console.error('LIFF initialization failed:', error);
-            showToast('ไม่สามารถเริ่มแอปได้ กรุณาลองใหม่', 'error');
-        }
-    };
+// LIFF INITIALIZATION
 // =====================================================
-NAVIGATION
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    function navigateTo(pageId) {
-        // Hide current page
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.remove('active');
-        });
-        // Show target page
-        const targetPage = document.getElementById(`page-${pageId}`);
-        if (targetPage) {
-            targetPage.classList.add('active');
+async function initializeLiff() {
+    try {
+        await liff.init({ liffId: LINE_LIFF_ID });
+        if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
         }
-        // Update history
-        if (currentPage !== pageId) {
-            pageHistory.push(currentPage);
-        }
-        currentPage = pageId;
-        // Update bottom nav
-        updateBottomNav(pageId);
-        // Load page data
-        loadPageData(pageId);
-        // Scroll to top
-        window.scrollTo(0, 0);
-    };
+        // Get user profile
+        const profile = liff.getDecodedIDToken();
+        currentUser = {
+            userId: profile.sub,
+            displayName: profile.name || 'ผู้ใช้',
+            pictureUrl: profile.picture,
+        };
+        // Hide loading, show app
+        document.getElementById('loading-screen')?.classList.add('hidden');
+        document.getElementById('main-app')?.classList.remove('hidden');
+        // Update UI with user info
+        updateGreeting();
+        // Load initial data
+        await loadHomePage();
+    }
+    catch (error) {
+        console.error('LIFF initialization failed:', error);
+        showToast('ไม่สามารถเริ่มแอปได้ กรุณาลองใหม่', 'error');
+    }
+}
+// =====================================================
+// NAVIGATION
+// =====================================================
+function navigateTo(pageId) {
+    // Hide current page
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    // Show target page
+    const targetPage = document.getElementById(`page-${pageId}`);
+    if (targetPage) {
+        targetPage.classList.add('active');
+    }
+    // Update history
+    if (currentPage !== pageId) {
+        pageHistory.push(currentPage);
+    }
+    currentPage = pageId;
+    // Update bottom nav
+    updateBottomNav(pageId);
+    // Load page data
+    loadPageData(pageId);
+    // Scroll to top
+    window.scrollTo(0, 0);
+}
 function navigateBack() {
     if (pageHistory.length > 0) {
         const previousPage = pageHistory.pop() || 'home';
@@ -104,15 +95,14 @@ function updateBottomNav(activePage) {
     });
 }
 // =====================================================
-UI;
-UPDATES
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    function updateGreeting() {
-        const greetingEl = document.getElementById('user-greeting');
-        if (greetingEl && currentUser) {
-            greetingEl.textContent = `👋 สวัสดี, ${currentUser.displayName}`;
-        }
-    };
+// UI UPDATES
+// =====================================================
+function updateGreeting() {
+    const greetingEl = document.getElementById('user-greeting');
+    if (greetingEl && currentUser) {
+        greetingEl.textContent = `สวัสดี, ${currentUser.displayName}`;
+    }
+}
 function showToast(message, type = 'success') {
     const container = document.createElement('div');
     container.className = 'toast-container';
@@ -127,31 +117,30 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 // =====================================================
-DATA;
-LOADING
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    async function loadPageData(pageId) {
-        switch (pageId) {
-            case 'home':
-                await loadHomePage();
-                break;
-            case 'booking':
-                await loadBookingPage();
-                break;
-            case 'queue':
-                await loadQueuePage();
-                break;
-            case 'records':
-                await loadRecordsPage();
-                break;
-            case 'notifications':
-                await loadNotificationsPage();
-                break;
-            case 'profile':
-                await loadProfilePage();
-                break;
-        }
-    };
+// DATA LOADING
+// =====================================================
+async function loadPageData(pageId) {
+    switch (pageId) {
+        case 'home':
+            await loadHomePage();
+            break;
+        case 'booking':
+            await loadBookingPage();
+            break;
+        case 'queue':
+            await loadQueuePage();
+            break;
+        case 'records':
+            await loadRecordsPage();
+            break;
+        case 'notifications':
+            await loadNotificationsPage();
+            break;
+        case 'profile':
+            await loadProfilePage();
+            break;
+    }
+}
 async function loadHomePage() {
     await Promise.all([
         loadNextAppointment(),
@@ -183,9 +172,14 @@ async function loadNextAppointment() {
             const appointment = appointments[0];
             container.innerHTML = `
         <div class="appointment-info">
-          <div class="appointment-icon">👨‍⚕️</div>
+          <div class="appointment-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9-9-5-2-3 3V4a2 2 0 01-2 2v2a2 2 0 012 2z" />
+              <path d="M12 7v5a2 2 0 002 2" />
+            </svg>
+          </div>
           <div class="appointment-details">
-            <div class="appointment-doctor">${appointment.doctor?.name || 'แพทย์'}</div>
+            <div class="appointment-doctor">${(appointment.doctor?.[0]?.name || appointment.doctor?.name) || 'แพทย์'}</div>
             <div class="appointment-datetime">
               ${formatDate(appointment.appointment_date)} · ${formatTime(appointment.appointment_time)}
             </div>
@@ -221,7 +215,7 @@ async function loadMyQueue() {
             .from('queue_management')
             .select('*')
             .eq('date', today)
-            .single();
+            .maybeSingle();
         if (!queueData) {
             container.innerHTML = `<div class="queue-placeholder"><p>ไม่มีคิววันนี้</p></div>`;
             return;
@@ -232,7 +226,7 @@ async function loadMyQueue() {
             .select('queue_number, status, doctor:doctors(name)')
             .eq('appointment_date', today)
             .in('status', ['confirmed', 'checked_in', 'in_consultation'])
-            .single();
+            .maybeSingle();
         if (myAppointment) {
             const waitingAhead = Math.max(0, queueData.current_queue - myAppointment.queue_number);
             const waitMinutes = waitingAhead * 30;
@@ -250,7 +244,7 @@ async function loadMyQueue() {
         <div class="queue-estimate">
           เวลารอคอยโดยประมาณ ~${waitMinutes} นาที
           <br>
-          <small>แพทย์: ${myAppointment.doctor?.name || '-'}</small>
+          <small>แพทย์: ${(myAppointment.doctor?.[0]?.name || myAppointment.doctor?.name) || '-'}</small>
         </div>
       `;
         }
@@ -354,7 +348,7 @@ async function loadRecordsPage() {
         <div class="card mb-md">
           <div class="card-body">
             <div class="flex justify-between mb-sm">
-              <strong>${record.doctor?.title || ''} ${record.doctor?.name || 'แพทย์'}</strong>
+              <strong>${(record.doctor?.[0]?.title || record.doctor?.title) || ''} ${(record.doctor?.[0]?.name || record.doctor?.name) || 'แพทย์'}</strong>
               <span class="text-muted">${formatDate(record.created_at)}</span>
             </div>
             <div class="mb-sm">
@@ -428,7 +422,7 @@ async function loadProfilePage() {
             .from('patients')
             .select('*')
             .eq('user_id', currentUser.userId)
-            .single();
+            .maybeSingle();
         container.innerHTML = `
       <div class="text-center mb-lg">
         <img
@@ -473,29 +467,27 @@ async function loadProfilePage() {
     }
 }
 // =====================================================
-BOOKING;
-PAGE;
-LOGIC
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    function initializeDateSelector() {
-        const container = document.getElementById('date-selector');
-        if (!container)
-            return;
-        const days = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
-        const today = new Date();
-        const dates = [];
-        // Generate next 14 days
-        for (let i = 0; i < 14; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() + i);
-            dates.push(date);
-        }
-        container.innerHTML = dates.map(date => {
-            const dateStr = date.toISOString().split('T')[0];
-            const dayName = days[date.getDay()];
-            const dayNumber = date.getDate();
-            const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-            return `
+// BOOKING PAGE LOGIC
+// =====================================================
+function initializeDateSelector() {
+    const container = document.getElementById('date-selector');
+    if (!container)
+        return;
+    const days = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
+    const today = new Date();
+    const dates = [];
+    // Generate next 14 days
+    for (let i = 0; i < 14; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        dates.push(date);
+    }
+    container.innerHTML = dates.map(date => {
+        const dateStr = date.toISOString().split('T')[0];
+        const dayName = days[date.getDay()];
+        const dayNumber = date.getDate();
+        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+        return `
       <button
         type="button"
         class="date-btn ${isWeekend ? 'weekend' : ''}"
@@ -507,9 +499,9 @@ LOGIC
         <span class="date-number">${dayNumber}</span>
       </button>
     `;
-        }).join('');
-    }(window).selectDate;
-async (dateStr) => {
+    }).join('');
+}
+window.selectDate = async (dateStr) => {
     // Update UI
     document.querySelectorAll('.date-btn').forEach(btn => {
         btn.classList.remove('selected');
@@ -541,7 +533,7 @@ async function loadTimeSlots(date) {
             .from('doctors')
             .select('available_time_start, available_time_end, appointment_duration_minutes')
             .eq('doctor_id', doctorId)
-            .single();
+            .maybeSingle();
         const startTime = doctor?.available_time_start || '09:00';
         const endTime = doctor?.available_time_end || '17:00';
         const duration = doctor?.appointment_duration_minutes || 30;
@@ -611,59 +603,57 @@ async function handleDoctorChange() {
     }
 }
 // =====================================================
-FORM;
-SUBMISSION
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    async function handleBookingSubmit(e) {
-        e.preventDefault();
-        const doctorSelect = document.getElementById('doctor-select');
-        const dateInput = document.getElementById('selected-date');
-        const timeInput = document.getElementById('selected-time');
-        const symptomsInput = document.getElementById('symptoms');
-        if (!doctorSelect.value || !dateInput.value || !timeInput.value) {
-            showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
-            return;
-        }
-        try {
-            // Create appointment
-            const { data: appointment, error } = await supabase
-                .from('appointments')
-                .insert({
-                clinic_id: '00000000-0000-0000-0000-000000000001', // Demo clinic
-                patient_id: null, // Will be set by RLS or server
-                doctor_id: doctorSelect.value,
-                appointment_date: dateInput.value,
-                appointment_time: timeInput,
-                symptoms: symptomsInput.value,
-                status: 'pending',
-            })
-                .select()
-                .single();
-            if (error)
-                throw error;
-            showToast('จองนัดหมายสำเร็จ', 'success');
-            // Reset form and go back to home
-            document.getElementById('booking-form').reset();
-            navigateTo('home');
-        }
-        catch (error) {
-            console.error('Booking error:', error);
-            showToast('ไม่สามารถจองนัดหมายได้', 'error');
-        }
-    };
+// FORM SUBMISSION
 // =====================================================
-UTILITY;
-FUNCTIONS
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    function formatDate(dateStr) {
-        const date = new Date(dateStr);
-        const options = {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-        };
-        return date.toLocaleDateString('th-TH', options);
+async function handleBookingSubmit(e) {
+    e.preventDefault();
+    const doctorSelect = document.getElementById('doctor-select');
+    const dateInput = document.getElementById('selected-date');
+    const timeInput = document.getElementById('selected-time');
+    const symptomsInput = document.getElementById('symptoms');
+    if (!doctorSelect.value || !dateInput.value || !timeInput.value) {
+        showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+        return;
+    }
+    try {
+        // Create appointment
+        const { data: appointment, error } = await supabase
+            .from('appointments')
+            .insert({
+            clinic_id: '00000000-0000-0000-0000-000000000001', // Demo clinic
+            patient_id: null, // Will be set by RLS or server
+            doctor_id: doctorSelect.value,
+            appointment_date: dateInput.value,
+            appointment_time: timeInput,
+            symptoms: symptomsInput.value,
+            status: 'pending',
+        })
+            .select()
+            .single();
+        if (error)
+            throw error;
+        showToast('จองนัดหมายสำเร็จ', 'success');
+        // Reset form and go back to home
+        document.getElementById('booking-form').reset();
+        navigateTo('home');
+    }
+    catch (error) {
+        console.error('Booking error:', error);
+        showToast('ไม่สามารถจองนัดหมายได้', 'error');
+    }
+}
+// =====================================================
+// UTILITY FUNCTIONS
+// =====================================================
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
     };
+    return date.toLocaleDateString('th-TH', options);
+}
 function formatTime(timeStr) {
     const [hours, minutes] = timeStr.split(':');
     return `${hours}:${minutes}`;
@@ -680,17 +670,17 @@ function formatDateTime(dateStr) {
     return date.toLocaleDateString('th-TH', options);
 }
 // =====================================================
-INIT
-    ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ===  ==
-    document.addEventListener('DOMContentLoaded', () => {
-        // Initialize LIFF
-        initializeLiff();
-        // Setup form submission
-        const bookingForm = document.getElementById('booking-form');
-        if (bookingForm) {
-            bookingForm.addEventListener('submit', handleBookingSubmit);
-        }
-    });
+// INIT
+// =====================================================
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize LIFF
+    initializeLiff();
+    // Setup form submission
+    const bookingForm = document.getElementById('booking-form');
+    if (bookingForm) {
+        bookingForm.addEventListener('submit', handleBookingSubmit);
+    }
+});
 // Export functions for global scope
 window.navigateTo = navigateTo;
 window.navigateBack = navigateBack;
