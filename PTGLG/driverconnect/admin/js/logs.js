@@ -12,7 +12,7 @@ let logSearchReferenceInput = null;
 let logSearchActionInput = null;
 let logSearchUserIdInput = null;
 
-const LOGS_TABLE_COLUMNS = 4;
+const LOGS_TABLE_COLUMNS = 6;
 
 /**
  * Set logs-related DOM elements
@@ -23,6 +23,56 @@ export function setLogsElements(elements) {
     logSearchReferenceInput = elements.searchReference;
     logSearchActionInput = elements.searchAction;
     logSearchUserIdInput = elements.searchUserId;
+}
+
+/**
+ * Format details from JSONB to readable string
+ * @param {Object} details - Details object from database
+ * @returns {string} Formatted details string
+ */
+function formatDetails(details) {
+    if (!details) return 'N/A';
+    if (typeof details === 'string') {
+        try {
+            details = JSON.parse(details);
+        } catch {
+            return sanitizeHTML(details);
+        }
+    }
+
+    // Format specific detail types
+    const parts = [];
+    if (details.user_name) parts.push(`User: ${sanitizeHTML(details.user_name)}`);
+    if (details.stop_name) parts.push(`Stop: ${sanitizeHTML(details.stop_name)}`);
+    if (details.odometer) parts.push(`Odo: ${sanitizeHTML(details.odometer)} km`);
+    if (details.status) parts.push(`Status: ${sanitizeHTML(details.status)}`);
+    if (details.note) parts.push(`Note: ${sanitizeHTML(details.note)}`);
+
+    return parts.length > 0 ? parts.join(' | ') : 'N/A';
+}
+
+/**
+ * Format location from JSONB to readable string
+ * @param {Object} location - Location object from database
+ * @returns {string} Formatted location string
+ */
+function formatLocation(location) {
+    if (!location) return 'N/A';
+    if (typeof location === 'string') {
+        try {
+            location = JSON.parse(location);
+        } catch {
+            return sanitizeHTML(location);
+        }
+    }
+
+    if (location.lat && location.lng) {
+        return `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}`;
+    }
+    if (location.latitude && location.longitude) {
+        return `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`;
+    }
+    return 'N/A';
 }
 
 /**
@@ -39,7 +89,7 @@ export async function loadLogs(filters = {}) {
 
     try {
         let query = supabase
-            .from('driver_logs')
+            .from('admin_logs')
             .select('*')
             .order('created_at', { ascending: false })
             .limit(100); // Limit to recent 100 logs for performance
@@ -67,12 +117,18 @@ export async function loadLogs(filters = {}) {
 
         logs.forEach(log => {
             const row = logsTableBody.insertRow();
+            // Timestamp
             row.insertCell().textContent = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
+            // Reference
+            row.insertCell().textContent = sanitizeHTML(log.reference || 'N/A');
+            // Action
             row.insertCell().textContent = sanitizeHTML(log.action || 'N/A');
+            // User ID
             row.insertCell().textContent = sanitizeHTML(log.user_id || 'N/A');
-            row.insertCell().textContent = log.location
-                ? `Lat: ${log.location.lat.toFixed(5)}, Lng: ${log.location.lng.toFixed(5)}`
-                : 'N/A';
+            // Details
+            row.insertCell().textContent = formatDetails(log.details);
+            // Location
+            row.insertCell().textContent = formatLocation(log.location);
         });
 
     } catch (error) {
