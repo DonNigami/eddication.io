@@ -39,6 +39,13 @@ async function initializeLiff() {
         document.getElementById('main-app')?.classList.remove('hidden');
         // Update UI with user info
         updateGreeting();
+        // Check if user is registered
+        const patient = await checkUserRegistration(currentUser.userId);
+        if (!patient) {
+            // User not registered, show registration page
+            navigateTo('register');
+            return;
+        }
         // Load initial data
         await loadHomePage();
     }
@@ -138,6 +145,9 @@ async function loadPageData(pageId) {
             break;
         case 'profile':
             await loadProfilePage();
+            break;
+        case 'register':
+            // Registration page doesn't need additional data loading
             break;
     }
 }
@@ -602,6 +612,99 @@ async function handleDoctorChange() {
         await loadTimeSlots(dateInput.value);
     }
 }
+async function checkUserRegistration(userId) {
+    try {
+        const { data: patient } = await supabase
+            .from('patients')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle();
+        return patient;
+    }
+    catch (error) {
+        console.error('Error checking registration:', error);
+        return null;
+    }
+}
+async function handleRegistrationSubmit(e) {
+    e.preventDefault();
+    if (!currentUser) {
+        showToast('ไม่พบข้อมูลผู้ใช้', 'error');
+        return;
+    }
+    const phoneInput = document.getElementById('reg-phone');
+    const idCardInput = document.getElementById('reg-id-card');
+    const nameInput = document.getElementById('reg-name');
+    const dobInput = document.getElementById('reg-dob');
+    const chronicInput = document.getElementById('reg-chronic');
+    const allergiesInput = document.getElementById('reg-allergies');
+    // Get selected gender
+    const genderInput = document.querySelector('input[name="reg-gender"]:checked');
+    // Validation
+    if (!phoneInput.value || !idCardInput.value || !nameInput.value) {
+        showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
+        return;
+    }
+    // Validate phone number (Thai format: 10 digits starting with 0)
+    const phoneRegex = /^0[0-9]{8,9}$/;
+    if (!phoneRegex.test(phoneInput.value.replace(/-/g, ''))) {
+        showToast('กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง', 'warning');
+        return;
+    }
+    // Validate ID card (13 digits for Thai ID)
+    const idCardRegex = /^[0-9]{13}$/;
+    if (!idCardRegex.test(idCardInput.value.replace(/-/g, ''))) {
+        showToast('กรุณากรอกเลขบัตรประชาชน 13 หลัก', 'warning');
+        return;
+    }
+    try {
+        const { data: existingPatient } = await supabase
+            .from('patients')
+            .select('patient_id')
+            .eq('id_card', idCardInput.value.replace(/-/g, ''))
+            .maybeSingle();
+        if (existingPatient) {
+            showToast('เลขบัตรประชาชนนี้ได้ถูกลงทะเบียนแล้ว', 'error');
+            return;
+        }
+        const { data: newPatient, error } = await supabase
+            .from('patients')
+            .insert({
+            user_id: currentUser.userId,
+            phone: phoneInput.value.replace(/-/g, ''),
+            id_card: idCardInput.value.replace(/-/g, ''),
+            name: nameInput.value.trim(),
+            date_of_birth: dobInput.value || null,
+            gender: genderInput?.value || null,
+            chronic_diseases: chronicInput?.value.trim() || null,
+            allergies: allergiesInput?.value.trim() || null,
+        })
+            .select()
+            .single();
+        if (error)
+            throw error;
+        showToast('ลงทะเบียนสำเร็จ', 'success');
+        // Reset form
+        document.getElementById('registration-form').reset();
+        // Navigate to home page
+        navigateTo('home');
+    }
+    catch (error) {
+        console.error('Registration error:', error);
+        showToast('ไม่สามารถลงทะเบียนได้ กรุณาลองใหม่', 'error');
+    }
+}
+window.cancelRegistration = function () {
+    // If user cancels registration, show a warning and redirect to login or exit
+    if (confirm('คุณต้องการยกเลิกการลงทะเบียนใช่หรือไม่?')) {
+        if (liff.isInClient()) {
+            liff.closeWindow();
+        }
+        else {
+            navigateTo('home');
+        }
+    }
+};
 // =====================================================
 // FORM SUBMISSION
 // =====================================================
@@ -679,6 +782,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const bookingForm = document.getElementById('booking-form');
     if (bookingForm) {
         bookingForm.addEventListener('submit', handleBookingSubmit);
+    }
+    // Setup registration form submission
+    const registrationForm = document.getElementById('registration-form');
+    if (registrationForm) {
+        registrationForm.addEventListener('submit', handleRegistrationSubmit);
     }
 });
 // Export functions for global scope

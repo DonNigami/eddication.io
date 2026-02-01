@@ -18,7 +18,6 @@ export default defineConfig({
     port: 5174,
     strictPort: true,
     host: true,
-    https: true, // Enable HTTPS for local development (required for LINE LIFF)
   },
   build: {
     target: 'es2015',

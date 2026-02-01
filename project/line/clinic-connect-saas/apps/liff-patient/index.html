@@ -289,6 +289,117 @@
             </div>
           </div>
         </section>
+
+        <!-- REGISTRATION PAGE -->
+        <section id="page-register" class="page">
+          <div class="page-header">
+            <h1>ลงทะเบียน</h1>
+          </div>
+          <div class="page-content">
+            <div class="registration-intro text-center mb-lg">
+              <p class="text-muted">กรุณากรอกข้อมูลเพื่อลงทะเบียนใช้งานแอป</p>
+            </div>
+            <form id="registration-form" class="registration-form">
+              <!-- Phone Number -->
+              <div class="form-group">
+                <label class="form-label required">เบอร์โทรศัพท์</label>
+                <input
+                  type="tel"
+                  class="form-input"
+                  id="reg-phone"
+                  placeholder="08x-xxx-xxxx"
+                  pattern="[0-9]{9,10}"
+                  required
+                />
+              </div>
+
+              <!-- ID Card/Passport -->
+              <div class="form-group">
+                <label class="form-label required">เลขบัตรประชาชน/พาสปอร์ต</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  id="reg-id-card"
+                  placeholder="x-xxxx-xxxxx-xx-x"
+                  required
+                />
+              </div>
+
+              <!-- Name -->
+              <div class="form-group">
+                <label class="form-label required">ชื่อ-นามสกุล</label>
+                <input
+                  type="text"
+                  class="form-input"
+                  id="reg-name"
+                  placeholder="กรอกชื่อและนามสกุล"
+                  required
+                />
+              </div>
+
+              <!-- Date of Birth -->
+              <div class="form-group">
+                <label class="form-label">วันเกิด</label>
+                <input
+                  type="date"
+                  class="form-input"
+                  id="reg-dob"
+                />
+              </div>
+
+              <!-- Gender -->
+              <div class="form-group">
+                <label class="form-label">เพศ</label>
+                <div class="radio-group">
+                  <label class="radio-item">
+                    <input type="radio" name="reg-gender" value="male" />
+                    <span>ชาย</span>
+                  </label>
+                  <label class="radio-item">
+                    <input type="radio" name="reg-gender" value="female" />
+                    <span>หญิง</span>
+                  </label>
+                  <label class="radio-item">
+                    <input type="radio" name="reg-gender" value="other" />
+                    <span>อื่นๆ</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Chronic Diseases -->
+              <div class="form-group">
+                <label class="form-label">โรคประจำตัว</label>
+                <textarea
+                  class="form-textarea"
+                  id="reg-chronic"
+                  rows="2"
+                  placeholder="ระบุโรคประจำตัว (ถ้ามี)"
+                ></textarea>
+              </div>
+
+              <!-- Allergies -->
+              <div class="form-group">
+                <label class="form-label">ประวัติแพ้ยา</label>
+                <textarea
+                  class="form-textarea"
+                  id="reg-allergies"
+                  rows="2"
+                  placeholder="ระบุยาที่แพ้ (ถ้ามี)"
+                ></textarea>
+              </div>
+
+              <!-- Actions -->
+              <div class="form-actions">
+                <button type="button" class="btn btn-outline" onclick="cancelRegistration()">
+                  ยกเลิก
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  ยืนยัน
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
       </main>
 
       <!-- Bottom Navigation -->
