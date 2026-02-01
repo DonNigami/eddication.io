@@ -36,6 +36,23 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      # Build clinic-connect-saas apps
+      - name: Build Clinic Connect apps
+        working-directory: ./project/line/clinic-connect-saas
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
       # Copy full directory structure
       - name: Create deployment structure
         run: |
@@ -140,8 +157,12 @@ jobs:
           echo "=== PTGLG ==="
           ls deploy-pages/PTGLG/ 2>/dev/null | head -5
           echo ""
-          echo "=== project ==="
-          ls deploy-pages/project/ 2>/dev/null | head -5
+          echo "=== project/line/clinic-connect-saas/apps ==="
+          ls deploy-pages/project/line/clinic-connect-saas/apps/ 2>/dev/null | head -10
+          echo ""
+          echo "=== Checking dist folders ==="
+          ls deploy-pages/project/line/clinic-connect-saas/apps/liff-patient/dist/ 2>/dev/null | head -5 || echo "liff-patient/dist not found"
+          ls deploy-pages/project/line/clinic-connect-saas/apps/liff-doctor/dist/ 2>/dev/null | head -5 || echo "liff-doctor/dist not found"
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
