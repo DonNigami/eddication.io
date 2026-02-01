@@ -5,8 +5,7 @@ on:
   push:
     branches: ["main"]
     paths:
-      - 'PTGLG/driverconnect/driverapp/**'
-      - 'PTGLG/driverconnect/shared/**'
+      - 'PTGLG/driverconnect/**'
       - 'project/line/clinic-connect-saas/**'
       - '.github/workflows/deploy-all.yml'
 
@@ -37,28 +36,13 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # Create directory structure for subpaths
+      # Copy full directory structure
       - name: Create deployment structure
         run: |
           mkdir -p deploy-pages
-          mkdir -p deploy-pages/driver
-          mkdir -p deploy-pages/clinic
-          mkdir -p deploy-pages/liff-patient
-
-      # Copy DriverConnect files to /driver/
-      - name: Copy DriverConnect files
-        run: |
-          cp -r PTGLG/driverconnect/driverapp/* deploy-pages/driver/
-
-      # Copy Clinic Connect files to /clinic/
-      - name: Copy Clinic Connect files
-        run: |
-          if [ -d "project/line/clinic-connect-saas/apps/liff-patient/dist" ]; then
-            cp -r project/line/clinic-connect-saas/apps/liff-patient/dist/* deploy-pages/liff-patient/
-          fi
-          if [ -d "project/line/clinic-connect-saas/apps/admin/dist" ]; then
-            cp -r project/line/clinic-connect-saas/apps/admin/dist/* deploy-pages/clinic/
-          fi
+          # Preserve full directory structure
+          cp -r PTGLG deploy-pages/
+          cp -r project deploy-pages/
 
       # Create index page with links to all apps
       - name: Create index page
@@ -126,15 +110,19 @@ jobs:
             <div class="container">
               <h1>Eddication.io Applications</h1>
               <div class="app-grid">
-                <a href="/driver/index-supabase-modular.html" class="app-card">
+                <a href="/PTGLG/driverconnect/driverapp/index-supabase-modular.html" class="app-card">
                   <h2>🚚 DriverConnect</h2>
                   <p>Driver Tracking & Delivery Management System</p>
                 </a>
-                <a href="/clinic/" class="app-card">
+                <a href="/project/line/clinic-connect-saas/apps/" class="app-card">
                   <h2>🏥 Clinic Connect</h2>
                   <p>Clinic Management SaaS Platform</p>
                 </a>
-                <a href="/liff-patient/" class="app-card">
+                <a href="/project/line/clinic-connect-saas/apps/liff-doctor/" class="app-card">
+                  <h2>👨‍⚕️ LIFF Doctor</h2>
+                  <p>Doctor LIFF Application</p>
+                </a>
+                <a href="/project/line/clinic-connect-saas/apps/liff-patient/" class="app-card">
                   <h2>👤 LIFF Patient</h2>
                   <p>Patient Registration & Management</p>
                 </a>
@@ -149,14 +137,11 @@ jobs:
           echo "=== Deployment Structure ==="
           ls -la deploy-pages/
           echo ""
-          echo "=== Driver files ==="
-          ls deploy-pages/driver/ | head -10
+          echo "=== PTGLG ==="
+          ls deploy-pages/PTGLG/ 2>/dev/null | head -5
           echo ""
-          echo "=== Clinic files ==="
-          ls deploy-pages/clinic/ 2>/dev/null | head -5 || echo "(empty)"
-          echo ""
-          echo "=== LIFF Patient files ==="
-          ls deploy-pages/liff-patient/ 2>/dev/null | head -5 || echo "(empty)"
+          echo "=== project ==="
+          ls deploy-pages/project/ 2>/dev/null | head -5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
