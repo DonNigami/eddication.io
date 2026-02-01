@@ -75,13 +75,17 @@
 
   <!-- LIFF SDK -->
   <script>
+    // Track LIFF SDK load status
+    window.liffReady = false;
+    window.liffLoadTimedOut = false;
+
     // Fallback if LIFF SDK fails to load
     window.liffLoadTimeout = setTimeout(() => {
       console.warn('LIFF SDK load timeout - app will run without LIFF');
-      window.liff = null;
-    }, 3000);
+      window.liffLoadTimedOut = true;
+    }, 5000);
   </script>
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js" onload="clearTimeout(window.liffLoadTimeout)"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js" onload="clearTimeout(window.liffLoadTimeout); window.liffReady = true;"></script>
 
   <!-- Router Script -->
   <script>
@@ -161,8 +165,8 @@
         // Use window.liff since we've ensured it's loaded
         const liff = window.liff;
 
-        // If LIFF SDK didn't load, just continue without it
-        if (!liff) {
+        // If LIFF SDK didn't load or timed out, just continue without it
+        if (!liff || window.liffLoadTimedOut) {
           console.warn('LIFF SDK not available, running without LINE integration');
           this.currentUser = null;
           this.userRole = this.config.defaultRole;
@@ -171,6 +175,7 @@
 
         if (!liffId || liffId === 'YOUR_LIFF_ID_HERE') {
           console.warn('LIFF ID not configured, running in dev mode');
+          this.userRole = this.config.defaultRole;
           return;
         }
 
@@ -179,14 +184,16 @@
           console.log('LIFF initialized successfully');
         } catch (error) {
           console.error('LIFF init error:', error);
-          // Continue without LIFF
+          // Continue without LIFF - show the app anyway
+          this.userRole = this.config.defaultRole;
           return;
         }
 
         // Check if logged in
         if (!liff.isLoggedIn()) {
           console.log('User not logged in to LINE');
-          // Continue without LIFF
+          // Continue without LIFF - show the app anyway
+          this.userRole = this.config.defaultRole;
           return;
         }
 
@@ -376,25 +383,25 @@
     // =====================================================
     window.router = router;
 
-    // Auto-start router when DOM ready AND LIFF SDK loaded
+    // Auto-start router when DOM ready
     function startApp() {
       let attempts = 0;
-      const maxAttempts = 100; // 10 seconds max wait
+      const maxAttempts = 60; // 6 seconds max wait
 
-      // Check if both DOM is ready and LIFF is loaded
+      // Check if DOM is ready and LIFF SDK is either loaded or timed out
       const checkReady = () => {
         attempts++;
 
-        // Check DOM is ready and LIFF SDK is loaded
-        if (document.readyState !== 'loading' && typeof window.liff !== 'undefined') {
+        // Start if DOM is ready AND (LIFF is ready OR load timed out)
+        if (document.readyState !== 'loading' && (window.liffReady || window.liffLoadTimedOut || attempts >= maxAttempts)) {
           console.log('Starting app...');
           router.init();
         } else if (attempts < maxAttempts) {
           // Check again in 100ms
           setTimeout(checkReady, 100);
         } else {
-          // Timeout - start anyway with role selection
-          console.warn('LIFF SDK failed to load, showing role selection');
+          // Timeout - start anyway
+          console.warn('App init timeout, starting anyway');
           router.init();
         }
       };
