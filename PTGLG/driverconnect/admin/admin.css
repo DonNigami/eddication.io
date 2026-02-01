@@ -2079,87 +2079,512 @@ label {
 .stagger-in > *:nth-child(5) { animation-delay: 200ms; }
 
 /* ============================================
-   27. RESPONSIVE DESIGN
+   27. RESPONSIVE DESIGN - Enhanced for Mobile
    ============================================ */
 
+/* Hamburger Menu Button (Mobile) */
+.mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: var(--space-4);
+    left: var(--space-4);
+    z-index: var(--z-modal);
+    width: 44px;
+    height: 44px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all var(--duration-base) var(--ease-smooth);
+    box-shadow: var(--shadow-md);
+}
+
+.mobile-menu-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--brand-primary);
+}
+
+.mobile-menu-btn span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text-primary);
+    position: relative;
+    transition: all var(--duration-base) var(--ease-smooth);
+}
+
+.mobile-menu-btn span::before,
+.mobile-menu-btn span::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 2px;
+    background: var(--text-primary);
+    transition: all var(--duration-base) var(--ease-smooth);
+}
+
+.mobile-menu-btn span::before { top: -6px; }
+.mobile-menu-btn span::after { top: 6px; }
+
+.mobile-menu-btn.active span {
+    background: transparent;
+}
+
+.mobile-menu-btn.active span::before {
+    top: 0;
+    transform: rotate(45deg);
+}
+
+.mobile-menu-btn.active span::after {
+    top: 0;
+    transform: rotate(-45deg);
+}
+
+/* Sidebar Overlay for Mobile */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: hsla(210, 30%, 5%, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: calc(var(--z-modal) - 1);
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-smooth);
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* Tablet */
 @media (max-width: 1024px) {
     :root {
         --sidebar-width: 240px;
     }
 
     .kpi-cards {
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     }
 
     .job-details-sections {
         grid-template-columns: 1fr;
     }
+
+    .notification-dropdown {
+        width: 320px;
+    }
+
+    /* Table horizontal scroll wrapper */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 600px;
+    }
 }
 
+/* Mobile */
 @media (max-width: 768px) {
     :root {
-        --sidebar-width: 100%;
+        --sidebar-width: 280px;
+        --header-height: 56px;
+    }
+
+    /* Show hamburger menu */
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    /* Sidebar becomes off-canvas drawer */
+    .sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100vh;
+        width: var(--sidebar-width);
+        max-height: 100vh;
+        transform: translateX(-100%);
+        transition: transform var(--duration-base) var(--ease-smooth);
+        z-index: var(--z-modal);
+        box-shadow: var(--shadow-xl);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+
+    .sidebar-overlay {
+        display: none;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
     }
 
     #admin-container {
         flex-direction: column;
     }
 
-    .sidebar {
-        width: 100%;
-        height: auto;
-        max-height: 40vh;
-    }
-
-    .sidebar-nav {
-        max-height: 30vh;
-    }
-
     .main-content {
         height: auto;
+        padding-top: var(--header-height);
     }
 
+    /* Move notification bell to avoid overlap with hamburger */
+    .notification-bell-container {
+        top: var(--space-3);
+        right: var(--space-3);
+    }
+
+    .notification-dropdown {
+        width: calc(100vw - var(--space-8));
+        max-width: 360px;
+        right: var(--space-2);
+    }
+
+    /* Content sections */
     .content-section {
-        padding: var(--space-5);
+        padding: var(--space-4);
     }
 
     .content-section > h1 {
         font-size: var(--text-2xl);
+        margin-bottom: var(--space-5);
     }
 
+    /* KPI Cards - 2 columns on mobile */
     .kpi-cards {
         grid-template-columns: repeat(2, 1fr);
         gap: var(--space-3);
     }
 
+    .kpi-card {
+        padding: var(--space-4);
+    }
+
+    .kpi-card h3 {
+        font-size: var(--text-xs);
+    }
+
+    .kpi-card p {
+        font-size: var(--text-2xl);
+    }
+
+    /* Controls - stacked vertically */
     .job-controls,
     .report-controls,
+    .holiday-work-controls,
+    .breakdown-controls,
+    .siphoning-controls,
+    .b100-controls,
     .incentive-controls,
-    .payment-controls {
+    .payment-controls,
+    .map-playback-controls {
         flex-direction: column;
+        gap: var(--space-3);
+        padding: var(--space-4);
     }
 
     .job-controls > *,
     .report-controls > *,
+    .holiday-work-controls > *,
+    .breakdown-controls > *,
+    .siphoning-controls > *,
+    .b100-controls > *,
     .incentive-controls > *,
     .payment-controls > * {
         width: 100%;
-    }
-}
-
-@media (max-width: 480px) {
-    :root {
-        --text-3xl: 2rem;
-        --text-2xl: 1.5rem;
+        min-width: 0;
     }
 
-    .kpi-cards {
+    .job-controls button,
+    .report-controls button,
+    .holiday-work-controls button,
+    .breakdown-controls button,
+    .siphoning-controls button,
+    .b100-controls button,
+    .incentive-controls button,
+    .payment-controls button {
+        width: 100%;
+    }
+
+    /* Buttons - full width, touch-friendly */
+    .btn-primary,
+    .btn-secondary,
+    .control-btn,
+    #create-job-btn,
+    #generate-report-btn,
+    #incentive-refresh-btn,
+    #payment-refresh-btn,
+    #perf-load-btn,
+    #load-playback-data-btn,
+    #play-button,
+    #pause-button,
+    #stop-button {
+        width: 100%;
+        min-height: 44px;
+        padding: var(--space-3) var(--space-4);
+        justify-content: center;
+    }
+
+    /* Button groups - stack vertically */
+    .btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .btn-group button {
+        width: 100%;
+    }
+
+    /* Section header with refresh button */
+    .content-section > div[style*="justify-content: space-between"] {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+    }
+
+    .section-refresh-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Tables - horizontal scroll */
+    .table-container {
+        border-radius: var(--radius-lg);
+    }
+
+    .table-container table {
+        min-width: 700px;
+    }
+
+    /* Sticky table headers on scroll */
+    .table-container thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg-surface);
+        z-index: 10;
+    }
+
+    /* Map - smaller height on mobile */
+    #map {
+        height: 300px;
+    }
+
+    /* Modals - full screen on small mobile */
+    .modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+    }
+
+    .modal-content.large-modal {
+        max-width: 100%;
+    }
+
+    /* Close button - easier to tap */
+    .close-button {
+        width: 44px;
+        height: 44px;
+        top: var(--space-2);
+        right: var(--space-2);
+    }
+
+    /* Form inputs - larger touch targets */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="search"],
+    input[type="tel"],
+    select,
+    textarea {
+        min-height: 44px;
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+
+    /* Select dropdown - proper arrow positioning */
+    select {
+        padding-right: var(--space-10);
+    }
+
+    /* Status badges - smaller text */
+    .status-badge {
+        font-size: 10px;
+        padding: 2px var(--space-2);
+    }
+
+    /* Toast notifications - full width on mobile */
+    .notification-toast,
+    .toast {
+        min-width: auto;
+        width: calc(100vw - var(--space-6));
+        margin: 0 var(--space-3);
+    }
+
+    #notification-container {
+        left: var(--space-3);
+        right: var(--space-3);
+    }
+
+    /* Job details sections - stacked */
+    .job-details-sections {
+        grid-template-columns: 1fr;
+        gap: var(--space-4);
+    }
+
+    /* Grid layouts - 1 column */
+    .grid-cols-2,
+    .grid-cols-3,
+    .grid-cols-4 {
         grid-template-columns: 1fr;
     }
 
+    /* Registration approval modal */
+    #registration-detail-modal .modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+    }
+
+    /* Map playback controls - stack buttons */
+    .map-playback-controls > div[style*="flex-wrap: wrap"] {
+        flex-direction: column;
+    }
+
+    .map-playback-controls > div > div {
+        width: 100%;
+    }
+
+    .map-playback-controls button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    /* Hide less important columns on very small screens */
+    .hide-mobile {
+        display: none !important;
+    }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+    :root {
+        --text-3xl: 1.75rem;
+        --text-2xl: 1.5rem;
+        --text-xl: 1.25rem;
+        --sidebar-width: 85vw; /* Wider sidebar for small screens */
+    }
+
+    /* KPI Cards - 1 column on very small screens */
+    .kpi-cards {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .kpi-card {
+        padding: var(--space-4);
+    }
+
+    .kpi-card p {
+        font-size: var(--text-2xl);
+    }
+
+    /* Content - less padding */
+    .content-section {
+        padding: var(--space-3);
+    }
+
+    /* Modal buttons - stack vertically */
+    .modal-content .btn-group,
+    #registration-detail-modal .modal-content > div:last-of-type {
+        flex-direction: column;
+    }
+
+    .modal-content .btn-group button,
+    #registration-detail-modal button[type="button"] {
+        width: 100%;
+    }
+
+    /* Notification dropdown - almost full width */
+    .notification-dropdown {
+        width: calc(100vw - var(--space-6));
+        right: var(--space-3);
+    }
+
+    /* Header actions - smaller spacing */
+    .notification-bell-container {
+        gap: var(--space-1);
+    }
+
+    .header-action-btn {
+        width: 36px;
+        height: 36px;
+    }
+
+    /* Table cells - smaller padding */
+    th, td {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-xs);
+    }
+
+    /* Auth box - smaller padding */
+    .auth-box {
+        min-width: auto;
+        width: calc(100vw - var(--space-8));
+        padding: var(--space-8) var(--space-6);
+    }
+
+    /* Hide sidebar tagline on very small screens */
+    .sidebar-tagline {
+        display: none;
+    }
+
+    /* Compact nav items */
+    .nav-link {
+        padding: var(--space-2) var(--space-2);
+        font-size: var(--text-xs);
+    }
+
+    .nav-section-header {
+        padding: var(--space-3) var(--space-2) var(--space-1);
+        font-size: 10px;
+    }
+}
+
+/* Landscape Mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+    .sidebar {
+        max-height: 100vh;
+    }
+
+    .sidebar-nav {
+        max-height: calc(100vh - 140px);
+    }
+
     .modal-content {
-        margin: var(--space-4);
-        max-height: calc(100vh - var(--space-8));
+        max-height: 95vh;
+    }
+
+    /* Reduce modal header/footer on landscape */
+    .modal-content h2 {
+        font-size: var(--text-lg);
+        padding: var(--space-3);
+        margin: 0;
+    }
+
+    .close-button {
+        top: var(--space-2);
+        right: var(--space-2);
+        width: 32px;
+        height: 32px;
     }
 }
 
