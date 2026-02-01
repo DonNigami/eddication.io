@@ -74,7 +74,7 @@
   </div>
 
   <!-- LIFF SDK -->
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js" onload="window.liffLoaded = true;"></script>
 
   <!-- Router Script -->
   <script>
@@ -150,6 +150,9 @@
           this.hideLoading();
           return;
         }
+
+        // Use window.liff since we've ensured it's loaded
+        const liff = window.liff;
 
         await liff.init({ liffId });
 
@@ -335,10 +338,21 @@
     // =====================================================
     window.router = router;
 
-    // Auto-start router when DOM ready
-    document.addEventListener('DOMContentLoaded', () => {
-      router.init();
-    });
+    // Auto-start router when DOM ready AND LIFF SDK loaded
+    function startApp() {
+      // Check if both DOM is ready and LIFF is loaded
+      const checkReady = () => {
+        if (document.readyState !== 'loading' && (window.liff || window.liffLoaded)) {
+          router.init();
+        } else {
+          setTimeout(checkReady, 10);
+        }
+      };
+      checkReady();
+    }
+
+    // Start checking for readiness
+    startApp();
   </script>
 
   <!-- Role Selection Styles -->
