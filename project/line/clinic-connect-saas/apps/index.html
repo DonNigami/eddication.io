@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>ClinicConnect - คลินิกออนไลน์</title>
+  <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Shared Styles -->
+  <link rel="stylesheet" href="./shared/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="loading-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" />
+          <path d="m2 17 10 5 10-5" />
+          <path d="m2 12 10 5 10-5" />
+        </svg>
+      </div>
+      <div class="spinner"></div>
+      <p id="loading-text">กำลังโหลด...</p>
+    </div>
+
+    <!-- Error Screen -->
+    <div id="error-screen" class="error-screen hidden">
+      <div class="error-icon">⚠️</div>
+      <h2 class="error-title">ไม่พบหน้าที่ต้องการ</h2>
+      <p class="error-message">กรุณาระบุหน้าที่ต้องการเข้าใช้งาน</p>
+      <div class="error-actions">
+        <button class="btn btn-primary" onclick="router.navigate('#/patient')">
+          <span class="btn-icon">👤</span>
+          สำหรับคนไข้
+        </button>
+        <button class="btn btn-outline" onclick="router.navigate('#/doctor')">
+          <span class="btn-icon">👨‍⚕️</span>
+          สำหรับแพทย์
+        </button>
+      </div>
+    </div>
+
+    <!-- Role Selection (Auto-redirect based on role) -->
+    <div id="role-selection" class="role-selection hidden">
+      <div class="role-card">
+        <div class="role-header">
+          <h1>🏥 ClinicConnect</h1>
+          <p>เลือกบทบาทของคุณ</p>
+        </div>
+        <div class="role-buttons">
+          <button class="role-btn patient" onclick="router.navigate('#/patient')">
+            <span class="role-icon">👤</span>
+            <span class="role-name">คนไข้</span>
+            <span class="role-desc">จองนัดหมาย / ดูคิว</span>
+          </button>
+          <button class="role-btn doctor" onclick="router.navigate('#/doctor')">
+            <span class="role-icon">👨‍⚕️</span>
+            <span class="role-name">แพทย์</span>
+            <span class="role-desc">จัดการคิว / บันทึกการรักษา</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App Container -->
+    <div id="main-app" class="main-app hidden">
+      <!-- Dynamic content loaded here -->
+      <main id="app-content"></main>
+    </div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js"></script>
+
+  <!-- Router Script -->
+  <script>
+    // =====================================================
+    // CLINIC CONNECT SAAS - UNIFIED ROUTER
+    // =====================================================
+    // Single LIFF ID with Hash Routing
+    // Usage:
+    //   #/patient     -> Patient app
+    //   #/doctor      -> Doctor app
+    //   (no hash)     -> Role selection
+    // =====================================================
+
+    const router = {
+      // Configuration
+      config: {
+        liffId: 'YOUR_LIFF_ID_HERE', // TODO: Replace with actual LIFF ID
+        apiBaseUrl: 'https://your-project.supabase.co', // TODO: Replace
+        defaultRole: 'patient' // Default if no role detected
+      },
+
+      // Current route info
+      current: null,
+      userRole: null,
+
+      // Route definitions
+      routes: {
+        '/patient': {
+          title: 'ClinicConnect - คนไข้',
+          component: 'patient-app',
+          requireAuth: true,
+          allowedRoles: ['patient', 'all']
+        },
+        '/doctor': {
+          title: 'ClinicConnect - แพทย์',
+          component: 'doctor-app',
+          requireAuth: true,
+          allowedRoles: ['doctor', 'all']
+        },
+        '/': {
+          title: 'ClinicConnect',
+          component: 'role-selection',
+          requireAuth: false
+        }
+      },
+
+      // Initialize router
+      async init() {
+        this.showLoading('กำลังเริ่มต้น...');
+
+        try {
+          // Initialize LIFF
+          await this.initLiff();
+
+          // Handle hash change
+          window.addEventListener('hashchange', () => this.handleRoute());
+
+          // Initial route
+          this.handleRoute();
+
+        } catch (error) {
+          console.error('Router init error:', error);
+          this.showError('เกิดข้อผิดพลาด: ' + error.message);
+        }
+      },
+
+      // Initialize LIFF SDK
+      async initLiff() {
+        const liffId = this.config.liffId;
+
+        if (!liffId || liffId === 'YOUR_LIFF_ID_HERE') {
+          console.warn('LIFF ID not configured, running in dev mode');
+          this.hideLoading();
+          return;
+        }
+
+        await liff.init({ liffId });
+
+        if (!liff.isLoggedIn()) {
+          await liff.login();
+        }
+
+        // Get user profile
+        const profile = await liff.getProfile();
+        this.currentUser = profile;
+
+        // Detect user role from ID or profile
+        await this.detectUserRole();
+      },
+
+      // Detect user role (can be extended)
+      async detectUserRole() {
+        // TODO: Implement role detection from your backend
+        // Example:
+        // const { data } = await supabase
+        //   .from('user_profiles')
+        //   .select('role')
+        //   .eq('line_user_id', this.currentUser.userId)
+        //   .single();
+        // this.userRole = data?.role;
+
+        // For now, use hash or default
+        this.userRole = this.config.defaultRole;
+      },
+
+      // Handle route change
+      handleRoute() {
+        const hash = window.location.hash || '#/';
+        const path = hash.substring(1); // Remove #
+        const route = this.routes[path] || this.routes['/'];
+
+        this.current = { path, route };
+
+        // Update title
+        document.title = route.title;
+
+        // Render route
+        this.render(route);
+      },
+
+      // Render route component
+      async render(route) {
+        this.hideAllScreens();
+
+        switch (route.component) {
+          case 'patient-app':
+            await this.loadPatientApp();
+            break;
+          case 'doctor-app':
+            await this.loadDoctorApp();
+            break;
+          case 'role-selection':
+            this.showRoleSelection();
+            break;
+          default:
+            this.showError('ไม่พบหน้าที่ต้องการ');
+        }
+      },
+
+      // Load Patient App
+      async loadPatientApp() {
+        this.showLoading('กำลังโหลด...');
+
+        try {
+          // Load patient app HTML
+          const response = await fetch('./liff-patient/dist/index.html');
+          if (!response.ok) throw new Error('ไม่สามารถโหลดหน้าคนไข้ได้');
+
+          const html = await response.text();
+          const content = this.extractBodyContent(html);
+
+          document.getElementById('app-content').innerHTML = content;
+          this.showMainApp();
+
+          // Initialize patient app scripts
+          await this.loadScripts('./liff-patient/dist/assets/', 'patient');
+
+        } catch (error) {
+          console.error('Load patient app error:', error);
+          this.showError('ไม่สามารถโหลดหน้าคนไข้ได้');
+        }
+      },
+
+      // Load Doctor App
+      async loadDoctorApp() {
+        this.showLoading('กำลังโหลด...');
+
+        try {
+          // Load doctor app HTML
+          const response = await fetch('./liff-doctor/dist/index.html');
+          if (!response.ok) throw new Error('ไม่สามารถโหลดหน้าแพทย์ได้');
+
+          const html = await response.text();
+          const content = this.extractBodyContent(html);
+
+          document.getElementById('app-content').innerHTML = content;
+          this.showMainApp();
+
+          // Initialize doctor app scripts
+          await this.loadScripts('./liff-doctor/dist/assets/', 'doctor');
+
+        } catch (error) {
+          console.error('Load doctor app error:', error);
+          this.showError('ไม่สามารถโหลดหน้าแพทย์ได้');
+        }
+      },
+
+      // Extract body content from HTML
+      extractBodyContent(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Get the app div
+        const appDiv = doc.querySelector('#app');
+        if (appDiv) {
+          return appDiv.innerHTML;
+        }
+
+        // Fallback to body content
+        return doc.body.innerHTML;
+      },
+
+      // Load scripts dynamically
+      async loadScripts(basePath, appType) {
+        // Scripts will be loaded by the app's own entry point
+        // This is a placeholder for any shared initialization
+        console.log(`${appType} app loaded`);
+
+        // Emit custom event for app initialization
+        window.dispatchEvent(new CustomEvent('appLoaded', {
+          detail: { appType, user: this.currentUser }
+        }));
+      },
+
+      // Navigation helper
+      navigate(hash) {
+        window.location.hash = hash;
+      },
+
+      // UI Helpers
+      showLoading(text = 'กำลังโหลด...') {
+        document.getElementById('loading-text').textContent = text;
+        document.getElementById('loading-screen').classList.remove('hidden');
+      },
+
+      hideLoading() {
+        document.getElementById('loading-screen').classList.add('hidden');
+      },
+
+      hideAllScreens() {
+        document.getElementById('loading-screen').classList.add('hidden');
+        document.getElementById('error-screen').classList.add('hidden');
+        document.getElementById('role-selection').classList.add('hidden');
+        document.getElementById('main-app').classList.add('hidden');
+      },
+
+      showMainApp() {
+        this.hideLoading();
+        document.getElementById('main-app').classList.remove('hidden');
+      },
+
+      showRoleSelection() {
+        this.hideLoading();
+        document.getElementById('role-selection').classList.remove('hidden');
+      },
+
+      showError(message) {
+        this.hideLoading();
+        const errorScreen = document.getElementById('error-screen');
+        const errorMsg = errorScreen.querySelector('.error-message');
+        errorMsg.textContent = message;
+        errorScreen.classList.remove('hidden');
+      }
+    };
+
+    // =====================================================
+    // EXPORTS
+    // =====================================================
+    window.router = router;
+
+    // Auto-start router when DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      router.init();
+    });
+  </script>
+
+  <!-- Role Selection Styles -->
+  <style>
+    .role-selection {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .role-card {
+      background: white;
+      border-radius: 20px;
+      padding: 30px 20px;
+      max-width: 320px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    }
+
+    .role-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .role-header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .role-header p {
+      color: #666;
+    }
+
+    .role-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .role-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 20px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .role-btn:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+    }
+
+    .role-btn.patient {
+      border-left: 4px solid #667eea;
+    }
+
+    .role-btn.doctor {
+      border-left: 4px solid #10b981;
+    }
+
+    .role-icon {
+      font-size: 40px;
+    }
+
+    .role-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .role-desc {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .error-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      text-align: center;
+      background: #f5f5f5;
+    }
+
+    .error-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+    }
+
+    .error-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .error-message {
+      color: #666;
+      margin-bottom: 25px;
+    }
+
+    .error-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .error-actions .btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</body>
+</html>
