@@ -51,7 +51,18 @@ async function initializeLiff() {
     }
     catch (error) {
         console.error('LIFF initialization failed:', error);
-        showToast('ไม่สามารถเริ่มแอปได้ กรุณาลองใหม่', 'error');
+        // Hide loading screen even on error - prevent stuck screen
+        document.getElementById('loading-screen')?.classList.add('hidden');
+        document.getElementById('main-app')?.classList.remove('hidden');
+        // Show error message to user
+        showToast('ไม่สามารถเชื่อมต่อ LINE ได้ กรุณาลองใหม่', 'error');
+        // Set demo user for development/testing
+        currentUser = {
+            userId: 'demo-user',
+            displayName: 'ผู้ใช้ทดสอบ',
+            pictureUrl: '',
+        };
+        updateGreeting();
     }
 }
 // =====================================================
