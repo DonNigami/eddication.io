@@ -4,13 +4,13 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/**'
-      - 'packages/**'
+      - 'project/line/clinic-connect-saas/apps/**'
+      - 'project/line/clinic-connect-saas/packages/**'
       - '.github/workflows/deploy-clinic-connect.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'apps/**'
+      - 'project/line/clinic-connect-saas/apps/**'
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -27,6 +27,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: project/line/clinic-connect-saas
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,7 +53,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps
+          path: project/line/clinic-connect-saas/apps
 
   deploy:
     environment:
