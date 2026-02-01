@@ -1,0 +1,40 @@
+{
+  "name": "clinic-connect-saas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ClinicConnect SaaS - ระบบจัดการคลินิกแบบ SaaS ด้วย LINE LIFF",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:migrate": "cd supabase && node apply-migration.js",
+    "db:types": "supabase gen types typescript --local > packages/db/src/types/database.ts",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:deploy": "supabase db push"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "prettier": "^3.2.4",
+    "turbo": "^1.12.4",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "clinic",
+    "saas",
+    "line-liff",
+    "supabase",
+    "thailand"
+  ],
+  "author": "Eddication.io",
+  "license": "MIT"
+}

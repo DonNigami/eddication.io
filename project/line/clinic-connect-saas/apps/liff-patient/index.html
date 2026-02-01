@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ClinicConnect - คลินิกออนไลน์</title>
+  <link rel="stylesheet" href="/src/styles/main.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="spinner"></div>
+      <p>กำลังโหลด...</p>
+    </div>
+
+    <!-- Main App (Hidden until LIFF ready) -->
+    <div id="main-app" class="main-app hidden">
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-content">
+          <h1 class="app-title">ClinicConnect</h1>
+          <div class="user-greeting" id="user-greeting">
+            👋 สวัสดี
+          </div>
+        </div>
+      </header>
+
+      <!-- Pages Container -->
+      <main id="pages-container">
+        <!-- HOME PAGE -->
+        <section id="page-home" class="page active">
+          <div class="page-content">
+            <!-- Next Appointment Card -->
+            <div class="card appointment-card">
+              <div class="card-header">
+                <h2>📅 นัดหมายถัดไป</h2>
+              </div>
+              <div class="card-body" id="next-appointment">
+                <!-- Loading state -->
+                <div class="appointment-placeholder">
+                  <p>กำลังโหลดข้อมูล...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- My Queue Card -->
+            <div class="card queue-card">
+              <div class="card-header">
+                <h2>🏥 คิวของฉัน</h2>
+              </div>
+              <div class="card-body" id="my-queue">
+                <!-- Queue info will be rendered here -->
+                <div class="queue-placeholder">
+                  <p>ไม่มีคิววันนี้</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+              <button class="action-btn primary" onclick="navigateTo('booking')">
+                <span class="btn-icon">📅</span>
+                <span class="btn-text">จองนัดหมาย</span>
+              </button>
+              <button class="action-btn" onclick="navigateTo('queue')">
+                <span class="btn-icon">🏥</span>
+                <span class="btn-text">คิวของฉัน</span>
+              </button>
+              <button class="action-btn" onclick="navigateTo('records')">
+                <span class="btn-icon">📋</span>
+                <span class="btn-text">ประวัติการรักษา</span>
+              </button>
+            </div>
+
+            <!-- News Section -->
+            <div class="card news-card">
+              <div class="card-header">
+                <h2>📰 ข่าวสาร</h2>
+              </div>
+              <div class="card-body" id="news-list">
+                <!-- News items will be rendered here -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- BOOKING PAGE -->
+        <section id="page-booking" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">
+              <span>&larr;</span>
+            </button>
+            <h1>จองนัดหมาย</h1>
+          </div>
+          <div class="page-content">
+            <form id="booking-form" class="booking-form">
+              <!-- Doctor Selection -->
+              <div class="form-group">
+                <label class="form-label">เลือกแพทย์</label>
+                <select class="form-select" id="doctor-select" required>
+                  <option value="">-- กรุณาเลือกแพทย์ --</option>
+                </select>
+              </div>
+
+              <!-- Date Selection -->
+              <div class="form-group">
+                <label class="form-label">เลือกวันที่</label>
+                <div class="date-selector" id="date-selector">
+                  <!-- Date buttons will be rendered here -->
+                </div>
+                <input type="hidden" id="selected-date" required />
+              </div>
+
+              <!-- Time Selection -->
+              <div class="form-group">
+                <label class="form-label">เลือกเวลา</label>
+                <div class="time-selector" id="time-selector">
+                  <!-- Time slots will be rendered here -->
+                  <p class="text-muted">กรุณาเลือกแพทย์และวันที่ก่อน</p>
+                </div>
+                <input type="hidden" id="selected-time" required />
+              </div>
+
+              <!-- Symptoms -->
+              <div class="form-group">
+                <label class="form-label">อาการเบื้องต้น</label>
+                <textarea
+                  class="form-textarea"
+                  id="symptoms"
+                  rows="3"
+                  placeholder="ระบุอาการเบื้องต้น เช่น ปวดหัว, ตัวร้อน..."
+                ></textarea>
+              </div>
+
+              <!-- Actions -->
+              <div class="form-actions">
+                <button type="button" class="btn btn-outline" onclick="navigateBack()">
+                  ยกเลิก
+                </button>
+                <button type="submit" class="btn btn-primary">
+                  ยืนยันการจอง
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- QUEUE PAGE -->
+        <section id="page-queue" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">
+              <span>&larr;</span>
+            </button>
+            <h1>คิวของฉัน</h1>
+          </div>
+          <div class="page-content">
+            <div class="queue-status" id="queue-status">
+              <!-- Queue status will be rendered here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- RECORDS PAGE -->
+        <section id="page-records" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">
+              <span>&larr;</span>
+            </button>
+            <h1>ประวัติการรักษา</h1>
+          </div>
+          <div class="page-content">
+            <div class="records-list" id="records-list">
+              <!-- Medical records will be rendered here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- NOTIFICATIONS PAGE -->
+        <section id="page-notifications" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">
+              <span>&larr;</span>
+            </button>
+            <h1>แจ้งเตือน</h1>
+          </div>
+          <div class="page-content">
+            <div class="notifications-list" id="notifications-list">
+              <!-- Notifications will be rendered here -->
+            </div>
+          </div>
+        </section>
+
+        <!-- PROFILE PAGE -->
+        <section id="page-profile" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">
+              <span>&larr;</span>
+            </button>
+            <h1>โปรไฟล์</h1>
+          </div>
+          <div class="page-content">
+            <div class="profile-card" id="profile-card">
+              <!-- Profile info will be rendered here -->
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom Navigation -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-page="home" onclick="navigateTo('home')">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label">หน้าแรก</span>
+        </button>
+        <button class="nav-item" data-page="queue" onclick="navigateTo('queue')">
+          <span class="nav-icon">🏥</span>
+          <span class="nav-label">คิว</span>
+        </button>
+        <button class="nav-item" data-page="records" onclick="navigateTo('records')">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">ประวัติ</span>
+        </button>
+        <button class="nav-item" data-page="profile" onclick="navigateTo('profile')">
+          <span class="nav-icon">👤</span>
+          <span class="nav-label">โปรไฟล์</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <!-- LIFF SDK -->
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js"></script>
+  <!-- App Scripts -->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
