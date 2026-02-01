@@ -1,0 +1,13 @@
+# Build outputs
+# Keep dist/ for GitHub Pages deployment
+*.local
+
+# Compiled JavaScript
+src/main.js
+
+# Generated config
+vite.config.js
+
+# Environment files (contains secrets)
+.env.local
+.env.*.local

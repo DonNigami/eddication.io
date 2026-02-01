@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ClinicConnect - สำหรับแพทย์</title>
+  <script type="module" crossorigin src="/assets/index-CMiPeaP0.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/liff-O2FJu2J5.js">
+  <link rel="modulepreload" crossorigin href="/assets/supabase-Lfywt2aW.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-CohJw4_4.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="spinner"></div>
+      <p>กำลังโหลด...</p>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="main-app hidden">
+      <!-- Header -->
+      <header class="app-header doctor-header">
+        <div class="header-content">
+          <h1 class="app-title">ClinicConnect 👨‍⚕️</h1>
+          <div class="user-greeting" id="user-greeting">
+            👨‍⚕️ นพ. แพทย์
+          </div>
+        </div>
+      </header>
+
+      <!-- Pages -->
+      <main id="pages-container">
+        <!-- DASHBOARD PAGE -->
+        <section id="page-dashboard" class="page active">
+          <div class="page-content">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value" id="stat-today-patients">-</div>
+                <div class="stat-label">คนไข้วันนี้</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="stat-waiting">-</div>
+                <div class="stat-label">รอตรวจ</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="stat-completed">-</div>
+                <div class="stat-label">ตรวจแล้ว</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="stat-rating">⭐-</div>
+                <div class="stat-label">คะแนน</div>
+              </div>
+            </div>
+
+            <!-- Today's Queue -->
+            <div class="card">
+              <div class="card-header">
+                <h2>🩺 คิวคนไข้วันนี้</h2>
+                <button class="text-btn" onclick="navigateTo('queue')">ดูทั้งหมด</button>
+              </div>
+              <div class="card-body" id="dashboard-queue-list">
+                <!-- Queue items -->
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+              <button class="action-btn primary" onclick="callNextPatient()">
+                <span class="btn-icon">🔔</span>
+                <span class="btn-text">เรียกคิวถัดไป</span>
+              </button>
+              <button class="action-btn" onclick="navigateTo('patients')">
+                <span class="btn-icon">👥</span>
+                <span class="btn-text">คนไข้ทั้งหมด</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- QUEUE PAGE -->
+        <section id="page-queue" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">&larr;</button>
+            <h1>คิวคนไข้</h1>
+          </div>
+          <div class="page-content" id="queue-list">
+            <!-- Queue list -->
+          </div>
+        </section>
+
+        <!-- PATIENTS PAGE -->
+        <section id="page-patients" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">&larr;</button>
+            <h1>คนไข้ทั้งหมด</h1>
+          </div>
+          <div class="page-content">
+            <div class="search-box">
+              <input type="text" class="search-input" placeholder="ค้นหาคนไข้..." id="patient-search" />
+            </div>
+            <div class="patients-list" id="patients-list">
+              <!-- Patients list -->
+            </div>
+          </div>
+        </section>
+
+        <!-- DIAGNOSIS PAGE -->
+        <section id="page-diagnosis" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">&larr;</button>
+            <h1>บันทึกการรักษา</h1>
+          </div>
+          <div class="page-content">
+            <form id="diagnosis-form" class="diagnosis-form">
+              <input type="hidden" id="diagnosis-appointment-id" />
+
+              <div class="card mb-md">
+                <div class="card-body">
+                  <h3 id="diagnosis-patient-name">-</h3>
+                  <p class="text-muted" id="diagnosis-patient-info">-</p>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">อาการเบื้องต้น (SUBJ)</label>
+                <textarea class="form-textarea" id="diagnosis-subj" rows="2"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">การตรวจร่างกาย (OBJ)</label>
+                <div class="vital-signs">
+                  <div class="vital-input">
+                    <label>BP (mmHg)</label>
+                    <div class="bp-inputs">
+                      <input type="number" class="form-input" id="vs-bp-sys" placeholder="120" />
+                      <span>/</span>
+                      <input type="number" class="form-input" id="vs-bp-dia" placeholder="80" />
+                    </div>
+                  </div>
+                  <div class="vital-input">
+                    <label>Pulse (bpm)</label>
+                    <input type="number" class="form-input" id="vs-pulse" placeholder="72" />
+                  </div>
+                  <div class="vital-input">
+                    <label>Temp (°C)</label>
+                    <input type="number" class="form-input" id="vs-temp" placeholder="37.0" step="0.1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">วินิจฉัย (ASS)</label>
+                <textarea class="form-textarea" id="diagnosis-ass" rows="2"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">แผนการรักษา (PLAN)</label>
+                <textarea class="form-textarea" id="diagnosis-plan" rows="3"></textarea>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="btn btn-outline" onclick="navigateBack()">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">บันทึก</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- SCHEDULE PAGE -->
+        <section id="page-schedule" class="page">
+          <div class="page-header">
+            <button class="back-btn" onclick="navigateBack()">&larr;</button>
+            <h1>จัดการเวลาว่าง</h1>
+          </div>
+          <div class="page-content">
+            <form id="schedule-form" class="schedule-form">
+              <div class="form-group">
+                <label class="form-label">เวลาทำการ</label>
+                <div class="time-range">
+                  <input type="time" class="form-input" id="schedule-start" value="09:00" />
+                  <span>ถึง</span>
+                  <input type="time" class="form-input" id="schedule-end" value="17:00" />
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">ระยะเวลาต่อคนไข้ (นาที)</label>
+                <input type="number" class="form-input" id="schedule-duration" value="30" min="15" step="5" />
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">วันทำการ</label>
+                <div class="days-selector">
+                  <label class="day-checkbox">
+                    <input type="checkbox" value="1" checked> จ
+                  </label>
+                  <label class="day-checkbox">
+                    <input type="checkbox" value="2" checked> อ
+                  </label>
+                  <label class="day-checkbox">
+                    <input type="checkbox" value="3" checked> พ
+                  </label>
+                  <label class="day-checkbox">
+                    <input type="checkbox" value="4" checked> พฤ
+                  </label>
+                  <label class="day-checkbox">
+                    <input type="checkbox" value="5" checked> ศ
+                  </label>
+                  <label class="day-checkbox">
+                    <input type="checkbox" value="6"> ส
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">เวลาพักเบรก</label>
+                <div class="time-range">
+                  <input type="time" class="form-input" id="schedule-break-start" value="12:00" />
+                  <span>ถึง</span>
+                  <input type="time" class="form-input" id="schedule-break-end" value="13:00" />
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%">บันทึก</button>
+            </form>
+
+            <div class="card mt-lg">
+              <div class="card-header">
+                <h2>วันหยุด</h2>
+              </div>
+              <div class="card-body">
+                <button class="btn btn-outline" onclick="showBlockDateModal()">
+                  + เพิ่มวันหยุด
+                </button>
+                <div id="blocked-dates" class="mt-md">
+                  <!-- Blocked dates list -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Bottom Navigation -->
+      <nav class="bottom-nav">
+        <button class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">หน้าแรก</span>
+        </button>
+        <button class="nav-item" data-page="queue" onclick="navigateTo('queue')">
+          <span class="nav-icon">🩺</span>
+          <span class="nav-label">คิว</span>
+        </button>
+        <button class="nav-item" data-page="patients" onclick="navigateTo('patients')">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">คนไข้</span>
+        </button>
+        <button class="nav-item" data-page="schedule" onclick="navigateTo('schedule')">
+          <span class="nav-icon">📅</span>
+          <span class="nav-label">เวลาว่าง</span>
+        </button>
+      </nav>
+    </div>
+  </div>
+
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js"></script>
+</body>
+</html>
