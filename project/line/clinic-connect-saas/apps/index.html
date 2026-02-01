@@ -74,7 +74,7 @@
   </div>
 
   <!-- LIFF SDK -->
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js" onload="window.liffLoaded = true;"></script>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js"></script>
 
   <!-- Router Script -->
   <script>
@@ -125,9 +125,17 @@
       async init() {
         this.showLoading('กำลังเริ่มต้น...');
 
+        // Set a timeout to show role selection if LIFF takes too long
+        const initTimeout = setTimeout(() => {
+          console.warn('LIFF initialization timeout, showing role selection');
+          this.hideLoading();
+          this.showRoleSelection();
+        }, 5000); // 5 second timeout
+
         try {
           // Initialize LIFF
           await this.initLiff();
+          clearTimeout(initTimeout);
 
           // Handle hash change
           window.addEventListener('hashchange', () => this.handleRoute());
@@ -136,8 +144,10 @@
           this.handleRoute();
 
         } catch (error) {
+          clearTimeout(initTimeout);
           console.error('Router init error:', error);
-          this.showError('เกิดข้อผิดพลาด: ' + error.message);
+          this.hideLoading();
+          this.showRoleSelection();
         }
       },
 
@@ -154,15 +164,50 @@
         // Use window.liff since we've ensured it's loaded
         const liff = window.liff;
 
-        await liff.init({ liffId });
-
-        if (!liff.isLoggedIn()) {
-          await liff.login();
+        if (!liff) {
+          console.error('LIFF SDK not loaded');
+          this.hideLoading();
+          return;
         }
 
+        try {
+          await liff.init({ liffId });
+          console.log('LIFF initialized successfully');
+        } catch (error) {
+          console.error('LIFF init error:', error);
+          this.hideLoading();
+          this.showRoleSelection();
+          return;
+        }
+
+        // Check if logged in
+        if (!liff.isLoggedIn()) {
+          // Check if we're in LINE app or external browser
+          if (!liff.isInClient()) {
+            // External browser - redirect to login
+            console.log('Not logged in, redirecting to LINE login...');
+            liff.login();
+            return;
+          }
+          // In LINE app but not logged in - this shouldn't happen
+          // but let's show role selection anyway
+          console.log('In LINE app but not logged in, showing role selection');
+          this.hideLoading();
+          this.showRoleSelection();
+          return;
+        }
+
+        console.log('User is logged in');
+
         // Get user profile
-        const profile = await liff.getProfile();
-        this.currentUser = profile;
+        try {
+          const profile = await liff.getProfile();
+          this.currentUser = profile;
+          console.log('User profile loaded:', profile);
+        } catch (error) {
+          console.error('Get profile error:', error);
+          // Continue without profile
+        }
 
         // Detect user role from ID or profile
         await this.detectUserRole();
@@ -340,14 +385,27 @@
 
     // Auto-start router when DOM ready AND LIFF SDK loaded
     function startApp() {
+      let attempts = 0;
+      const maxAttempts = 100; // 10 seconds max wait
+
       // Check if both DOM is ready and LIFF is loaded
       const checkReady = () => {
-        if (document.readyState !== 'loading' && (window.liff || window.liffLoaded)) {
+        attempts++;
+
+        // Check DOM is ready and LIFF SDK is loaded
+        if (document.readyState !== 'loading' && typeof window.liff !== 'undefined') {
+          console.log('Starting app...');
           router.init();
+        } else if (attempts < maxAttempts) {
+          // Check again in 100ms
+          setTimeout(checkReady, 100);
         } else {
-          setTimeout(checkReady, 10);
+          // Timeout - start anyway with role selection
+          console.warn('LIFF SDK failed to load, showing role selection');
+          router.init();
         }
       };
+
       checkReady();
     }
 
