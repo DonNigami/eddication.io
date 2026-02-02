@@ -88,8 +88,8 @@ export async function initMap() {
 }
 
 /**
- * Update map markers with active jobs
- * FIXED: N+1 Query issue resolved - single batch query instead of loop
+ * Update map markers with active drivers
+ * Fetches latest locations from driver_live_locations table
  */
 export async function updateMapMarkers() {
     if (!markers) return;
@@ -97,62 +97,52 @@ export async function updateMapMarkers() {
     markers.clearLayers(); // Clear existing markers
 
     try {
-        // Fetch active jobs
-        const { data: activeJobs, error: jobsError } = await supabase
-            .from('jobdata')
-            .select('reference, drivers')
-            .not('trip_ended', 'is', true); // Only jobs not ended
+        // Fetch latest driver locations from driver_live_locations
+        const { data: locations, error } = await supabase
+            .from('driver_live_locations')
+            .select('*')
+            .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
 
-        if (jobsError) throw jobsError;
+        if (error) throw error;
 
-        if (activeJobs.length === 0) {
-            console.log('No active jobs found for map markers.');
+        if (!locations || locations.length === 0) {
+            console.log('No driver locations found in driver_live_locations.');
             return;
         }
 
-        // FIXED: Single query to get all latest logs (N+1 Query fix)
-        // Instead of querying each job separately, fetch all logs at once
-        const references = activeJobs.map(job => job.reference);
+        console.log(`Found ${locations.length} driver locations:`);
+        console.table(locations.map(loc => ({
+            driver_id: loc.driver_id,
+            lat: loc.latitude,
+            lng: loc.longitude,
+            updated: loc.last_updated
+        })));
 
-        const { data: allLogs, error: logsError } = await supabase
-            .from('driver_logs')
-            .select('reference, location, action, created_at')
-            .in('reference', references)
-            .not('location', 'is', null)
-            .order('created_at', { ascending: false });
+        // Create marker for each driver
+        for (const loc of locations) {
+            // Check for lat/lng in various possible column names
+            const lat = loc.latitude || loc.lat;
+            const lng = loc.longitude || loc.lng || loc.lon;
 
-        if (logsError) throw logsError;
-
-        // Group logs by reference and take the first (latest) for each
-        const latestLogsByReference = new Map();
-        for (const log of allLogs) {
-            if (!latestLogsByReference.has(log.reference)) {
-                latestLogsByReference.set(log.reference, log);
-            }
-        }
-
-        // Create markers from latest logs
-        for (const job of activeJobs) {
-            const latestLog = latestLogsByReference.get(job.reference);
-
-            if (latestLog && latestLog.location && latestLog.location.lat && latestLog.location.lng) {
-                const lat = latestLog.location.lat;
-                const lng = latestLog.location.lng;
-                const action = latestLog.action;
-                const time = new Date(latestLog.created_at).toLocaleString();
+            if (lat && lng) {
+                const driverId = loc.driver_id || loc.user_id || 'N/A';
+                const driverName = loc.driver_name || loc.name || driverId;
+                const time = loc.last_updated ? new Date(loc.last_updated).toLocaleString() : 'N/A';
+                const accuracy = loc.accuracy ? `±${Math.round(loc.accuracy)}m` : '';
 
                 const marker = L.marker([lat, lng]).bindPopup(`
-                    <b>Job:</b> ${sanitizeHTML(job.reference)}<br>
-                    <b>Driver:</b> ${sanitizeHTML(job.drivers) || 'N/A'}<br>
-                    <b>Last Action:</b> ${sanitizeHTML(action)}<br>
-                    <b>Time:</b> ${sanitizeHTML(time)}
+                    <b>Driver:</b> ${sanitizeHTML(driverName)}<br>
+                    <b>Driver ID:</b> ${sanitizeHTML(String(driverId))}<br>
+                    <b>Updated:</b> ${sanitizeHTML(time)}<br>
+                    ${accuracy ? `<b>Accuracy:</b> ${sanitizeHTML(accuracy)}<br>` : ''}
+                    <b>Position:</b> ${lat.toFixed(6)}, ${lng.toFixed(6)}
                 `);
                 markers.addLayer(marker);
             }
         }
 
         if (markers.getLayers().length > 0) {
-            map.fitBounds(markers.getBounds());
+            map.fitBounds(markers.getBounds(), { padding: [50, 50] });
         }
 
     } catch (error) {
