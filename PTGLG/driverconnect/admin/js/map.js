@@ -97,11 +97,10 @@ export async function updateMapMarkers() {
     markers.clearLayers(); // Clear existing markers
 
     try {
-        // Fetch latest driver locations
+        // Fetch all driver locations
         const { data: locations, error } = await supabase
             .from('driver_live_locations')
-            .select('*')
-            .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
+            .select('*');
 
         if (error) throw error;
 

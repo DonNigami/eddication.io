@@ -59,11 +59,10 @@ const FleetDashboard = {
       this.state.totalJobsToday = activeJobs?.length || 0;
       this.state.completedJobs = activeJobs?.filter(j => j.status === 'completed').length || 0;
 
-      // Load driver locations
+      // Load all driver locations
       const { data: locations } = await supabase
         .from('driver_live_locations')
-        .select('*')
-        .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
+        .select('*');
 
       // Fetch user profiles for all drivers (join on user_id = driver_user_id)
       const driverIds = locations?.map(loc => loc.driver_user_id).filter(Boolean) || [];
