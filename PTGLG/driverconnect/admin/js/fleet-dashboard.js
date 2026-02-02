@@ -61,7 +61,7 @@ const FleetDashboard = {
 
       // Load driver locations
       const { data: locations } = await supabase
-        .from('driver_locations')
+        .from('driver_live_locations')
         .select('*')
         .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
 
@@ -101,7 +101,7 @@ const FleetDashboard = {
         {
           event: '*',
           schema: 'public',
-          table: 'driver_locations'
+          table: 'driver_live_locations'
         },
         (payload) => {
           console.log('📍 Location update:', payload);
