@@ -857,10 +857,9 @@ a:hover {
 .content-section {
     display: none;
     padding: var(--space-8);
-    overflow-y: auto;
+    overflow-y: visible;
     overflow-x: hidden;
-    height: 100%;
-    max-height: calc(100vh - var(--header-height));
+    height: auto;
     max-width: var(--container-max);
     margin: 0 auto;
 }
