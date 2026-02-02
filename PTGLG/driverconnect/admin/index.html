@@ -248,36 +248,30 @@ This admin panel interfaces with the following Supabase database tables:
                 </div>
 
                 <!-- Driver Status Summary Cards -->
-                <div class="status-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;">
-                    <div class="status-card status-card-all" data-status="all" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">ทั้งหมด</div>
-                        <div style="font-size: 28px; font-weight: bold;" id="driver-count-all">0</div>
-                        <div style="font-size: 11px; opacity: 0.8;">พนักงานทั้งหมด</div>
+                <div class="status-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 16px;">
+                    <div class="status-card status-card-all" data-status="all" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">ทั้งหมด</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="driver-count-all">0</div>
                     </div>
-                    <div class="status-card status-card-online" data-status="online" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 16px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">🟢 Online</div>
-                        <div style="font-size: 28px; font-weight: bold;" id="driver-count-online">0</div>
-                        <div style="font-size: 11px; opacity: 0.8;">กำลังติดตาม</div>
+                    <div class="status-card status-card-online" data-status="online" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 10px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">🟢 Online</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="driver-count-online">0</div>
                     </div>
-                    <div class="status-card status-card-recent" data-status="recent" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 16px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">🟠 ออฟไลน์ล่าสุด</div>
-                        <div style="font-size: 28px; font-weight: bold;" id="driver-count-recent">0</div>
-                        <div style="font-size: 11px; opacity: 0.8;">&lt; 30 นาที</div>
+                    <div class="status-card status-card-recent" data-status="recent" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 10px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">🟠 ล่าสุด</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="driver-count-recent">0</div>
                     </div>
-                    <div class="status-card status-card-offline" data-status="offline" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 16px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">🔴 ออฟไลน์</div>
-                        <div style="font-size: 28px; font-weight: bold;" id="driver-count-offline">0</div>
-                        <div style="font-size: 11px; opacity: 0.8;">30-60 นาที</div>
+                    <div class="status-card status-card-offline" data-status="offline" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 10px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">🔴 ออฟไลน์</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="driver-count-offline">0</div>
                     </div>
-                    <div class="status-card status-card-stale" data-status="stale" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); padding: 16px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">⚫ Stale</div>
-                        <div style="font-size: 28px; font-weight: bold;" id="driver-count-stale">0</div>
-                        <div style="font-size: 11px; opacity: 0.8;">&gt; 60 นาที</div>
+                    <div class="status-card status-card-stale" data-status="stale" style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); padding: 10px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">⚫ Stale</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="driver-count-stale">0</div>
                     </div>
-                    <div class="status-card status-card-nodata" data-status="nodata" style="background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); padding: 16px; border-radius: 12px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-                        <div style="font-size: 12px; opacity: 0.9; margin-bottom: 4px;">⚪ ไม่มีข้อมูล</div>
-                        <div style="font-size: 28px; font-weight: bold;" id="driver-count-nodata">0</div>
-                        <div style="font-size: 11px; opacity: 0.8;">ไม่พบข้อมูล</div>
+                    <div class="status-card status-card-nodata" data-status="nodata" style="background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); padding: 10px; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <div style="font-size: 10px; opacity: 0.9; margin-bottom: 2px;">⚪ ไม่มีข้อมูล</div>
+                        <div style="font-size: 20px; font-weight: bold;" id="driver-count-nodata">0</div>
                     </div>
                 </div>
 
