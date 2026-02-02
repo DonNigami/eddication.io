@@ -168,40 +168,49 @@ This admin panel interfaces with the following Supabase database tables:
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <!-- Dashboard & Overview -->
-                    <li class="nav-section-header">📊 Dashboard & Reports</li>
-                    <li><a href="#" class="nav-link active" data-target="dashboard">📈 Dashboard</a></li>
-                    <li><a href="#" class="nav-link" data-target="logistics-performance">📊 Logistics Performance</a></li>
-                    <li><a href="#" class="nav-link" data-target="driver-reports">👤 Driver Reports</a></li>
-                    
-                    <!-- Operations Management -->
-                    <li class="nav-section-header">🚚 Operations Management</li>
-                    <li><a href="#" class="nav-link" data-target="jobs">🚚 Job Management</a></li>
-                    <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ B100 Jobs</a></li>
-                    <li><a href="#" class="nav-link" data-target="incentive-approval">💰 Incentive Approval</a></li>
-                    <li><a href="#" class="nav-link" data-target="payment-processing">🏦 Payment Processing</a></li>
-                    
-                    <!-- Fleet & Maintenance -->
-                    <li class="nav-section-header">🔧 Fleet & Maintenance</li>
-                    <li><a href="#" class="nav-link" data-target="breakdown-reports">🚨 Breakdown Reports</a></li>
-                    <li><a href="#" class="nav-link" data-target="vehicle-breakdown">🔧 Vehicle Breakdown</a></li>
-                    <li><a href="#" class="nav-link" data-target="fuel-siphoning">⛽ Fuel Siphoning</a></li>
-                    
-                    <!-- System Management -->
-                    <li class="nav-section-header">⚙️ System Management</li>
-                    <li><a href="#" class="nav-link" data-target="users">👥 User Management</a></li>
-                    <li><a href="#" class="nav-link" data-target="registration-approval">📝 Registration Approval <span id="registration-badge" class="badge hidden">0</span></a></li>
-                    <li><a href="#" class="nav-link" data-target="alerts">🚨 Alerts <span id="alerts-badge" class="badge hidden">0</span></a></li>
-                    <li><a href="#" class="nav-link" data-target="settings">⚙️ Settings</a></li>
-                    
-                    <!-- Developer Tools -->
-                    <li class="nav-section-header">🛠️ Developer Tools</li>
-                    <li><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
-                    <li><a href="#" class="nav-link" data-target="debug-import-tool">🔍 Debug Import</a></li>
+                    <!-- ==================== DASHBOARD ==================== -->
+                    <li class="nav-section-header">📊 ภาพรวม</li>
+                    <li><a href="#" class="nav-link active" data-target="dashboard">📈 แดชบอร์ด</a></li>
+
+                    <!-- ==================== JOBS & OPERATIONS ==================== -->
+                    <li class="nav-section-header">🚚 งานขนส่ง</li>
+                    <li><a href="#" class="nav-link" data-target="jobs">📦 จัดการงาน</a></li>
+                    <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ งาน B100</a></li>
+
+                    <!-- ==================== FINANCE & PAYMENTS ==================== -->
+                    <li class="nav-section-header">💰 การเงิน & สวัสดิการ</li>
+                    <li><a href="#" class="nav-link" data-target="incentive-approval">✅ อนุมัติโบนัส</a></li>
+                    <li><a href="#" class="nav-link" data-target="payment-processing">🏦 จ่ายเงิน</a></li>
+
+                    <!-- ==================== MAINTENANCE ==================== -->
+                    <li class="nav-section-header">🔧 ฝ่ายช่าง</li>
+                    <li><a href="#" class="nav-link" data-target="breakdown-reports">🚨 รายงานอุบัติเหตุ</a></li>
+                    <li><a href="#" class="nav-link" data-target="vehicle-breakdown">🚛 รถชำรุด</a></li>
+
+                    <!-- ==================== REPORTS ==================== -->
+                    <li class="nav-section-header">📈 รายงาน</li>
+                    <li><a href="#" class="nav-link" data-target="logistics-performance">📊 ประสิทธิภาพขนส่ง</a></li>
+                    <li><a href="#" class="nav-link" data-target="driver-reports">👤 รายงานคนขับ</a></li>
+
+                    <!-- ==================== SYSTEM MANAGEMENT ==================== -->
+                    <li class="nav-section-header">⚙️ ระบบ</li>
+                    <li><a href="#" class="nav-link" data-target="users">👥 จัดการผู้ใช้</a></li>
+                    <li><a href="#" class="nav-link" data-target="registration-approval">📝 อนุมัติสมัครสมาชิก <span id="registration-badge" class="badge hidden">0</span></a></li>
+                    <li><a href="#" class="nav-link" data-target="settings">⚙️ ตั้งค่า</a></li>
+
+                    <!-- ==================== HIDDEN (Temporarily Disabled) ==================== -->
+                    <!-- Hidden: Alerts - data-target="alerts" -->
+                    <!-- Hidden: Fuel Siphoning - data-target="fuel-siphoning" -->
+
+                    <!-- ==================== DEVELOPER TOOLS ==================== -->
+                    <li class="nav-section-header nav-dev-tools">🛠️ เครื่องมือนักพัฒนา</li>
+                    <li class="nav-dev-tools"><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
+                    <li class="nav-dev-tools"><a href="#" class="nav-link" data-target="debug-import-tool">🔍 Debug Import</a></li>
 
                 </ul>
             </nav>
-            <div class="sidebar-footer">
+            <!-- Sidebar Footer - Hidden (moved to header) -->
+            <div class="sidebar-footer" style="display: none;">
                 <p id="admin-username"></p>
                 <button id="logout-button">Logout</button>
             </div>
@@ -224,6 +233,14 @@ This admin panel interfaces with the following Supabase database tables:
                 <div class="last-refresh-indicator">
                     <span class="auto-refresh-dot"></span>
                     <span class="refresh-time" id="last-refresh-indicator">อัปเดตล่าสุด: -</span>
+                </div>
+
+                <!-- User Info & Logout -->
+                <div class="header-user-section">
+                    <span class="header-username" id="admin-username-header"></span>
+                    <button class="header-action-btn logout-btn-header" id="logout-button-header" title="ออกจากระบบ">
+                        🚪
+                    </button>
                 </div>
 
                 <!-- Notification Dropdown -->

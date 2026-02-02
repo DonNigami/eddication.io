@@ -780,11 +780,16 @@ function setupEventListeners() {
     if (logSearchAction) logSearchAction.addEventListener('input', debounce(loadLogsWithFilters, 300));
     if (logSearchUserId) logSearchUserId.addEventListener('input', debounce(loadLogsWithFilters, 300));
 
-    // Logout button
-    const logoutButton = document.getElementById('logout-button');
-    if (logoutButton) {
-        logoutButton.addEventListener('click', handleLogout);
-    }
+    // Logout button (both sidebar and header)
+    const logoutButtons = [
+        document.getElementById('logout-button'),
+        document.getElementById('logout-button-header')
+    ];
+    logoutButtons.forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', handleLogout);
+        }
+    });
 
     // Mobile menu functionality
     setupMobileMenu();
@@ -992,10 +997,12 @@ export async function showAdminPanel(profile, liffInstance) {
     const authContainer = document.getElementById('auth-container');
     const adminContainer = document.getElementById('admin-container');
     const adminUsername = document.getElementById('admin-username');
+    const adminUsernameHeader = document.getElementById('admin-username-header');
 
     if (authContainer) authContainer.classList.add('hidden');
     if (adminContainer) adminContainer.classList.remove('hidden');
     if (adminUsername) adminUsername.textContent = profile.displayName || 'Admin';
+    if (adminUsernameHeader) adminUsernameHeader.textContent = profile.displayName || 'Admin';
 
     // Initialize notification bell
     initNotificationBell();
