@@ -17,6 +17,102 @@ let mapCenterLat = DEFAULT_MAP_CENTER.lat;
 let mapCenterLng = DEFAULT_MAP_CENTER.lng;
 let mapZoom = DEFAULT_ZOOM;
 
+// Driver status thresholds (in milliseconds)
+const ONLINE_THRESHOLD = 5 * 60 * 1000;      // 5 minutes - considered online
+const OFFLINE_RECENT_THRESHOLD = 30 * 60 * 1000;  // 30 minutes - recently offline
+const STALE_THRESHOLD = 60 * 60 * 1000;     // 60 minutes - stale/offline long time
+
+/**
+ * Create a custom SVG marker icon with specified color
+ * @param {string} color - Marker color (hex or named)
+ * @param {string} label - Optional label to display on marker
+ * @returns {L.DivIcon} Leaflet div icon
+ */
+function createCustomMarkerIcon(color, label = '') {
+    const svgContent = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 42" width="32" height="42">
+            <path d="M16 0C7.163 0 0 7.163 0 16c0 8.837 16 26 16 26s16-17.163 16-26C32 7.163 24.837 0 16 0z" fill="${color}" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="16" cy="16" r="6" fill="#ffffff"/>
+            ${label ? `<text x="16" y="20" text-anchor="middle" font-size="8" font-weight="bold" fill="${color}">${label}</text>` : ''}
+        </svg>
+    `;
+
+    return L.divIcon({
+        className: 'custom-marker',
+        html: svgContent,
+        iconSize: [32, 42],
+        iconAnchor: [16, 42],
+        popupAnchor: [0, -42],
+        shadowUrl: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIxMCIgdmlld0JveD0iMCAwIDMyIDEwIj4KICA8ZWxsaXBzZSBjeD0iMTYiIGN5PSI1IiByeD0iMTIiIHJ5PSIzIiBmaWxsPSIjMDAwMDAwIiBvcGFjaXR5PSIwLjMiLz4KPC9zdmc+',
+        shadowSize: [32, 10],
+        shadowAnchor: [16, 10]
+    });
+}
+
+/**
+ * Get driver status based on tracking state and last update time
+ * @param {boolean} isTracked - Whether driver is tracked in real-time
+ * @param {string} lastUpdated - ISO timestamp of last update
+ * @returns {Object} Status object with color, label, and description
+ */
+function getDriverStatus(isTracked, lastUpdated) {
+    if (isTracked) {
+        return {
+            color: '#22c55e',  // Green - Online/Live
+            label: '●',
+            status: '🟢 Online',
+            statusText: 'Online'
+        };
+    }
+
+    if (!lastUpdated) {
+        return {
+            color: '#94a3b8',  // Gray - No data
+            label: '?',
+            status: '⚪ No Data',
+            statusText: 'No Data'
+        };
+    }
+
+    const now = Date.now();
+    const lastUpdate = new Date(lastUpdated).getTime();
+    const timeDiff = now - lastUpdate;
+
+    if (timeDiff <= OFFLINE_RECENT_THRESHOLD) {
+        return {
+            color: '#f59e0b',  // Orange - Recently offline
+            label: '○',
+            status: '🟠 Offline (Recent)',
+            statusText: 'Recently Offline'
+        };
+    }
+
+    if (timeDiff <= STALE_THRESHOLD) {
+        return {
+            color: '#ef4444',  // Red - Offline for a while
+            label: '○',
+            status: '🔴 Offline',
+            statusText: 'Offline'
+        };
+    }
+
+    return {
+        color: '#6b7280',  // Dark gray - Stale
+        label: '○',
+        status: '⚫ Stale',
+        statusText: 'Stale'
+    };
+}
+
+/**
+ * Get status color for display in popup
+ * @param {Object} status - Status object from getDriverStatus
+ * @returns {string} HTML span with colored indicator
+ */
+function getStatusIndicator(status) {
+    return `<span style="color: ${status.color}; font-weight: bold;">${status.status}</span>`;
+}
+
 // Playback state
 let playbackPath = null;
 let playbackMarker = null;
@@ -64,6 +160,59 @@ export async function loadMapSettings() {
 }
 
 /**
+ * Create legend control for driver status
+ * @returns {L.Control} Leaflet control
+ */
+function createLegendControl() {
+    const legend = L.control({ position: 'bottomright' });
+
+    legend.onAdd = function(map) {
+        const div = L.DomUtil.create('div', 'legend');
+        div.style.cssText = `
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            font-size: 12px;
+            line-height: 1.8;
+            min-width: 140px;
+        `;
+
+        const statuses = [
+            { color: '#22c55e', label: 'Online', desc: 'Currently tracking' },
+            { color: '#f59e0b', label: 'Recent Offline', desc: 'Offline < 30 min' },
+            { color: '#ef4444', label: 'Offline', desc: 'Offline 30-60 min' },
+            { color: '#6b7280', label: 'Stale', desc: 'Offline > 60 min' },
+            { color: '#94a3b8', label: 'No Data', desc: 'No updates' }
+        ];
+
+        div.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                Driver Status
+            </div>
+            ${statuses.map(s => `
+                <div style="display: flex; align-items: center;">
+                    <span style="
+                        width: 14px;
+                        height: 14px;
+                        background: ${s.color};
+                        border-radius: 50%;
+                        margin-right: 8px;
+                        border: 2px solid white;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                    "></span>
+                    <span style="color: #334155;">${s.label}</span>
+                </div>
+            `).join('')}
+        `;
+
+        return div;
+    };
+
+    return legend;
+}
+
+/**
  * Initialize the map
  */
 export async function initMap() {
@@ -83,6 +232,9 @@ export async function initMap() {
 
     markers = L.featureGroup();
     markers.addTo(map);
+
+    // Add legend control
+    createLegendControl().addTo(map);
 
     await updateMapMarkers();
 }
@@ -146,14 +298,45 @@ export async function updateMapMarkers() {
                 const driverId = loc.driver_user_id || 'N/A';
                 const driverName = profile.display_name || driverId;
                 const time = loc.last_updated ? new Date(loc.last_updated).toLocaleString() : 'N/A';
-                const tracked = loc.is_tracked_in_realtime ? '🟢 Live' : '⚪ Offline';
 
-                const marker = L.marker([lat, lng]).bindPopup(`
-                    <b>Driver:</b> ${sanitizeHTML(driverName)}<br>
-                    <b>Driver ID:</b> ${sanitizeHTML(String(driverId))}<br>
-                    <b>Status:</b> ${tracked}<br>
-                    <b>Updated:</b> ${sanitizeHTML(time)}<br>
-                    <b>Position:</b> ${lat.toFixed(6)}, ${lng.toFixed(6)}
+                // Get driver status and appropriate marker icon
+                const status = getDriverStatus(loc.is_tracked_in_realtime, loc.last_updated);
+                const markerIcon = createCustomMarkerIcon(status.color, status.label);
+
+                // Calculate time ago for display
+                let timeAgo = 'N/A';
+                if (loc.last_updated) {
+                    const now = Date.now();
+                    const lastUpdate = new Date(loc.last_updated).getTime();
+                    const diff = now - lastUpdate;
+                    const minutes = Math.floor(diff / 60000);
+                    const hours = Math.floor(minutes / 60);
+                    const days = Math.floor(hours / 24);
+
+                    if (days > 0) {
+                        timeAgo = `${days}d ago`;
+                    } else if (hours > 0) {
+                        timeAgo = `${hours}h ago`;
+                    } else if (minutes > 0) {
+                        timeAgo = `${minutes}m ago`;
+                    } else {
+                        timeAgo = 'Just now';
+                    }
+                }
+
+                const marker = L.marker([lat, lng], { icon: markerIcon }).bindPopup(`
+                    <div style="min-width: 180px;">
+                        <div style="font-size: 14px; margin-bottom: 6px;">
+                            <strong>${sanitizeHTML(driverName)}</strong>
+                        </div>
+                        <div style="font-size: 12px; line-height: 1.6;">
+                            <div><span style="color: #64748b;">Driver ID:</span> ${sanitizeHTML(String(driverId))}</div>
+                            <div><span style="color: #64748b;">Status:</span> ${getStatusIndicator(status)}</div>
+                            <div><span style="color: #64748b;">Updated:</span> ${timeAgo}</div>
+                            <div style="font-size: 10px; color: #94a3b8;">${sanitizeHTML(time)}</div>
+                            <div><span style="color: #64748b;">Position:</span> ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+                        </div>
+                    </div>
                 `);
                 markers.addLayer(marker);
             }
