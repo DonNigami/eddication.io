@@ -112,11 +112,11 @@ export async function updateMapMarkers() {
         if (driverIds.length > 0) {
             const { data: profiles } = await supabase
                 .from('user_profiles')
-                .select('id, full_name, first_name, last_name, phone, driver_status')
-                .in('id', driverIds);
+                .select('user_id, display_name, picture_url, status_message, last_seen_at')
+                .in('user_id', driverIds);
 
             if (profiles) {
-                profiles.forEach(p => profilesMap.set(p.id, p));
+                profiles.forEach(p => profilesMap.set(p.user_id, p));
             }
         }
 
@@ -130,36 +130,30 @@ export async function updateMapMarkers() {
             const profile = profilesMap.get(loc.driver_user_id);
             return {
                 driver_user_id: loc.driver_user_id,
-                full_name: profile?.full_name || 'N/A',
-                lat: loc.latitude,
-                lng: loc.longitude,
+                display_name: profile?.display_name || 'N/A',
+                lat: loc.lat,
+                lng: loc.lng,
                 updated: loc.last_updated
             };
         }));
 
         // Create marker for each driver
         for (const loc of locations) {
-            // Check for lat/lng in various possible column names
-            const lat = loc.latitude || loc.lat;
-            const lng = loc.longitude || loc.lng || loc.lon;
+            const lat = loc.lat;
+            const lng = loc.lng;
 
             if (lat && lng) {
                 const profile = profilesMap.get(loc.driver_user_id) || {};
                 const driverId = loc.driver_user_id || 'N/A';
-                const driverName = profile.full_name ||
-                                   `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
-                                   profile.phone ||
-                                   driverId;
+                const driverName = profile.display_name || driverId;
                 const time = loc.last_updated ? new Date(loc.last_updated).toLocaleString() : 'N/A';
-                const accuracy = loc.accuracy ? `±${Math.round(loc.accuracy)}m` : '';
-                const status = profile.driver_status ? ` (${profile.driver_status})` : '';
+                const tracked = loc.is_tracked_in_realtime ? '🟢 Live' : '⚪ Offline';
 
                 const marker = L.marker([lat, lng]).bindPopup(`
-                    <b>Driver:</b> ${sanitizeHTML(driverName)}${sanitizeHTML(status)}<br>
+                    <b>Driver:</b> ${sanitizeHTML(driverName)}<br>
                     <b>Driver ID:</b> ${sanitizeHTML(String(driverId))}<br>
-                    <b>Phone:</b> ${sanitizeHTML(profile.phone || 'N/A')}<br>
+                    <b>Status:</b> ${tracked}<br>
                     <b>Updated:</b> ${sanitizeHTML(time)}<br>
-                    ${accuracy ? `<b>Accuracy:</b> ${sanitizeHTML(accuracy)}<br>` : ''}
                     <b>Position:</b> ${lat.toFixed(6)}, ${lng.toFixed(6)}
                 `);
                 markers.addLayer(marker);

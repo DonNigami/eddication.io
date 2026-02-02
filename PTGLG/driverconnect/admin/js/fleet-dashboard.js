@@ -65,18 +65,18 @@ const FleetDashboard = {
         .select('*')
         .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
 
-      // Fetch user profiles for all drivers
+      // Fetch user profiles for all drivers (join on user_id = driver_user_id)
       const driverIds = locations?.map(loc => loc.driver_user_id).filter(Boolean) || [];
       let profilesMap = new Map();
 
       if (driverIds.length > 0) {
         const { data: profiles } = await supabase
           .from('user_profiles')
-          .select('id, full_name, first_name, last_name, phone, driver_status')
-          .in('id', driverIds);
+          .select('user_id, display_name, picture_url, status_message, last_seen_at')
+          .in('user_id', driverIds);
 
         if (profiles) {
-          profiles.forEach(p => profilesMap.set(p.id, p));
+          profiles.forEach(p => profilesMap.set(p.user_id, p));
         }
       }
 
