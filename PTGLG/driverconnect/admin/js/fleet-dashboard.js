@@ -59,10 +59,20 @@ const FleetDashboard = {
       this.state.totalJobsToday = activeJobs?.length || 0;
       this.state.completedJobs = activeJobs?.filter(j => j.status === 'completed').length || 0;
 
-      // Load driver locations
+      // Load driver locations with user profiles
       const { data: locations } = await supabase
         .from('driver_live_locations')
-        .select('*')
+        .select(`
+            *,
+            user_profiles!inner (
+                id,
+                full_name,
+                first_name,
+                last_name,
+                phone,
+                driver_status
+            )
+        `)
         .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
 
       this.state.driverLocations = locations || [];
@@ -165,14 +175,14 @@ const FleetDashboard = {
       this.state.driverLocations.push(newRecord);
     } else if (eventType === 'UPDATE') {
       const index = this.state.driverLocations.findIndex(
-        loc => loc.driver_id === newRecord.driver_id
+        loc => loc.driver_user_id === newRecord.driver_user_id
       );
       if (index !== -1) {
         this.state.driverLocations[index] = newRecord;
       }
     } else if (eventType === 'DELETE') {
       this.state.driverLocations = this.state.driverLocations.filter(
-        loc => loc.driver_id !== oldRecord.driver_id
+        loc => loc.driver_user_id !== oldRecord.driver_user_id
       );
     }
 
