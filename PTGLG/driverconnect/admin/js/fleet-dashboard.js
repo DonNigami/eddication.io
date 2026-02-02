@@ -59,23 +59,32 @@ const FleetDashboard = {
       this.state.totalJobsToday = activeJobs?.length || 0;
       this.state.completedJobs = activeJobs?.filter(j => j.status === 'completed').length || 0;
 
-      // Load driver locations with user profiles
+      // Load driver locations
       const { data: locations } = await supabase
         .from('driver_live_locations')
-        .select(`
-            *,
-            user_profiles!inner (
-                id,
-                full_name,
-                first_name,
-                last_name,
-                phone,
-                driver_status
-            )
-        `)
+        .select('*')
         .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
 
-      this.state.driverLocations = locations || [];
+      // Fetch user profiles for all drivers
+      const driverIds = locations?.map(loc => loc.driver_user_id).filter(Boolean) || [];
+      let profilesMap = new Map();
+
+      if (driverIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('id, full_name, first_name, last_name, phone, driver_status')
+          .in('id', driverIds);
+
+        if (profiles) {
+          profiles.forEach(p => profilesMap.set(p.id, p));
+        }
+      }
+
+      // Merge profile data into locations
+      this.state.driverLocations = (locations || []).map(loc => ({
+        ...loc,
+        user_profiles: profilesMap.get(loc.driver_user_id) || null
+      }));
 
       // Load open exceptions
       const { data: exceptions } = await supabase

@@ -97,23 +97,28 @@ export async function updateMapMarkers() {
     markers.clearLayers(); // Clear existing markers
 
     try {
-        // Fetch latest driver locations with user profile data
+        // Fetch latest driver locations
         const { data: locations, error } = await supabase
             .from('driver_live_locations')
-            .select(`
-                *,
-                user_profiles!inner (
-                    id,
-                    full_name,
-                    first_name,
-                    last_name,
-                    phone,
-                    driver_status
-                )
-            `)
+            .select('*')
             .gte('last_updated', new Date(Date.now() - 3600000).toISOString()); // Last hour
 
         if (error) throw error;
+
+        // Fetch user profiles for all drivers
+        const driverIds = locations?.map(loc => loc.driver_user_id).filter(Boolean) || [];
+        let profilesMap = new Map();
+
+        if (driverIds.length > 0) {
+            const { data: profiles } = await supabase
+                .from('user_profiles')
+                .select('id, full_name, first_name, last_name, phone, driver_status')
+                .in('id', driverIds);
+
+            if (profiles) {
+                profiles.forEach(p => profilesMap.set(p.id, p));
+            }
+        }
 
         if (!locations || locations.length === 0) {
             console.log('No driver locations found in driver_live_locations.');
@@ -121,13 +126,16 @@ export async function updateMapMarkers() {
         }
 
         console.log(`Found ${locations.length} driver locations:`);
-        console.table(locations.map(loc => ({
-            driver_user_id: loc.driver_user_id,
-            full_name: loc.user_profiles?.full_name || 'N/A',
-            lat: loc.latitude,
-            lng: loc.longitude,
-            updated: loc.last_updated
-        })));
+        console.table(locations.map(loc => {
+            const profile = profilesMap.get(loc.driver_user_id);
+            return {
+                driver_user_id: loc.driver_user_id,
+                full_name: profile?.full_name || 'N/A',
+                lat: loc.latitude,
+                lng: loc.longitude,
+                updated: loc.last_updated
+            };
+        }));
 
         // Create marker for each driver
         for (const loc of locations) {
@@ -136,7 +144,7 @@ export async function updateMapMarkers() {
             const lng = loc.longitude || loc.lng || loc.lon;
 
             if (lat && lng) {
-                const profile = loc.user_profiles || {};
+                const profile = profilesMap.get(loc.driver_user_id) || {};
                 const driverId = loc.driver_user_id || 'N/A';
                 const driverName = profile.full_name ||
                                    `${profile.first_name || ''} ${profile.last_name || ''}`.trim() ||
