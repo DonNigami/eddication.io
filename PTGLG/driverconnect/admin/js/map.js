@@ -17,6 +17,10 @@ let mapCenterLat = DEFAULT_MAP_CENTER.lat;
 let mapCenterLng = DEFAULT_MAP_CENTER.lng;
 let mapZoom = DEFAULT_ZOOM;
 
+// Filter state
+let currentFilter = 'all'; // 'all', 'online', 'recent', 'offline', 'stale', 'nodata'
+let allDriverLocations = []; // Store all locations for filtering
+
 // Driver status thresholds (in milliseconds)
 const ONLINE_THRESHOLD = 5 * 60 * 1000;      // 5 minutes - considered online
 const OFFLINE_RECENT_THRESHOLD = 30 * 60 * 1000;  // 30 minutes - recently offline
@@ -111,6 +115,82 @@ function getDriverStatus(isTracked, lastUpdated) {
  */
 function getStatusIndicator(status) {
     return `<span style="color: ${status.color}; font-weight: bold;">${status.status}</span>`;
+}
+
+/**
+ * Get status filter key for a driver
+ * @param {boolean} isTracked - Whether driver is tracked in real-time
+ * @param {string} lastUpdated - ISO timestamp of last update
+ * @returns {string} Status filter key: 'online', 'recent', 'offline', 'stale', 'nodata'
+ */
+function getStatusFilterKey(isTracked, lastUpdated) {
+    if (isTracked) return 'online';
+    if (!lastUpdated) return 'nodata';
+
+    const now = Date.now();
+    const lastUpdate = new Date(lastUpdated).getTime();
+    const timeDiff = now - lastUpdate;
+
+    if (timeDiff <= OFFLINE_RECENT_THRESHOLD) return 'recent';
+    if (timeDiff <= STALE_THRESHOLD) return 'offline';
+    return 'stale';
+}
+
+/**
+ * Update driver status counts in the dashboard
+ * @param {Array} locations - Array of driver location objects
+ */
+function updateDriverStatusCounts(locations) {
+    const counts = {
+        all: locations.length,
+        online: 0,
+        recent: 0,
+        offline: 0,
+        stale: 0,
+        nodata: 0
+    };
+
+    locations.forEach(loc => {
+        const statusKey = getStatusFilterKey(loc.is_tracked_in_realtime, loc.last_updated);
+        counts[statusKey]++;
+    });
+
+    // Update the count elements
+    for (const [key, count] of Object.entries(counts)) {
+        const el = document.getElementById(`driver-count-${key}`);
+        if (el) {
+            // Animate the number change
+            const currentVal = parseInt(el.textContent) || 0;
+            animateCount(el, currentVal, count);
+        }
+    }
+}
+
+/**
+ * Animate count change
+ * @param {HTMLElement} element - Target element
+ * @param {number} start - Starting value
+ * @param {number} end - Ending value
+ */
+function animateCount(element, start, end) {
+    if (start === end) return;
+    const duration = 300;
+    const startTime = performance.now();
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        const current = Math.round(start + (end - start) * easeProgress);
+
+        element.textContent = current;
+
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    }
+
+    requestAnimationFrame(update);
 }
 
 // Playback state
@@ -236,6 +316,9 @@ export async function initMap() {
     // Add legend control
     createLegendControl().addTo(map);
 
+    // Initialize filter state on UI
+    setMapFilter(currentFilter);
+
     await updateMapMarkers();
 }
 
@@ -273,12 +356,20 @@ export async function updateMapMarkers() {
 
         if (!locations || locations.length === 0) {
             console.log('No driver locations found in driver_live_locations.');
+            // Still update counts (all zeros)
+            updateDriverStatusCounts([]);
             return;
         }
 
-        console.log(`Found ${locations.length} driver locations:`);
-        console.table(locations.map(loc => {
-            const profile = profilesMap.get(loc.driver_user_id);
+        // Store all locations with profile data for filtering
+        allDriverLocations = locations.map(loc => ({
+            ...loc,
+            profile: profilesMap.get(loc.driver_user_id) || null
+        }));
+
+        console.log(`Found ${allDriverLocations.length} driver locations:`);
+        console.table(allDriverLocations.map(loc => {
+            const profile = loc.profile;
             return {
                 driver_user_id: loc.driver_user_id,
                 display_name: profile?.display_name || 'N/A',
@@ -288,13 +379,21 @@ export async function updateMapMarkers() {
             };
         }));
 
+        // Update driver status counts
+        updateDriverStatusCounts(allDriverLocations);
+
+        // Filter locations based on current filter
+        const filteredLocations = filterLocationsByStatus(allDriverLocations, currentFilter);
+
+        console.log(`Showing ${filteredLocations.length} of ${allDriverLocations.length} drivers (filter: ${currentFilter})`);
+
         // Create marker for each driver
-        for (const loc of locations) {
+        for (const loc of filteredLocations) {
             const lat = loc.lat;
             const lng = loc.lng;
 
             if (lat && lng) {
-                const profile = profilesMap.get(loc.driver_user_id) || {};
+                const profile = loc.profile || {};
                 const driverId = loc.driver_user_id || 'N/A';
                 const driverName = profile.display_name || driverId;
                 const time = loc.last_updated ? new Date(loc.last_updated).toLocaleString() : 'N/A';
@@ -349,6 +448,135 @@ export async function updateMapMarkers() {
     } catch (error) {
         console.error('Error updating map markers:', error);
     }
+}
+
+/**
+ * Filter locations by status
+ * @param {Array} locations - All driver locations
+ * @param {string} filter - Filter key: 'all', 'online', 'recent', 'offline', 'stale', 'nodata'
+ * @returns {Array} Filtered locations
+ */
+function filterLocationsByStatus(locations, filter) {
+    if (filter === 'all') return locations;
+
+    return locations.filter(loc => {
+        const statusKey = getStatusFilterKey(loc.is_tracked_in_realtime, loc.last_updated);
+        return statusKey === filter;
+    });
+}
+
+/**
+ * Set the current filter and refresh the map
+ * @param {string} filter - Filter key
+ */
+export function setMapFilter(filter) {
+    currentFilter = filter;
+
+    // Update filter button active states
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.dataset.filter === filter) {
+            btn.classList.add('active');
+            btn.style.background = 'var(--primary-color)';
+            btn.style.color = 'white';
+        } else {
+            btn.classList.remove('active');
+            btn.style.background = 'var(--card-bg)';
+            btn.style.color = 'var(--text-color)';
+        }
+    });
+
+    // Update status card active states
+    document.querySelectorAll('.status-card').forEach(card => {
+        if (card.dataset.status === filter) {
+            card.style.transform = 'scale(1.05)';
+            card.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
+        } else {
+            card.style.transform = 'scale(1)';
+            card.style.boxShadow = 'none';
+        }
+    });
+
+    // Re-render markers with new filter
+    refreshMarkersWithFilter();
+}
+
+/**
+ * Refresh markers with current filter (without re-fetching data)
+ */
+function refreshMarkersWithFilter() {
+    if (!markers) return;
+
+    markers.clearLayers();
+
+    const filteredLocations = filterLocationsByStatus(allDriverLocations, currentFilter);
+
+    console.log(`Showing ${filteredLocations.length} of ${allDriverLocations.length} drivers (filter: ${currentFilter})`);
+
+    // Create marker for each driver
+    for (const loc of filteredLocations) {
+        const lat = loc.lat;
+        const lng = loc.lng;
+
+        if (lat && lng) {
+            const profile = loc.profile || {};
+            const driverId = loc.driver_user_id || 'N/A';
+            const driverName = profile.display_name || driverId;
+            const time = loc.last_updated ? new Date(loc.last_updated).toLocaleString() : 'N/A';
+
+            // Get driver status and appropriate marker icon
+            const status = getDriverStatus(loc.is_tracked_in_realtime, loc.last_updated);
+            const markerIcon = createCustomMarkerIcon(status.color, status.label);
+
+            // Calculate time ago for display
+            let timeAgo = 'N/A';
+            if (loc.last_updated) {
+                const now = Date.now();
+                const lastUpdate = new Date(loc.last_updated).getTime();
+                const diff = now - lastUpdate;
+                const minutes = Math.floor(diff / 60000);
+                const hours = Math.floor(minutes / 60);
+                const days = Math.floor(hours / 24);
+
+                if (days > 0) {
+                    timeAgo = `${days}d ago`;
+                } else if (hours > 0) {
+                    timeAgo = `${hours}h ago`;
+                } else if (minutes > 0) {
+                    timeAgo = `${minutes}m ago`;
+                } else {
+                    timeAgo = 'Just now';
+                }
+            }
+
+            const marker = L.marker([lat, lng], { icon: markerIcon }).bindPopup(`
+                <div style="min-width: 180px;">
+                    <div style="font-size: 14px; margin-bottom: 6px;">
+                        <strong>${sanitizeHTML(driverName)}</strong>
+                    </div>
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <div><span style="color: #64748b;">Driver ID:</span> ${sanitizeHTML(String(driverId))}</div>
+                        <div><span style="color: #64748b;">Status:</span> ${getStatusIndicator(status)}</div>
+                        <div><span style="color: #64748b;">Updated:</span> ${timeAgo}</div>
+                        <div style="font-size: 10px; color: #94a3b8;">${sanitizeHTML(time)}</div>
+                        <div><span style="color: #64748b;">Position:</span> ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>
+                    </div>
+                </div>
+            `);
+            markers.addLayer(marker);
+        }
+    }
+
+    if (markers.getLayers().length > 0) {
+        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+    }
+}
+
+/**
+ * Get the current filter
+ * @returns {string} Current filter key
+ */
+export function getCurrentFilter() {
+    return currentFilter;
 }
 
 /**

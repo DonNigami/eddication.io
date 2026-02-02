@@ -788,6 +788,32 @@ function setupEventListeners() {
 
     // Mobile menu functionality
     setupMobileMenu();
+
+    // Map filter buttons
+    setupMapFilters();
+}
+
+/**
+ * Setup map filter functionality
+ */
+function setupMapFilters() {
+    // Filter buttons
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const filter = e.target.dataset.filter;
+            import('./map.js').then(m => m.setMapFilter(filter));
+        });
+    });
+
+    // Status cards (also act as filters)
+    const statusCards = document.querySelectorAll('.status-card');
+    statusCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const filter = e.currentTarget.dataset.status;
+            import('./map.js').then(m => m.setMapFilter(filter));
+        });
+    });
 }
 
 /**
