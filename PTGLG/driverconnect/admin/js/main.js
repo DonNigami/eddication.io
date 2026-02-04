@@ -932,6 +932,9 @@ export async function loadSectionData(targetId) {
             // Handled by reports section
             await loadDriverReports();
             break;
+        case 'solo-vs-2driver-report':
+            await import('./solo-vs-2driver-report.js').then(m => m.initSoloVs2DriverReport());
+            break;
         case 'map':
             await import('./map.js').then(m => m.initMap());
             break;
