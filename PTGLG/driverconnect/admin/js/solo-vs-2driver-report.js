@@ -156,7 +156,8 @@ function processReportData(rows) {
     });
 
     // Determine if solo or 2-driver based on drivers field
-    // drivers field contains comma-separated names like "Driver1" or "Driver1,Driver2"
+    // drivers field contains comma-separated or slash-separated names
+    // e.g., "Driver1" (solo) or "Driver1,Driver2" or "Driver1/Driver2" (2-driver)
     const trips = Array.from(tripsByReference.values());
     const soloTrips = [];
     const twoDriverTrips = [];
@@ -197,10 +198,19 @@ function processReportData(rows) {
 }
 
 /**
- * Count drivers from comma-separated string
+ * Count drivers from comma-separated or slash-separated string
+ * Supports formats: "Driver1" or "Driver1,Driver2" or "Driver1/Driver2"
  */
 function countDrivers(driversStr) {
     if (!driversStr || driversStr.trim() === '') return 0;
+
+    // Check if slash is used as separator
+    if (driversStr.includes('/')) {
+        const drivers = driversStr.split('/').filter(d => d.trim());
+        return drivers.length;
+    }
+
+    // Default: comma separator
     const drivers = driversStr.split(',').filter(d => d.trim());
     return drivers.length;
 }
