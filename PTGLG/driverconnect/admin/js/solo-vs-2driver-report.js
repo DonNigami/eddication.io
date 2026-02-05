@@ -199,19 +199,29 @@ function processReportData(rows) {
 
 /**
  * Count drivers from comma-separated or slash-separated string
- * Supports formats: "Driver1" or "Driver1,Driver2" or "Driver1/Driver2"
+ * Supports formats:
+ * - "Driver1" = 1 driver
+ * - "Driver1,Driver2" = 2 drivers
+ * - "Driver1/Driver2" = 2 drivers
+ * - "นายA/นายB" = 2 drivers
+ * - "Driver1 / Driver2" = 2 drivers (with spaces)
  */
 function countDrivers(driversStr) {
     if (!driversStr || driversStr.trim() === '') return 0;
 
+    const trimmed = driversStr.trim();
+
     // Check if slash is used as separator
-    if (driversStr.includes('/')) {
-        const drivers = driversStr.split('/').filter(d => d.trim());
+    if (trimmed.includes('/')) {
+        // Split by slash and trim each part
+        const drivers = trimmed.split('/').map(d => d.trim()).filter(d => d);
+        console.log('🔍 Slash-separated drivers:', { input: driversStr, count: drivers.length, drivers });
         return drivers.length;
     }
 
     // Default: comma separator
-    const drivers = driversStr.split(',').filter(d => d.trim());
+    const drivers = trimmed.split(',').map(d => d.trim()).filter(d => d);
+    console.log('🔍 Comma-separated drivers:', { input: driversStr, count: drivers.length, drivers });
     return drivers.length;
 }
 
