@@ -92,8 +92,8 @@ async function loadReport() {
 
         console.log(`📊 Loaded ${rows?.length || 0} delivery records`);
 
-        // Process data
-        processReportData(rows || [], recipientTypeFilter);
+        // Process data (pass date range)
+        processReportData(rows || [], { startDate, endDate });
 
         // Update UI
         updateSummaryCards();
@@ -115,7 +115,7 @@ async function loadReport() {
 /**
  * Process report data - group by station and calculate stats
  */
-function processReportData(rows, recipientTypeFilter) {
+function processReportData(rows, { startDate, endDate } = {}) {
     // Group by ship_to_code (station)
     const stationMap = new Map();
 
@@ -126,6 +126,10 @@ function processReportData(rows, recipientTypeFilter) {
         const stationCode = row.ship_to_code || 'UNKNOWN';
         const stationName = row.ship_to_name || row.destination || 'ไม่ระบุ';
 
+        // Get actual recipient data from the row
+        const receiverName = row.receiver_name || null;
+        const receiverType = row.receiver_type || null;
+
         if (!stationMap.has(stationCode)) {
             stationMap.set(stationCode, {
                 stationCode,
@@ -134,7 +138,9 @@ function processReportData(rows, recipientTypeFilter) {
                 totalLiters: 0,
                 deliveryCount: 0,
                 lat: row.checkout_lat || null,
-                lng: row.checkout_lng || null
+                lng: row.checkout_lng || null,
+                // Store recipient info from actual data
+                receivers: new Map() // Map of receiverType -> { count, liters, names }
             });
         }
 
@@ -146,23 +152,56 @@ function processReportData(rows, recipientTypeFilter) {
         // Or estimate from distance
         const liters = row.fuel_liters || estimateFuelFromDistance(row.distance_km);
         station.totalLiters += liters;
+
+        // Track by actual receiver type from data
+        const actualReceiverType = receiverType || determineRecipientType(stationCode, stationName);
+        if (!station.receivers.has(actualReceiverType)) {
+            station.receivers.set(actualReceiverType, {
+                type: actualReceiverType,
+                count: 0,
+                liters: 0,
+                names: new Set()
+            });
+        }
+        const receiverStats = station.receivers.get(actualReceiverType);
+        receiverStats.count++;
+        receiverStats.liters += liters;
+        if (receiverName) {
+            receiverStats.names.add(receiverName);
+        }
     });
 
     // Convert to array and sort by delivery count
     const stationStats = Array.from(stationMap.values())
         .sort((a, b) => b.deliveryCount - a.deliveryCount);
 
-    // Calculate recipient type stats
+    // Calculate recipient type stats - use actual receiver_type from data
     const recipientTypeMap = new Map();
-    stationStats.forEach(station => {
-        // Determine type based on station code pattern or name
-        const type = determineRecipientType(station.stationCode, station.stationName);
-        if (!recipientTypeMap.has(type)) {
-            recipientTypeMap.set(type, { type, count: 0, liters: 0 });
+
+    // Process each delivery's actual recipient type
+    rows.forEach(row => {
+        if (row.is_origin_stop) return;
+
+        const stationCode = row.ship_to_code || 'UNKNOWN';
+        const stationName = row.ship_to_name || row.destination || 'ไม่ระบุ';
+
+        // Use actual receiver_type from database, format it, or fallback to determined type
+        let displayType;
+        if (row.receiver_type) {
+            // Format the receiver_type from driver app to Thai display name
+            displayType = formatReceiverType(row.receiver_type);
+        } else {
+            displayType = determineRecipientType(stationCode, stationName);
         }
-        const typeStat = recipientTypeMap.get(type);
-        typeStat.count += station.deliveryCount;
-        typeStat.liters += station.totalLiters;
+
+        if (!recipientTypeMap.has(displayType)) {
+            recipientTypeMap.set(displayType, { type: displayType, count: 0, liters: 0 });
+        }
+        const typeStat = recipientTypeMap.get(displayType);
+        typeStat.count++;
+
+        const liters = row.fuel_liters || estimateFuelFromDistance(row.distance_km);
+        typeStat.liters += liters;
     });
 
     const recipientTypeStats = Array.from(recipientTypeMap.values());
@@ -175,13 +214,14 @@ function processReportData(rows, recipientTypeFilter) {
             totalDeliveries: rows.length,
             totalStations: stationStats.length,
             totalLiters: stationStats.reduce((sum, s) => sum + s.totalLiters, 0),
-            dateRange: { start, end: endDate }
+            dateRange: { start: startDate, end: endDate }
         }
     };
 }
 
 /**
  * Determine recipient type based on station code/name
+ * This is a fallback when receiver_type is not recorded in database
  */
 function determineRecipientType(code, name) {
     const upperName = name.toUpperCase();
@@ -213,6 +253,18 @@ function determineRecipientType(code, name) {
     }
 
     return 'อื่นๆ';
+}
+
+/**
+ * Convert receiver_type from driver app to display name
+ */
+function formatReceiverType(type) {
+    const typeMap = {
+        'manager': 'ผู้จัดการปั๊ม',
+        'frontHasCard': 'พนักงานหน้าลาน (มีบัตร)',
+        'frontNoCard': 'พนักงานหน้าลาน (ไม่มีบัตร)'
+    };
+    return typeMap[type] || type || 'อื่นๆ';
 }
 
 /**
@@ -265,8 +317,29 @@ function initMap() {
         // Bubble size based on volume
         const radius = Math.max(10, Math.min(50, (station.totalLiters / maxLiters) * 40));
 
-        // Color based on recipient type
-        const color = getColorByType(determineRecipientType(station.stationCode, station.stationName));
+        // Get primary recipient type from actual data
+        let primaryType = 'อื่นๆ';
+        let receiversInfo = '';
+        if (station.receivers && station.receivers.size > 0) {
+            // Get the type with most deliveries
+            const sortedReceivers = Array.from(station.receivers.values())
+                .sort((a, b) => b.count - a.count);
+            primaryType = sortedReceivers[0].type;
+
+            // Build receivers info with formatted type names
+            receiversInfo = sortedReceivers.map(r => {
+                const formattedType = formatReceiverType(r.type);
+                const names = r.names.size > 0
+                    ? `<br><small style="color:#666;">&nbsp; • ${Array.from(r.names).slice(0, 3).join(', ')}${r.names.size > 3 ? '...' : ''}</small>`
+                    : '';
+                return `<span style="color:${getColorByType(r.type)}; font-weight:500;">${formattedType}</span>: ${r.count} ครั้ง (${formatNumber(r.liters)} ลิตร)${names}`;
+            }).join('<br>');
+        } else {
+            // Fallback to determined type
+            primaryType = determineRecipientType(station.stationCode, station.stationName);
+        }
+
+        const color = getColorByType(primaryType);
 
         const marker = L.circleMarker([station.lat, station.lng], {
             radius: radius,
@@ -277,14 +350,14 @@ function initMap() {
             fillOpacity: 0.7
         }).addTo(map);
 
-        // Popup content
+        // Popup content - with actual receiver info
         const popupContent = `
-            <div style="min-width: 200px;">
+            <div style="min-width: 220px;">
                 <h3 style="margin: 0 0 8px 0; font-size: 16px;">${station.stationName}</h3>
                 <p style="margin: 4px 0;"><strong>รหัส:</strong> ${station.stationCode}</p>
                 <p style="margin: 4px 0;"><strong>จำนวนครั้ง:</strong> ${station.deliveryCount}</p>
                 <p style="margin: 4px 0;"><strong>ปริมาณ:</strong> ${formatNumber(station.totalLiters)} ลิตร</p>
-                <p style="margin: 4px 0;"><strong>ประเภท:</strong> ${determineRecipientType(station.stationCode, station.stationName)}</p>
+                ${receiversInfo ? `<p style="margin: 8px 0 4px 0;"><strong>ผู้รับ:</strong><br>${receiversInfo}</p>` : `<p style="margin: 4px 0;"><strong>ประเภท:</strong> ${primaryType}</p>`}
             </div>
         `;
 
@@ -304,13 +377,18 @@ function initMap() {
  */
 function getColorByType(type) {
     const colors = {
+        // Station types
         'PTT สถานีบริการ': '#22c55e',
         'ปตท. สถานีบริการ': '#16a34a',
         'บางจาก': '#eab308',
         'Shell': '#f59e0b',
         'โรงสี/ฟาร์ม': '#3b82f6',
         'ลูกค้ารายย่อย': '#8b5cf6',
-        'อื่นๆ': '#6b7280'
+        'อื่นๆ': '#6b7280',
+        // Actual receiver types from driver app
+        'manager': '#ef4444',
+        'frontHasCard': '#f97316',
+        'frontNoCard': '#fbbf24'
     };
     return colors[type] || '#6b7280';
 }
@@ -430,6 +508,11 @@ function updateTable(filterType = 'all') {
     let filteredData = reportData.stationStats;
     if (filterType !== 'all') {
         filteredData = reportData.stationStats.filter(s => {
+            // Check if station has this receiver type in actual data
+            if (s.receivers && s.receivers.has(filterType)) {
+                return true;
+            }
+            // Fallback to determined type
             const type = determineRecipientType(s.stationCode, s.stationName);
             return type === filterType;
         });
@@ -450,12 +533,28 @@ function updateTable(filterType = 'all') {
 
     filteredData.forEach(station => {
         const row = tbody.insertRow();
-        const type = determineRecipientType(station.stationCode, station.stationName);
-        const color = getColorByType(type);
+
+        // Get primary type from actual data
+        let primaryType = 'อื่นๆ';
+        let typeInfo = '';
+        if (station.receivers && station.receivers.size > 0) {
+            const sortedReceivers = Array.from(station.receivers.values())
+                .sort((a, b) => b.count - a.count);
+            primaryType = sortedReceivers[0].type;
+
+            // Show all receiver types for this station (formatted)
+            if (sortedReceivers.length > 1) {
+                typeInfo = `<small style="color:#666;">(${sortedReceivers.map(r => formatReceiverType(r.type)).join(', ')})</small>`;
+            }
+        } else {
+            primaryType = determineRecipientType(station.stationCode, station.stationName);
+        }
+
+        const color = getColorByType(primaryType);
 
         row.insertCell().textContent = station.stationCode || '-';
         row.insertCell().innerHTML = `<strong>${station.stationName}</strong>`;
-        row.insertCell().innerHTML = `<span style="color: ${color}; font-weight: 500;">${type}</span>`;
+        row.insertCell().innerHTML = `<span style="color: ${color}; font-weight: 500;">${primaryType}</span> ${typeInfo}`;
         row.insertCell().textContent = station.deliveryCount.toLocaleString();
         row.insertCell().textContent = formatNumber(station.totalLiters) + ' ลิตร';
     });
