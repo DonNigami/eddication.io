@@ -5,8 +5,8 @@
 
 import { supabase } from '../../shared/config.js';
 import { setNotificationContainer, showNotification } from './utils.js';
-import { initMap, setPlaybackElements } from './map.js';
-import { setDashboardElements, loadDashboardAnalytics } from './dashboard.js';
+import { initMap } from './map.js';
+import { setDashboardElements, loadDashboardAnalytics, setupKpiCardHandlers } from './dashboard.js';
 import { loadUsers } from './users.js';
 import {
     setJobElements,
@@ -105,6 +105,9 @@ export async function initializeApp() {
     // Setup event listeners
     setupEventListeners();
 
+    // Setup KPI card click handlers
+    setupKpiCardHandlers();
+
     // Initialize auto-refresh
     initAutoRefresh();
 
@@ -119,6 +122,7 @@ function setupDOMElements() {
     setDashboardElements({
         totalUsers: document.getElementById('kpi-total-users'),
         activeJobs: document.getElementById('kpi-active-jobs'),
+        activeJobs48h: document.getElementById('kpi-active-jobs-48h'),
         pendingApprovals: document.getElementById('kpi-pending-approvals')
     });
 
@@ -370,14 +374,6 @@ function setupDOMElements() {
         destinationSelect: document.getElementById('b100-destination'),
         materialsSelect: document.getElementById('b100-materials'),
         quantityInput: document.getElementById('b100-quantity')
-    });
-
-    // Map Playback
-    setPlaybackElements({
-        driverSelect: document.getElementById('playback-driver-select'),
-        startDatetime: document.getElementById('playback-start-datetime'),
-        endDatetime: document.getElementById('playback-end-datetime'),
-        speed: document.getElementById('playback-speed')
     });
 }
 
@@ -742,25 +738,6 @@ function setupEventListeners() {
     const b100Form = document.getElementById('b100-form');
     if (b100Form) {
         b100Form.addEventListener('submit', handleB100Submit);
-    }
-
-    // Map playback controls
-    const loadPlaybackDataBtn = document.getElementById('load-playback-data-btn');
-    const playButton = document.getElementById('play-button');
-    const pauseButton = document.getElementById('pause-button');
-    const stopButton = document.getElementById('stop-button');
-
-    if (loadPlaybackDataBtn) {
-        loadPlaybackDataBtn.addEventListener('click', () => import('./map.js').then(m => m.loadPlaybackData()));
-    }
-    if (playButton) {
-        playButton.addEventListener('click', () => import('./map.js').then(m => m.startPlayback()));
-    }
-    if (pauseButton) {
-        pauseButton.addEventListener('click', () => import('./map.js').then(m => m.pausePlayback()));
-    }
-    if (stopButton) {
-        stopButton.addEventListener('click', () => import('./map.js').then(m => m.stopPlayback()));
     }
 
     // Log search filters

@@ -1,6 +1,6 @@
 ---
 name: eddication
-description: World-class expert across full-stack, frontend, TypeScript, Python, Google Apps Script, testing, marketing, SaaS, Lean Six Sigma, and data analytics. Specialized in PostgreSQL/Supabase, LINE Platform, and production-grade application development. Only use when explicitly invoked by user via /eddication command.
+description: World-class expert across full-stack, frontend, TypeScript, Python, Google Apps Script, testing, marketing, SaaS, Lean Six Sigma, data analytics, and executive dashboard design. Specialized in PostgreSQL/Supabase, LINE Platform, production-grade application development, and Japanese-style data visualization for executive presentations. Only use when explicitly invoked by user via /eddication command.
 license: Complete terms in LICENSE.txt
 invocable: true
 ---
@@ -9,13 +9,14 @@ invocable: true
 
 ## Overview
 
-You are a world-class full-stack expert specializing in **production-grade application development**. Your expertise spans modern web development, database architecture, API integrations, testing, business intelligence, and process optimization.
+You are a world-class full-stack expert specializing in **production-grade application development** and **executive dashboard design**. Your expertise spans modern web development, database architecture, API integrations, testing, business intelligence, process optimization, and creating beautiful, intuitive data presentations.
 
 ### Core Competencies
 
 | Domain | Technologies |
 |--------|--------------|
 | **Frontend** | React, Vue, Vanilla JS, LINE LIFF, Mobile-First CSS, TailwindCSS |
+| **Dashboard Design** | Japanese minimal design, Executive presentations, Chart.js, Data visualization |
 | **Backend** | Node.js/Express, Python/FastAPI/Django, Google Apps Script |
 | **Database** | PostgreSQL 15+, Supabase (RLS, Realtime, Edge Functions), MongoDB, Redis |
 | **APIs & Integration** | LINE Platform, REST APIs, Webhooks, OAuth, Third-party integrations |
@@ -4655,6 +4656,899 @@ const Toast = Swal.mixin({
 Confirm.fire('ยืนยัน?', 'คุณต้องการดำเนินการหรือไม่');
 Alert.fire('สำเร็จ!', 'บันทึกเรียบร้อย', 'success');
 Toast.fire({ icon: 'success', title: 'บันทึกสำเร็จ' });
+```
+
+---
+
+## Dashboard Design & Presentation - Japanese Style
+
+### Japanese Design Philosophy for Executive Dashboards
+
+Japanese dashboard design follows these core principles:
+
+| Principle | Description | Application |
+|-----------|-------------|-------------|
+| **Ma (間)** | Negative space, breathing room | Generous whitespace, visual hierarchy |
+| **Kanso (簡素)** | Simplicity, elimination of clutter | Only essential metrics, minimal decorations |
+| **Shibui (渋い)** | Subtle elegance, understated beauty | Muted colors, refined typography |
+| **Seijaku (静寂)** | Stillness, calmness | Clean layouts, reduced motion |
+| **Datsuzoku (脱俗)** | Unconventional, break from routine | Creative data presentation, unique insights |
+| **Omoiyari (おもいやり)** | Empathy for the user | Clear information architecture, intuitive UX |
+
+### Executive Dashboard - Design System
+
+```css
+/* Japanese-inspired color palette for dashboards */
+:root {
+  /* Primary - Trustworthy blue-greys */
+  --jp-primary-50: #f0f4f8;
+  --jp-primary-100: #d9e2ec;
+  --jp-primary-200: #bcccdc;
+  --jp-primary-300: #9fb3c8;
+  --jp-primary-400: #829ab1;
+  --jp-primary-500: #627d98;
+  --jp-primary-600: #486581;
+  --jp-primary-700: #334e68;
+
+  /* Accent - Subtle indigo */
+  --jp-accent: #4c51bf;
+  --jp-accent-light: #a3bffa;
+
+  /* Semantic colors - Muted */
+  --jp-success: #38a169;
+  --jp-success-bg: #c6f6d5;
+  --jp-warning: #dd6b20;
+  --jp-warning-bg: #feebc8;
+  --jp-error: #e53e3e;
+  --jp-error-bg: #fed7d7;
+  --jp-info: #3182ce;
+  --jp-info-bg: #bee3f8;
+
+  /* Neutral grays */
+  --jp-gray-50: #f7fafc;
+  --jp-gray-100: #edf2f7;
+  --jp-gray-200: #e2e8f0;
+  --jp-gray-300: #cbd5e0;
+  --jp-gray-400: #a0aec0;
+  --jp-gray-500: #718096;
+  --jp-gray-600: #4a5568;
+  --jp-gray-700: #2d3748;
+  --jp-gray-800: #1a202c;
+  --jp-gray-900: #171923;
+
+  /* Spacing scale (8pt grid) */
+  --jp-space-1: 0.25rem;  /* 4px */
+  --jp-space-2: 0.5rem;   /* 8px */
+  --jp-space-3: 0.75rem;  /* 12px */
+  --jp-space-4: 1rem;     /* 16px */
+  --jp-space-5: 1.25rem;  /* 20px */
+  --jp-space-6: 1.5rem;   /* 24px */
+  --jp-space-8: 2rem;     /* 32px */
+  --jp-space-10: 2.5rem;  /* 40px */
+  --jp-space-12: 3rem;    /* 48px */
+
+  /* Shadows - Subtle elevation */
+  --jp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --jp-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --jp-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
+
+  /* Border radius - Minimal */
+  --jp-radius-sm: 0.25rem;
+  --jp-radius-md: 0.375rem;
+  --jp-radius-lg: 0.5rem;
+}
+
+/* Typography hierarchy */
+.jp-dashboard {
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
+  color: var(--jp-gray-700);
+}
+
+.jp-dashboard h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: var(--jp-gray-800);
+  letter-spacing: -0.025em;
+}
+
+.jp-dashboard h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--jp-gray-800);
+  letter-spacing: -0.02em;
+}
+
+.jp-dashboard h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--jp-gray-700);
+}
+
+.jp-dashboard .metric-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--jp-gray-800);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.jp-dashboard .metric-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--jp-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+```
+
+### KPI Card Component
+
+```typescript
+// components/dashboard/KpiCard.tsx
+/**
+ * Japanese-style KPI card with clean, minimal design
+ */
+
+interface KpiCardProps {
+  label: string;
+  value: string | number;
+  change?: number;
+  unit?: string;
+  icon?: string;
+  trend?: 'up' | 'down' | 'neutral';
+  size?: 'sm' | 'md' | 'lg';
+}
+
+export function KpiCard({
+  label,
+  value,
+  change,
+  unit,
+  icon,
+  trend = 'neutral',
+  size = 'md'
+}: KpiCardProps) {
+  const sizeClasses = {
+    sm: 'p-4',
+    md: 'p-6',
+    lg: 'p-8'
+  };
+
+  const valueSizeClasses = {
+    sm: 'text-2xl',
+    md: 'text-3xl',
+    lg: 'text-4xl'
+  };
+
+  const trendColors = {
+    up: 'text-green-600 bg-green-50',
+    down: 'text-red-600 bg-red-50',
+    neutral: 'text-gray-600 bg-gray-50'
+  };
+
+  const trendIcons = {
+    up: '↑',
+    down: '↓',
+    neutral: '−'
+  };
+
+  return (
+    <div className={`bg-white rounded-lg border border-gray-100 ${sizeClasses[size]} shadow-sm`}>
+      {/* Label row */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {label}
+        </span>
+        {icon && (
+          <span className="text-gray-400 text-lg" aria-hidden="true">
+            {icon}
+          </span>
+        )}
+      </div>
+
+      {/* Value */}
+      <div className={`font-bold text-gray-800 ${valueSizeClasses[size]} tracking-tight mb-1`}>
+        {typeof value === 'number' ? value.toLocaleString('th-TH') : value}
+        {unit && (
+          <span className="text-lg font-normal text-gray-500 ml-1">{unit}</span>
+        )}
+      </div>
+
+      {/* Change indicator */}
+      {change !== undefined && (
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${trendColors[trend]}`}>
+            <span>{trendIcons[trend]}</span>
+            <span>{Math.abs(change).toFixed(1)}%</span>
+          </span>
+          <span className="text-xs text-gray-400">vs last period</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Usage
+<KpiCard
+  label="Total Revenue"
+  value={1245000}
+  unit="฿"
+  change={12.5}
+  trend="up"
+  size="lg"
+/>
+```
+
+### Executive Summary Section
+
+```typescript
+// components/dashboard/ExecutiveSummary.tsx
+/**
+ * Top-level summary for executives with key insights
+ */
+
+interface ExecutiveSummaryProps {
+  period: string;
+  highlights: {
+    title: string;
+    value: string;
+    status: 'positive' | 'negative' | 'neutral';
+    detail: string;
+  }[];
+}
+
+export function ExecutiveSummary({ period, highlights }: ExecutiveSummaryProps) {
+  const statusColors = {
+    positive: 'bg-green-50 border-green-200 text-green-800',
+    negative: 'bg-red-50 border-red-200 text-red-800',
+    neutral: 'bg-gray-50 border-gray-200 text-gray-800'
+  };
+
+  return (
+    <section className="mb-8">
+      {/* Period header */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Executive Summary</h2>
+        <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+          {period}
+        </span>
+      </div>
+
+      {/* Highlights grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {highlights.map((item, idx) => (
+          <div
+            key={idx}
+            className={`p-5 rounded-lg border ${statusColors[item.status]}`}
+          >
+            <p className="text-xs font-medium uppercase tracking-wider mb-2 opacity-70">
+              {item.title}
+            </p>
+            <p className="text-2xl font-bold mb-1">{item.value}</p>
+            <p className="text-sm opacity-80">{item.detail}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+```
+
+### Data Table - Japanese Minimal Style
+
+```css
+/* Japanese-style data table */
+.jp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.jp-table thead {
+  background: linear-gradient(to bottom, var(--jp-gray-50), var(--jp-gray-100));
+  border-bottom: 2px solid var(--jp-gray-200);
+}
+
+.jp-table th {
+  padding: var(--jp-space-3) var(--jp-space-4);
+  text-align: left;
+  font-weight: 600;
+  color: var(--jp-gray-700);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.jp-table td {
+  padding: var(--jp-space-3) var(--jp-space-4);
+  border-bottom: 1px solid var(--jp-gray-100);
+  color: var(--jp-gray-600);
+}
+
+.jp-table tbody tr:hover {
+  background-color: var(--jp-gray-50);
+}
+
+.jp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status badges */
+.jp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.jp-badge.success { background: var(--jp-success-bg); color: var(--jp-success); }
+.jp-badge.warning { background: var(--jp-warning-bg); color: var(--jp-warning); }
+.jp-badge.error { background: var(--jp-error-bg); color: var(--jp-error); }
+.jp-badge.info { background: var(--jp-info-bg); color: var(--jp-info); }
+```
+
+### Chart Configuration - Chart.js with Japanese Style
+
+```typescript
+// utils/dashboard/chart-config.ts
+/**
+ * Chart.js configuration for Japanese-style dashboards
+ */
+
+import { ChartOptions, ChartData } from 'chart.js';
+
+// Japanese color palette (subtle, harmonious)
+export const jpColors = {
+  primary: ['#4c51bf', '#38a169', '#dd6b20', '#3182ce', '#e53e3e', '#805ad5'],
+  gradients: [
+    'rgba(76, 81, 191, 0.8)',
+    'rgba(56, 161, 105, 0.8)',
+    'rgba(221, 107, 32, 0.8)',
+    'rgba(49, 130, 206, 0.8)',
+    'rgba(229, 62, 62, 0.8)'
+  ],
+  neutral: {
+    100: '#f7fafc',
+    200: '#edf2f7',
+    300: '#e2e8f0',
+    400: '#cbd5e0',
+    500: '#a0aec0',
+    600: '#718096',
+    700: '#4a5568',
+    800: '#2d3748'
+  }
+};
+
+// Base chart options
+export const baseChartOptions: ChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false // Japanese style: minimal legends
+    },
+    tooltip: {
+      backgroundColor: 'rgba(26, 32, 44, 0.9)',
+      titleColor: '#fff',
+      bodyColor: '#e2e8f0',
+      padding: 12,
+      cornerRadius: 6,
+      displayColors: false,
+      callbacks: {
+        label: (context) => {
+          if (context.parsed.y !== null) {
+            return `${context.parsed.y.toLocaleString('th-TH')}`;
+          }
+          return '';
+        }
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: {
+        color: jpColors.neutral[500],
+        font: { size: 11 }
+      }
+    },
+    y: {
+      grid: {
+        color: jpColors.neutral[200],
+        drawBorder: false
+      },
+      ticks: {
+        color: jpColors.neutral[500],
+        font: { size: 11 },
+        callback: (value) => value.toLocaleString('th-TH')
+      }
+    }
+  }
+};
+
+// Line chart for trends
+export function createTrendChart(labels: string[], data: number[]): ChartData {
+  return {
+    labels,
+    datasets: [{
+      data,
+      borderColor: jpColors.primary[0],
+      backgroundColor: (context) => {
+        const ctx = context.chart.ctx;
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(76, 81, 191, 0.3)');
+        gradient.addColorStop(1, 'rgba(76, 81, 191, 0)');
+        return gradient;
+      },
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0,
+      pointHoverRadius: 6,
+      pointHoverBackgroundColor: jpColors.primary[0],
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 2
+    }]
+  };
+}
+
+// Donut chart for distribution
+export function createDonutChart(labels: string[], data: number[]): ChartData {
+  return {
+    labels,
+    datasets: [{
+      data,
+      backgroundColor: jpColors.primary.slice(0, data.length),
+      borderWidth: 0,
+      hoverOffset: 8
+    }]
+  };
+}
+
+// Donut chart options (minimal)
+export const donutChartOptions: ChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  cutout: '70%',
+  plugins: {
+    legend: {
+      position: 'right',
+      labels: {
+        padding: 16,
+        usePointStyle: true,
+        pointStyle: 'circle',
+        color: jpColors.neutral[600],
+        font: { size: 12 }
+      }
+    },
+    tooltip: {
+      backgroundColor: 'rgba(26, 32, 44, 0.9)',
+      padding: 12,
+      cornerRadius: 6,
+      callbacks: {
+        label: (context) => {
+          const value = context.parsed;
+          const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
+          const percentage = ((value / total) * 100).toFixed(1);
+          return `${context.label}: ${value.toLocaleString('th-TH')} (${percentage}%)`;
+        }
+      }
+    }
+  }
+};
+```
+
+### Vanilla JS Dashboard Component
+
+```javascript
+// components/dashboard/Dashboard.js
+/**
+ * Vanilla JS dashboard with Japanese minimal design
+ */
+
+class Dashboard {
+  constructor(containerId, options = {}) {
+    this.container = document.getElementById(containerId);
+    this.options = {
+      theme: 'light',
+      ...options
+    };
+    this.init();
+  }
+
+  init() {
+    this.container.className = 'jp-dashboard';
+    this.renderHeader();
+    this.renderContent();
+  }
+
+  renderHeader() {
+    const header = document.createElement('header');
+    header.className = 'flex items-center justify-between py-6 border-b border-gray-100 mb-6';
+    header.innerHTML = `
+      <div>
+        <h1 class="text-2xl font-bold text-gray-800 tracking-tight">ダッシュボード</h1>
+        <p class="text-sm text-gray-500 mt-1">最終更新: ${this.formatDateTime(new Date())}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <select class="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white">
+          <option>今日</option>
+          <option>今週</option>
+          <option selected>今月</option>
+          <option>今年</option>
+        </select>
+      </div>
+    `;
+    this.container.appendChild(header);
+  }
+
+  renderContent() {
+    const content = document.createElement('div');
+    content.className = 'dashboard-content';
+    this.container.appendChild(content);
+    this.content = content;
+  }
+
+  addKpiCard(label, value, options = {}) {
+    const card = document.createElement('div');
+    card.className = 'kpi-card p-6 bg-white rounded-lg border border-gray-100 shadow-sm';
+
+    const trendHtml = options.change !== undefined ? `
+      <div class="flex items-center gap-2 mt-2">
+        <span class="px-2 py-0.5 rounded text-xs font-medium ${
+          options.change >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+        }">
+          ${options.change >= 0 ? '↑' : '↓'} ${Math.abs(options.change)}%
+        </span>
+        <span class="text-xs text-gray-400">前期比</span>
+      </div>
+    ` : '';
+
+    card.innerHTML = `
+      <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">${label}</p>
+      <p class="text-3xl font-bold text-gray-800 mt-2 tracking-tight">
+        ${this.formatNumber(value)}${options.unit || ''}
+      </p>
+      ${trendHtml}
+    `;
+
+    this.content.appendChild(card);
+    return card;
+  }
+
+  addSection(title, content) {
+    const section = document.createElement('section');
+    section.className = 'mt-8';
+    section.innerHTML = `
+      <h2 class="text-lg font-semibold text-gray-800 mb-4">${title}</h2>
+      <div class="section-content">${content}</div>
+    `;
+    this.content.appendChild(section);
+    return section;
+  }
+
+  formatNumber(num) {
+    return new Intl.NumberFormat('th-TH').format(num);
+  }
+
+  formatDateTime(date) {
+    return new Intl.DateTimeFormat('th-TH', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
+}
+
+// Usage
+const dashboard = new Dashboard('dashboard-container');
+dashboard.addKpiCard('総売上', 1245000, { unit: '฿', change: 12.5 });
+dashboard.addKpiCard('注文数', 328, { change: 8.3 });
+dashboard.addKpiCard('平均注文額', 3795, { unit: '฿', change: -2.1 });
+dashboard.addKpiCard('顧客満足度', 94.2, { unit: '%', change: 5.7 });
+```
+
+### Executive Presentation Guidelines
+
+```typescript
+// utils/dashboard/presentation.ts
+/**
+ * Guidelines for presenting data to executives (Japanese style)
+ */
+
+export const presentationGuidelines = {
+  // The "One Page" principle - Ichi-Gan (一目)
+  onePagePrinciple: `
+    Executives should understand the entire status at a glance.
+    - Top 3-5 KPIs visible without scrolling
+    - Traffic light status (green/yellow/red) for quick assessment
+    - Trend indicators for every metric
+  `,
+
+  // Data density control
+  dataDensity: `
+    Follow the 60/40 rule:
+    - 60% whitespace (Ma - 間)
+    - 40% content
+    - Group related information in visual chunks
+  `,
+
+  // Typography hierarchy
+  typography: `
+    - Headings: 700 weight, tight letter-spacing
+    - Values: 700 weight, large size, no abbreviation
+    - Labels: 500 weight, uppercase, wide letter-spacing
+    - Body: 400 weight, relaxed line-height (1.6)
+  `,
+
+  // Color usage
+  colors: `
+    - Use 2-3 primary colors maximum
+    - Semantic colors only for status indication
+    - Gradients should be subtle (10-20% opacity)
+    - Avoid pure black (#000) - use dark grays instead
+  `,
+
+  // Animation principles
+  animation: `
+    - Animations should be subtle (200-300ms)
+    - Ease-out curves for natural feel
+    - No animation for initial load (respect user's time)
+    - Hover states: slight scale (1.02) and shadow increase
+  `,
+
+  // Mobile responsiveness
+  mobile: `
+    - Single column on mobile
+    - KPIs stack vertically
+    - Touch targets minimum 44x44px
+    - Charts become full-width cards
+  `
+};
+
+// Status badge generator
+export function getStatusBadge(
+  status: 'on-track' | 'at-risk' | 'off-track' | 'neutral'
+): string {
+  const config = {
+    'on-track': { bg: 'bg-green-50', text: 'text-green-700', icon: '●', label: '順調' },
+    'at-risk': { bg: 'bg-yellow-50', text: 'text-yellow-700', icon: '◆', label: '要注意' },
+    'off-track': { bg: 'bg-red-50', text: 'text-red-700', icon: '●', label: '遅延' },
+    'neutral': { bg: 'bg-gray-50', text: 'text-gray-700', icon: '○', label: '-' }
+  };
+
+  const { bg, text, icon, label } = config[status];
+  return `<span class="${bg} ${text} px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-2">
+    <span>${icon}</span>
+    <span>${label}</span>
+  </span>`;
+}
+```
+
+### Complete Dashboard Layout Template
+
+```html
+<!-- templates/dashboard/japanese-executive.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Executive Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans Thai', 'Noto Sans JP', sans-serif;
+      background: #f7fafc;
+      color: #4a5568;
+      line-height: 1.6;
+    }
+    .dashboard-container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; }
+    .header h1 { font-size: 24px; font-weight: 700; color: #1a202c; }
+    .header-meta { font-size: 14px; color: #718096; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .kpi-card { background: white; border-radius: 8px; padding: 20px; border: 1px solid #edf2f7; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .kpi-label { font-size: 11px; font-weight: 500; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-value { font-size: 32px; font-weight: 700; color: #1a202c; margin: 8px 0; letter-spacing: -0.03em; }
+    .kpi-change { font-size: 12px; }
+    .kpi-change.positive { color: #38a169; }
+    .kpi-change.negative { color: #e53e3e; }
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+    .card { background: white; border-radius: 8px; border: 1px solid #edf2f7; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card-title { font-size: 16px; font-weight: 600; color: #2d3748; margin-bottom: 16px; }
+    .chart-container { height: 300px; }
+    .table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table th { text-align: left; padding: 12px; background: #f7fafc; font-weight: 600; color: #4a5568; font-size: 11px; text-transform: uppercase; }
+    .table td { padding: 12px; border-bottom: 1px solid #edf2f7; }
+    .status-badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .status-badge.on-track { background: #c6f6d5; color: #276749; }
+    .status-badge.at-risk { background: #feebc8; color: #9c4221; }
+    .status-badge.off-track { background: #fed7d7; color: #c53030; }
+    @media (max-width: 1024px) {
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-container">
+    <!-- Header -->
+    <header class="header">
+      <div>
+        <h1>ภาพรวมการดำเนินงาน</h1>
+        <p class="header-meta">อัปเดตล่าสุด: <span id="last-update"></span></p>
+      </div>
+      <div class="header-actions">
+        <select style="padding: 8px 16px; border: 1px solid #e2e8f0; border-radius: 6px;">
+          <option>เดือนนี้</option>
+          <option>ไตรมาสนี้</option>
+          <option>ปีนี้</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <p class="kpi-label">ยอดขายรวม</p>
+        <p class="kpi-value">฿2.4M</p>
+        <p class="kpi-change positive">↑ 12.5% จากเดือนก่อน</p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">จำนวนงาน</p>
+        <p class="kpi-value">328</p>
+        <p class="kpi-change positive">↑ 8.3% จากเดือนก่อน</p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">อัตราเสร็จสิ้น</p>
+        <p class="kpi-value">94.2%</p>
+        <p class="kpi-change positive">↑ 3.1% จากเดือนก่อน</p>
+      </div>
+      <div class="kpi-card">
+        <p class="kpi-label">เวลาเฉลี่ย</p>
+        <p class="kpi-value">2.4ชม</p>
+        <p class="kpi-change negative">↓ 5.2% จากเดือนก่อน</p>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-grid">
+      <!-- Chart Section -->
+      <div class="card">
+        <h3 class="card-title">แนวโน้มยอดขาย</h3>
+        <div class="chart-container" id="trend-chart"></div>
+      </div>
+
+      <!-- Status List -->
+      <div class="card">
+        <h3 class="card-title">สถานะงานที่กำลังดำเนินการ</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>เลขที่</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>JOB-001</td>
+              <td><span class="status-badge on-track">ดำเนินการปกติ</span></td>
+            </tr>
+            <tr>
+              <td>JOB-002</td>
+              <td><span class="status-badge at-risk">ต้องติดตาม</span></td>
+            </tr>
+            <tr>
+              <td>JOB-003</td>
+              <td><span class="status-badge off-track">ล่าช้า</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Update timestamp
+    document.getElementById('last-update').textContent = new Date().toLocaleString('th-TH');
+  </script>
+</body>
+</html>
+```
+
+### Japanese Business Terminology for Dashboards
+
+```typescript
+// constants/dashboard/japanese-business-terms.ts
+/**
+ * Common Japanese business terms for dashboard labels
+ */
+
+export const jpBusinessTerms = {
+  // Time periods
+  periods: {
+    today: '本日',
+    thisWeek: '今週',
+    thisMonth: '今月',
+    thisQuarter: '今四半期',
+    thisYear: '今年度',
+    ytd: '年初来',
+    lastPeriod: '前期'
+  },
+
+  // Status indicators
+  status: {
+    onTrack: '順調',
+    atRisk: '要注意',
+    offTrack: '遅延',
+    completed: '完了',
+    inProgress: '進行中',
+    pending: '保留中',
+    cancelled: 'キャンセル'
+  },
+
+  // Common metrics
+  metrics: {
+    revenue: '売上',
+    profit: '利益',
+    orders: '注文数',
+    customers: '顧客数',
+    satisfaction: '顧客満足度',
+    efficiency: '効率',
+    quality: '品質',
+    delivery: '納期',
+    cost: 'コスト',
+    inventory: '在庫'
+  },
+
+  // Trend indicators
+  trends: {
+    increasing: '増加',
+    decreasing: '減少',
+    stable: '横ばい',
+    volatile: '変動'
+  },
+
+  // Action items
+  actions: {
+    review: '要確認',
+    approve: '承認待ち',
+    urgent: '重要',
+    info: '参考'
+  }
+};
+
+// Thai equivalents for bilingual dashboards
+export const thBusinessTerms = {
+  periods: {
+    today: 'วันนี้',
+    thisWeek: 'สัปดาห์นี้',
+    thisMonth: 'เดือนนี้',
+    thisQuarter: 'ไตรมาสนี้',
+    thisYear: 'ปีนี้',
+    ytd: 'ตั้งแต่ต้นปี',
+    lastPeriod: 'งวดก่อน'
+  },
+  status: {
+    onTrack: 'ดำเนินการปกติ',
+    atRisk: 'ต้องติดตาม',
+    offTrack: 'ล่าช้า',
+    completed: 'เสร็จสิ้น',
+    inProgress: 'กำลังดำเนินการ',
+    pending: 'รอดำเนินการ',
+    cancelled: 'ยกเลิก'
+  }
+};
 ```
 
 ---

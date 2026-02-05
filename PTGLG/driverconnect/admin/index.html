@@ -354,15 +354,19 @@ This admin panel interfaces with the following Supabase database tables:
 
                 <!-- KPI Cards -->
                 <div class="kpi-cards">
-                    <div class="kpi-card">
+                    <div class="kpi-card kpi-clickable" data-kpi-type="total-users" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                         <h3>Total Users</h3>
                         <p id="kpi-total-users">0</p>
                     </div>
-                    <div class="kpi-card">
-                        <h3>Active Jobs</h3>
+                    <div class="kpi-card kpi-clickable" data-kpi-type="active-jobs" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <h3>Active Jobs<br><small style="opacity: 0.6; font-weight: normal;">&lt; 48 ชม.</small></h3>
                         <p id="kpi-active-jobs">0</p>
                     </div>
-                    <div class="kpi-card">
+                    <div class="kpi-card kpi-clickable" data-kpi-type="active-jobs-48h" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                        <h3>งานค้างเกิน 48 ชม.<br><small style="opacity: 0.8; font-weight: normal;">(ยังไม่ปิดทริป)</small></h3>
+                        <p id="kpi-active-jobs-48h">0</p>
+                    </div>
+                    <div class="kpi-card kpi-clickable" data-kpi-type="pending-approvals" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
                         <h3>Pending Approvals</h3>
                         <p id="kpi-pending-approvals">0</p>
                     </div>
@@ -383,29 +387,14 @@ This admin panel interfaces with the following Supabase database tables:
                     <div id="map" style="height: 450px; width: 100%;"></div>
                 </div>
 
-                <div class="map-playback-controls" style="margin-top: 20px; background-color: var(--card-bg); padding: 15px; border-radius: 8px;">
-                    <h3>Driver History Playback</h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
-                        <div style="flex-grow: 1;">
-                            <label for="playback-driver-select">Driver:</label>
-                            <select id="playback-driver-select" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);"></select>
-                        </div>
-                        <div style="flex-grow: 1;">
-                            <label for="playback-start-datetime">Start:</label>
-                            <input type="datetime-local" id="playback-start-datetime" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
-                        </div>
-                        <div style="flex-grow: 1;">
-                            <label for="playback-end-datetime">End:</label>
-                            <input type="datetime-local" id="playback-end-datetime" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
-                        </div>
-                        <div>
-                            <label for="playback-speed">Speed (x):</label>
-                            <input type="number" id="playback-speed" value="1" min="0.1" step="0.1" style="width: 80px; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
-                        </div>
-                        <button id="load-playback-data-btn" class="control-btn" style="padding: 8px 12px; background-color: var(--primary-color); color: #fff; border: none; border-radius: 5px; cursor: pointer;">Load Data</button>
-                        <button id="play-button" class="control-btn" style="padding: 8px 12px; background-color: #28a745; color: #fff; border: none; border-radius: 5px; cursor: pointer;">▶ Play</button>
-                        <button id="pause-button" class="control-btn" style="padding: 8px 12px; background-color: #ffc107; color: #fff; border: none; border-radius: 5px; cursor: pointer;">⏸ Pause</button>
-                        <button id="stop-button" class="control-btn" style="padding: 8px 12px; background-color: #dc3545; color: #fff; border: none; border-radius: 5px; cursor: pointer;">⏹ Stop</button>
+                <!-- KPI Detail Panel -->
+                <div id="kpi-detail-panel" style="margin-top: 20px; background-color: var(--card-bg); padding: 20px; border-radius: 12px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 id="kpi-detail-title" style="margin: 0;">รายละเอียด</h3>
+                        <button id="kpi-detail-close" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-sub);">&times;</button>
+                    </div>
+                    <div id="kpi-detail-content">
+                        <p style="color: var(--text-sub);">กำลังโหลด...</p>
                     </div>
                 </div>
             </section>
