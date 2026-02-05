@@ -442,7 +442,11 @@ export async function updateMapMarkers() {
         }
 
         if (markers.getLayers().length > 0) {
-            map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+            const bounds = markers.getBounds();
+            map.fitBounds(bounds, { padding: [20, 20] });
+            // Lock map bounds to prevent panning outside the markers area
+            map.setMaxBounds(bounds.pad(0.1));
+            map.setMinZoom(map.getZoom());
         }
 
     } catch (error) {
@@ -567,7 +571,11 @@ function refreshMarkersWithFilter() {
     }
 
     if (markers.getLayers().length > 0) {
-        map.fitBounds(markers.getBounds(), { padding: [50, 50] });
+        const bounds = markers.getBounds();
+        map.fitBounds(bounds, { padding: [20, 20] });
+        // Lock map bounds to prevent panning outside the markers area
+        map.setMaxBounds(bounds.pad(0.1));
+        map.setMinZoom(map.getZoom());
     }
 }
 
@@ -627,7 +635,11 @@ export async function loadPlaybackData() {
         // Draw entire path
         const pathCoordinates = playbackData.map(point => [point.lat, point.lng]);
         playbackPath = L.polyline(pathCoordinates, { color: 'blue', weight: 3 }).addTo(map);
-        map.fitBounds(playbackPath.getBounds());
+        const bounds = playbackPath.getBounds();
+        map.fitBounds(bounds, { padding: [20, 20] });
+        // Lock map bounds to the playback path
+        map.setMaxBounds(bounds.pad(0.1));
+        map.setMinZoom(map.getZoom());
 
         // Create animated marker
         const driverIcon = L.icon({
@@ -708,9 +720,13 @@ export function stopPlayback() {
         map.removeLayer(playbackMarker);
         playbackMarker = null;
     }
+    // Clear maxBounds to allow map to be re-locked to driver markers
+    map.setMaxBounds(null);
+    map.setMinZoom(null);
+
     if (markers) {
         markers.clearLayers(); // Clear active job markers too for cleaner view
-        updateMapMarkers(); // Re-add active job markers
+        updateMapMarkers(); // Re-add active job markers (will re-lock bounds)
     }
     showNotification('Playback stopped and map cleared.', 'info');
 }

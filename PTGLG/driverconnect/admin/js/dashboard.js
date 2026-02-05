@@ -291,6 +291,41 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
         origins.forEach(o => originMap[o.code] = o.name);
     }
 
+    // Group jobs by reference/shipment_no and consolidate same shiptoname
+    const groupedJobs = {};
+    jobs.forEach(job => {
+        const ref = job.reference || job.shipment_no || 'UNKNOWN';
+        if (!groupedJobs[ref]) {
+            const driver = driverMap[job.confirmed_driver1] || {};
+            groupedJobs[ref] = {
+                reference: job.reference,
+                shipment_no: job.shipment_no,
+                confirmed_driver1: job.confirmed_driver1,
+                driverName: driver.name || '-',
+                driverCode: driver.code || '',
+                created_at: job.created_at,
+                status: job.status,
+                trip_ended: job.trip_ended,
+                checkin_time: job.checkin_time,
+                checkout_time: job.checkout_time,
+                stops: [],
+                allCheckedIn: true,
+                anyCheckedOut: false,
+                shipToNames: new Set() // Track unique ship_to_names
+            };
+        }
+        // Use ship_to_name for deduplication (consolidate same location in one line)
+        const shipToName = job.ship_to_name || originMap[job.ship_to_code] || '-';
+        // Only add if this ship_to_name hasn't been added yet
+        if (!groupedJobs[ref].shipToNames.has(shipToName)) {
+            groupedJobs[ref].shipToNames.add(shipToName);
+            groupedJobs[ref].stops.push(shipToName);
+        }
+        // Track check-in/check-out status
+        if (!job.checkin_time) groupedJobs[ref].allCheckedIn = false;
+        if (job.checkout_time) groupedJobs[ref].anyCheckedOut = true;
+    });
+
     let html = `
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
@@ -298,8 +333,8 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                     <tr style="background: var(--border-color); text-align: left;">
                         <th style="padding: 8px;">เลขที่งาน</th>
                         <th style="padding: 8px;">พนักงานขับรถ</th>
-                        <th style="padding: 8px;">ต้นทาง</th>
                         <th style="padding: 8px;">ปลายทาง</th>
+                        <th style="padding: 8px;">จำนวนจุด</th>
                         <th style="padding: 8px;">Check-in</th>
                         <th style="padding: 8px;">Check-out</th>
                         <th style="padding: 8px;">สถานะ</th>
@@ -309,11 +344,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                 <tbody>
     `;
 
-    jobs.forEach(job => {
-        const driver = driverMap[job.confirmed_driver1] || {};
-        const driverName = driver.name || '-';
-        const driverCode = driver.code || '';
-        const originName = originMap[job.ship_to_code] || job.ship_to_name || '-';
+    Object.values(groupedJobs).forEach(job => {
         const ageHours = Math.floor((Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60));
         const ageText = ageHours < 48
             ? `${ageHours} ชม.`
@@ -334,14 +365,18 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
             'in_progress': 'กำลังดำเนินการ'
         }[job.status] || job.status;
 
+        // Combine destinations, remove duplicates
+        const uniqueStops = [...new Set(job.stops)];
+        const destinationsText = uniqueStops.join(' → ');
+
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
                 <td style="padding: 8px;"><strong>${job.reference || job.shipment_no || '-'}</strong></td>
-                <td style="padding: 8px;">${driverName} ${driverCode ? `(${driverCode})` : ''}</td>
-                <td style="padding: 8px;">${originName}</td>
-                <td style="padding: 8px;">${job.ship_to_name || '-'}</td>
-                <td style="padding: 8px;">${job.checkin_time ? formatDate(job.checkin_time) : '<span style="color: #ef4444;">ยังไม่ check-in</span>'}</td>
-                <td style="padding: 8px;">${job.checkout_time ? formatDate(job.checkout_time) : '<span style="color: #f59e0b;">ยังไม่ check-out</span>'}</td>
+                <td style="padding: 8px;">${job.driverName} ${job.driverCode ? `(${job.driverCode})` : ''}</td>
+                <td style="padding: 8px; font-size: 11px;">${destinationsText || '-'}</td>
+                <td style="padding: 8px; text-align: center;">${uniqueStops.length}</td>
+                <td style="padding: 8px;">${job.checkin_time ? formatDate(job.checkin_time) : (job.allCheckedIn && uniqueStops.length > 0 ? formatDate(job.checkin_time) : '<span style="color: #ef4444;">ยังไม่ check-in</span>')}</td>
+                <td style="padding: 8px;">${job.checkout_time ? formatDate(job.checkout_time) : (job.anyCheckedOut ? '<span style="color: #22c55e;">เสร็จสิ้น</span>' : '<span style="color: #f59e0b;">ยังไม่ check-out</span>')}</td>
                 <td style="padding: 8px;"><span style="color: ${statusColor}; font-weight: 500;">${statusText}</span></td>
                 <td style="padding: 8px;">${ageText}</td>
             </tr>
@@ -352,7 +387,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                 </tbody>
             </table>
         </div>
-        <p style="margin-top: 10px; font-size: 12px; color: var(--text-sub);">แสดง ${jobs.length} รายการ</p>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--text-sub);">แสดง ${Object.keys(groupedJobs).length} งาน (${jobs.length} จุด)</p>
     `;
 
     contentElement.innerHTML = html;
