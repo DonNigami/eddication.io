@@ -42,23 +42,21 @@ export async function loadDashboardAnalytics() {
 
         const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
-        // Active jobs within 48 hours
+        // Active jobs within 48 hours (not closed jobs)
         const { count: activeJobs48h, error: jobsError48h } = await supabase
             .from('jobdata')
             .select('*', { count: 'exact' })
-            .eq('status', 'active')
-            .eq('trip_ended', false)
+            .in('status', ['pending', 'active', 'assigned', 'in_progress'])
             .gte('created_at', fortyEightHoursAgo);
 
         if (jobsError48h) throw jobsError48h;
         if (kpiActiveJobs) kpiActiveJobs.textContent = formatNumber(activeJobs48h);
 
-        // Active jobs over 48 hours (unclosed/unfinished trips)
+        // Active jobs over 48 hours (unclosed/unfinished trips - needs attention)
         const { count: activeJobsOlder, error: jobsErrorOlder } = await supabase
             .from('jobdata')
             .select('*', { count: 'exact' })
-            .eq('status', 'active')
-            .eq('trip_ended', false)
+            .in('status', ['pending', 'active', 'assigned', 'in_progress'])
             .lt('created_at', fortyEightHoursAgo);
 
         if (jobsErrorOlder) throw jobsErrorOlder;
@@ -247,9 +245,8 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
     let query = supabase
         .from('jobdata')
-        .select('ref, driver_id, origin_id, destination_address, created_at, updated_at, status, trip_ended, checkin_time, checkout_time, stops, shipment_no')
-        .eq('status', 'active')
-        .eq('trip_ended', false)
+        .select('id, reference, shipment_no, driver_id, ship_to_code, ship_to_name, destination_address, created_at, updated_at, status, trip_ended, checkin_time, checkout_time, stops')
+        .in('status', ['pending', 'active', 'assigned', 'in_progress'])
         .order('created_at', { ascending: false });
 
     if (isWithin48h) {
@@ -283,16 +280,16 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
         });
     }
 
-    // Get origin names
-    const originIds = jobs.map(j => j.origin_id).filter(Boolean);
+    // Get destination info from origins table (ship_to_code -> origin)
+    const originCodes = jobs.map(j => j.ship_to_code).filter(Boolean);
     const { data: origins } = await supabase
         .from('origins')
-        .select('id, name')
-        .in('id', originIds);
+        .select('code, name')
+        .in('code', originCodes);
 
     const originMap = {};
     if (origins) {
-        origins.forEach(o => originMap[o.id] = o.name);
+        origins.forEach(o => originMap[o.code] = o.name);
     }
 
     let html = `
@@ -319,7 +316,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
         const driverName = driver.name || '-';
         const driverCode = driver.code || '';
         const vehiclePlate = driver.plate || '-';
-        const originName = originMap[job.origin_id] || '-';
+        const originName = originMap[job.ship_to_code] || job.ship_to_name || '-';
         const stopsCount = job.stops ? job.stops.length : 0;
         const ageHours = Math.floor((Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60));
         const ageText = ageHours < 48
@@ -328,11 +325,11 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
-                <td style="padding: 8px;"><strong>${job.ref || '-'}</strong></td>
+                <td style="padding: 8px;"><strong>${job.reference || job.shipment_no || '-'}</strong></td>
                 <td style="padding: 8px;">${driverName} ${driverCode ? `(${driverCode})` : ''}</td>
                 <td style="padding: 8px;">${vehiclePlate}</td>
                 <td style="padding: 8px;">${originName}</td>
-                <td style="padding: 8px;">${job.destination_address || '-'}</td>
+                <td style="padding: 8px;">${job.destination_address || job.ship_to_name || '-'}</td>
                 <td style="padding: 8px;">${job.checkin_time ? formatDate(job.checkin_time) : '<span style="color: #ef4444;">ยังไม่ check-in</span>'}</td>
                 <td style="padding: 8px;">${job.checkout_time ? formatDate(job.checkout_time) : '<span style="color: #f59e0b;">ยังไม่ check-out</span>'}</td>
                 <td style="padding: 8px; text-align: center;">${stopsCount}</td>
