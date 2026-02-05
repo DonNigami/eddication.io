@@ -46,11 +46,11 @@ export function initFuelRecipientReport() {
     // Attach event listeners
     const loadBtn = document.getElementById('fuel-report-load-btn');
     const exportBtn = document.getElementById('fuel-report-export-btn');
-    const typeFilter = document.getElementById('fuel-report-type-filter');
+    const stationSearch = document.getElementById('fuel-report-station-search');
 
     if (loadBtn) loadBtn.addEventListener('click', loadReport);
     if (exportBtn) exportBtn.addEventListener('click', exportToExcel);
-    if (typeFilter) typeFilter.addEventListener('change', filterTable);
+    if (stationSearch) stationSearch.addEventListener('input', filterTable);
 
     // Recipient type filter buttons
     const recipientFilterBtns = document.querySelectorAll('.recipient-filter-btn');
@@ -108,10 +108,10 @@ async function loadReport() {
         updateCharts();
 
         // Get current filter values
-        const stationFilterType = document.getElementById('fuel-report-type-filter')?.value || 'all';
+        const stationSearch = document.getElementById('fuel-report-station-search')?.value?.toLowerCase() || '';
         const activeRecipientBtn = document.querySelector('.recipient-filter-btn.active');
         const recipientFilterType = activeRecipientBtn?.dataset.recipientFilter || 'all';
-        updateTable(stationFilterType, recipientFilterType);
+        updateTable(stationSearch, recipientFilterType);
 
     } catch (error) {
         console.error('Error loading fuel recipient report:', error);
@@ -523,22 +523,18 @@ function updateBarChart() {
 /**
  * Update table
  */
-function updateTable(stationFilterType = 'all', recipientFilterType = 'all') {
+function updateTable(stationSearch = '', recipientFilterType = 'all') {
     const tbody = document.querySelector('#fuel-recipient-table tbody');
     if (!tbody) return;
 
     let filteredData = reportData.stationStats;
 
-    // Apply station type filter
-    if (stationFilterType !== 'all') {
+    // Apply station name search filter
+    if (stationSearch && stationSearch !== 'all') {
         filteredData = filteredData.filter(s => {
-            // Check if station has this receiver type in actual data
-            if (s.receivers && s.receivers.has(stationFilterType)) {
-                return true;
-            }
-            // Fallback to determined type
-            const type = determineRecipientType(s.stationCode, s.stationName);
-            return type === stationFilterType;
+            const searchLower = stationSearch.toLowerCase();
+            return (s.stationName && s.stationName.toLowerCase().includes(searchLower)) ||
+                   (s.stationCode && s.stationCode.toLowerCase().includes(searchLower));
         });
     }
 
@@ -603,11 +599,11 @@ function updateTable(stationFilterType = 'all', recipientFilterType = 'all') {
  * Filter table based on selection
  */
 function filterTable() {
-    const stationFilterType = document.getElementById('fuel-report-type-filter')?.value;
+    const stationSearch = document.getElementById('fuel-report-station-search')?.value?.toLowerCase() || '';
     const activeRecipientBtn = document.querySelector('.recipient-filter-btn.active');
     const recipientFilterType = activeRecipientBtn?.dataset.recipientFilter || 'all';
 
-    updateTable(stationFilterType, recipientFilterType);
+    updateTable(stationSearch, recipientFilterType);
 
     // Also update map to reflect recipient filter
     initMap(recipientFilterType);
