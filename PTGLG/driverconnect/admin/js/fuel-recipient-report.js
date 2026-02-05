@@ -84,6 +84,7 @@ async function loadReport() {
             .gte('created_at', startDate + 'T00:00:00')
             .lte('created_at', endDate + 'T23:59:59')
             .not('status', 'eq', 'cancelled')
+            .not('receiver_name', 'is', null)  // Only get records with receiver info
             .order('created_at', { ascending: false });
 
         const { data: rows, error } = await query;
