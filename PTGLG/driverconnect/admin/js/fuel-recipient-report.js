@@ -52,6 +52,12 @@ export function initFuelRecipientReport() {
     if (exportBtn) exportBtn.addEventListener('click', exportToExcel);
     if (typeFilter) typeFilter.addEventListener('change', filterTable);
 
+    // Recipient type filter buttons
+    const recipientFilterBtns = document.querySelectorAll('.recipient-filter-btn');
+    recipientFilterBtns.forEach(btn => {
+        btn.addEventListener('click', handleRecipientFilterClick);
+    });
+
     // Auto-load on init
     // loadReport();
 }
@@ -100,7 +106,12 @@ async function loadReport() {
         updateSummaryCards();
         initMap();
         updateCharts();
-        updateTable();
+
+        // Get current filter values
+        const stationFilterType = document.getElementById('fuel-report-type-filter')?.value || 'all';
+        const activeRecipientBtn = document.querySelector('.recipient-filter-btn.active');
+        const recipientFilterType = activeRecipientBtn?.dataset.recipientFilter || 'all';
+        updateTable(stationFilterType, recipientFilterType);
 
     } catch (error) {
         console.error('Error loading fuel recipient report:', error);
@@ -149,10 +160,9 @@ function processReportData(rows, { startDate, endDate } = {}) {
         station.deliveries.push(row);
         station.deliveryCount++;
 
-        // Get fuel amount from process_data if available
-        // Or estimate from distance
-        const liters = row.fuel_liters || estimateFuelFromDistance(row.distance_km);
-        station.totalLiters += liters;
+        // Use total_qty from jobdata for fuel quantity
+        const qty = row.total_qty || 0;
+        station.totalLiters += qty;
 
         // Track by actual receiver type from data
         const actualReceiverType = receiverType || determineRecipientType(stationCode, stationName);
@@ -201,8 +211,9 @@ function processReportData(rows, { startDate, endDate } = {}) {
         const typeStat = recipientTypeMap.get(displayType);
         typeStat.count++;
 
-        const liters = row.fuel_liters || estimateFuelFromDistance(row.distance_km);
-        typeStat.liters += liters;
+        // Use total_qty from jobdata for fuel quantity
+        const qty = row.total_qty || 0;
+        typeStat.liters += qty;
     });
 
     const recipientTypeStats = Array.from(recipientTypeMap.values());
@@ -269,15 +280,6 @@ function formatReceiverType(type) {
 }
 
 /**
- * Estimate fuel liters from distance (rough estimate)
- */
-function estimateFuelFromDistance(distance) {
-    if (!distance) return 0;
-    // Assume ~0.3 liters per km for delivery trucks
-    return Math.round(distance * 0.3);
-}
-
-/**
  * Update summary cards
  */
 function updateSummaryCards() {
@@ -291,7 +293,7 @@ function updateSummaryCards() {
 /**
  * Initialize map with bubbles
  */
-function initMap() {
+function initMap(recipientFilterType = 'all') {
     const mapContainer = document.getElementById('fuel-recipient-map');
     if (!mapContainer) return;
 
@@ -309,10 +311,25 @@ function initMap() {
         maxZoom: 18
     }).addTo(map);
 
-    // Add bubble markers for stations with coordinates
-    const maxLiters = Math.max(...reportData.stationStats.map(s => s.totalLiters), 1);
+    // Filter stations based on recipient type if filter is active
+    let stationsToShow = reportData.stationStats;
+    if (recipientFilterType !== 'all') {
+        stationsToShow = reportData.stationStats.filter(s => {
+            if (s.receivers && s.receivers.size > 0) {
+                for (const [receiverType, stats] of s.receivers) {
+                    if (receiverType === recipientFilterType) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
+    }
 
-    reportData.stationStats.forEach(station => {
+    // Add bubble markers for stations with coordinates
+    const maxLiters = Math.max(...stationsToShow.map(s => s.totalLiters), 1);
+
+    stationsToShow.forEach(station => {
         if (!station.lat || !station.lng) return;
 
         // Bubble size based on volume
@@ -358,7 +375,7 @@ function initMap() {
                 <p style="margin: 4px 0;"><strong>รหัส:</strong> ${station.stationCode}</p>
                 <p style="margin: 4px 0;"><strong>จำนวนครั้ง:</strong> ${station.deliveryCount}</p>
                 <p style="margin: 4px 0;"><strong>ปริมาณ:</strong> ${formatNumber(station.totalLiters)} ลิตร</p>
-                ${receiversInfo ? `<p style="margin: 8px 0 4px 0;"><strong>ผู้รับ:</strong><br>${receiversInfo}</p>` : `<p style="margin: 4px 0;"><strong>ประเภท:</strong> ${primaryType}</p>`}
+                ${receiversInfo ? `<p style="margin: 8px 0 4px 0;"><strong>ผู้รับ:</strong><br>${receiversInfo}</p>` : `<p style="margin: 4px 0;"><strong>ประเภท:</strong> ${formatReceiverType(primaryType)}</p>`}
             </div>
         `;
 
@@ -386,10 +403,14 @@ function getColorByType(type) {
         'โรงสี/ฟาร์ม': '#3b82f6',
         'ลูกค้ารายย่อย': '#8b5cf6',
         'อื่นๆ': '#6b7280',
-        // Actual receiver types from driver app
-        'manager': '#ef4444',
-        'frontHasCard': '#f97316',
-        'frontNoCard': '#fbbf24'
+        // Actual receiver types from driver app (with user-specified colors)
+        'manager': '#22c55e',         // 🟢 Green
+        'frontHasCard': '#eab308',    // 🟡 Yellow
+        'frontNoCard': '#ef4444',     // 🔴 Red
+        // Display names (Thai)
+        'ผู้จัดการปั๊ม': '#22c55e',           // 🟢 Green
+        'พนักงานหน้าลาน (มีบัตร)': '#eab308', // 🟡 Yellow
+        'พนักงานหน้าลาน (ไม่มีบัตร)': '#ef4444' // 🔴 Red
     };
     return colors[type] || '#6b7280';
 }
@@ -502,20 +523,37 @@ function updateBarChart() {
 /**
  * Update table
  */
-function updateTable(filterType = 'all') {
+function updateTable(stationFilterType = 'all', recipientFilterType = 'all') {
     const tbody = document.querySelector('#fuel-recipient-table tbody');
     if (!tbody) return;
 
     let filteredData = reportData.stationStats;
-    if (filterType !== 'all') {
-        filteredData = reportData.stationStats.filter(s => {
+
+    // Apply station type filter
+    if (stationFilterType !== 'all') {
+        filteredData = filteredData.filter(s => {
             // Check if station has this receiver type in actual data
-            if (s.receivers && s.receivers.has(filterType)) {
+            if (s.receivers && s.receivers.has(stationFilterType)) {
                 return true;
             }
             // Fallback to determined type
             const type = determineRecipientType(s.stationCode, s.stationName);
-            return type === filterType;
+            return type === stationFilterType;
+        });
+    }
+
+    // Apply recipient type filter (manager, frontHasCard, frontNoCard)
+    if (recipientFilterType !== 'all') {
+        filteredData = filteredData.filter(s => {
+            if (s.receivers && s.receivers.size > 0) {
+                // Check if station has deliveries to this recipient type
+                for (const [receiverType, stats] of s.receivers) {
+                    if (receiverType === recipientFilterType) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         });
     }
 
@@ -555,7 +593,7 @@ function updateTable(filterType = 'all') {
 
         row.insertCell().textContent = station.stationCode || '-';
         row.insertCell().innerHTML = `<strong>${station.stationName}</strong>`;
-        row.insertCell().innerHTML = `<span style="color: ${color}; font-weight: 500;">${primaryType}</span> ${typeInfo}`;
+        row.insertCell().innerHTML = `<span style="color: ${color}; font-weight: 500;">${formatReceiverType(primaryType)}</span> ${typeInfo}`;
         row.insertCell().textContent = station.deliveryCount.toLocaleString();
         row.insertCell().textContent = formatNumber(station.totalLiters) + ' ลิตร';
     });
@@ -565,8 +603,48 @@ function updateTable(filterType = 'all') {
  * Filter table based on selection
  */
 function filterTable() {
-    const filterType = document.getElementById('fuel-report-type-filter')?.value;
-    updateTable(filterType);
+    const stationFilterType = document.getElementById('fuel-report-type-filter')?.value;
+    const activeRecipientBtn = document.querySelector('.recipient-filter-btn.active');
+    const recipientFilterType = activeRecipientBtn?.dataset.recipientFilter || 'all';
+
+    updateTable(stationFilterType, recipientFilterType);
+
+    // Also update map to reflect recipient filter
+    initMap(recipientFilterType);
+}
+
+/**
+ * Handle recipient filter button click
+ */
+function handleRecipientFilterClick(e) {
+    const btn = e.target;
+
+    // Update active state
+    document.querySelectorAll('.recipient-filter-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'var(--card-bg)';
+        b.style.color = b.style.borderColor || 'var(--text-color)';
+    });
+
+    btn.classList.add('active');
+
+    // Set active button style
+    const filterType = btn.dataset.recipientFilter;
+    if (filterType === 'all') {
+        btn.style.background = 'var(--primary-color)';
+        btn.style.color = 'white';
+    } else {
+        const colorMap = {
+            'manager': '#22c55e',
+            'frontHasCard': '#eab308',
+            'frontNoCard': '#ef4444'
+        };
+        btn.style.background = colorMap[filterType];
+        btn.style.color = 'white';
+    }
+
+    // Re-filter table and map
+    filterTable();
 }
 
 /**

@@ -2093,7 +2093,7 @@ This admin panel interfaces with the following Supabase database tables:
                         <input type="date" id="fuel-report-end-date" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
                     </div>
                     <div>
-                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">กรองตามประเภท:</label>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">กรองตามประเภทสถานี:</label>
                         <select id="fuel-report-type-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
                             <option value="all">ทั้งหมด</option>
                             <option value="PTT สถานีบริการ">PTT สถานีบริการ</option>
@@ -2103,6 +2103,15 @@ This admin panel interfaces with the following Supabase database tables:
                             <option value="โรงสี/ฟาร์ม">โรงสี/ฟาร์ม</option>
                             <option value="ลูกค้ารายย่อย">ลูกค้ารายย่อย</option>
                         </select>
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">กรองตามประเภทผู้รับ:</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button class="recipient-filter-btn active" data-recipient-filter="all" style="padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--primary-color); color: white; cursor: pointer; transition: all 0.2s; font-size: 14px;">ทั้งหมด</button>
+                            <button class="recipient-filter-btn" data-recipient-filter="manager" style="padding: 8px 16px; border-radius: 20px; border: 1px solid #22c55e; background: var(--card-bg); color: #22c55e; cursor: pointer; transition: all 0.2s; font-size: 14px;">🟢 ผู้จัดการ</button>
+                            <button class="recipient-filter-btn" data-recipient-filter="frontHasCard" style="padding: 8px 16px; border-radius: 20px; border: 1px solid #eab308; background: var(--card-bg); color: #eab308; cursor: pointer; transition: all 0.2s; font-size: 14px;">🟡 หน้างาน(มีบัตร)</button>
+                            <button class="recipient-filter-btn" data-recipient-filter="frontNoCard" style="padding: 8px 16px; border-radius: 20px; border: 1px solid #ef4444; background: var(--card-bg); color: #ef4444; cursor: pointer; transition: all 0.2s; font-size: 14px;">🔴 หน้างาน(ไม่มีบัตร)</button>
+                        </div>
                     </div>
                     <button id="fuel-report-load-btn" class="control-btn" style="padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 18px;">
                         โหลดรายงาน
