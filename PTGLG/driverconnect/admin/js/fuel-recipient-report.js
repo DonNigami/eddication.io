@@ -176,7 +176,7 @@ function processReportData(rows, { startDate, endDate } = {}) {
         }
         const receiverStats = station.receivers.get(actualReceiverType);
         receiverStats.count++;
-        receiverStats.liters += liters;
+        receiverStats.liters += qty;
         if (receiverName) {
             receiverStats.names.add(receiverName);
         }

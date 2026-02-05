@@ -99,8 +99,8 @@ async function initializeLIFF() {
             return;
         }
 
-        if (userProfile.user_type !== 'ADMIN' && userProfile.status !== 'APPROVED') {
-            console.warn('User is not an approved admin:', userProfile);
+        if (userProfile.user_type !== 'ADMIN' || userProfile.status !== 'APPROVED') {
+            console.warn('Access denied - User is not an approved admin:', userProfile);
             showAccessDenied();
             return;
         }
