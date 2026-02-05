@@ -794,6 +794,9 @@ function setupEventListeners() {
     // Mobile menu functionality
     setupMobileMenu();
 
+    // Desktop sidebar collapse functionality
+    setupSidebarCollapse();
+
     // Map filter buttons
     setupMapFilters();
 }
@@ -854,6 +857,43 @@ function setupMobileMenu() {
         if (e.key === 'Escape') {
             closeMobileMenu();
         }
+    });
+}
+
+/**
+ * Setup desktop sidebar collapse functionality
+ */
+function setupSidebarCollapse() {
+    const collapseBtn = document.getElementById('sidebar-collapse-btn');
+    const sidebar = document.getElementById('sidebar');
+    const sectionHeaders = document.querySelectorAll('.nav-section-header');
+
+    // Toggle sidebar collapse (desktop only)
+    if (collapseBtn && sidebar) {
+        collapseBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            // Save state to localStorage
+            localStorage.setItem('sidebar-collapsed', sidebar.classList.contains('collapsed'));
+        });
+    }
+
+    // Restore sidebar state from localStorage
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    if (savedState === 'true' && sidebar) {
+        sidebar.classList.add('collapsed');
+    }
+
+    // Setup nav section collapse
+    sectionHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            // Don't toggle if sidebar is collapsed
+            if (sidebar?.classList.contains('collapsed')) return;
+
+            const section = header.closest('.nav-section');
+            if (section) {
+                section.classList.toggle('collapsed');
+            }
+        });
     });
 }
 
@@ -934,6 +974,9 @@ export async function loadSectionData(targetId) {
             break;
         case 'solo-vs-2driver-report':
             await import('./solo-vs-2driver-report.js').then(m => m.initSoloVs2DriverReport());
+            break;
+        case 'fuel-recipient-report':
+            await import('./fuel-recipient-report.js').then(m => m.initFuelRecipientReport());
             break;
         case 'map':
             await import('./map.js').then(m => m.initMap());

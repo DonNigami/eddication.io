@@ -152,6 +152,9 @@ This admin panel interfaces with the following Supabase database tables:
         <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
         <aside class="sidebar" id="sidebar">
+            <!-- Sidebar Collapse Button (Desktop) -->
+            <button class="sidebar-collapse-btn" id="sidebar-collapse-btn" title="ย่อ/ขยายเมนู"></button>
+
             <div class="sidebar-header">
                 <div class="sidebar-logo">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -169,44 +172,94 @@ This admin panel interfaces with the following Supabase database tables:
             <nav class="sidebar-nav">
                 <ul>
                     <!-- ==================== DASHBOARD ==================== -->
-                    <li class="nav-section-header">📊 ภาพรวม</li>
-                    <li><a href="#" class="nav-link active" data-target="dashboard">📈 แดชบอร์ด</a></li>
+                    <li class="nav-section" data-section="dashboard">
+                        <div class="nav-section-header">
+                            <span>📊 ภาพรวม</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link active" data-target="dashboard"><span>📈 แดชบอร์ด</span></a></li>
+                        </ul>
+                    </li>
 
                     <!-- ==================== JOBS & OPERATIONS ==================== -->
-                    <li class="nav-section-header">🚚 งานขนส่ง</li>
-                    <li><a href="#" class="nav-link" data-target="jobs">📦 จัดการงาน</a></li>
-                    <li><a href="#" class="nav-link" data-target="b100-jobs">🛢️ งาน B100</a></li>
+                    <li class="nav-section" data-section="jobs">
+                        <div class="nav-section-header">
+                            <span>🚚 งานขนส่ง</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="jobs"><span>📦 จัดการงาน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="b100-jobs"><span>🛢️ งาน B100</span></a></li>
+                        </ul>
+                    </li>
 
                     <!-- ==================== FINANCE & PAYMENTS ==================== -->
-                    <li class="nav-section-header">💰 การเงิน & สวัสดิการ</li>
-                    <li><a href="#" class="nav-link" data-target="incentive-approval">✅ ตรวจค่าเที่ยว(หัวหน้างาน)</a></li>
-                    <li><a href="#" class="nav-link" data-target="payment-processing">🏦 ดึงข้อมูลทำจ่าย</a></li>
+                    <li class="nav-section" data-section="finance">
+                        <div class="nav-section-header">
+                            <span>💰 การเงิน & สวัสดิการ</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="incentive-approval"><span>✅ ตรวจค่าเที่ยว(หัวหน้างาน)</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="payment-processing"><span>🏦 ดึงข้อมูลทำจ่าย</span></a></li>
+                        </ul>
+                    </li>
 
                     <!-- ==================== MAINTENANCE ==================== -->
-                    <li class="nav-section-header">🔧 ฝ่ายช่าง</li>
-                    <li><a href="#" class="nav-link" data-target="breakdown-reports">🚨 รายงานอุบัติเหตุ</a></li>
-                    <li><a href="#" class="nav-link" data-target="vehicle-breakdown">🚛 รถชำรุด</a></li>
+                    <li class="nav-section" data-section="maintenance">
+                        <div class="nav-section-header">
+                            <span>🔧 ฝ่ายช่าง</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="breakdown-reports"><span>🚨 รายงานอุบัติเหตุ</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="vehicle-breakdown"><span>🚛 รถชำรุด</span></a></li>
+                        </ul>
+                    </li>
 
                     <!-- ==================== REPORTS ==================== -->
-                    <li class="nav-section-header">📈 รายงาน</li>
-                    <li><a href="#" class="nav-link" data-target="logistics-performance">📊 ประสิทธิภาพขนส่ง</a></li>
-                    <li><a href="#" class="nav-link" data-target="solo-vs-2driver-report">🚗🚗 รายงานวิ่งคนเดียว vs 2 คน</a></li>
-                    <li><a href="#" class="nav-link" data-target="driver-reports">👤 รายงานคนขับ</a></li>
+                    <li class="nav-section" data-section="reports">
+                        <div class="nav-section-header">
+                            <span>📈 รายงาน</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="logistics-performance"><span>📊 ประสิทธิภาพขนส่ง</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="solo-vs-2driver-report"><span>🚗🚗 รายงานวิ่งคนเดียว vs 2 คน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="fuel-recipient-report"><span>⛽ รายงานผู้รับน้ำมัน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="driver-reports"><span>👤 รายงานคนขับ</span></a></li>
+                        </ul>
+                    </li>
 
                     <!-- ==================== SYSTEM MANAGEMENT ==================== -->
-                    <li class="nav-section-header">⚙️ ระบบ</li>
-                    <li><a href="#" class="nav-link" data-target="users">👥 จัดการผู้ใช้</a></li>
-                    <li><a href="#" class="nav-link" data-target="registration-approval">📝 อนุมัติสมัครสมาชิก <span id="registration-badge" class="badge hidden">0</span></a></li>
-                    <li><a href="#" class="nav-link" data-target="settings">⚙️ ตั้งค่า</a></li>
+                    <li class="nav-section" data-section="system">
+                        <div class="nav-section-header">
+                            <span>⚙️ ระบบ</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="users"><span>👥 จัดการผู้ใช้</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="registration-approval"><span>📝 อนุมัติสมัครสมาชิก <span id="registration-badge" class="badge hidden">0</span></span></a></li>
+                            <li><a href="#" class="nav-link" data-target="settings"><span>⚙️ ตั้งค่า</span></a></li>
+                        </ul>
+                    </li>
 
                     <!-- ==================== HIDDEN (Temporarily Disabled) ==================== -->
                     <!-- Hidden: Alerts - data-target="alerts" -->
                     <!-- Hidden: Fuel Siphoning - data-target="fuel-siphoning" -->
 
                     <!-- ==================== DEVELOPER TOOLS ==================== -->
-                    <li class="nav-section-header nav-dev-tools">🛠️ เครื่องมือนักพัฒนา</li>
-                    <li class="nav-dev-tools"><a href="#" class="nav-link" data-target="logs">📜 Log Viewer</a></li>
-                    <li class="nav-dev-tools"><a href="#" class="nav-link" data-target="debug-import-tool">🔍 Debug Import</a></li>
+                    <li class="nav-section nav-dev-tools" data-section="devtools">
+                        <div class="nav-section-header">
+                            <span>🛠️ เครื่องมือนักพัฒนา</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li class="nav-dev-tools"><a href="#" class="nav-link" data-target="logs"><span>📜 Log Viewer</span></a></li>
+                            <li class="nav-dev-tools"><a href="#" class="nav-link" data-target="debug-import-tool"><span>🔍 Debug Import</span></a></li>
+                        </ul>
+                    </li>
 
                 </ul>
             </nav>
@@ -1998,6 +2051,113 @@ This admin panel interfaces with the following Supabase database tables:
                     </div>
                 </div>
             </section>
+
+            <!-- ==================== FUEL RECIPIENT REPORT ==================== -->
+            <section id="fuel-recipient-report" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h1 style="margin: 0;">⛽ รายงานผู้รับน้ำมัน</h1>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="section-refresh-btn" id="fuel-report-refresh-btn" onclick="loadFuelReport()">
+                            <span class="btn-icon">🔄</span> Refresh
+                        </button>
+                        <button id="fuel-report-export-btn" class="control-btn" style="padding: 8px 16px; background: var(--success-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            📊 Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>จำนวนงานส่ง</h3>
+                        <p id="fuel-total-deliveries">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>สถานีทั้งหมด</h3>
+                        <p id="fuel-total-stations">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ปริมาณรวม</h3>
+                        <p id="fuel-total-liters">0 ลิตร</p>
+                    </div>
+                </div>
+
+                <!-- Date Range Filter & Controls -->
+                <div style="background: var(--card-bg); padding: 16px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">วันที่เริ่มต้น:</label>
+                        <input type="date" id="fuel-report-start-date" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">วันที่สิ้นสุด:</label>
+                        <input type="date" id="fuel-report-end-date" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">กรองตามประเภท:</label>
+                        <select id="fuel-report-type-filter" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="PTT สถานีบริการ">PTT สถานีบริการ</option>
+                            <option value="ปตท. สถานีบริการ">ปตท. สถานีบริการ</option>
+                            <option value="บางจาก">บางจาก</option>
+                            <option value="Shell">Shell</option>
+                            <option value="โรงสี/ฟาร์ม">โรงสี/ฟาร์ม</option>
+                            <option value="ลูกค้ารายย่อย">ลูกค้ารายย่อย</option>
+                        </select>
+                    </div>
+                    <button id="fuel-report-load-btn" class="control-btn" style="padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 18px;">
+                        โหลดรายงาน
+                    </button>
+                </div>
+
+                <!-- Charts Row -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <!-- Pie Chart -->
+                    <div style="background: var(--card-bg); padding: 16px; border-radius: 12px;">
+                        <h3 style="margin-bottom: 12px; font-size: 16px;">สัดส่วนตามประเภทผู้รับ</h3>
+                        <div style="height: 250px; position: relative;">
+                            <canvas id="fuel-recipient-pie-chart"></canvas>
+                        </div>
+                    </div>
+                    <!-- Bar Chart -->
+                    <div style="background: var(--card-bg); padding: 16px; border-radius: 12px;">
+                        <h3 style="margin-bottom: 12px; font-size: 16px;">Top 10 สถานี (ตามปริมาณ)</h3>
+                        <div style="height: 250px; position: relative;">
+                            <canvas id="fuel-recipient-bar-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Section -->
+                <div style="background: var(--card-bg); border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-subtle);">
+                        <h3 style="margin: 0;">แผนที่ Bubble Map</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-tertiary);">ขนาด bubble แสดงปริมาณน้ำมันที่ส่งให้แต่ละสถานี</p>
+                    </div>
+                    <div id="fuel-recipient-map" style="height: 450px; width: 100%;"></div>
+                </div>
+
+                <!-- Table Section -->
+                <div class="table-container">
+                    <table id="fuel-recipient-table">
+                        <thead>
+                            <tr>
+                                <th>รหัสสถานี</th>
+                                <th>ชื่อสถานี</th>
+                                <th>ประเภทผู้รับ</th>
+                                <th>จำนวนครั้ง</th>
+                                <th>ปริมาณน้ำมัน(ลิตร)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 20px; color: #888;">
+                                    กดปุ่ม "โหลดรายงาน" เพื่อดูข้อมูล
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -2025,5 +2185,8 @@ This admin panel interfaces with the following Supabase database tables:
 
     <!-- Solo vs 2-Driver Report Logic -->
     <script type="module" src="js/solo-vs-2driver-report.js"></script>
+
+    <!-- Fuel Recipient Report Logic -->
+    <script type="module" src="js/fuel-recipient-report.js"></script>
 </body>
 </html>
