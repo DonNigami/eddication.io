@@ -315,7 +315,8 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
             };
         }
         // Use ship_to_name for deduplication (consolidate same location in one line)
-        const shipToName = job.ship_to_name || originMap[job.ship_to_code] || '-';
+        // Trim whitespace to ensure consistent matching
+        const shipToName = (job.ship_to_name || originMap[job.ship_to_code] || '-').trim();
         // Only add if this ship_to_name hasn't been added yet
         if (!groupedJobs[ref].shipToNames.has(shipToName)) {
             groupedJobs[ref].shipToNames.add(shipToName);
