@@ -247,7 +247,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
     let query = supabase
         .from('jobdata')
-        .select('ref, driver_id, origin_id, destination_address, created_at, status, trip_ended')
+        .select('ref, driver_id, origin_id, destination_address, created_at, updated_at, status, trip_ended, checkin_time, checkout_time, stops, shipment_no')
         .eq('status', 'active')
         .eq('trip_ended', false)
         .order('created_at', { ascending: false });
@@ -258,7 +258,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
         query = query.lt('created_at', fortyEightHoursAgo);
     }
 
-    const { data: jobs, error } = await query.limit(50);
+    const { data: jobs, error } = await query.limit(100);
 
     if (error) throw error;
 
@@ -271,12 +271,16 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
     const driverIds = jobs.map(j => j.driver_id).filter(Boolean);
     const { data: drivers } = await supabase
         .from('user_profiles')
-        .select('id, display_name')
+        .select('id, display_name, driver_code, vehicle_plate')
         .in('id', driverIds);
 
     const driverMap = {};
     if (drivers) {
-        drivers.forEach(d => driverMap[d.id] = d.display_name);
+        drivers.forEach(d => driverMap[d.id] = {
+            name: d.display_name,
+            code: d.driver_code,
+            plate: d.vehicle_plate
+        });
     }
 
     // Get origin names
@@ -293,23 +297,30 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
     let html = `
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead>
                     <tr style="background: var(--border-color); text-align: left;">
-                        <th style="padding: 10px;">เลขที่งาน</th>
-                        <th style="padding: 10px;">พนักงานขับรถ</th>
-                        <th style="padding: 10px;">ต้นทาง</th>
-                        <th style="padding: 10px;">ปลายทาง</th>
-                        <th style="padding: 10px;">เวลาที่สร้าง</th>
-                        <th style="padding: 10px;">อายุงาน</th>
+                        <th style="padding: 8px;">เลขที่งาน</th>
+                        <th style="padding: 8px;">พนักงานขับรถ</th>
+                        <th style="padding: 8px;">ทะเบียน</th>
+                        <th style="padding: 8px;">ต้นทาง</th>
+                        <th style="padding: 8px;">ปลายทาง</th>
+                        <th style="padding: 8px;">Check-in</th>
+                        <th style="padding: 8px;">Check-out</th>
+                        <th style="padding: 8px;">จุดส่ง</th>
+                        <th style="padding: 8px;">อายุงาน</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
 
     jobs.forEach(job => {
-        const driverName = driverMap[job.driver_id] || '-';
+        const driver = driverMap[job.driver_id] || {};
+        const driverName = driver.name || '-';
+        const driverCode = driver.code || '';
+        const vehiclePlate = driver.plate || '-';
         const originName = originMap[job.origin_id] || '-';
+        const stopsCount = job.stops ? job.stops.length : 0;
         const ageHours = Math.floor((Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60));
         const ageText = ageHours < 48
             ? `${ageHours} ชม.`
@@ -317,12 +328,15 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
-                <td style="padding: 10px;"><strong>${job.ref || '-'}</strong></td>
-                <td style="padding: 10px;">${driverName}</td>
-                <td style="padding: 10px;">${originName}</td>
-                <td style="padding: 10px;">${job.destination_address || '-'}</td>
-                <td style="padding: 10px;">${formatDate(job.created_at)}</td>
-                <td style="padding: 10px;">${ageText}</td>
+                <td style="padding: 8px;"><strong>${job.ref || '-'}</strong></td>
+                <td style="padding: 8px;">${driverName} ${driverCode ? `(${driverCode})` : ''}</td>
+                <td style="padding: 8px;">${vehiclePlate}</td>
+                <td style="padding: 8px;">${originName}</td>
+                <td style="padding: 8px;">${job.destination_address || '-'}</td>
+                <td style="padding: 8px;">${job.checkin_time ? formatDate(job.checkin_time) : '<span style="color: #ef4444;">ยังไม่ check-in</span>'}</td>
+                <td style="padding: 8px;">${job.checkout_time ? formatDate(job.checkout_time) : '<span style="color: #f59e0b;">ยังไม่ check-out</span>'}</td>
+                <td style="padding: 8px; text-align: center;">${stopsCount}</td>
+                <td style="padding: 8px;">${ageText}</td>
             </tr>
         `;
     });
@@ -331,54 +345,62 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                 </tbody>
             </table>
         </div>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--text-sub);">แสดง ${jobs.length} รายการ</p>
     `;
 
     contentElement.innerHTML = html;
 }
 
 /**
- * Load pending approvals details
+ * Load pending approvals details (from user_profiles table)
  */
 async function loadPendingApprovalsDetails(contentElement) {
-    const { data: registrations, error } = await supabase
-        .from('driver_registrations')
-        .select('id, full_name, driver_code, sap_code, department, vehicle_type, status, submitted_at')
+    const { data: users, error } = await supabase
+        .from('user_profiles')
+        .select('id, display_name, driver_code, sap_code, department, vehicle_type, vehicle_plate, status, created_at')
         .eq('status', 'PENDING')
-        .order('submitted_at', { ascending: false })
-        .limit(20);
+        .order('created_at', { ascending: false })
+        .limit(50);
 
     if (error) throw error;
 
-    if (!registrations || registrations.length === 0) {
+    if (!users || users.length === 0) {
         contentElement.innerHTML = '<p style="color: var(--text-sub);">ไม่พบข้อมูล</p>';
         return;
     }
 
     let html = `
         <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                 <thead>
                     <tr style="background: var(--border-color); text-align: left;">
-                        <th style="padding: 10px;">ชื่อ-นามสกุล</th>
-                        <th style="padding: 10px;">รหัสพนักงาน</th>
-                        <th style="padding: 10px;">แผนก</th>
-                        <th style="padding: 10px;">ประเภทรถ</th>
-                        <th style="padding: 10px;">วันที่สมัคร</th>
-                        <th style="padding: 10px;">สถานะ</th>
+                        <th style="padding: 8px;">ชื่อ-นามสกุล</th>
+                        <th style="padding: 8px;">รหัสพนักงาน</th>
+                        <th style="padding: 8px;">รหัส SAP</th>
+                        <th style="padding: 8px;">แผนก</th>
+                        <th style="padding: 8px;">ประเภทรถ</th>
+                        <th style="padding: 8px;">ทะเบียนรถ</th>
+                        <th style="padding: 8px;">สถานะ</th>
+                        <th style="padding: 8px;">วันที่สมัคร</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
 
-    registrations.forEach(reg => {
+    users.forEach(user => {
+        const statusColor = '#f59e0b';
+        const statusText = 'รออนุมัติ';
+
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
-                <td style="padding: 10px;">${reg.full_name || '-'}</td>
-                <td style="padding: 10px;">${reg.driver_code || '-'}</td>
-                <td style="padding: 10px;">${reg.department || '-'}</td>
-                <td style="padding: 10px;">${reg.vehicle_type || '-'}</td>
-                <td style="padding: 10px;">${formatDate(reg.submitted_at)}</td>
-                <td style="padding: 10px;"><span style="color: #f59e0b; font-weight: 500;">${reg.status || '-'}</span></td>
+                <td style="padding: 8px;"><strong>${user.display_name || '-'}</strong></td>
+                <td style="padding: 8px;">${user.driver_code || '-'}</td>
+                <td style="padding: 8px;">${user.sap_code || '-'}</td>
+                <td style="padding: 8px;">${user.department || '-'}</td>
+                <td style="padding: 8px;">${user.vehicle_type || '-'}</td>
+                <td style="padding: 8px;">${user.vehicle_plate || '-'}</td>
+                <td style="padding: 8px;"><span style="color: ${statusColor}; font-weight: 500;">${statusText}</span></td>
+                <td style="padding: 8px;">${formatDate(user.created_at)}</td>
             </tr>
         `;
     });
@@ -387,6 +409,7 @@ async function loadPendingApprovalsDetails(contentElement) {
                 </tbody>
             </table>
         </div>
+        <p style="margin-top: 10px; font-size: 12px; color: var(--text-sub);">แสดง ${users.length} รายการ</p>
     `;
 
     contentElement.innerHTML = html;
