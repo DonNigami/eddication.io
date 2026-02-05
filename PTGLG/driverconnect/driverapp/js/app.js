@@ -181,6 +181,17 @@ function renderSummary(d, source = 'unknown') {
   const stops = d.stops || [];
   const totalQtyAll = stops.reduce((acc, s) => acc + (s.totalQty || 0), 0);
 
+  // Count unique stops by shipToCode/shipToName (filter out คลังศรีราชา)
+  const filteredStops = stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
+  const uniqueStopKeys = new Set();
+  filteredStops.forEach(stop => {
+    const key = stop.shipToCode && stop.shipToCode.trim()
+      ? stop.shipToCode
+      : stop.shipToName || `seq_${stop.seq}`;
+    uniqueStopKeys.add(key);
+  });
+  const uniqueStopCount = uniqueStopKeys.size;
+
   // Determine source badge
   let sourceBadge = '';
   if (source === 'jobdata') {
@@ -192,7 +203,7 @@ function renderSummary(d, source = 'unknown') {
   summaryEl.innerHTML = `
     <div class="summary-row"><span class="summary-label">Reference</span><span class="summary-value">${escapeHtml(d.referenceNo)}${sourceBadge}</span></div>
     <div class="summary-row"><span class="summary-label">ชื่อรถ</span><span class="summary-value">${escapeHtml(d.vehicleDesc) || '-'}</span></div>
-    <div class="summary-row"><span class="summary-label">จำนวนจุดส่ง</span><span class="summary-value">${stops.length} จุด</span></div>
+    <div class="summary-row"><span class="summary-label">จำนวนจุดส่ง</span><span class="summary-value">${uniqueStopCount} จุด</span></div>
     <div class="summary-row"><span class="summary-label">ปริมาณรวม</span><span class="summary-value">${totalQtyAll || 0}</span></div>
   `;
   summaryEl.classList.remove('hidden');
