@@ -279,18 +279,6 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
         });
     }
 
-    // Get destination info from origins table (ship_to_code -> origin)
-    const originCodes = jobs.map(j => j.ship_to_code).filter(Boolean);
-    const { data: origins } = await supabase
-        .from('origins')
-        .select('code, name')
-        .in('code', originCodes);
-
-    const originMap = {};
-    if (origins) {
-        origins.forEach(o => originMap[o.code] = o.name);
-    }
-
     // Group jobs by reference/shipment_no and consolidate same shiptoname
     const groupedJobs = {};
     jobs.forEach(job => {
@@ -321,9 +309,9 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
             groupedJobs[ref].driverName = driver.name || '-';
             groupedJobs[ref].driverCode = driver.code || '';
         }
-        // Use ship_to_name for deduplication (consolidate same location in one line)
+        // Use ship_to_name for deduplication (origins table not available)
         // Trim whitespace to ensure consistent matching
-        const shipToName = (job.ship_to_name || originMap[job.ship_to_code] || '-').trim();
+        const shipToName = (job.ship_to_name || '-').trim();
         // Only add if this ship_to_name hasn't been added yet
         if (!groupedJobs[ref].shipToNames.has(shipToName)) {
             groupedJobs[ref].shipToNames.add(shipToName);
