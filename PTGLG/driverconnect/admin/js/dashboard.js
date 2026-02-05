@@ -181,7 +181,7 @@ async function loadKpiDetails(kpiType, titleElement, contentElement) {
 async function loadTotalUsersDetails(contentElement) {
     const { data: users, error } = await supabase
         .from('user_profiles')
-        .select('id, display_name, driver_code, status, vehicle_plate, created_at')
+        .select('id, display_name, employee_id, status, phone, created_at')
         .order('created_at', { ascending: false })
         .limit(20);
 
@@ -200,7 +200,7 @@ async function loadTotalUsersDetails(contentElement) {
                         <th style="padding: 10px;">ชื่อ</th>
                         <th style="padding: 10px;">รหัสพนักงาน</th>
                         <th style="padding: 10px;">สถานะ</th>
-                        <th style="padding: 10px;">ทะเบียนรถ</th>
+                        <th style="padding: 10px;">เบอร์โทรศัพท์</th>
                         <th style="padding: 10px;">วันที่ลงทะเบียน</th>
                     </tr>
                 </thead>
@@ -219,9 +219,9 @@ async function loadTotalUsersDetails(contentElement) {
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
                 <td style="padding: 10px;">${user.display_name || '-'}</td>
-                <td style="padding: 10px;">${user.driver_code || '-'}</td>
+                <td style="padding: 10px;">${user.employee_id || '-'}</td>
                 <td style="padding: 10px;"><span style="color: ${statusColor}; font-weight: 500;">${user.status || '-'}</span></td>
-                <td style="padding: 10px;">${user.vehicle_plate || '-'}</td>
+                <td style="padding: 10px;">${user.phone || '-'}</td>
                 <td style="padding: 10px;">${formatDate(user.created_at)}</td>
             </tr>
         `;
@@ -245,7 +245,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
     let query = supabase
         .from('jobdata')
-        .select('id, reference, shipment_no, driver_id, ship_to_code, ship_to_name, destination_address, created_at, updated_at, status, trip_ended, checkin_time, checkout_time, stops')
+        .select('id, reference, shipment_no, confirmed_driver1, ship_to_code, ship_to_name, destination_address, created_at, updated_at, status, trip_ended, checkin_time, checkout_time')
         .in('status', ['pending', 'active', 'assigned', 'in_progress'])
         .order('created_at', { ascending: false });
 
@@ -264,19 +264,18 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
         return;
     }
 
-    // Get driver names
-    const driverIds = jobs.map(j => j.driver_id).filter(Boolean);
+    // Get driver names using user_id
+    const driverUserIds = jobs.map(j => j.confirmed_driver1).filter(Boolean);
     const { data: drivers } = await supabase
         .from('user_profiles')
-        .select('id, display_name, driver_code, vehicle_plate')
-        .in('id', driverIds);
+        .select('user_id, display_name, employee_id')
+        .in('user_id', driverUserIds);
 
     const driverMap = {};
     if (drivers) {
-        drivers.forEach(d => driverMap[d.id] = {
+        drivers.forEach(d => driverMap[d.user_id] = {
             name: d.display_name,
-            code: d.driver_code,
-            plate: d.vehicle_plate
+            code: d.employee_id
         });
     }
 
@@ -299,12 +298,11 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                     <tr style="background: var(--border-color); text-align: left;">
                         <th style="padding: 8px;">เลขที่งาน</th>
                         <th style="padding: 8px;">พนักงานขับรถ</th>
-                        <th style="padding: 8px;">ทะเบียน</th>
                         <th style="padding: 8px;">ต้นทาง</th>
                         <th style="padding: 8px;">ปลายทาง</th>
                         <th style="padding: 8px;">Check-in</th>
                         <th style="padding: 8px;">Check-out</th>
-                        <th style="padding: 8px;">จุดส่ง</th>
+                        <th style="padding: 8px;">สถานะ</th>
                         <th style="padding: 8px;">อายุงาน</th>
                     </tr>
                 </thead>
@@ -312,27 +310,39 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
     `;
 
     jobs.forEach(job => {
-        const driver = driverMap[job.driver_id] || {};
+        const driver = driverMap[job.confirmed_driver1] || {};
         const driverName = driver.name || '-';
         const driverCode = driver.code || '';
-        const vehiclePlate = driver.plate || '-';
         const originName = originMap[job.ship_to_code] || job.ship_to_name || '-';
-        const stopsCount = job.stops ? job.stops.length : 0;
         const ageHours = Math.floor((Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60));
         const ageText = ageHours < 48
             ? `${ageHours} ชม.`
             : `<span style="color: #f59e0b; font-weight: 500;">${ageHours} ชม.</span>`;
 
+        // Status display
+        const statusColors = {
+            'pending': '#f59e0b',
+            'active': '#3b82f6',
+            'assigned': '#8b5cf6',
+            'in_progress': '#22c55e'
+        };
+        const statusColor = statusColors[job.status] || '#6b7280';
+        const statusText = {
+            'pending': 'รอดำเนินการ',
+            'active': 'กำลังดำเนินการ',
+            'assigned': 'มอบหมายแล้ว',
+            'in_progress': 'กำลังดำเนินการ'
+        }[job.status] || job.status;
+
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
                 <td style="padding: 8px;"><strong>${job.reference || job.shipment_no || '-'}</strong></td>
                 <td style="padding: 8px;">${driverName} ${driverCode ? `(${driverCode})` : ''}</td>
-                <td style="padding: 8px;">${vehiclePlate}</td>
                 <td style="padding: 8px;">${originName}</td>
                 <td style="padding: 8px;">${job.destination_address || job.ship_to_name || '-'}</td>
                 <td style="padding: 8px;">${job.checkin_time ? formatDate(job.checkin_time) : '<span style="color: #ef4444;">ยังไม่ check-in</span>'}</td>
                 <td style="padding: 8px;">${job.checkout_time ? formatDate(job.checkout_time) : '<span style="color: #f59e0b;">ยังไม่ check-out</span>'}</td>
-                <td style="padding: 8px; text-align: center;">${stopsCount}</td>
+                <td style="padding: 8px;"><span style="color: ${statusColor}; font-weight: 500;">${statusText}</span></td>
                 <td style="padding: 8px;">${ageText}</td>
             </tr>
         `;
@@ -354,7 +364,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 async function loadPendingApprovalsDetails(contentElement) {
     const { data: users, error } = await supabase
         .from('user_profiles')
-        .select('id, display_name, driver_code, sap_code, department, vehicle_type, vehicle_plate, status, created_at')
+        .select('id, display_name, employee_id, user_type, phone, status, created_at')
         .eq('status', 'PENDING')
         .order('created_at', { ascending: false })
         .limit(50);
@@ -373,10 +383,8 @@ async function loadPendingApprovalsDetails(contentElement) {
                     <tr style="background: var(--border-color); text-align: left;">
                         <th style="padding: 8px;">ชื่อ-นามสกุล</th>
                         <th style="padding: 8px;">รหัสพนักงาน</th>
-                        <th style="padding: 8px;">รหัส SAP</th>
-                        <th style="padding: 8px;">แผนก</th>
-                        <th style="padding: 8px;">ประเภทรถ</th>
-                        <th style="padding: 8px;">ทะเบียนรถ</th>
+                        <th style="padding: 8px;">ประเภทผู้ใช้</th>
+                        <th style="padding: 8px;">เบอร์โทรศัพท์</th>
                         <th style="padding: 8px;">สถานะ</th>
                         <th style="padding: 8px;">วันที่สมัคร</th>
                     </tr>
@@ -391,11 +399,9 @@ async function loadPendingApprovalsDetails(contentElement) {
         html += `
             <tr style="border-bottom: 1px solid var(--border-color);">
                 <td style="padding: 8px;"><strong>${user.display_name || '-'}</strong></td>
-                <td style="padding: 8px;">${user.driver_code || '-'}</td>
-                <td style="padding: 8px;">${user.sap_code || '-'}</td>
-                <td style="padding: 8px;">${user.department || '-'}</td>
-                <td style="padding: 8px;">${user.vehicle_type || '-'}</td>
-                <td style="padding: 8px;">${user.vehicle_plate || '-'}</td>
+                <td style="padding: 8px;">${user.employee_id || '-'}</td>
+                <td style="padding: 8px;">${user.user_type || '-'}</td>
+                <td style="padding: 8px;">${user.phone || '-'}</td>
                 <td style="padding: 8px;"><span style="color: ${statusColor}; font-weight: 500;">${statusText}</span></td>
                 <td style="padding: 8px;">${formatDate(user.created_at)}</td>
             </tr>
