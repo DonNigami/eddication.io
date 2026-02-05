@@ -245,7 +245,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
 
     let query = supabase
         .from('jobdata')
-        .select('id, reference, shipment_no, confirmed_driver1, ship_to_code, ship_to_name, destination_address, created_at, updated_at, status, trip_ended, checkin_time, checkout_time')
+        .select('id, reference, shipment_no, confirmed_driver1, ship_to_code, ship_to_name, created_at, updated_at, status, trip_ended, checkin_time, checkout_time')
         .in('status', ['pending', 'active', 'assigned', 'in_progress'])
         .order('created_at', { ascending: false });
 
@@ -339,7 +339,7 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                 <td style="padding: 8px;"><strong>${job.reference || job.shipment_no || '-'}</strong></td>
                 <td style="padding: 8px;">${driverName} ${driverCode ? `(${driverCode})` : ''}</td>
                 <td style="padding: 8px;">${originName}</td>
-                <td style="padding: 8px;">${job.destination_address || job.ship_to_name || '-'}</td>
+                <td style="padding: 8px;">${job.ship_to_name || '-'}</td>
                 <td style="padding: 8px;">${job.checkin_time ? formatDate(job.checkin_time) : '<span style="color: #ef4444;">ยังไม่ check-in</span>'}</td>
                 <td style="padding: 8px;">${job.checkout_time ? formatDate(job.checkout_time) : '<span style="color: #f59e0b;">ยังไม่ check-out</span>'}</td>
                 <td style="padding: 8px;"><span style="color: ${statusColor}; font-weight: 500;">${statusText}</span></td>

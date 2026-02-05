@@ -354,6 +354,10 @@ This admin panel interfaces with the following Supabase database tables:
 
                 <!-- KPI Cards -->
                 <div class="kpi-cards" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <div class="kpi-card kpi-clickable" data-kpi-type="total-users" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex: 1; min-width: 140px;">
+                        <h3>Total Users</h3>
+                        <p id="kpi-total-users">0</p>
+                    </div>
                     <div class="kpi-card kpi-clickable" data-kpi-type="pending-approvals" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex: 1; min-width: 140px;">
                         <h3>Pending Approvals</h3>
                         <p id="kpi-pending-approvals">0</p>
@@ -362,13 +366,9 @@ This admin panel interfaces with the following Supabase database tables:
                         <h3>Active Jobs<br><small style="opacity: 0.6; font-weight: normal;">&lt; 48 ชม.</small></h3>
                         <p id="kpi-active-jobs">0</p>
                     </div>
-                    <div class="kpi-card kpi-clickable" data-kpi-type="active-jobs-48h" style="background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex: 1; min-width: 160px;">
+                    <div class="kpi-card kpi-clickable" data-kpi-type="active-jobs-48h" style="background: #ff6b6b; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex: 1; min-width: 160px;">
                         <h3>งานค้างเกิน 48 ชม.<br><small style="opacity: 0.8; font-weight: normal;">(ยังไม่ปิดทริป)</small></h3>
                         <p id="kpi-active-jobs-48h">0</p>
-                    </div>
-                    <div class="kpi-card kpi-clickable" data-kpi-type="total-users" style="cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; flex: 1; min-width: 140px;">
-                        <h3>Total Users</h3>
-                        <p id="kpi-total-users">0</p>
                     </div>
                 </div>
 
