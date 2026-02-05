@@ -272,9 +272,9 @@ function determineRecipientType(code, name) {
  */
 function formatReceiverType(type) {
     const typeMap = {
-        'manager': 'ผู้จัดการปั๊ม',
-        'frontHasCard': 'พนักงานหน้าลาน (มีบัตร)',
-        'frontNoCard': 'พนักงานหน้าลาน (ไม่มีบัตร)'
+        'manager': 'ผู้จัดการ',
+        'frontHasCard': 'พนักงาน มีบัตร',
+        'frontNoCard': 'พนักงาน ไม่มีบัตร'
     };
     return typeMap[type] || type || 'อื่นๆ';
 }
@@ -407,10 +407,10 @@ function getColorByType(type) {
         'manager': '#22c55e',         // 🟢 Green
         'frontHasCard': '#eab308',    // 🟡 Yellow
         'frontNoCard': '#ef4444',     // 🔴 Red
-        // Display names (Thai)
-        'ผู้จัดการปั๊ม': '#22c55e',           // 🟢 Green
-        'พนักงานหน้าลาน (มีบัตร)': '#eab308', // 🟡 Yellow
-        'พนักงานหน้าลาน (ไม่มีบัตร)': '#ef4444' // 🔴 Red
+        // Display names (Thai - shorter)
+        'ผู้จัดการ': '#22c55e',           // 🟢 Green
+        'พนักงาน มีบัตร': '#eab308',   // 🟡 Yellow
+        'พนักงาน ไม่มีบัตร': '#ef4444' // 🔴 Red
     };
     return colors[type] || '#6b7280';
 }
@@ -445,19 +445,29 @@ function updatePieChart() {
             datasets: [{
                 data: data,
                 backgroundColor: colors,
-                borderWidth: 0
+                borderWidth: 2,
+                borderColor: getComputedStyle(document.body).getPropertyValue('--card-bg') || '#1e293b'
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: 20
+            },
             plugins: {
                 legend: {
-                    position: 'right',
+                    position: 'bottom',
+                    align: 'start',
                     labels: {
-                        color: '#ccc',
-                        padding: 15,
-                        font: { size: 12 }
+                        color: '#9ca3af',
+                        padding: 20,
+                        font: {
+                            size: 13,
+                            family: "'Sarabun', sans-serif"
+                        },
+                        usePointStyle: true,
+                        pointStyle: 'circle'
                     }
                 },
                 tooltip: {
@@ -529,12 +539,12 @@ function updateTable(stationSearch = '', recipientFilterType = 'all') {
 
     let filteredData = reportData.stationStats;
 
-    // Apply station name search filter
-    if (stationSearch && stationSearch !== 'all') {
+    // Apply station name search filter (partial match, case-insensitive)
+    if (stationSearch) {
         filteredData = filteredData.filter(s => {
-            const searchLower = stationSearch.toLowerCase();
-            return (s.stationName && s.stationName.toLowerCase().includes(searchLower)) ||
-                   (s.stationCode && s.stationCode.toLowerCase().includes(searchLower));
+            const name = (s.stationName || '').toLowerCase();
+            const code = (s.stationCode || '').toLowerCase();
+            return name.includes(stationSearch) || code.includes(stationSearch);
         });
     }
 
