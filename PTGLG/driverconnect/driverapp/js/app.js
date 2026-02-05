@@ -181,8 +181,12 @@ function renderSummary(d, source = 'unknown') {
   const stops = d.stops || [];
   const totalQtyAll = stops.reduce((acc, s) => acc + (s.totalQty || 0), 0);
 
-  // Count unique stops by shipToCode/shipToName (filter out คลังศรีราชา)
-  const filteredStops = stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
+  // Count unique stops by shipToCode/shipToName (exclude origin and คลังศรีราชา)
+  const filteredStops = stops.filter(stop =>
+    stop.shipToName &&
+    !stop.shipToName.includes('คลังศรีราชา') &&
+    !stop.isOriginStop
+  );
   const uniqueStopKeys = new Set();
   filteredStops.forEach(stop => {
     const key = stop.shipToCode && stop.shipToCode.trim()
@@ -267,8 +271,12 @@ function renderTripDashboard(stops, reference) {
     refEl.textContent = reference;
   }
 
-  // Filter out "คลังศรีราชา" stops (same as timeline)
-  const filteredStops = stops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
+  // Filter out origin stops and "คลังศรีราชา"
+  const filteredStops = stops.filter(stop =>
+    stop.shipToName &&
+    !stop.shipToName.includes('คลังศรีราชา') &&
+    !stop.isOriginStop
+  );
 
   // Group stops by shipToCode for counting and mini dots
   const grouped = {};
