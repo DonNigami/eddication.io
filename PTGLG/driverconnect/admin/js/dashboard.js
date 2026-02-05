@@ -314,6 +314,13 @@ async function loadActiveJobsDetails(contentElement, isWithin48h) {
                 shipToNames: new Set() // Track unique ship_to_names
             };
         }
+        // Update driver info if this job has a driver and the grouped job doesn't
+        if (job.confirmed_driver1 && groupedJobs[ref].driverName === '-') {
+            const driver = driverMap[job.confirmed_driver1] || {};
+            groupedJobs[ref].confirmed_driver1 = job.confirmed_driver1;
+            groupedJobs[ref].driverName = driver.name || '-';
+            groupedJobs[ref].driverCode = driver.code || '';
+        }
         // Use ship_to_name for deduplication (consolidate same location in one line)
         // Trim whitespace to ensure consistent matching
         const shipToName = (job.ship_to_name || originMap[job.ship_to_code] || '-').trim();
