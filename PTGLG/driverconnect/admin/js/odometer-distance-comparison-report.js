@@ -119,6 +119,7 @@ async function loadReport() {
  * Logic:
  * - Actual distance: from odometer readings (end_odo - start_odo) or sum of (checkout_odo - checkin_odo)
  * - Max distance: max(distance_km) * 2 (for round trip)
+ * - ONLY include trips that are ended (have job_closed_at or end_odo)
  */
 function processReportData(rows) {
     // Group by reference
@@ -138,7 +139,9 @@ function processReportData(rows) {
                 created_at: row.created_at,
                 job_closed_at: row.job_closed_at,
                 stops: [],
-                distanceKmValues: []
+                distanceKmValues: [],
+                hasEndOdo: false,
+                hasJobClosed: false
             });
         }
 
@@ -149,10 +152,20 @@ function processReportData(rows) {
         if (row.distance_km && parseFloat(row.distance_km) > 0) {
             trip.distanceKmValues.push(parseFloat(row.distance_km));
         }
+
+        // Check if this trip has ended
+        if (row.end_odo && row.end_odo > 0) {
+            trip.hasEndOdo = true;
+        }
+        if (row.job_closed_at) {
+            trip.hasJobClosed = true;
+        }
     });
 
-    // Calculate distances for each trip
-    const trips = Array.from(tripsByReference.values()).map(trip => {
+    // Calculate distances for each trip - ONLY include ended trips
+    const trips = Array.from(tripsByReference.values())
+        .filter(trip => trip.hasEndOdo || trip.hasJobClosed) // Filter: ONLY ended trips
+        .map(trip => {
         // Calculate actual distance from odometer
         const odoDistance = calculateOdometerDistance(trip.stops);
 
