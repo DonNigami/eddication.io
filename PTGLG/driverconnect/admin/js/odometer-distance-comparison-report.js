@@ -222,44 +222,120 @@ function processReportData(rows) {
 
 /**
  * Calculate actual distance from odometer readings
+ * Logic: Collect all odometer readings (checkin_odo and checkout_odo) from all stops,
+ * sort them chronologically by timestamp, and calculate the total distance from
+ * first reading to last reading (simulating what the driver actually traveled)
+ *
  * Priority:
- * 1. end_odo - MIN(checkin_odo) if available
- * 2. sum of (checkout_odo - checkin_odo) for each stop
- * 3. 0 if no odometer data
+ * 1. Use end_odo (final odometer when trip ended) - first checkin_odo (starting point)
+ * 2. If no end_odo, use last checkout_odo - first checkin_odo
+ * 3. If no valid above, calculate cumulative distance from sequential odometer readings
  */
 function calculateOdometerDistance(stops) {
     if (!stops || stops.length === 0) return 0;
 
-    // Method 1: Use end_odo - first checkin_odo
-    const endOdo = stops.find(s => s.end_odo && s.end_odo > 0)?.end_odo;
-    const firstCheckinOdo = stops
-        .filter(s => s.checkin_odo && s.checkin_odo > 0)
-        .sort((a, b) => a.checkin_odo - b.checkin_odo)[0]?.checkin_odo;
+    // Collect all odometer events with timestamps
+    const odoEvents = [];
 
-    if (endOdo && firstCheckinOdo) {
-        const distance = endOdo - firstCheckinOdo;
-        // Validate: distance should be positive and reasonable (< 2000 km)
+    stops.forEach(stop => {
+        // Check-in event
+        if (stop.checkin_odo && stop.checkin_odo > 0) {
+            odoEvents.push({
+                odo: stop.checkin_odo,
+                time: stop.checkin_time || stop.created_at,
+                type: 'checkin',
+                seq: stop.seq || 0
+            });
+        }
+        // Check-out event
+        if (stop.checkout_odo && stop.checkout_odo > 0) {
+            odoEvents.push({
+                odo: stop.checkout_odo,
+                time: stop.checkout_time || stop.created_at,
+                type: 'checkout',
+                seq: stop.seq || 0
+            });
+        }
+    });
+
+    // Also check for end_odo (final reading when trip ended)
+    const endOdoStop = stops.find(s => s.end_odo && s.end_odo > 0);
+    if (endOdoStop) {
+        odoEvents.push({
+            odo: endOdoStop.end_odo,
+            time: endOdoStop.job_closed_at || endOdoStop.updated_at || new Date().toISOString(),
+            type: 'end',
+            seq: 9999 // Highest priority for end
+        });
+    }
+
+    if (odoEvents.length < 2) {
+        return 0; // Need at least 2 readings to calculate distance
+    }
+
+    // Sort by sequence first, then by time
+    odoEvents.sort((a, b) => {
+        if (a.seq !== b.seq) return a.seq - b.seq;
+        return new Date(a.time) - new Date(b.time);
+    });
+
+    // Remove duplicates (same or very close odometer values from same time)
+    const uniqueEvents = [];
+    odoEvents.forEach(event => {
+        const lastEvent = uniqueEvents[uniqueEvents.length - 1];
+        if (!lastEvent || Math.abs(event.odo - lastEvent.odo) > 0.1) {
+            uniqueEvents.push(event);
+        }
+    });
+
+    // Method 1: If we have end_odo, use it as final reading
+    if (endOdoStop && endOdoStop.end_odo > 0) {
+        const firstReading = uniqueEvents[0]?.odo;
+        const lastReading = endOdoStop.end_odo;
+
+        if (firstReading && lastReading > firstReading) {
+            const distance = lastReading - firstReading;
+            // Validate: distance should be reasonable (< 2000 km)
+            if (distance > 0 && distance < 2000) {
+                console.log(`📏 Odo distance (end_odo method): ${distance} km (from ${firstReading} to ${lastReading})`);
+                return Math.round(distance);
+            }
+        }
+    }
+
+    // Method 2: Use last checkout - first checkin (chronologically ordered)
+    const firstReading = uniqueEvents[0]?.odo;
+    const lastReading = uniqueEvents[uniqueEvents.length - 1]?.odo;
+
+    if (firstReading && lastReading && lastReading > firstReading) {
+        const distance = lastReading - firstReading;
+        // Validate: distance should be reasonable
         if (distance > 0 && distance < 2000) {
+            console.log(`📏 Odo distance (chronological method): ${distance} km (from ${firstReading} to ${lastReading})`);
             return Math.round(distance);
         }
     }
 
-    // Method 2: Sum of (checkout_odo - checkin_odo) for each stop
-    let sumDistance = 0;
-    let hasValidOdo = false;
+    // Method 3: Calculate cumulative distance from sequential legs
+    // Sum up each leg distance where odometer increased
+    let cumulativeDistance = 0;
+    for (let i = 0; i < uniqueEvents.length - 1; i++) {
+        const current = uniqueEvents[i];
+        const next = uniqueEvents[i + 1];
 
-    stops.forEach(stop => {
-        if (stop.checkout_odo && stop.checkin_odo) {
-            const legDistance = stop.checkout_odo - stop.checkin_odo;
-            if (legDistance > 0 && legDistance < 500) { // Validate leg distance
-                sumDistance += legDistance;
-                hasValidOdo = true;
+        // Only count forward movement (odometer should only increase)
+        if (next.odo > current.odo) {
+            const legDistance = next.odo - current.odo;
+            // Validate leg distance
+            if (legDistance > 0 && legDistance < 500) {
+                cumulativeDistance += legDistance;
             }
         }
-    });
+    }
 
-    if (hasValidOdo) {
-        return Math.round(sumDistance);
+    if (cumulativeDistance > 0) {
+        console.log(`📏 Odo distance (cumulative method): ${cumulativeDistance} km`);
+        return Math.round(cumulativeDistance);
     }
 
     return 0;
