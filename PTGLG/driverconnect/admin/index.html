@@ -230,6 +230,7 @@ This admin panel interfaces with the following Supabase database tables:
                             <li><a href="#" class="nav-link" data-target="fuel-recipient-report"><span>⛽ รายงานผู้รับน้ำมัน</span></a></li>
                             <li><a href="#" class="nav-link" data-target="odometer-distance-comparison-report"><span>📏 รายงานเปรียบเทียบกิโลเมตร</span></a></li>
                             <li><a href="#" class="nav-link" data-target="driver-reports"><span>👤 รายงานคนขับ</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="working-hours-report"><span>⏱️ รายงานชั่วโมงการทำงาน</span></a></li>
                         </ul>
                     </li>
 
@@ -772,6 +773,99 @@ This admin panel interfaces with the following Supabase database tables:
                     </table>
                 </div>
             </section>
+
+            <!-- Working Hours Report Section -->
+            <section id="working-hours-report" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="margin: 0;">⏱️ รายงานชั่วโมงการทำงาน</h1>
+                    <button id="wh-export-btn" class="btn-secondary" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: pointer;">
+                        📥 ส่งออก Excel
+                    </button>
+                </div>
+
+                <!-- Report Controls -->
+                <div class="report-controls" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label for="wh-driver-select" style="display: block; margin-bottom: 5px; font-weight: 500;">พนักงานขับรถ:</label>
+                        <select id="wh-driver-select" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);"></select>
+                    </div>
+                    <div style="flex: 0 0 auto;">
+                        <label for="wh-start-date" style="display: block; margin-bottom: 5px; font-weight: 500;">จากวันที่:</label>
+                        <input type="date" id="wh-start-date" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                    </div>
+                    <div style="flex: 0 0 auto;">
+                        <label for="wh-end-date" style="display: block; margin-bottom: 5px; font-weight: 500;">ถึงวันที่:</label>
+                        <input type="date" id="wh-end-date" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
+                    </div>
+                    <div style="flex: 0 0 auto;">
+                        <button id="wh-generate-btn" style="padding: 10px 24px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            📊 สร้างรายงาน
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Section -->
+                <div id="wh-summary" class="hidden" style="margin-bottom: 20px;">
+                    <div style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px;">
+                        <h3 style="margin: 0 0 15px 0; color: var(--primary-color);">📋 สรุปข้อมูลของ: <span id="wh-driver-name">-</span></h3>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">จำนวนงานทั้งหมด</h3>
+                            <p id="wh-total-jobs" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0</p>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">จำนวนทริป</h3>
+                            <p id="wh-total-trips" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0</p>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">รวมชั่วโมงการทำงาน</h3>
+                            <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">
+                                <span id="wh-total-hours">0</span> ชม.
+                                <span id="wh-total-minutes">0</span> นาที
+                            </p>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">เฉลี่ย/ทริป</h3>
+                            <p id="wh-avg-hours" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0.00</p>
+                            <small style="opacity: 0.8;">ชั่วโมง</small>
+                        </div>
+                        <div class="kpi-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">เฉลี่ย/วัน</h3>
+                            <p id="wh-avg-hours-day" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0.00</p>
+                            <small style="opacity: 0.8;">ชั่วโมง (จาก <span id="wh-working-days">0</span> วัน)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Details Table -->
+                <div class="table-container" style="background: var(--card-bg); border-radius: 12px; overflow: hidden;">
+                    <table id="wh-details-table">
+                        <thead>
+                            <tr>
+                                <th>เลขที่งาน</th>
+                                <th>วันที่</th>
+                                <th>เวลาเช็คอิน - เช็คเอาท์</th>
+                                <th class="text-center">ระยะเวลา</th>
+                                <th>ต้นทาง</th>
+                                <th>ปลายทาง</th>
+                                <th class="text-center">ระยะทาง (กม.)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wh-details-tbody">
+                            <tr>
+                                <td colspan="7" class="text-center" style="padding: 40px; color: var(--text-sub);">
+                                    <div style="font-size: 48px; margin-bottom: 10px; opacity: 0.5;">📊</div>
+                                    <p>เลือกพนักงานและช่วงวันที่ จากนั้นคลิก "สร้างรายงาน"</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <section id="settings" class="content-section hidden">
                 <h1>Application Settings</h1>
                 <form id="settings-form">

@@ -958,6 +958,10 @@ export async function loadSectionData(targetId) {
         case 'odometer-distance-comparison-report':
             await import('./odometer-distance-comparison-report.js').then(m => m.initOdometerDistanceComparisonReport());
             break;
+        case 'working-hours-report':
+            await import('./working-hours-report.js').then(m => m.initWorkingHoursReport());
+            break;
+            break;
         case 'map':
             await import('./map.js').then(m => m.initMap());
             break;
