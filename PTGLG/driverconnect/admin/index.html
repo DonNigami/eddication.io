@@ -171,10 +171,13 @@ This admin panel interfaces with the following Supabase database tables:
             </div>
             <nav class="sidebar-nav">
                 <ul>
-                    <!-- ==================== DASHBOARD ==================== -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         DASHBOARD & OVERVIEW
+                         ภาพรวมและสถิติสำคัญ
+                         ═══════════════════════════════════════════════════════════ -->
                     <li class="nav-section" data-section="dashboard">
                         <div class="nav-section-header">
-                            <span>📊 ภาพรวม</span>
+                            <span><span style="font-size: 16px;">📊</span> ภาพรวม</span>
                             <span class="nav-section-toggle"></span>
                         </div>
                         <ul class="nav-section-items">
@@ -182,34 +185,28 @@ This admin panel interfaces with the following Supabase database tables:
                         </ul>
                     </li>
 
-                    <!-- ==================== JOBS & OPERATIONS ==================== -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         OPERATIONS
+                         การดำเนินงานขนส่ง
+                         ═══════════════════════════════════════════════════════════ -->
                     <li class="nav-section" data-section="jobs">
                         <div class="nav-section-header">
-                            <span>🚚 งานขนส่ง</span>
+                            <span><span style="font-size: 16px;">🚚</span> การขนส่ง</span>
                             <span class="nav-section-toggle"></span>
                         </div>
                         <ul class="nav-section-items">
-                            <li><a href="#" class="nav-link" data-target="jobs"><span>📦 จัดการงาน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="jobs"><span>📦 จัดการงานขนส่ง</span></a></li>
                             <li><a href="#" class="nav-link" data-target="b100-jobs"><span>🛢️ งาน B100</span></a></li>
                         </ul>
                     </li>
 
-                    <!-- ==================== FINANCE & PAYMENTS ==================== -->
-                    <li class="nav-section" data-section="finance">
-                        <div class="nav-section-header">
-                            <span>💰 การเงิน & สวัสดิการ</span>
-                            <span class="nav-section-toggle"></span>
-                        </div>
-                        <ul class="nav-section-items">
-                            <li><a href="#" class="nav-link" data-target="incentive-approval"><span>✅ ตรวจค่าเที่ยว(หัวหน้างาน)</span></a></li>
-                            <li><a href="#" class="nav-link" data-target="payment-processing"><span>🏦 ดึงข้อมูลทำจ่าย</span></a></li>
-                        </ul>
-                    </li>
-
-                    <!-- ==================== MAINTENANCE ==================== -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         MAINTENANCE
+                         ฝ่ายช่างและบำรุงรักษา
+                         ═══════════════════════════════════════════════════════════ -->
                     <li class="nav-section" data-section="maintenance">
                         <div class="nav-section-header">
-                            <span>🔧 ฝ่ายช่าง</span>
+                            <span><span style="font-size: 16px;">🔧</span> ฝ่ายช่าง</span>
                             <span class="nav-section-toggle"></span>
                         </div>
                         <ul class="nav-section-items">
@@ -218,43 +215,77 @@ This admin panel interfaces with the following Supabase database tables:
                         </ul>
                     </li>
 
-                    <!-- ==================== REPORTS ==================== -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         FINANCE & PAYROLL
+                         การเงินและค่าจ้าง
+                         ═══════════════════════════════════════════════════════════ -->
+                    <li class="nav-section" data-section="finance">
+                        <div class="nav-section-header">
+                            <span><span style="font-size: 16px;">💰</span> การเงิน</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="incentive-approval"><span>✅ ตรวจค่าเที่ยว</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="payment-processing"><span>🏦 ดึงข้อมูลทำจ่าย</span></a></li>
+                        </ul>
+                    </li>
+
+                    <!-- ═══════════════════════════════════════════════════════════
+                         REPORTS & ANALYTICS
+                         รายงานและวิเคราะห์
+                         ═══════════════════════════════════════════════════════════ -->
                     <li class="nav-section" data-section="reports">
                         <div class="nav-section-header">
-                            <span>📈 รายงาน</span>
+                            <span><span style="font-size: 16px;">📈</span> รายงาน</span>
                             <span class="nav-section-toggle"></span>
                         </div>
                         <ul class="nav-section-items">
                             <li><a href="#" class="nav-link" data-target="logistics-performance"><span>📊 ประสิทธิภาพขนส่ง</span></a></li>
-                            <li><a href="#" class="nav-link" data-target="solo-vs-2driver-report"><span>🚗🚗 รายงานวิ่งคนเดียว vs 2 คน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="solo-vs-2driver-report"><span>🚗 วิ่งคนเดียว vs 2 คน</span></a></li>
                             <li><a href="#" class="nav-link" data-target="fuel-recipient-report"><span>⛽ รายงานผู้รับน้ำมัน</span></a></li>
-                            <li><a href="#" class="nav-link" data-target="odometer-distance-comparison-report"><span>📏 รายงานเปรียบเทียบกิโลเมตร</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="odometer-distance-comparison-report"><span>📏 เปรียบเทียบกิโลเมตร</span></a></li>
                             <li><a href="#" class="nav-link" data-target="driver-reports"><span>👤 รายงานคนขับ</span></a></li>
                             <li><a href="#" class="nav-link" data-target="working-hours-report"><span>⏱️ รายงานชั่วโมงการทำงาน</span></a></li>
                         </ul>
                     </li>
 
-                    <!-- ==================== SYSTEM MANAGEMENT ==================== -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         DATA MANAGEMENT
+                         จัดการข้อมูล
+                         ═══════════════════════════════════════════════════════════ -->
                     <li class="nav-section" data-section="system">
                         <div class="nav-section-header">
-                            <span>⚙️ ระบบ</span>
+                            <span><span style="font-size: 16px;">🗂️</span> ข้อมูล</span>
                             <span class="nav-section-toggle"></span>
                         </div>
                         <ul class="nav-section-items">
                             <li><a href="#" class="nav-link" data-target="users"><span>👥 จัดการผู้ใช้</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="driver-master"><span>👨‍✈️ ฐานข้อมูลคนขับ</span></a></li>
                             <li><a href="#" class="nav-link" data-target="registration-approval"><span>📝 อนุมัติสมัครสมาชิก <span id="registration-badge" class="badge hidden">0</span></span></a></li>
-                            <li><a href="#" class="nav-link" data-target="settings"><span>⚙️ ตั้งค่า</span></a></li>
                         </ul>
                     </li>
 
-                    <!-- ==================== HIDDEN (Temporarily Disabled) ==================== -->
-                    <!-- Hidden: Alerts - data-target="alerts" -->
-                    <!-- Hidden: Fuel Siphoning - data-target="fuel-siphoning" -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         SETTINGS
+                         ตั้งค่าระบบ
+                         ═══════════════════════════════════════════════════════════ -->
+                    <li class="nav-section" data-section="settings-section">
+                        <div class="nav-section-header">
+                            <span><span style="font-size: 16px;">⚙️</span> ตั้งค่า</span>
+                            <span class="nav-section-toggle"></span>
+                        </div>
+                        <ul class="nav-section-items">
+                            <li><a href="#" class="nav-link" data-target="settings"><span>🔩 ตั้งค่าระบบ</span></a></li>
+                        </ul>
+                    </li>
 
-                    <!-- ==================== DEVELOPER TOOLS ==================== -->
+                    <!-- ═══════════════════════════════════════════════════════════
+                         DEVELOPER TOOLS
+                         เครื่องมือนักพัฒนา
+                         ═══════════════════════════════════════════════════════════ -->
                     <li class="nav-section nav-dev-tools" data-section="devtools">
                         <div class="nav-section-header">
-                            <span>🛠️ เครื่องมือนักพัฒนา</span>
+                            <span><span style="font-size: 16px;">🛠️</span> นักพัฒนา</span>
                             <span class="nav-section-toggle"></span>
                         </div>
                         <ul class="nav-section-items">
@@ -774,97 +805,152 @@ This admin panel interfaces with the following Supabase database tables:
                 </div>
             </section>
 
-            <!-- Working Hours Report Section -->
+            <!-- Working Hours Dashboard Section -->
             <section id="working-hours-report" class="content-section hidden">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <h1 style="margin: 0;">⏱️ รายงานชั่วโมงการทำงาน</h1>
                     <button id="wh-export-btn" class="btn-secondary" style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: pointer;">
                         📥 ส่งออก Excel
                     </button>
                 </div>
 
-                <!-- Report Controls -->
-                <div class="report-controls" style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label for="wh-driver-select" style="display: block; margin-bottom: 5px; font-weight: 500;">พนักงานขับรถ:</label>
-                        <select id="wh-driver-select" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);"></select>
-                    </div>
-                    <div style="flex: 0 0 auto;">
-                        <label for="wh-start-date" style="display: block; margin-bottom: 5px; font-weight: 500;">จากวันที่:</label>
-                        <input type="date" id="wh-start-date" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
-                    </div>
-                    <div style="flex: 0 0 auto;">
-                        <label for="wh-end-date" style="display: block; margin-bottom: 5px; font-weight: 500;">ถึงวันที่:</label>
-                        <input type="date" id="wh-end-date" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color);">
-                    </div>
-                    <div style="flex: 0 0 auto;">
-                        <button id="wh-generate-btn" style="padding: 10px 24px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-                            📊 สร้างรายงาน
-                        </button>
-                    </div>
-                </div>
+                <!-- Filters Section -->
+                <div style="background: var(--card-bg); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;">
+                        <!-- Date Range -->
+                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-size: 13px; color: var(--text-sub);">จากวันที่:</label>
+                                <input type="date" id="wh-start-date" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 14px;">
+                            </div>
+                            <div>
+                                <label style="display: block; margin-bottom: 5px; font-size: 13px; color: var(--text-sub);">ถึงวันที่:</label>
+                                <input type="date" id="wh-end-date" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 14px;">
+                            </div>
+                            <button id="wh-apply-date-btn" style="padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">
+                                ใช้
+                            </button>
+                        </div>
 
-                <!-- Summary Section -->
-                <div id="wh-summary" class="hidden" style="margin-bottom: 20px;">
-                    <div style="background: var(--card-bg); border-radius: 12px; padding: 20px; margin-bottom: 15px;">
-                        <h3 style="margin: 0 0 15px 0; color: var(--primary-color);">📋 สรุปข้อมูลของ: <span id="wh-driver-name">-</span></h3>
-                    </div>
+                        <!-- Quick Date Buttons -->
+                        <div style="display: flex; gap: 8px;">
+                            <button class="wh-quick-date-btn" data-range="today" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">วันนี้</button>
+                            <button class="wh-quick-date-btn" data-range="week" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">7 วัน</button>
+                            <button class="wh-quick-date-btn" data-range="month" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">เดือนนี้</button>
+                            <button class="wh-quick-date-btn" data-range="quarter" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">3 เดือน</button>
+                            <button class="wh-quick-date-btn" data-range="year" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">ปีนี้</button>
+                        </div>
 
-                    <!-- Summary Cards -->
-                    <div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 15px;">
-                        <div class="kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">จำนวนงานทั้งหมด</h3>
-                            <p id="wh-total-jobs" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0</p>
-                        </div>
-                        <div class="kpi-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
-                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">จำนวนทริป</h3>
-                            <p id="wh-total-trips" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0</p>
-                        </div>
-                        <div class="kpi-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
-                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">รวมชั่วโมงการทำงาน</h3>
-                            <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">
-                                <span id="wh-total-hours">0</span> ชม.
-                                <span id="wh-total-minutes">0</span> นาที
-                            </p>
-                        </div>
-                        <div class="kpi-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white;">
-                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">เฉลี่ย/ทริป</h3>
-                            <p id="wh-avg-hours" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0.00</p>
-                            <small style="opacity: 0.8;">ชั่วโมง</small>
-                        </div>
-                        <div class="kpi-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
-                            <h3 style="margin: 0; font-size: 12px; opacity: 0.9;">เฉลี่ย/วัน</h3>
-                            <p id="wh-avg-hours-day" style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">0.00</p>
-                            <small style="opacity: 0.8;">ชั่วโมง (จาก <span id="wh-working-days">0</span> วัน)</small>
+                        <!-- Search & Filter -->
+                        <div style="display: flex; gap: 10px; margin-left: auto;">
+                            <input type="text" id="wh-search-input" placeholder="ค้นหาชื่อ/รหัส..." style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 14px; min-width: 200px;">
+                            <select id="wh-status-filter" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); font-size: 14px;">
+                                <option value="all">ทุกสถานะ</option>
+                                <option value="active">มีการทำงาน</option>
+                                <option value="inactive">ไม่มีการทำงาน</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                <!-- Details Table -->
-                <div class="table-container" style="background: var(--card-bg); border-radius: 12px; overflow: hidden;">
-                    <table id="wh-details-table">
-                        <thead>
-                            <tr>
-                                <th>เลขที่งาน</th>
-                                <th>วันที่</th>
-                                <th>เวลาเช็คอิน - เช็คเอาท์</th>
-                                <th class="text-center">ระยะเวลา</th>
-                                <th>ต้นทาง</th>
-                                <th>ปลายทาง</th>
-                                <th class="text-center">ระยะทาง (กม.)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="wh-details-tbody">
-                            <tr>
-                                <td colspan="7" class="text-center" style="padding: 40px; color: var(--text-sub);">
-                                    <div style="font-size: 48px; margin-bottom: 10px; opacity: 0.5;">📊</div>
-                                    <p>เลือกพนักงานและช่วงวันที่ จากนั้นคลิก "สร้างรายงาน"</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Summary Stats -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">พนักงานทั้งหมด</div>
+                        <div style="font-size: 32px; font-weight: 700;" id="wh-total-drivers">0</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">มีการทำงาน</div>
+                        <div style="font-size: 32px; font-weight: 700;" id="wh-active-drivers">0</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">รวมชั่วโมงทั้งหมด</div>
+                        <div style="font-size: 32px; font-weight: 700;" id="wh-total-hours">0 ชม.</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">เฉลี่ยต่อคน</div>
+                        <div style="font-size: 32px; font-weight: 700;" id="wh-avg-hours-driver">0 ชม.</div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 20px; border-radius: 12px; color: white;">
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">งานทั้งหมด</div>
+                        <div style="font-size: 32px; font-weight: 700;" id="wh-total-jobs">0</div>
+                    </div>
+                </div>
+
+                <!-- Driver Cards Grid -->
+                <div id="wh-drivers-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                    <!-- Driver cards will be inserted here -->
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-sub);">
+                        <div style="font-size: 64px; margin-bottom: 20px; opacity: 0.3;">📊</div>
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
                 </div>
             </section>
+
+            <!-- Driver Detail Modal -->
+            <div id="wh-detail-modal" class="modal hidden">
+                <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                    <span class="close-button" id="wh-detail-modal-close" style="font-size: 28px; cursor: pointer; float: right;">&times;</span>
+
+                    <!-- Modal Header -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0; margin: -20px -20px 20px -20px;">
+                        <h2 id="wh-detail-driver-name" style="margin: 0; font-size: 24px;">-</h2>
+                        <p id="wh-detail-driver-code" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">-</p>
+                        <p id="wh-detail-period" style="margin: 5px 0 0 0; opacity: 0.8; font-size: 13px;">-</p>
+                    </div>
+
+                    <!-- Summary Stats -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">งานทั้งหมด</div>
+                            <div id="wh-detail-total-jobs" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">รวมชั่วโมง</div>
+                            <div id="wh-detail-total-hours" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">เฉลี่ย/งาน</div>
+                            <div id="wh-detail-avg-per-job" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                        </div>
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">ทำงาน</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--primary-color);"><span id="wh-detail-working-days">0</span> วัน</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">เฉลี่ย/วัน</div>
+                            <div id="wh-detail-avg-per-day" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Jobs Table -->
+                    <h3 style="margin: 0 0 15px 0; font-size: 16px;">รายละเอียดการทำงาน</h3>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr style="background: #f8f9fa;">
+                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">เลขที่งาน</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">วันที่</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">เวลา</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">ระยะเวลา</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">ต้นทาง</th>
+                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">ปลายทาง</th>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">กม.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="wh-detail-jobs-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-sub);">
+                                        ไม่พบข้อมูล
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
             <section id="settings" class="content-section hidden">
                 <h1>Application Settings</h1>
@@ -897,6 +983,79 @@ This admin panel interfaces with the following Supabase database tables:
                     <button type="submit">Save Settings</button>
                 </form>
             </section>
+
+            <!-- Driver Master Management Section -->
+            <section id="driver-master" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="margin: 0;">👨‍✈️ ฐานข้อมูลคนขับรถ (Driver Master)</h1>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="section-refresh-btn" id="driver-master-refresh-btn" onclick="loadDriverMaster()"><span class="btn-icon">🔄</span> Refresh</button>
+                        <button class="btn-primary" onclick="openDriverMasterModal()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500;"><span class="btn-icon">➕</span> เพิ่มคนขับรถ</button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>คนขับทั้งหมด</h3>
+                        <p id="dm-total-count">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>แผนก</h3>
+                        <p id="dm-section-count">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ประเภทรถ</h3>
+                        <p id="dm-truck-type-count">0</p>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="dm-search-input" placeholder="ค้นหา รหัสพนักงาน/ชื่อ/รหัส SAP..." style="flex: 1; min-width: 250px; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                    <select id="dm-section-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                        <option value="">ทุกแผนก</option>
+                    </select>
+                    <select id="dm-truck-type-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                        <option value="">ทุกประเภทรถ</option>
+                    </select>
+                    <button onclick="loadDriverMaster()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">ค้นหา</button>
+                    <button onclick="clearDriverMasterFilters()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ล้าง</button>
+                </div>
+
+                <!-- Driver Master Table -->
+                <div class="table-container">
+                    <table id="driver-master-table">
+                        <thead>
+                            <tr>
+                                <th>รหัสพนักงาน</th>
+                                <th>ชื่อ-นามสกุล</th>
+                                <th>รหัส SAP</th>
+                                <th>แผนก</th>
+                                <th>ประเภทรถ</th>
+                                <th>ตำแหน่ง</th>
+                                <th style="text-align: center;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="driver-master-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                    <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                    <p>กำลังโหลดข้อมูล...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div id="dm-pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                    <button id="dm-prev-btn" onclick="prevDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
+                    <span id="dm-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
+                    <button id="dm-next-btn" onclick="nextDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
+                </div>
+            </section>
+
             <section id="alerts" class="content-section hidden">
                 <h1>Triggered Alerts</h1>
                 <div class="table-container">
@@ -2419,5 +2578,94 @@ This admin panel interfaces with the following Supabase database tables:
 
     <!-- Odometer Distance Comparison Report Logic -->
     <script type="module" src="js/odometer-distance-comparison-report.js"></script>
+
+    <!-- Driver Master Management Logic -->
+    <script type="module" src="js/driver-master.js"></script>
+
+    <!-- Driver Master Modal -->
+    <div id="driver-master-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <span class="close-button" onclick="closeDriverMasterModal()">&times;</span>
+            <h2 id="dm-modal-title">👨‍✈️ เพิ่ม/แก้ไขข้อมูลคนขับรถ</h2>
+
+            <form id="driver-master-form" onsubmit="saveDriverMaster(event)">
+                <input type="hidden" id="dm-mode" value="create">
+                <input type="hidden" id="dm-original-employee-code" value="">
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="dm-employee-code" style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสพนักงาน <span style="color: red;">*</span></label>
+                    <input type="text" id="dm-employee-code" required maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น EMP001">
+                    <small style="color: var(--text-sub);">รหัสพนักงานเป็นค่าเฉพาะที่ไม่สามารถเปลี่ยนแปลงได้</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="dm-driver-name" style="display: block; margin-bottom: 5px; font-weight: 500;">ชื่อ-นามสกุล <span style="color: red;">*</span></label>
+                    <input type="text" id="dm-driver-name" required maxlength="255" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น สมชาย ใจดี">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="dm-driver-sap-code" style="display: block; margin-bottom: 5px; font-weight: 500;">รหัส SAP <span style="color: red;">*</span></label>
+                    <input type="text" id="dm-driver-sap-code" required maxlength="20" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น SAP001">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="dm-section" style="display: block; margin-bottom: 5px; font-weight: 500;">แผนก <span style="color: red;">*</span></label>
+                    <input type="text" id="dm-section" required maxlength="100" list="dm-section-list" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น ขนส่งที่ 1">
+                    <datalist id="dm-section-list">
+                        <option value="ขนส่งที่ 1">
+                        <option value="ขนส่งที่ 2">
+                        <option value="ขนส่งที่ 3">
+                        <option value="ขนส่งที่ 4">
+                        <option value="ฝ่ายช่าง">
+                    </datalist>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="dm-truck-type" style="display: block; margin-bottom: 5px; font-weight: 500;">ประเภทรถ <span style="color: red;">*</span></label>
+                    <select id="dm-truck-type" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                        <option value="">-- เลือกประเภทรถ --</option>
+                        <option value="รถบรรทุก 4 ล้อ">รถบรรทุก 4 ล้อ</option>
+                        <option value="รถบรรทุก 6 ล้อ">รถบรรทุก 6 ล้อ</option>
+                        <option value="รถบรรทุก 10 ล้อ">รถบรรทุก 10 ล้อ</option>
+                        <option value="รถพ่วง">รถพ่วง</option>
+                        <option value="รถถัง">รถถัง</option>
+                        <option value="รถบรรทุกน้ำมัน">รถบรรทุกน้ำมัน</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="dm-position" style="display: block; margin-bottom: 5px; font-weight: 500;">ตำแหน่ง <span style="color: red;">*</span></label>
+                    <input type="text" id="dm-position" required maxlength="100" list="dm-position-list" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น พนักงานขับรถ">
+                    <datalist id="dm-position-list">
+                        <option value="พนักงานขับรถ">
+                        <option value="พนักงานขับรถนำ">
+                        <option value="พนักงานขับรถร่วม">
+                        <option value="หัวหน้างานขนส่ง">
+                    </datalist>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="closeDriverMasterModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ยกเลิก</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="dm-delete-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="close-button" onclick="closeDmDeleteModal()">&times;</span>
+            <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+            <h2 style="margin-bottom: 10px;">ยืนยันการลบ?</h2>
+            <p style="color: var(--text-sub); margin-bottom: 20px;">คุณต้องการลบข้อมูลคนขับรถ <strong id="dm-delete-name"></strong> หรือไม่?</p>
+            <p style="color: #dc2626; font-size: 14px; margin-bottom: 20px;">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <input type="hidden" id="dm-delete-employee-code">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="closeDmDeleteModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ยกเลิก</button>
+                <button onclick="confirmDeleteDriverMaster()" style="padding: 10px 20px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">ลบข้อมูล</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

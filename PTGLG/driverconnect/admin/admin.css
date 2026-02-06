@@ -377,12 +377,19 @@ a:hover {
     text-transform: uppercase;
 }
 
-/* Sidebar Navigation */
+/* ============================================
+   ENHANCED SIDEBAR NAVIGATION - World Class Design
+   ============================================ */
+
+/* Sidebar Navigation Container */
 .sidebar-nav {
     flex: 1;
-    padding: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--space-2);
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
 }
 
 .sidebar-nav ul {
@@ -391,9 +398,29 @@ a:hover {
     margin: 0;
 }
 
-/* Navigation Sections */
+/* ============================================
+   NAVIGATION SECTION - Group Container
+   ============================================ */
 .nav-section {
-    margin-bottom: var(--space-1);
+    margin-bottom: var(--space-2);
+    position: relative;
+}
+
+/* Section divider - subtle visual separator */
+.nav-section:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: var(--space-3);
+    right: var(--space-3);
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        var(--border-subtle) 20%,
+        var(--border-subtle) 80%,
+        transparent 100%
+    );
+    opacity: 0.5;
 }
 
 .nav-section-items {
@@ -407,47 +434,76 @@ a:hover {
     margin: 0;
 }
 
-/* Section Headers */
+/* ============================================
+   SECTION HEADER - Collapsible Category
+   ============================================ */
 .nav-section-header {
     font-size: var(--text-xs);
     font-weight: var(--font-semibold);
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
     color: var(--text-muted);
-    padding: var(--space-2) var(--space-3) var(--space-1);
-    margin-top: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    margin-top: var(--space-3);
     cursor: pointer;
     user-select: none;
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    position: relative;
+    transition: all var(--duration-base) var(--ease-smooth);
 }
 
 .nav-section-header:first-child {
-    margin-top: 0;
+    margin-top: var(--space-1);
 }
 
+.nav-section-header:hover {
+    color: var(--text-secondary);
+}
+
+/* Section category icon - Main icon with larger emoji */
+.nav-section-header > span > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+
+/* Toggle indicator - Chevron */
 .nav-section-toggle {
     margin-left: auto;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 8px;
-    transition: transform var(--duration-base) var(--ease-smooth);
+    transition: transform var(--duration-base) var(--ease-spring);
 }
 
-.nav-section.collapsed .nav-section-toggle {
+.nav-section-toggle::before {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    border-top: 4px solid currentColor;
+    transition: transform var(--duration-base) var(--ease-spring);
+}
+
+.nav-section.collapsed .nav-section-toggle::before {
     transform: rotate(-90deg);
 }
 
-/* Navigation Links */
+/* ============================================
+   NAVIGATION LINKS - Menu Items
+   ============================================ */
 .nav-link {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
-    padding: 0.375rem var(--space-3);
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
     color: var(--text-secondary);
     text-decoration: none;
     border-radius: var(--radius-md);
@@ -455,14 +511,19 @@ a:hover {
     position: relative;
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
-    margin-bottom: 2px;
+    margin: 1px 0;
     width: 100%;
+    overflow: hidden;
 }
 
 .nav-link span {
     flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* Active indicator - Left border accent */
 .nav-link::before {
     content: '';
     position: absolute;
@@ -470,24 +531,33 @@ a:hover {
     top: 50%;
     transform: translateY(-50%) scaleX(0);
     width: 3px;
-    height: 20px;
-    background: var(--brand-primary);
+    height: 22px;
+    background: linear-gradient(180deg,
+        var(--brand-primary-light) 0%,
+        var(--brand-primary) 100%
+    );
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
     transition: transform var(--duration-base) var(--ease-spring);
 }
 
+/* Hover state */
 .nav-link:hover {
     background: var(--bg-hover);
     color: var(--text-primary);
-    transform: translateX(2px);
+    transform: translateX(3px);
+    box-shadow: 0 2px 8px hsla(210, 30%, 5%, 0.15);
 }
 
 .nav-link:hover::before {
     transform: translateY(-50%) scaleX(1);
 }
 
+/* Active state */
 .nav-link.active {
-    background: var(--brand-primary-dim);
+    background: linear-gradient(90deg,
+        var(--brand-primary-dim) 0%,
+        transparent 100%
+    );
     color: var(--brand-primary-light);
     font-weight: var(--font-semibold);
 }
@@ -496,22 +566,44 @@ a:hover {
     transform: translateY(-50%) scaleX(1);
 }
 
+/* Active glow effect */
+.nav-link.active {
+    box-shadow:
+        0 0 0 1px var(--brand-primary-dim),
+        0 0 20px var(--brand-primary-glow);
+}
+
+/* Badge indicator (notification count) */
 .nav-link .badge {
     margin-left: auto;
     background: var(--error-color);
     color: white;
     font-size: 10px;
     font-weight: var(--font-bold);
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: var(--radius-full);
-    min-width: 18px;
+    min-width: 20px;
     text-align: center;
+    box-shadow: 0 2px 8px hsla(350, 75%, 55%, 0.4);
     animation: pulse-badge 2s ease-in-out infinite;
 }
 
 @keyframes pulse-badge {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }
+}
+
+/* ============================================
+   SECTION COLLAPSE - Expand/Collapse Animation
+   ============================================ */
+.nav-section-items {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height var(--duration-slower) var(--ease-smooth);
+}
+
+.nav-section.collapsed .nav-section-items {
+    max-height: 0;
 }
 
 /* Sidebar Footer */
@@ -585,54 +677,9 @@ a:hover {
     content: '▶';
 }
 
-/* Nav Section Collapse */
-.nav-section {
-    margin-bottom: var(--space-1);
-}
-
-.nav-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    cursor: pointer;
-    user-select: none;
-    transition: color var(--duration-fast) var(--ease-smooth);
-}
-
-.nav-section-header:hover {
-    color: var(--text-secondary);
-}
-
-.nav-section-header .nav-section-toggle {
-    width: 16px;
-    height: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: auto;
-    transition: transform var(--duration-base) var(--ease-smooth);
-}
-
-.nav-section-header .nav-section-toggle::after {
-    content: '▼';
-    font-size: 8px;
-}
-
-.nav-section.collapsed .nav-section-header .nav-section-toggle {
-    transform: rotate(-90deg);
-}
-
-.nav-section-items {
-    max-height: 500px;
-    overflow: hidden;
-    transition: max-height var(--duration-slow) var(--ease-smooth);
-}
-
-.nav-section.collapsed .nav-section-items {
-    max-height: 0;
-}
-
-/* Collapsed Sidebar State (Desktop) */
+/* ============================================
+   COLLAPSED SIDEBAR STATE (Desktop)
+   ============================================ */
 .sidebar.collapsed {
     width: var(--sidebar-collapsed-width);
 }
@@ -3403,6 +3450,62 @@ html, body {
 .sidebar-nav::-webkit-scrollbar-thumb:hover,
 .notification-list::-webkit-scrollbar-thumb:hover {
     background: var(--border-strong);
+}
+
+/* ============================================
+   WORKING HOURS DASHBOARD STYLES
+   ============================================ */
+
+/* Driver Card Hover Effects */
+.wh-driver-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wh-driver-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+}
+
+.wh-driver-card:active {
+    transform: translateY(-2px);
+}
+
+/* Quick Date Buttons */
+.wh-quick-date-btn {
+    transition: all 0.2s ease;
+}
+
+.wh-quick-date-btn:hover {
+    background: var(--brand-primary) !important;
+    color: white !important;
+    border-color: var(--brand-primary) !important;
+}
+
+.wh-quick-date-btn:active {
+    transform: scale(0.98);
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-default);
+    border-top-color: var(--brand-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Table Styles */
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
 }
 
 /* ============================================
