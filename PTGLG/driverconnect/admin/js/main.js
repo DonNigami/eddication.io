@@ -955,6 +955,9 @@ export async function loadSectionData(targetId) {
         case 'fuel-recipient-report':
             await import('./fuel-recipient-report.js').then(m => m.initFuelRecipientReport());
             break;
+        case 'odometer-distance-comparison-report':
+            await import('./odometer-distance-comparison-report.js').then(m => m.initOdometerDistanceComparisonReport());
+            break;
         case 'map':
             await import('./map.js').then(m => m.initMap());
             break;

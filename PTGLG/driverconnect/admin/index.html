@@ -228,6 +228,7 @@ This admin panel interfaces with the following Supabase database tables:
                             <li><a href="#" class="nav-link" data-target="logistics-performance"><span>📊 ประสิทธิภาพขนส่ง</span></a></li>
                             <li><a href="#" class="nav-link" data-target="solo-vs-2driver-report"><span>🚗🚗 รายงานวิ่งคนเดียว vs 2 คน</span></a></li>
                             <li><a href="#" class="nav-link" data-target="fuel-recipient-report"><span>⛽ รายงานผู้รับน้ำมัน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="odometer-distance-comparison-report"><span>📏 รายงานเปรียบเทียบกิโลเมตร</span></a></li>
                             <li><a href="#" class="nav-link" data-target="driver-reports"><span>👤 รายงานคนขับ</span></a></li>
                         </ul>
                     </li>
@@ -2156,6 +2157,141 @@ This admin panel interfaces with the following Supabase database tables:
                     </table>
                 </div>
             </section>
+
+            <!-- ==================== ODOMETER DISTANCE COMPARISON REPORT ==================== -->
+            <section id="odometer-distance-comparison-report" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h1 style="margin: 0;">📏 รายงานเปรียบเทียบกิโลเมตร</h1>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="odo-report-load-btn" class="control-btn" style="padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            โหลดรายงาน
+                        </button>
+                        <button id="odo-report-export-btn" class="control-btn" style="padding: 10px 20px; background: var(--success-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            📥 ส่งออก Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div class="filter-bar" style="margin-bottom: 20px; background: var(--card-bg); padding: 15px; border-radius: 8px;">
+                    <div style="display: flex; gap: 15px; align-items: end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="odo-report-start-date">วันที่เริ่ม:</label>
+                            <input type="date" id="odo-report-start-date" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="odo-report-end-date">วันที่สิ้นสุด:</label>
+                            <input type="date" id="odo-report-end-date" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                        </div>
+                        <div>
+                            <label>ระยะเวลา:</label>
+                            <span style="font-size: 0.9em; color: var(--text-secondary);">(ค่าเริ่มต้น: 30 วันล่าสุด)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">จำนวนเที่ยว</h3>
+                        <p id="odo-total-trips" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0</p>
+                    </div>
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">ระยะทาง Odometer รวม</h3>
+                        <p id="odo-total-odo-km" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0 km</p>
+                    </div>
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">ระยะทางคำนวณรวม (max*2)</h3>
+                        <p id="odo-total-calc-km" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0 km</p>
+                    </div>
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">ความแตกต่างเฉลี่ย</h3>
+                        <p id="odo-avg-diff" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0 km</p>
+                        <small id="odo-avg-diff-percent" style="color: rgba(255,255,255,0.8);">(0%)</small>
+                    </div>
+                </div>
+
+                <!-- Difference Category Cards -->
+                <div class="kpi-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">มากกว่า (Over)</h3>
+                        <p id="odo-over-count" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0</p>
+                        <small id="odo-over-percent" style="color: rgba(255,255,255,0.8);">0%</small>
+                    </div>
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">น้อยกว่า (Under)</h3>
+                        <p id="odo-under-count" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0</p>
+                        <small id="odo-under-percent" style="color: rgba(255,255,255,0.8);">0%</small>
+                    </div>
+                    <div class="kpi-card" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 20px; border-radius: 8px;">
+                        <h3 style="margin: 0 0 10px 0; color: white; font-size: 0.9em;">ตรง (Exact)</h3>
+                        <p id="odo-exact-count" style="font-size: 2.5em; font-weight: bold; color: white; margin: 0;">0</p>
+                        <small id="odo-exact-percent" style="color: rgba(255,255,255,0.8);">0%</small>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <!-- Scatter Chart -->
+                    <div class="chart-card" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>📊 Scatter Plot: Odometer vs Calculated Distance</h3>
+                        <p style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 10px;">
+                            <span style="color: #22c55e;">●</span> มากกว่า 10km
+                            <span style="color: #ef4444; margin-left: 10px;">●</span> น้อยกว่า 10km
+                            <span style="color: #3b82f6; margin-left: 10px;">●</span> ใกล้เคียง
+                        </p>
+                        <canvas id="odo-scatter-chart" style="max-height: 350px;"></canvas>
+                    </div>
+
+                    <!-- Bar Chart -->
+                    <div class="chart-card" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                        <h3>📊 สรุปความแตกต่าง</h3>
+                        <canvas id="odo-diff-bar-chart" style="max-height: 350px;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Detailed Table -->
+                <div class="table-container" style="background: var(--card-bg); padding: 20px; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">📋 รายละเอียดแต่ละเที่ยว</h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <label>แสดง:</label>
+                            <select id="odo-report-filter-type" style="padding: 5px 10px; border-radius: 5px; border: 1px solid var(--border-color); background-color: #333; color: var(--text-color);">
+                                <option value="all">ทั้งหมด</option>
+                                <option value="over">เฉพาะมากกว่า</option>
+                                <option value="under">เฉพาะน้อยกว่า</option>
+                                <option value="exact">เฉพาะตรง</option>
+                            </select>
+                            <span id="odo-trip-count" style="color: #888;">0 เที่ยว</span>
+                        </div>
+                    </div>
+                    <div style="max-height: 600px; overflow-y: auto;">
+                        <table id="odo-comparison-table" style="width: 100%;">
+                            <thead style="position: sticky; top: 0; background: var(--card-bg); z-index: 1;">
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>Reference</th>
+                                    <th>Shipment No.</th>
+                                    <th>คนขับ</th>
+                                    <th>รถ</th>
+                                    <th>Max Distance (km)</th>
+                                    <th>Calculated (max*2)</th>
+                                    <th>Odometer Distance</th>
+                                    <th>ความแตกต่าง</th>
+                                    <th>หมวดหมู่</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="10" style="text-align: center; padding: 20px; color: #888;">
+                                        กดปุ่ม "โหลดรายงาน" เพื่อดูข้อมูล
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -2186,5 +2322,8 @@ This admin panel interfaces with the following Supabase database tables:
 
     <!-- Fuel Recipient Report Logic -->
     <script type="module" src="js/fuel-recipient-report.js"></script>
+
+    <!-- Odometer Distance Comparison Report Logic -->
+    <script type="module" src="js/odometer-distance-comparison-report.js"></script>
 </body>
 </html>
