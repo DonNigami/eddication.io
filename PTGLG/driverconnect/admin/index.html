@@ -1010,10 +1010,10 @@ This admin panel interfaces with the following Supabase database tables:
                 <!-- Filters -->
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                     <input type="text" id="dm-search-input" placeholder="ค้นหา รหัสพนักงาน/ชื่อ/รหัส SAP..." style="flex: 1; min-width: 250px; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
-                    <select id="dm-section-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                    <select id="dm-section-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #212936; color: #f7f8fa;">
                         <option value="">ทุกแผนก</option>
                     </select>
-                    <select id="dm-truck-type-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                    <select id="dm-truck-type-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #212936; color: #f7f8fa;">
                         <option value="">ทุกประเภทรถ</option>
                     </select>
                     <button onclick="loadDriverMaster()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">ค้นหา</button>
@@ -2613,24 +2613,24 @@ This admin panel interfaces with the following Supabase database tables:
                     <label for="dm-section" style="display: block; margin-bottom: 5px; font-weight: 500;">แผนก <span style="color: red;">*</span></label>
                     <input type="text" id="dm-section" required maxlength="100" list="dm-section-list" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น ขนส่งที่ 1">
                     <datalist id="dm-section-list">
-                        <option value="ขนส่งที่ 1">
-                        <option value="ขนส่งที่ 2">
-                        <option value="ขนส่งที่ 3">
-                        <option value="ขนส่งที่ 4">
-                        <option value="ฝ่ายช่าง">
+                        <option value="ขนส่งที่ 1" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="ขนส่งที่ 2" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="ขนส่งที่ 3" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="ขนส่งที่ 4" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="ฝ่ายช่าง" style="background-color: #1a202e; color: #f7f8fa;">
                     </datalist>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 15px;">
                     <label for="dm-truck-type" style="display: block; margin-bottom: 5px; font-weight: 500;">ประเภทรถ <span style="color: red;">*</span></label>
                     <select id="dm-truck-type" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
-                        <option value="">-- เลือกประเภทรถ --</option>
-                        <option value="รถบรรทุก 4 ล้อ">รถบรรทุก 4 ล้อ</option>
-                        <option value="รถบรรทุก 6 ล้อ">รถบรรทุก 6 ล้อ</option>
-                        <option value="รถบรรทุก 10 ล้อ">รถบรรทุก 10 ล้อ</option>
-                        <option value="รถพ่วง">รถพ่วง</option>
-                        <option value="รถถัง">รถถัง</option>
-                        <option value="รถบรรทุกน้ำมัน">รถบรรทุกน้ำมัน</option>
+                        <option value="" style="background-color: #1a202e; color: #f7f8fa;">-- เลือกประเภทรถ --</option>
+                        <option value="รถบรรทุก 4 ล้อ" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุก 4 ล้อ</option>
+                        <option value="รถบรรทุก 6 ล้อ" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุก 6 ล้อ</option>
+                        <option value="รถบรรทุก 10 ล้อ" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุก 10 ล้อ</option>
+                        <option value="รถพ่วง" style="background-color: #1a202e; color: #f7f8fa;">รถพ่วง</option>
+                        <option value="รถถัง" style="background-color: #1a202e; color: #f7f8fa;">รถถัง</option>
+                        <option value="รถบรรทุกน้ำมัน" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุกน้ำมัน</option>
                     </select>
                 </div>
 
@@ -2638,10 +2638,10 @@ This admin panel interfaces with the following Supabase database tables:
                     <label for="dm-position" style="display: block; margin-bottom: 5px; font-weight: 500;">ตำแหน่ง <span style="color: red;">*</span></label>
                     <input type="text" id="dm-position" required maxlength="100" list="dm-position-list" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น พนักงานขับรถ">
                     <datalist id="dm-position-list">
-                        <option value="พนักงานขับรถ">
-                        <option value="พนักงานขับรถนำ">
-                        <option value="พนักงานขับรถร่วม">
-                        <option value="หัวหน้างานขนส่ง">
+                        <option value="พนักงานขับรถ" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="พนักงานขับรถนำ" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="พนักงานขับรถร่วม" style="background-color: #1a202e; color: #f7f8fa;">
+                        <option value="หัวหน้างานขนส่ง" style="background-color: #1a202e; color: #f7f8fa;">
                     </datalist>
                 </div>
 
@@ -2668,5 +2668,19 @@ This admin panel interfaces with the following Supabase database tables:
             </div>
         </div>
     </div>
+
+    <!-- Fix option background colors for dark theme -->
+    <script>
+        (function() {
+            // Apply dark theme styles to all option elements that don't have inline styles
+            document.addEventListener('DOMContentLoaded', function() {
+                const options = document.querySelectorAll('option:not([style*="background"])');
+                options.forEach(function(option) {
+                    option.style.backgroundColor = '#1a202e';
+                    option.style.color = '#f7f8fa';
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

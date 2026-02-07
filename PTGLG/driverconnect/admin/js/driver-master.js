@@ -103,14 +103,14 @@ function loadFilterOptions() {
 
     if (sectionFilter) {
         const currentValue = sectionFilter.value;
-        sectionFilter.innerHTML = '<option value="">ทุกแผนก</option>' +
-            sections.map(s => `<option value="${s}" ${s === currentValue ? 'selected' : ''}>${s}</option>`).join('');
+        sectionFilter.innerHTML = '<option value="" style="background-color: #1a202e; color: #f7f8fa;">ทุกแผนก</option>' +
+            sections.map(s => `<option value="${s}" ${s === currentValue ? 'selected' : ''} style="background-color: #1a202e; color: #f7f8fa;">${s}</option>`).join('');
     }
 
     if (truckTypeFilter) {
         const currentValue = truckTypeFilter.value;
-        truckTypeFilter.innerHTML = '<option value="">ทุกประเภทรถ</option>' +
-            truckTypes.map(t => `<option value="${t}" ${t === currentValue ? 'selected' : ''}>${t}</option>`).join('');
+        truckTypeFilter.innerHTML = '<option value="" style="background-color: #1a202e; color: #f7f8fa;">ทุกประเภทรถ</option>' +
+            truckTypes.map(t => `<option value="${t}" ${t === currentValue ? 'selected' : ''} style="background-color: #1a202e; color: #f7f8fa;">${t}</option>`).join('');
     }
 }
 

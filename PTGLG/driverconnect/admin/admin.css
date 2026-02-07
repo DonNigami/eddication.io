@@ -1583,6 +1583,17 @@ select {
     padding-right: var(--space-10);
 }
 
+/* Option and Datalist styling */
+option {
+    background-color: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+option:hover,
+option:focus {
+    background-color: var(--bg-hover);
+}
+
 /* Checkbox & Radio */
 input[type="checkbox"],
 input[type="radio"] {
