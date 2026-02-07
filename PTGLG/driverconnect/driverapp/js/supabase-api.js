@@ -258,166 +258,12 @@ export const SupabaseAPI = {
       // Log jobdata result
       if (jobdataError) {
         console.warn('⚠️ jobdata query error:', jobdataError.message);
-      } else {
-        console.log('ℹ️ No data found in jobdata');
+        return { success: false, message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference };
       }
 
-      // ============================================
-      // Step 2: Search in trips table (fallback) & build from scratch
-      // ============================================
-      console.log('🔍 Step 2: Searching in trips table...');
-
-      const { data: jobs, error: jobError } = await supabase
-        .from(TABLES.TRIPS)
-        .select('*')
-        .eq('reference', reference)
-        .order('created_at', { ascending: true });
-
-      if (jobError) {
-        console.error('❌ trips query error:', jobError);
-        const errorMsg = jobError.message || '';
-        if (jobError.code === 'PGRST116' || errorMsg.includes('406') || errorMsg.includes('permission') || errorMsg.includes('policy')) {
-          return { success: false, message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference };
-        }
-        return { success: false, message: 'เกิดข้อผิดพลาด: ' + errorMsg };
-      }
-
-      if (!jobs || jobs.length === 0) {
-        return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
-      }
-
-      console.log('✅ Found in trips:', jobs.length, 'rows');
-      const jobHeader = jobs[0];
-
-      // --- Replicate driverjob.js logic: Create synthetic origin + destination stops ---
-      
-      // 1. Get Origin Config
-      const originConfig = await getOriginConfig(jobHeader.route);
-      if (!originConfig) {
-        return { success: false, message: 'ไม่สามารถหาข้อมูลจุดต้นทาง (origin) ได้' };
-      }
-
-      // 2. Create Synthetic Origin Stop
-      const originStop = {
-        rowIndex: 'origin_0', // Synthetic ID
-        seq: 1,
-        shipmentNo: jobHeader.shipment_no || '',
-        shipToCode: originConfig.originKey,
-        shipToName: originConfig.name,
-        address: originConfig.name,
-        status: 'PENDING',
-        isOriginStop: true,
-        destLat: parseFloat(originConfig.lat) || null,
-        destLng: parseFloat(originConfig.lng) || null,
-        radiusM: parseFloat(originConfig.radiusMeters) || 200,
-        checkInTime: null, checkOutTime: null, fuelingTime: null, unloadDoneTime: null,
-        totalQty: null, materials: 'จุดต้นทาง'
-      };
-
-      // 3. Get Destination Stops from driver_stops or driver_jobs
-      let destinationStops = [];
-      let stopsData = null;
-
-      // Check cache to avoid repeated 404 errors
-      if (TABLE_EXISTS_CACHE.driver_stops !== false) {
-        try {
-          const result = await supabase
-            .from(TABLES.TRIP_STOPS)
-            .select('*')
-            .eq('reference', reference)
-            .order('sequence', { ascending: true });
-
-          stopsData = result.data;
-          const stopsError = result.error;
-
-          if (stopsError) {
-            if (stopsError.code === 'PGRST204' || stopsError.message.includes('404')) {
-              console.log('ℹ️ driver_stops table does not exist, using driver_jobs (cached)');
-              TABLE_EXISTS_CACHE.driver_stops = false; // Cache the result
-            } else {
-              console.warn('⚠️ driver_stops query error:', stopsError.message);
-            }
-          } else if (stopsData && stopsData.length > 0) {
-            TABLE_EXISTS_CACHE.driver_stops = true; // Table exists and has data
-          }
-        } catch (stopsErr) {
-          console.log('ℹ️ driver_stops query exception, falling back to driver_jobs:', stopsErr.message);
-          TABLE_EXISTS_CACHE.driver_stops = false; // Assume table doesn't exist on exception
-        }
-      } else {
-        console.log('ℹ️ Skipping driver_stops query (table not found, cached)');
-      }
-
-      if (stopsData && stopsData.length > 0) {
-        // Data exists in driver_stops, use it
-        destinationStops = stopsData.map(row => ({
-          rowIndex: String(row.id), // Ensure rowIndex is a string
-          seq: row.sequence || row.stop_number,
-          shipmentNo: jobHeader.shipment_no || '', // Inherit shipment_no from header
-          shipToCode: row.ship_to_code || (row.sequence || row.stop_number).toString(),
-          shipToName: row.destination_name || row.stop_name,
-          address: row.address,
-          status: row.status || 'pending',
-          isOriginStop: false, // Force false, as we have a synthetic origin
-          destLat: parseFloat(row.lat) || null,
-          destLng: parseFloat(row.lng) || null,
-          checkInTime: row.checkin_time, checkOutTime: row.checkout_time, fuelingTime: row.fuel_time, unloadDoneTime: row.unload_time,
-        }));
-      } else {
-        // No data in driver_stops, create from driver_jobs rows
-        destinationStops = jobs.map((jobRow) => ({
-          rowIndex: String(jobRow.id), // Ensure rowIndex is a string
-          seq: 0, // Will be re-sequenced later
-          shipmentNo: jobRow.shipment_no || '', // Each row is a shipment
-          shipToCode: jobRow.ship_to || '',
-          shipToName: jobRow.ship_to_name,
-          address: jobRow.ship_to_address || '',
-          status: 'pending',
-          isOriginStop: false,
-          destLat: null, destLng: null,
-          checkInTime: null, checkOutTime: null, fuelingTime: null, unloadDoneTime: null,
-          totalQty: jobRow.delivery_qty || null,
-          materials: jobRow.material_desc || '',
-          distanceKm: jobRow.distance || null
-        }));
-      }
-
-      // Filter out "คลังศรีราชา" from destination stops
-      const filteredDestinationStops = destinationStops.filter(stop => stop.shipToName && !stop.shipToName.includes('คลังศรีราชา'));
-
-      // 4. Combine and re-sequence
-      let finalStops = [originStop, ...filteredDestinationStops];
-      finalStops.forEach((s, i) => { s.seq = i + 1; });
-      
-      // 5. Enrich coordinates for destination stops
-      const enrichedStops = await enrichStopsWithCoordinates(finalStops, jobHeader.route);
-
-      // 6. Get other data
-      const { data: alcoholData } = await supabase.from(TABLES.ALCOHOL_CHECKS).select('driver_name').eq('reference', reference);
-      const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
-      const drivers = jobHeader.drivers ? jobHeader.drivers.split('/').map(d => d.trim()) : [];
-
-      // 7. Sync to jobdata
-      console.log('🔄 Step 3: Syncing from trips to jobdata...');
-      await syncToJobdata(jobs, enrichedStops, reference);
-
-      return {
-        success: true,
-        source: 'trips',
-        data: {
-          referenceNo: reference,
-          vehicleDesc: jobHeader.vehicle_desc || '',
-          shipmentNos: [],
-          totalStops: enrichedStops.length,
-          stops: enrichedStops,
-          alcohol: {
-            drivers: drivers,
-            checkedDrivers: checkedDrivers
-          },
-          jobClosed: jobHeader.status === 'closed',
-          tripEnded: jobHeader.status === 'completed'
-        }
-      };
+      // No data found in jobdata
+      console.log('ℹ️ No data found in jobdata for reference:', reference);
+      return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
     } catch (err) {
       console.error('❌ Supabase search error:', err);
       return { success: false, message: 'เกิดข้อผิดพลาดในการค้นหา: ' + err.message };
@@ -563,34 +409,20 @@ export const SupabaseAPI = {
     }
 
     try {
-      // Get trip_id first - try driver_jobs, fallback to jobdata
-      let tripId = null;
-
-      const { data: trips, error: tripsError } = await supabase
-        .from(TABLES.TRIPS)
+      // Get job_id from jobdata table (driver_jobs table doesn't exist)
+      const { data: jobdataData, error: jobdataError } = await supabase
+        .from(TABLES.JOBDATA)
         .select('id')
-        .eq('reference', reference);
+        .eq('reference', reference)
+        .limit(1)
+        .maybeSingle();
 
-      if (!tripsError && trips && trips.length > 0) {
-        tripId = trips[0].id;
+      if (jobdataError || !jobdataData) {
+        throw new Error('ไม่พบงาน');
       }
 
-      // Fallback to jobdata if driver_jobs doesn't have the reference
-      if (!tripId) {
-        const { data: jobdataData, error: jobdataError } = await supabase
-          .from(TABLES.JOBDATA)
-          .select('id')
-          .eq('reference', reference)
-          .limit(1)
-          .maybeSingle();
-
-        if (!jobdataError && jobdataData) {
-          tripId = jobdataData.id;
-          console.log('✅ Using jobdata.id for alcohol check:', tripId);
-        }
-      }
-
-      if (!tripId) throw new Error('ไม่พบงาน');
+      const tripId = String(jobdataData.id); // Convert to string for TEXT type compatibility
+      console.log('✅ Using jobdata.id for alcohol check:', tripId);
 
       // Upload image to Storage (alcohol-evidence bucket per PLAN.md)
       let imageUrl = null;
@@ -756,15 +588,18 @@ export const SupabaseAPI = {
         (repairFee === 'yes' ? 1000 : 0)
       );
 
-      // Fetch trip_id for logging (read-only from TABLES.TRIPS)
-      const { data: tripsData, error: tripsError } = await supabase
-        .from(TABLES.TRIPS)
+      // Fetch job_id for logging - use jobdata table instead of non-existent driver_jobs
+      const { data: jobdataId, error: idError } = await supabase
+        .from(TABLES.JOBDATA)
         .select('id')
-        .eq('reference', reference);
-      
-      if (tripsError) throw tripsError;
-      if (!tripsData || tripsData.length === 0) throw new Error("Trip not found for logging.");
-      const tripIdForLog = tripsData[0].id;
+        .eq('reference', reference)
+        .limit(1)
+        .maybeSingle();
+
+      if (idError) {
+        console.warn('⚠️ Could not fetch jobdata.id for logging:', idError.message);
+      }
+      const tripIdForLog = jobdataId ? String(jobdataId.id) : null;
 
       // Prepare update data
       const updateData = {
@@ -818,7 +653,7 @@ export const SupabaseAPI = {
       await supabase
         .from(TABLES.DRIVER_LOGS)
         .insert({
-          job_id: tripIdForLog, // Use ID fetched from TABLES.TRIPS
+          job_id: tripIdForLog, // Use ID fetched from jobdata table (as TEXT string)
           reference: reference,
           action: 'close',
           details: logDetails,
@@ -857,34 +692,21 @@ export const SupabaseAPI = {
     }
 
     try {
-      // Fetch trip_id for logging - try driver_jobs first, fallback to jobdata
+      // Fetch job_id for logging - use jobdata table directly (driver_jobs table doesn't exist)
       let tripIdForLog = null;
 
-      const { data: tripsData, error: tripsError } = await supabase
-        .from(TABLES.TRIPS)
+      const { data: jobdataData, error: jobdataError } = await supabase
+        .from(TABLES.JOBDATA)
         .select('id')
-        .eq('reference', reference);
+        .eq('reference', reference)
+        .limit(1)
+        .maybeSingle();
 
-      if (tripsError) {
-        // Table might not exist, log and continue without trip_id
-        console.warn('⚠️ driver_jobs table query failed:', tripsError.message);
-      } else if (tripsData && tripsData.length > 0) {
-        tripIdForLog = tripsData[0].id;
-      }
-
-      // If no trip_id from driver_jobs, try getting id from jobdata
-      if (!tripIdForLog) {
-        const { data: jobdataData, error: jobdataError } = await supabase
-          .from(TABLES.JOBDATA)
-          .select('id')
-          .eq('reference', reference)
-          .limit(1)
-          .maybeSingle();
-
-        if (!jobdataError && jobdataData) {
-          tripIdForLog = jobdataData.id;
-          console.log('✅ Using jobdata.id for logging:', tripIdForLog);
-        }
+      if (!jobdataError && jobdataData) {
+        tripIdForLog = String(jobdataData.id); // Convert to string for TEXT type compatibility
+        console.log('✅ Using jobdata.id for logging:', tripIdForLog);
+      } else if (jobdataError) {
+        console.warn('⚠️ Could not fetch jobdata.id for logging:', jobdataError.message);
       }
 
       // Log action if we have a trip_id
