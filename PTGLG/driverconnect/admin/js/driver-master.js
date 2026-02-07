@@ -3,6 +3,9 @@
  * CRUD operations for driver_master table
  */
 
+// Import supabase from shared config
+import { supabase } from '../shared/config.js';
+
 // State
 let driverMasterData = [];
 let filteredDriverMasterData = [];
