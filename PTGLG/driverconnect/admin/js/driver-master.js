@@ -73,6 +73,8 @@ async function loadDriverMaster() {
         if (error) throw error;
 
         driverMasterData = data || [];
+        console.log('Driver Master Data loaded:', driverMasterData.length, 'records');
+        console.log('Sample data:', driverMasterData.slice(0, 3));
         applyFilters();
         updateSummaryCards();
     } catch (error) {
@@ -121,10 +123,15 @@ function applyFilters() {
     const truckTypeFilter = document.getElementById('dm-truck-type-filter')?.value || '';
 
     filteredDriverMasterData = driverMasterData.filter(driver => {
+        // Safely handle null/undefined values in search
+        const empCode = (driver.employee_code || '').toLowerCase();
+        const driverName = (driver.driver_name || '').toLowerCase();
+        const sapCode = (driver.driver_sap_code || '').toLowerCase();
+
         const matchesSearch = !searchTerm ||
-            driver.employee_code.toLowerCase().includes(searchTerm) ||
-            driver.driver_name.toLowerCase().includes(searchTerm) ||
-            driver.driver_sap_code.toLowerCase().includes(searchTerm);
+            empCode.includes(searchTerm) ||
+            driverName.includes(searchTerm) ||
+            sapCode.includes(searchTerm);
 
         const matchesSection = !sectionFilter || driver.section === sectionFilter;
         const matchesTruckType = !truckTypeFilter || driver.truck_type === truckTypeFilter;
@@ -177,15 +184,15 @@ function renderDriverMasterTable() {
 
     tbody.innerHTML = pageData.map(driver => `
         <tr>
-            <td><strong>${escapeHtml(driver.employee_code)}</strong></td>
-            <td>${escapeHtml(driver.driver_name)}</td>
-            <td>${escapeHtml(driver.driver_sap_code)}</td>
-            <td><span class="badge" style="background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-size: 12px;">${escapeHtml(driver.section)}</span></td>
-            <td><span class="badge" style="background: #f3e5f5; color: #7b1fa2; padding: 4px 10px; border-radius: 20px; font-size: 12px;">${escapeHtml(driver.truck_type)}</span></td>
-            <td>${escapeHtml(driver.position)}</td>
+            <td><strong>${escapeHtml(driver.employee_code || '-')}</strong></td>
+            <td>${escapeHtml(driver.driver_name || '-')}</td>
+            <td>${escapeHtml(driver.driver_sap_code || '-')}</td>
+            <td><span class="badge" style="background: #e3f2fd; color: #1565c0; padding: 4px 10px; border-radius: 20px; font-size: 12px;">${escapeHtml(driver.section || '-')}</span></td>
+            <td><span class="badge" style="background: #f3e5f5; color: #7b1fa2; padding: 4px 10px; border-radius: 20px; font-size: 12px;">${escapeHtml(driver.truck_type || '-')}</span></td>
+            <td>${escapeHtml(driver.position || '-')}</td>
             <td style="text-align: center;">
                 <button onclick="editDriverMaster('${escapeHtml(driver.employee_code)}')" style="padding: 6px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px;" title="แก้ไข">✏️</button>
-                <button onclick="deleteDriverMaster('${escapeHtml(driver.employee_code)}', '${escapeHtml(driver.driver_name)}')" style="padding: 6px 12px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;" title="ลบ">🗑️</button>
+                <button onclick="deleteDriverMaster('${escapeHtml(driver.employee_code)}', '${escapeHtml(driver.driver_name).replace(/'/g, "\\'")}')" style="padding: 6px 12px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;" title="ลบ">🗑️</button>
             </td>
         </tr>
     `).join('');
@@ -200,8 +207,9 @@ function updateSummaryCards() {
     const truckTypeCount = document.getElementById('dm-truck-type-count');
 
     if (totalCount) totalCount.textContent = driverMasterData.length;
-    if (sectionCount) sectionCount.textContent = [...new Set(driverMasterData.map(d => d.section))].length;
-    if (truckTypeCount) truckTypeCount.textContent = [...new Set(driverMasterData.map(d => d.truck_type))].length;
+    // Filter out null/undefined values before counting unique
+    if (sectionCount) sectionCount.textContent = [...new Set(driverMasterData.map(d => d.section).filter(Boolean))].length;
+    if (truckTypeCount) truckTypeCount.textContent = [...new Set(driverMasterData.map(d => d.truck_type).filter(Boolean))].length;
 }
 
 /**

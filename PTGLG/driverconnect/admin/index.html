@@ -189,7 +189,7 @@ This admin panel interfaces with the following Supabase database tables:
                          OPERATIONS
                          การดำเนินงานขนส่ง
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section" data-section="jobs">
+                    <li class="nav-section collapsed" data-section="jobs">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">🚚</span> การขนส่ง</span>
                             <span class="nav-section-toggle"></span>
@@ -204,7 +204,7 @@ This admin panel interfaces with the following Supabase database tables:
                          MAINTENANCE
                          ฝ่ายช่างและบำรุงรักษา
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section" data-section="maintenance">
+                    <li class="nav-section collapsed" data-section="maintenance">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">🔧</span> ฝ่ายช่าง</span>
                             <span class="nav-section-toggle"></span>
@@ -219,7 +219,7 @@ This admin panel interfaces with the following Supabase database tables:
                          FINANCE & PAYROLL
                          การเงินและค่าจ้าง
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section" data-section="finance">
+                    <li class="nav-section collapsed" data-section="finance">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">💰</span> การเงิน</span>
                             <span class="nav-section-toggle"></span>
@@ -234,7 +234,7 @@ This admin panel interfaces with the following Supabase database tables:
                          REPORTS & ANALYTICS
                          รายงานและวิเคราะห์
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section" data-section="reports">
+                    <li class="nav-section collapsed" data-section="reports">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">📈</span> รายงาน</span>
                             <span class="nav-section-toggle"></span>
@@ -253,7 +253,7 @@ This admin panel interfaces with the following Supabase database tables:
                          DATA MANAGEMENT
                          จัดการข้อมูล
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section" data-section="system">
+                    <li class="nav-section collapsed" data-section="system">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">🗂️</span> ข้อมูล</span>
                             <span class="nav-section-toggle"></span>
@@ -269,7 +269,7 @@ This admin panel interfaces with the following Supabase database tables:
                          SETTINGS
                          ตั้งค่าระบบ
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section" data-section="settings-section">
+                    <li class="nav-section collapsed" data-section="settings-section">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">⚙️</span> ตั้งค่า</span>
                             <span class="nav-section-toggle"></span>
@@ -283,7 +283,7 @@ This admin panel interfaces with the following Supabase database tables:
                          DEVELOPER TOOLS
                          เครื่องมือนักพัฒนา
                          ═══════════════════════════════════════════════════════════ -->
-                    <li class="nav-section nav-dev-tools" data-section="devtools">
+                    <li class="nav-section collapsed nav-dev-tools" data-section="devtools">
                         <div class="nav-section-header">
                             <span><span style="font-size: 16px;">🛠️</span> นักพัฒนา</span>
                             <span class="nav-section-toggle"></span>
@@ -988,10 +988,7 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="driver-master" class="content-section hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">👨‍✈️ ฐานข้อมูลคนขับรถ (Driver Master)</h1>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="section-refresh-btn" id="driver-master-refresh-btn" onclick="loadDriverMaster()"><span class="btn-icon">🔄</span> Refresh</button>
-                        <button class="btn-primary" onclick="openDriverMasterModal()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 500;"><span class="btn-icon">➕</span> เพิ่มคนขับรถ</button>
-                    </div>
+                    <button class="section-refresh-btn" id="driver-master-refresh-btn" onclick="loadDriverMaster()"><span class="btn-icon">🔄</span> Refresh</button>
                 </div>
 
                 <!-- Summary Cards -->
@@ -1053,6 +1050,14 @@ This admin panel interfaces with the following Supabase database tables:
                     <button id="dm-prev-btn" onclick="prevDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
                     <span id="dm-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
                     <button id="dm-next-btn" onclick="nextDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
+                </div>
+
+                <!-- Add Driver Button - Prominent at Bottom -->
+                <div style="display: flex; justify-content: center; margin-top: 30px; padding: 20px; background: var(--card-bg); border-radius: 12px; border: 2px dashed var(--primary-color);">
+                    <button onclick="openDriverMasterModal()" style="display: flex; align-items: center; gap: 10px; padding: 15px 40px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: transform 0.2s, box-shadow 0.2s;">
+                        <span style="font-size: 20px;">➕</span>
+                        <span>เพิ่มคนขับรถใหม่</span>
+                    </button>
                 </div>
             </section>
 

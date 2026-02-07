@@ -427,6 +427,19 @@ a:hover {
     list-style: none;
     padding: 0;
     margin: 0;
+    /* Indent submenu items to the right for better visibility */
+    padding-left: 28px;
+    /* Allow smooth collapse animation */
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    opacity: 1;
+}
+
+.nav-section.collapsed .nav-section-items {
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.2s ease-in, opacity 0.2s ease-in;
 }
 
 .nav-section-items li {
