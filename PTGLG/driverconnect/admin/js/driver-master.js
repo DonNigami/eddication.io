@@ -4,7 +4,7 @@
  */
 
 // Import supabase from shared config
-import { supabase } from '../shared/config.js';
+import { supabase } from '../../shared/config.js';
 
 // State
 let driverMasterData = [];
