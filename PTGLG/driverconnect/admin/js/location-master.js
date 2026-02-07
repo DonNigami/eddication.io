@@ -40,7 +40,7 @@ const state = {
 // INITIALIZATION
 // ============================================
 
-export function initLocationMaster() {
+function initLocationMaster() {
     console.log('[LocationMaster] Initializing...');
     setupSearchInputListeners();
     loadLocationMaster();
@@ -132,7 +132,7 @@ function switchLocationTab(tabName) {
 // DATA LOADING
 // ============================================
 
-export async function loadLocationMaster() {
+async function loadLocationMaster() {
     const { currentTab } = state;
 
     switch (currentTab) {
@@ -1113,6 +1113,7 @@ window.confirmDeleteLocation = confirmDeleteLocation;
 export {
     initLocationMaster,
     switchLocationTab,
+    loadLocationMaster,
     loadOriginData,
     loadStationData,
     loadCustomerData
