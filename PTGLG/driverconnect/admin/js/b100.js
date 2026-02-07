@@ -312,39 +312,57 @@ export async function handleB100Submit(event) {
         // Fetch origin and destination names from origin table
         const { data: originData } = await supabase
             .from('origin')
-            .select('name')
+            .select('name, lat, lng')
             .eq('originKey', originKey)
             .single();
 
         const { data: destinationData } = await supabase
             .from('origin')
-            .select('name')
+            .select('name, lat, lng')
             .eq('originKey', destinationKey)
             .single();
 
-        // ใช้ ship_to_code เก็บทั้งต้นทางและปลายทาง (คั่นด้วย ->)
-        // รูปแบบ: "ต้นทาง -> ปลายทาง"
-        const routeCode = `${originKey} -> ${destinationKey}`;
-        const routeName = `${originData?.name || originKey} -> ${destinationData?.name || destinationKey}`;
+        const now = new Date().toISOString();
 
-        const jobData = {
-            reference: reference,
-            drivers: driverData,
-            vehicle_desc: vehicle,
-            // Ship to code เก็บเป็นรูปแบบ: ต้นทาง -> ปลายทาง
-            ship_to_code: routeCode,
-            // Ship to name เก็บเป็นรูปแบบ: ชื่อต้นทาง -> ชื่อปลายทาง
-            ship_to_name: routeName,
-            materials: materials,
-            total_qty: quantity,
-            status: 'pending',
-            seq: 1,
-            is_origin_stop: true,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
+        // สร้าง 2 records: 1 จุดสำหรับต้นทาง (origin) และ 1 จุดสำหรับปลายทาง (destination)
+        const jobsToInsert = [
+            // จุดที่ 1: ต้นทาง (Origin Stop)
+            {
+                reference: reference,
+                drivers: driverData,
+                vehicle_desc: vehicle,
+                ship_to_code: originKey,
+                ship_to_name: originData?.name || originKey,
+                dest_lat: originData?.lat || null,
+                dest_lng: originData?.lng || null,
+                materials: materials,
+                total_qty: 0, // ต้นทางไม่มีปริมาณ
+                status: 'pending',
+                seq: 1,
+                is_origin_stop: true,
+                created_at: now,
+                updated_at: now
+            },
+            // จุดที่ 2: ปลายทาง (Destination Stop)
+            {
+                reference: reference,
+                drivers: driverData,
+                vehicle_desc: vehicle,
+                ship_to_code: destinationKey,
+                ship_to_name: destinationData?.name || destinationKey,
+                dest_lat: destinationData?.lat || null,
+                dest_lng: destinationData?.lng || null,
+                materials: materials,
+                total_qty: quantity, // ปลายทางมีปริมาณ
+                status: 'pending',
+                seq: 2,
+                is_origin_stop: false,
+                created_at: now,
+                updated_at: now
+            }
+        ];
 
-        const { error } = await supabase.from('jobdata').insert([jobData]);
+        const { error } = await supabase.from('jobdata').insert(jobsToInsert);
         if (error) throw error;
 
         showNotification('B100 job created successfully', 'success');
