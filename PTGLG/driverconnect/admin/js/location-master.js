@@ -1113,7 +1113,6 @@ window.confirmDeleteLocation = confirmDeleteLocation;
 export {
     initLocationMaster,
     switchLocationTab,
-    loadLocationMaster,
     loadOriginData,
     loadStationData,
     loadCustomerData
