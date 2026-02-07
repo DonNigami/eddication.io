@@ -169,14 +169,14 @@ async function loadReport() {
     }
 
     try {
-        // Query alcohol_checks table
-        // Use timestamp column for date filtering
+        // Query driver_alcohol_checks table
+        // Use checked_at column for date filtering
         let query = supabase
-            .from('alcohol_checks')
+            .from('driver_alcohol_checks')
             .select('*')
-            .gte('timestamp', startDate + 'T00:00:00')
-            .lte('timestamp', endDate + 'T23:59:59')
-            .order('timestamp', { ascending: false });
+            .gte('checked_at', startDate + 'T00:00:00')
+            .lte('checked_at', endDate + 'T23:59:59')
+            .order('checked_at', { ascending: false });
 
         const { data: rows, error } = await query;
 
@@ -213,6 +213,27 @@ function processReportData(rows, { startDate, endDate } = {}) {
     rows.forEach(row => {
         const driverName = row.driver_name || 'ไม่ระบุ';
 
+        // Extract lat/lng from location JSONB if available
+        let lat = null;
+        let lng = null;
+        if (row.location) {
+            if (typeof row.location === 'object') {
+                lat = row.location.lat || null;
+                lng = row.location.lng || null;
+            } else if (typeof row.location === 'string') {
+                try {
+                    const loc = JSON.parse(row.location);
+                    lat = loc.lat || null;
+                    lng = loc.lng || null;
+                } catch (e) {
+                    // Ignore parse errors
+                }
+            }
+        }
+        // Store lat/lng in row for later use
+        row._lat = lat;
+        row._lng = lng;
+
         if (!driverMap.has(driverName)) {
             driverMap.set(driverName, {
                 driverName,
@@ -220,8 +241,8 @@ function processReportData(rows, { startDate, endDate } = {}) {
                 totalCount: 0,
                 avgValue: 0,
                 maxValue: 0,
-                lat: row.lat || null,
-                lng: row.lng || null
+                lat: lat,
+                lng: lng
             });
         }
 
@@ -235,9 +256,9 @@ function processReportData(rows, { startDate, endDate } = {}) {
         }
 
         // Update coordinates if available
-        if (row.lat && row.lng) {
-            driver.lat = row.lat;
-            driver.lng = row.lng;
+        if (lat && lng) {
+            driver.lat = lat;
+            driver.lng = lng;
         }
     });
 
@@ -309,13 +330,13 @@ function updateMap() {
 
     // Add markers for checks with coordinates
     checksToShow.forEach(check => {
-        if (!check.lat || !check.lng) return;
+        if (!check._lat || !check._lng) return;
 
         const value = check.alcohol_value || 0;
         const isPass = isPassingValue(value);
         const color = isPass ? '#22c55e' : '#ef4444';
 
-        const marker = L.circleMarker([check.lat, check.lng], {
+        const marker = L.circleMarker([check._lat, check._lng], {
             radius: 8,
             fillColor: color,
             color: '#fff',
@@ -328,7 +349,7 @@ function updateMap() {
         const popupContent = `
             <div style="min-width: 220px;">
                 <h3 style="margin: 0 0 8px 0; font-size: 16px;">${check.driver_name || 'ไม่ระบุ'}</h3>
-                <p style="margin: 4px 0;"><strong>วันที่:</strong> ${formatDateTime(check.timestamp)}</p>
+                <p style="margin: 4px 0;"><strong>วันที่:</strong> ${formatDateTime(check.checked_at)}</p>
                 <p style="margin: 4px 0;"><strong>เลขที่:</strong> ${check.reference || '-'}</p>
                 <p style="margin: 4px 0;"><strong>ค่าแอลกอฮอล์:</strong> <span style="color: ${color}; font-weight: bold;">${formatAlcoholValue(value)}</span></p>
                 <p style="margin: 4px 0;"><strong>ผล:</strong> ${isPass ? '✅ ผ่าน' : '❌ ไม่ผ่าน'}</p>
@@ -412,7 +433,7 @@ function updateTable() {
         const resultText = isPass ? '✅ ผ่าน' : '❌ ไม่ผ่าน';
 
         // Date/Time
-        row.insertCell().textContent = formatDateTime(check.timestamp);
+        row.insertCell().textContent = formatDateTime(check.checked_at);
 
         // Driver Name
         row.insertCell().textContent = check.driver_name || '-';
@@ -430,8 +451,8 @@ function updateTable() {
 
         // Coordinates
         const coordCell = row.insertCell();
-        if (check.lat && check.lng) {
-            coordCell.innerHTML = `<small>${check.lat.toFixed(5)}, ${check.lng.toFixed(5)}</small>`;
+        if (check._lat && check._lng) {
+            coordCell.innerHTML = `<small>${check._lat.toFixed(5)}, ${check._lng.toFixed(5)}</small>`;
         } else {
             coordCell.textContent = '-';
         }
@@ -502,13 +523,13 @@ function exportToExcel() {
         const resultText = isPass ? 'ผ่าน' : 'ไม่ผ่าน';
 
         const row = [
-            formatDateTime(check.timestamp),
+            formatDateTime(check.checked_at),
             check.driver_name || '',
             check.reference || '',
             value.toFixed(3),
             resultText,
-            check.lat || '',
-            check.lng || '',
+            check._lat || '',
+            check._lng || '',
             check.image_url || ''
         ];
         const escapedRow = row.map(cell => {
