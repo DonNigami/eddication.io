@@ -959,7 +959,7 @@ export async function loadSectionData(targetId) {
             await import('./odometer-distance-comparison-report.js').then(m => m.initOdometerDistanceComparisonReport());
             break;
         case 'working-hours-report':
-            await import('./working-hours-report.js').then(m => m.initWorkingHoursReport());
+            await import('./working-hours-report.js?v=' + Date.now()).then(m => m.initWorkingHoursReport());
             break;
         case 'alcohol-check-report':
             await import('./alcohol-check-report.js?v=' + Date.now()).then(m => m.initAlcoholCheckReport());
