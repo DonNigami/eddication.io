@@ -458,6 +458,12 @@ function showNotification(message, type = 'info') {
 }
 
 // Export functions for global access
+export function initDriverMaster() {
+    console.log('[DriverMaster] Initializing...');
+    loadDriverMaster();
+    loadFilterOptions();
+}
+
 window.loadDriverMaster = loadDriverMaster;
 window.openDriverMasterModal = openDriverMasterModal;
 window.closeDriverMasterModal = closeDriverMasterModal;

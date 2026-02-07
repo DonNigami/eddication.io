@@ -965,6 +965,12 @@ export async function loadSectionData(targetId) {
         case 'map':
             await import('./map.js').then(m => m.initMap());
             break;
+        case 'driver-master':
+            await import('./driver-master.js').then(m => m.initDriverMaster());
+            break;
+        case 'location-master':
+            await import('./location-master.js').then(m => m.initLocationMaster());
+            break;
     }
 }
 

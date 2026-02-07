@@ -261,6 +261,7 @@ This admin panel interfaces with the following Supabase database tables:
                         <ul class="nav-section-items">
                             <li><a href="#" class="nav-link" data-target="users"><span>👥 จัดการผู้ใช้</span></a></li>
                             <li><a href="#" class="nav-link" data-target="driver-master"><span>👨‍✈️ ฐานข้อมูลคนขับ</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="location-master"><span>📍 ต้นทาง ปลายทาง ลูกค้า</span></a></li>
                             <li><a href="#" class="nav-link" data-target="registration-approval"><span>📝 อนุมัติสมัครสมาชิก <span id="registration-badge" class="badge hidden">0</span></span></a></li>
                         </ul>
                     </li>
@@ -1054,6 +1055,210 @@ This admin panel interfaces with the following Supabase database tables:
                     <button id="dm-prev-btn" onclick="prevDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
                     <span id="dm-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
                     <button id="dm-next-btn" onclick="nextDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
+                </div>
+            </section>
+
+            <!-- Location Master Management Section (ต้นทาง ปลายทาง ลูกค้า) -->
+            <section id="location-master" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h1 style="margin: 0;">📍 ฐานข้อมูลต้นทาง ปลายทาง และลูกค้า</h1>
+                    <button class="section-refresh-btn" id="location-master-refresh-btn" onclick="loadLocationMaster()"><span class="btn-icon">🔄</span> Refresh</button>
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="tab-container" style="margin-bottom: 20px;">
+                    <div class="tab-header" style="display: flex; gap: 4px; border-bottom: 2px solid var(--border-color);">
+                        <button class="tab-btn active" data-tab="origin" onclick="switchLocationTab('origin')">
+                            <span style="font-size: 18px;">🏭</span>
+                            <span>ต้นทาง (Origin)</span>
+                        </button>
+                        <button class="tab-btn" data-tab="station" onclick="switchLocationTab('station')">
+                            <span style="font-size: 18px;">⛽</span>
+                            <span>ปลายทาง (Station)</span>
+                        </button>
+                        <button class="tab-btn" data-tab="customer" onclick="switchLocationTab('customer')">
+                            <span style="font-size: 18px;">🏪</span>
+                            <span>ลูกค้า (Customer)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Origin Tab Content -->
+                <div id="tab-origin" class="tab-content active">
+                    <!-- Summary Cards -->
+                    <div class="kpi-cards" style="margin-bottom: 20px;">
+                        <div class="kpi-card">
+                            <h3>ต้นทางทั้งหมด</h3>
+                            <p id="origin-total-count">0</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>เส้นทาง</h3>
+                            <p id="origin-route-count">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Filters & Actions -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <input type="text" id="origin-search-input" placeholder="ค้นหา รหัส/ชื่อต้นทาง/เส้นทาง..." style="flex: 1; min-width: 250px; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                        <select id="origin-route-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #212936; color: #f7f8fa;">
+                            <option value="">ทุกเส้นทาง</option>
+                        </select>
+                        <button onclick="loadOriginData()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">ค้นหา</button>
+                        <button onclick="clearOriginFilters()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ล้าง</button>
+                        <button onclick="openOriginModal()" style="display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            <span style="font-size: 14px;">➕</span>
+                            <span>เพิ่มต้นทาง</span>
+                        </button>
+                    </div>
+
+                    <!-- Origin Table -->
+                    <div class="table-container">
+                        <table id="origin-table">
+                            <thead>
+                                <tr>
+                                    <th>รหัสต้นทาง</th>
+                                    <th>ชื่อต้นทาง</th>
+                                    <th>เส้นทาง</th>
+                                    <th>พิกัด (Lat, Lng)</th>
+                                    <th>รัศมี (ม.)</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="origin-tbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                        <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                        <p>กำลังโหลดข้อมูล...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="origin-pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                        <button id="origin-prev-btn" onclick="prevOriginPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
+                        <span id="origin-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
+                        <button id="origin-next-btn" onclick="nextOriginPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
+                    </div>
+                </div>
+
+                <!-- Station Tab Content -->
+                <div id="tab-station" class="tab-content" style="display: none;">
+                    <!-- Summary Cards -->
+                    <div class="kpi-cards" style="margin-bottom: 20px;">
+                        <div class="kpi-card">
+                            <h3>ปลายทางทั้งหมด</h3>
+                            <p id="station-total-count">0</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>พื้นที่</h3>
+                            <p id="station-area-count">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Filters & Actions -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <input type="text" id="station-search-input" placeholder="ค้นหา รหัส/ชื่อสถานี/พื้นที่..." style="flex: 1; min-width: 250px; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                        <select id="station-area-filter" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #212936; color: #f7f8fa;">
+                            <option value="">ทุกพื้นที่</option>
+                        </select>
+                        <button onclick="loadStationData()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">ค้นหา</button>
+                        <button onclick="clearStationFilters()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ล้าง</button>
+                        <button onclick="openStationModal()" style="display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            <span style="font-size: 14px;">➕</span>
+                            <span>เพิ่มปลายทาง</span>
+                        </button>
+                    </div>
+
+                    <!-- Station Table -->
+                    <div class="table-container">
+                        <table id="station-table">
+                            <thead>
+                                <tr>
+                                    <th>รหัสสถานี</th>
+                                    <th>ชื่อสถานี</th>
+                                    <th>พื้นที่</th>
+                                    <th>พิกัด (Lat, Lng)</th>
+                                    <th>รัศมี (ม.)</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="station-tbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                        <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                        <p>กำลังโหลดข้อมูล...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="station-pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                        <button id="station-prev-btn" onclick="prevStationPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
+                        <span id="station-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
+                        <button id="station-next-btn" onclick="nextStationPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
+                    </div>
+                </div>
+
+                <!-- Customer Tab Content -->
+                <div id="tab-customer" class="tab-content" style="display: none;">
+                    <!-- Summary Cards -->
+                    <div class="kpi-cards" style="margin-bottom: 20px;">
+                        <div class="kpi-card">
+                            <h3>ลูกค้าทั้งหมด</h3>
+                            <p id="customer-total-count">0</p>
+                        </div>
+                        <div class="kpi-card">
+                            <h3>มีอีเมล</h3>
+                            <p id="customer-email-count">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Filters & Actions -->
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                        <input type="text" id="customer-search-input" placeholder="ค้นหา รหัส/ชื่อลูกค้า..." style="flex: 1; min-width: 250px; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);">
+                        <button onclick="loadCustomerData()" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">ค้นหา</button>
+                        <button onclick="clearCustomerFilters()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ล้าง</button>
+                        <button onclick="openCustomerModal()" style="display: flex; align-items: center; gap: 6px; padding: 10px 20px; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            <span style="font-size: 14px;">➕</span>
+                            <span>เพิ่มลูกค้า</span>
+                        </button>
+                    </div>
+
+                    <!-- Customer Table -->
+                    <div class="table-container">
+                        <table id="customer-table">
+                            <thead>
+                                <tr>
+                                    <th>รหัสลูกค้า</th>
+                                    <th>ชื่อลูกค้า</th>
+                                    <th>พิกัด (Lat, Lng)</th>
+                                    <th>รัศมี (ม.)</th>
+                                    <th>อีเมล</th>
+                                    <th>STD</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customer-tbody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-sub);">
+                                        <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
+                                        <p>กำลังโหลดข้อมูล...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="customer-pagination" style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+                        <button id="customer-prev-btn" onclick="prevCustomerPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
+                        <span id="customer-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
+                        <button id="customer-next-btn" onclick="nextCustomerPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
+                    </div>
                 </div>
             </section>
 
@@ -2583,6 +2788,9 @@ This admin panel interfaces with the following Supabase database tables:
     <!-- Driver Master Management Logic -->
     <script type="module" src="js/driver-master.js"></script>
 
+    <!-- Location Master Management Logic -->
+    <script type="module" src="js/location-master.js"></script>
+
     <!-- Driver Master Modal -->
     <div id="driver-master-modal" class="modal hidden">
         <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
@@ -2650,6 +2858,195 @@ This admin panel interfaces with the following Supabase database tables:
                     <button type="submit" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">บันทึก</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         LOCATION MASTER MODALS
+         ═══════════════════════════════════════════════════════════ -->
+
+    <!-- Origin Modal -->
+    <div id="origin-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <span class="close-button" onclick="closeOriginModal()">&times;</span>
+            <h2 id="origin-modal-title">🏭 เพิ่ม/แก้ไขข้อมูลต้นทาง</h2>
+
+            <form id="origin-form" onsubmit="saveOrigin(event)">
+                <input type="hidden" id="origin-mode" value="create">
+                <input type="hidden" id="original-origin-key" value="">
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="origin-origin-key" style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสต้นทาง (originKey) <span style="color: red;">*</span></label>
+                    <input type="text" id="origin-origin-key" required maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น ORIGIN001">
+                    <small style="color: var(--text-sub);">รหัสต้นทางเป็นค่าเฉพาะที่ไม่สามารถเปลี่ยนแปลงได้</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="origin-name" style="display: block; margin-bottom: 5px; font-weight: 500;">ชื่อต้นทาง <span style="color: red;">*</span></label>
+                    <input type="text" id="origin-name" required maxlength="255" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น คลังน้ำมันกรุงเทพ">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="origin-route-code" style="display: block; margin-bottom: 5px; font-weight: 500;">เส้นทาง (routeCode) <span style="color: red;">*</span></label>
+                    <input type="text" id="origin-route-code" required maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น ROUTE01">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="origin-lat" style="display: block; margin-bottom: 5px; font-weight: 500;"> Latitude <span style="color: red;">*</span></label>
+                        <input type="number" id="origin-lat" required step="any" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 13.7563">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="origin-lng" style="display: block; margin-bottom: 5px; font-weight: 500;"> Longitude <span style="color: red;">*</span></label>
+                        <input type="number" id="origin-lng" required step="any" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 100.5018">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="origin-radius" style="display: block; margin-bottom: 5px; font-weight: 500;">รัศมี (เมตร) <span style="color: red;">*</span></label>
+                    <input type="number" id="origin-radius" required min="0" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 500">
+                    <small style="color: var(--text-sub);">รัศมีสำหรับตรวจสอบการเช็คอิน/เช็คเอาท์</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="closeOriginModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ยกเลิก</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Station Modal -->
+    <div id="station-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <span class="close-button" onclick="closeStationModal()">&times;</span>
+            <h2 id="station-modal-title">⛽ เพิ่ม/แก้ไขข้อมูลปลายทาง</h2>
+
+            <form id="station-form" onsubmit="saveStation(event)">
+                <input type="hidden" id="station-mode" value="create">
+                <input type="hidden" id="original-station-key" value="">
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="station-key" style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสสถานี (stationKey) <span style="color: red;">*</span></label>
+                    <input type="text" id="station-key" required maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น STATION001">
+                    <small style="color: var(--text-sub);">รหัสสถานีเป็นค่าเฉพาะที่ไม่สามารถเปลี่ยนแปลงได้</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="station-name" style="display: block; margin-bottom: 5px; font-weight: 500;">ชื่อสถานี <span style="color: red;">*</span></label>
+                    <input type="text" id="station-name" required maxlength="255" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น ปั๊ม ปตท. สาขาหลักสี่">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="station-name-area" style="display: block; margin-bottom: 5px; font-weight: 500;">พื้นที่ (Name_Area) <span style="color: red;">*</span></label>
+                    <input type="text" id="station-name-area" required maxlength="100" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น กรุงเทพมหานคร">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="station-mobile" style="display: block; margin-bottom: 5px; font-weight: 500;">เบอร์โทรศัพท์</label>
+                    <input type="text" id="station-mobile" maxlength="20" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 02-123-4567">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="station-lat" style="display: block; margin-bottom: 5px; font-weight: 500;"> Latitude <span style="color: red;">*</span></label>
+                        <input type="number" id="station-lat" required step="any" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 13.7563">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="station-lng" style="display: block; margin-bottom: 5px; font-weight: 500;"> Longitude <span style="color: red;">*</span></label>
+                        <input type="number" id="station-lng" required step="any" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 100.5018">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="station-radius" style="display: block; margin-bottom: 5px; font-weight: 500;">รัศมี (เมตร) <span style="color: red;">*</span></label>
+                    <input type="number" id="station-radius" required min="0" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 500">
+                    <small style="color: var(--text-sub);">รัศมีสำหรับตรวจสอบการเช็คอิน/เช็คเอาท์</small>
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="closeStationModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ยกเลิก</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer Modal -->
+    <div id="customer-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <span class="close-button" onclick="closeCustomerModal()">&times;</span>
+            <h2 id="customer-modal-title">🏪 เพิ่ม/แก้ไขข้อมูลลูกค้า</h2>
+
+            <form id="customer-form" onsubmit="saveCustomer(event)">
+                <input type="hidden" id="customer-mode" value="create">
+                <input type="hidden" id="original-customer-key" value="">
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="customer-station-key" style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสลูกค้า (stationKey) <span style="color: red;">*</span></label>
+                    <input type="text" id="customer-station-key" required maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น CUST001">
+                    <small style="color: var(--text-sub);">รหัสลูกค้าเป็นค่าเฉพาะที่ไม่สามารถเปลี่ยนแปลงได้</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="customer-name" style="display: block; margin-bottom: 5px; font-weight: 500;">ชื่อลูกค้า <span style="color: red;">*</span></label>
+                    <input type="text" id="customer-name" required maxlength="255" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น บริษัท ขนส่ง จำกัด">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="customer-station-key2" style="display: block; margin-bottom: 5px; font-weight: 500;">รหัสลูกค้ารอง (stationKey2)</label>
+                    <input type="text" id="customer-station-key2" maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="รหัสเสริม (ถ้ามี)">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="customer-lat" style="display: block; margin-bottom: 5px; font-weight: 500;"> Latitude <span style="color: red;">*</span></label>
+                        <input type="number" id="customer-lat" required step="any" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 13.7563">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="customer-lng" style="display: block; margin-bottom: 5px; font-weight: 500;"> Longitude <span style="color: red;">*</span></label>
+                        <input type="number" id="customer-lng" required step="any" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 100.5018">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="customer-radius" style="display: block; margin-bottom: 5px; font-weight: 500;">รัศมี (เมตร) <span style="color: red;">*</span></label>
+                    <input type="number" id="customer-radius" required min="0" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น 500">
+                    <small style="color: var(--text-sub);">รัศมีสำหรับตรวจสอบการเช็คอิน/เช็คเอาท์</small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="customer-email" style="display: block; margin-bottom: 5px; font-weight: 500;">อีเมล</label>
+                    <input type="email" id="customer-email" maxlength="255" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="เช่น customer@example.com">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label for="customer-std" style="display: block; margin-bottom: 5px; font-weight: 500;">STD</label>
+                    <input type="text" id="customer-std" maxlength="50" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-color);" placeholder="ค่า STD">
+                </div>
+
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" onclick="closeCustomerModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ยกเลิก</button>
+                    <button type="submit" style="padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer;">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Location Delete Confirmation Modal -->
+    <div id="location-delete-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="close-button" onclick="closeLocationDeleteModal()">&times;</span>
+            <div style="font-size: 48px; margin-bottom: 10px;">⚠️</div>
+            <h2 style="margin-bottom: 10px;">ยืนยันการลบ?</h2>
+            <p style="color: var(--text-sub); margin-bottom: 20px;">คุณต้องการลบข้อมูล <strong id="location-delete-name"></strong> หรือไม่?</p>
+            <p style="color: #dc2626; font-size: 14px; margin-bottom: 20px;">การกระทำนี้ไม่สามารถย้อนกลับได้</p>
+            <input type="hidden" id="location-delete-type">
+            <input type="hidden" id="location-delete-key">
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="closeLocationDeleteModal()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">ยกเลิก</button>
+                <button onclick="confirmDeleteLocation()" style="padding: 10px 20px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">ลบข้อมูล</button>
+            </div>
         </div>
     </div>
 
