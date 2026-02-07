@@ -93,6 +93,9 @@ let liff = null;
 export async function initializeApp() {
     console.log('🚀 Initializing DriverConnect Admin Panel...');
 
+    // Initialize theme (dark/light mode)
+    initTheme();
+
     // Set notification container
     const notificationContainer = document.getElementById('notification-container');
     if (notificationContainer) {
@@ -112,6 +115,53 @@ export async function initializeApp() {
     initAutoRefresh();
 
     console.log('✅ App initialized');
+}
+
+/**
+ * Initialize theme based on localStorage or system preference
+ */
+function initTheme() {
+    // Check localStorage first
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+    } else if (savedTheme === 'dark') {
+        document.body.classList.remove('light-mode');
+    } else {
+        // Check system preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (!prefersDark) {
+            document.body.classList.add('light-mode');
+        }
+    }
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+            // Only change if user hasn't set a preference
+            if (!e.matches) {
+                document.body.classList.add('light-mode');
+            } else {
+                document.body.classList.remove('light-mode');
+            }
+        }
+    });
+}
+
+/**
+ * Toggle theme between dark and light mode
+ */
+export function toggleTheme() {
+    const isLightMode = document.body.classList.contains('light-mode');
+
+    if (isLightMode) {
+        document.body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.body.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+    }
 }
 
 /**

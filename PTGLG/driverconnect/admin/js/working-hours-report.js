@@ -387,53 +387,49 @@ function renderDriverCards() {
 function createDriverCard(driver) {
     const isActive = driver.totalTrips > 0;
     const statusColor = isActive ? '#22c55e' : '#94a3b8';
-    const bgGradient = isActive
-        ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)';
+    // Use CSS class for dark mode support instead of inline gradient
+    const cardClass = isActive ? 'wh-driver-card-active' : 'wh-driver-card-inactive';
 
     return `
-        <div class="wh-driver-card" data-driver-id="${driver.userId}"
-             style="background: ${bgGradient}; color: white; border-radius: 16px; padding: 20px;
-                    cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;">
+        <div class="wh-driver-card ${cardClass}" data-driver-id="${driver.userId}">
 
             <!-- Status indicator -->
-            <div style="position: absolute; top: 15px; right: 15px; width: 12px; height: 12px;
-                        background: ${statusColor}; border-radius: 50%; border: 2px solid white;"></div>
+            <div class="wh-status-indicator" style="background: ${statusColor};"></div>
 
             <!-- Driver info -->
-            <div style="margin-bottom: 15px;">
-                <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">
+            <div class="wh-driver-info">
+                <div class="wh-driver-code">
                     ${driver.driverCode !== '-' ? `รหัส: ${driver.driverCode}` : 'พนักงานขับรถ'}
                 </div>
-                <h3 style="margin: 0; font-size: 18px; font-weight: 700;">${driver.name}</h3>
+                <h3 class="wh-driver-name">${driver.name}</h3>
             </div>
 
             <!-- Stats grid -->
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px;">
-                <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px;">
-                    <div style="font-size: 11px; opacity: 0.8;">ทำงาน</div>
-                    <div style="font-size: 20px; font-weight: 700;">${driver.totalTrips}</div>
-                    <div style="font-size: 10px; opacity: 0.7;">งาน</div>
+            <div class="wh-stats-grid">
+                <div class="wh-stat-item">
+                    <div class="wh-stat-label">ทำงาน</div>
+                    <div class="wh-stat-value">${driver.totalTrips}</div>
+                    <div class="wh-stat-unit">งาน</div>
                 </div>
-                <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px;">
-                    <div style="font-size: 11px; opacity: 0.8;">รวมชั่วโมง</div>
-                    <div style="font-size: 20px; font-weight: 700;">${Math.floor(driver.totalHours)}</div>
-                    <div style="font-size: 10px; opacity: 0.7;">ชั่วโมง</div>
+                <div class="wh-stat-item">
+                    <div class="wh-stat-label">รวมชั่วโมง</div>
+                    <div class="wh-stat-value">${Math.floor(driver.totalHours)}</div>
+                    <div class="wh-stat-unit">ชั่วโมง</div>
                 </div>
-                <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px;">
-                    <div style="font-size: 11px; opacity: 0.8;">ทำงาน</div>
-                    <div style="font-size: 20px; font-weight: 700;">${driver.workingDays}</div>
-                    <div style="font-size: 10px; opacity: 0.7;">วัน</div>
+                <div class="wh-stat-item">
+                    <div class="wh-stat-label">ทำงาน</div>
+                    <div class="wh-stat-value">${driver.workingDays}</div>
+                    <div class="wh-stat-unit">วัน</div>
                 </div>
-                <div style="background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px;">
-                    <div style="font-size: 11px; opacity: 0.8;">เฉลี่ย/วัน</div>
-                    <div style="font-size: 20px; font-weight: 700;">${driver.avgHoursPerDay}</div>
-                    <div style="font-size: 10px; opacity: 0.7;">ชั่วโมง</div>
+                <div class="wh-stat-item">
+                    <div class="wh-stat-label">เฉลี่ย/วัน</div>
+                    <div class="wh-stat-value">${driver.avgHoursPerDay}</div>
+                    <div class="wh-stat-unit">ชั่วโมง</div>
                 </div>
             </div>
 
             <!-- Click hint -->
-            <div style="margin-top: 15px; font-size: 11px; opacity: 0.7; text-align: center;">
+            <div class="wh-click-hint">
                 คลิกดูรายละเอียด →
             </div>
         </div>

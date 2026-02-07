@@ -21,7 +21,7 @@
    ============================================ */
 
 :root {
-    /* === Color System - Professional Deep Theme === */
+    /* === Color System - Professional Deep Theme (Dark Mode Default) === */
 
     /* Brand Hues */
     --hue-brand: 165;           /* Deep Teal - Professional & Trust */
@@ -35,12 +35,15 @@
     --bg-elevated: hsl(210, 14%, 16%);     /* #1a202e */
     --bg-elevated-2: hsl(210, 12%, 20%);   /* #212936 */
     --bg-hover: hsl(210, 15%, 24%);        /* #272f40 */
+    --bg-card: hsl(210, 14%, 16%);         /* Card background */
+    --bg-input: hsl(210, 16%, 12%);        /* Input background */
 
     /* Text Colors - Refined Contrast */
     --text-primary: hsl(210, 10%, 97%);    /* #f7f8fa */
     --text-secondary: hsl(210, 8%, 68%);   /* #9aa0b0 */
     --text-tertiary: hsl(210, 6%, 50%);    /* #767d8f */
     --text-muted: hsl(210, 5%, 38%);       /* #5e6475 */
+    --text-inverse: hsl(210, 10%, 6%);     /* For text on colored backgrounds */
 
     /* Brand Colors */
     --brand-primary: hsl(var(--hue-brand), 65%, 45%);
@@ -167,6 +170,31 @@
     --sidebar-collapsed-width: 64px;
     --header-height: 64px;
     --container-max: 1440px;
+}
+
+/* ============================================
+   LIGHT MODE STYLES
+   Applied when .light-mode class is added to body
+   ============================================ */
+
+body.light-mode,
+body:not(.dark-mode):not([data-theme="dark"]) {
+    /* Override variables for light mode */
+    --bg-deep: hsl(210, 20%, 98%);         /* #f8fafc */
+    --bg-base: hsl(210, 20%, 96%);          /* #f1f5f9 */
+    --bg-surface: hsl(0, 0%, 100%);        /* #ffffff */
+    --bg-elevated: hsl(210, 20%, 98%);     /* #f8fafc */
+    --bg-elevated-2: hsl(210, 20%, 95%);   /* #f1f5f9 */
+    --bg-hover: hsl(210, 20%, 92%);        /* #e2e8f0 */
+    --bg-card: hsl(0, 0%, 100%);           /* #ffffff */
+    --bg-input: hsl(0, 0%, 100%);          /* #ffffff */
+
+    /* Text Colors - Dark for light mode */
+    --text-primary: hsl(210, 20%, 10%);    /* #1a202c */
+    --text-secondary: hsl(210, 10%, 45%);  /* #4a5568 */
+    --text-tertiary: hsl(210, 8%, 55%);    /* #64748b */
+    --text-muted: hsl(210, 6%, 60%);       /* #718096 */
+    --text-inverse: hsl(0, 0%, 100%);      /* White for colored backgrounds */
 }
 
 /* ============================================
@@ -3480,9 +3508,99 @@ html, body {
    WORKING HOURS DASHBOARD STYLES
    ============================================ */
 
-/* Driver Card Hover Effects */
+/* Driver Card Base Styles */
 .wh-driver-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    padding: 20px;
+    cursor: pointer;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Active Driver Card - Purple Gradient */
+.wh-driver-card-active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+/* Inactive Driver Card - Gray Gradient */
+.wh-driver-card-inactive {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    color: white;
+}
+
+/* Status Indicator */
+.wh-status-indicator {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+/* Driver Info */
+.wh-driver-info {
+    margin-bottom: 15px;
+}
+
+.wh-driver-code {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-bottom: 4px;
+}
+
+.wh-driver-name {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Stats Grid */
+.wh-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.wh-stat-item {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.wh-stat-label {
+    font-size: 11px;
+    opacity: 0.8;
+}
+
+.wh-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.wh-stat-unit {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+/* Click Hint */
+.wh-click-hint {
+    margin-top: 15px;
+    font-size: 11px;
+    opacity: 0.7;
+    text-align: center;
+}
+
+/* Empty State */
+.wh-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-sub);
 }
 
 .wh-driver-card:hover {
