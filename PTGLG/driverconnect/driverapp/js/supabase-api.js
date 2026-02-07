@@ -630,10 +630,11 @@ export const SupabaseAPI = {
       }
 
       // Insert alcohol check record (schema per PLAN.md)
+      // Convert tripId to string to handle both bigint and UUID types
       const { data, error } = await supabase
         .from(TABLES.ALCOHOL_CHECKS)
         .insert({
-          job_id: tripId, // Corrected from trip_id to job_id
+          job_id: String(tripId), // Convert to string for type compatibility
           reference: reference,
           driver_name: driverName,
           checked_by: userId,

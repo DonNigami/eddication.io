@@ -135,9 +135,11 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     // Step 2: Query station table for codes not found in customer
     const stillUncachedCodes = uncachedCodes.filter(code => !cache.customers.has(code));
     if (stillUncachedCodes.length > 0) {
+      // Station table uses Thai column name 'ชื่อสถานีบริการ' for name
+      // Also try 'station_name' as fallback (some migrations use this)
       const { data: stationData, error: stationError } = await supabase
         .from('station')
-        .select('"stationKey", name, lat, lng, "radiusMeters"')
+        .select('"stationKey", "ชื่อสถานีบริการ", lat, lng, "radiusMeters"')
         .in('"stationKey"', stillUncachedCodes);
 
       if (stationError) {
@@ -154,7 +156,7 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 
           if (!isNaN(lat) && !isNaN(lng)) {
             cache.customers.set(s.stationKey, {
-              name: s.name,
+              name: s['ชื่อสถานีบริการ'] || s.station_name || s.stationKey,
               lat,
               lng,
               radiusMeters: s.radiusMeters
@@ -186,16 +188,41 @@ async function getStationByName(name) {
   }
 
   try {
-    // Try exact match - using station_name since name might be a generated column
-    const { data: stationData, error } = await supabase
+    // Try exact match - the station table uses Thai column name 'ชื่อสถานีบริการ'
+    // Also try 'station_name' as fallback (some migrations use this)
+    let stationData = null;
+    let error = null;
+
+    // First try with Thai column name
+    const thaiResult = await supabase
       .from('station')
-      .select('"stationKey", station_name, lat, lng, "radiusMeters"')
-      .eq('station_name', name)
+      .select('"stationKey", "ชื่อสถานีบริการ", lat, lng, "radiusMeters"')
+      .eq('"ชื่อสถานีบริการ"', name)
       .limit(1)
       .maybeSingle();
 
+    if (!thaiResult.error && thaiResult.data) {
+      stationData = {
+        stationKey: thaiResult.data.stationKey,
+        name: thaiResult.data['ชื่อสถานีบริการ'],
+        lat: thaiResult.data.lat,
+        lng: thaiResult.data.lng,
+        radiusMeters: thaiResult.data.radiusMeters
+      };
+    } else {
+      // Try with station_name as fallback
+      const fallbackResult = await supabase
+        .from('station')
+        .select('"stationKey", station_name, lat, lng, "radiusMeters"')
+        .eq('station_name', name)
+        .limit(1)
+        .maybeSingle();
+      error = fallbackResult.error;
+      stationData = fallbackResult.data;
+    }
+
     // Check for specific error codes
-    if (error) {
+    if (error && !stationData) {
       // If table doesn't exist or permission denied, just return null
       if (error.code === 'PGRST116' || error.code === '42501') {
         console.warn(`⚠️ Station table not accessible (${error.code})`);
@@ -211,7 +238,7 @@ async function getStationByName(name) {
       const lng = parseFloat(stationData.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
         cache.customers.set(stationData.stationKey, {
-          name: stationData.station_name,
+          name: stationData.name || stationData.station_name || stationData['ชื่อสถานีบริการ'],
           lat,
           lng,
           radiusMeters: stationData.radiusMeters
