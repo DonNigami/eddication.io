@@ -42,7 +42,6 @@ const state = {
 
 export function initLocationMaster() {
     console.log('[LocationMaster] Initializing...');
-    setupTabEventListeners();
     setupSearchInputListeners();
     loadLocationMaster();
 }
@@ -51,9 +50,11 @@ export function initLocationMaster() {
 // TAB MANAGEMENT
 // ============================================
 
+// Make tab switch function available globally for HTML onclick
+window.switchLocationTab = switchLocationTab;
+
 function setupTabEventListeners() {
-    // Tab click handlers are set up via onclick in HTML
-    window.switchLocationTab = switchLocationTab;
+    // Tab click handlers are set up via onclick in HTML and window assignment above
 }
 
 function setupSearchInputListeners() {
@@ -1049,7 +1050,9 @@ function escapeHtml(text) {
 
 function showNotification(message, type = 'info') {
     // Try to use existing notification system
-    if (window.showNotification) {
+    if (window.showNotificationFromLocationMaster) {
+        window.showNotificationFromLocationMaster(message, type);
+    } else if (window.showNotification) {
         window.showNotification(message, type);
     } else {
         // Fallback
@@ -1059,10 +1062,56 @@ function showNotification(message, type = 'info') {
 }
 
 // ============================================
-// EXPORT FUNCTIONS FOR GLOBAL ACCESS
+// ASSIGN GLOBAL WINDOW FUNCTIONS FOR HTML ONCLICK
+// ============================================
+
+// Make all onclick functions available globally
+window.switchLocationTab = switchLocationTab;
+window.loadLocationMaster = loadLocationMaster;
+window.loadOriginData = loadOriginData;
+window.loadStationData = loadStationData;
+window.loadCustomerData = loadCustomerData;
+window.applyOriginFilters = applyOriginFilters;
+window.clearOriginFilters = clearOriginFilters;
+window.applyStationFilters = applyStationFilters;
+window.clearStationFilters = clearStationFilters;
+window.applyCustomerFilters = applyCustomerFilters;
+window.clearCustomerFilters = clearCustomerFilters;
+window.prevOriginPage = prevOriginPage;
+window.nextOriginPage = nextOriginPage;
+window.prevStationPage = prevStationPage;
+window.nextStationPage = nextStationPage;
+window.prevCustomerPage = prevCustomerPage;
+window.nextCustomerPage = nextCustomerPage;
+
+// Modal functions
+window.openOriginModal = openOriginModal;
+window.closeOriginModal = closeOriginModal;
+window.editOrigin = editOrigin;
+window.saveOrigin = saveOrigin;
+window.confirmDeleteOrigin = confirmDeleteOrigin;
+
+window.openStationModal = openStationModal;
+window.closeStationModal = closeStationModal;
+window.editStation = editStation;
+window.saveStation = saveStation;
+window.confirmDeleteStation = confirmDeleteStation;
+
+window.openCustomerModal = openCustomerModal;
+window.closeCustomerModal = closeCustomerModal;
+window.editCustomer = editCustomer;
+window.saveCustomer = saveCustomer;
+window.confirmDeleteCustomer = confirmDeleteCustomer;
+
+window.closeLocationDeleteModal = closeLocationDeleteModal;
+window.confirmDeleteLocation = confirmDeleteLocation;
+
+// ============================================
+// EXPORT FUNCTIONS FOR MODULE IMPORTS
 // ============================================
 
 export {
+    initLocationMaster,
     switchLocationTab,
     loadLocationMaster,
     loadOriginData,
