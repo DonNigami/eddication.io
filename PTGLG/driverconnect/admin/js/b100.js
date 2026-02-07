@@ -322,15 +322,19 @@ export async function handleB100Submit(event) {
             .eq('originKey', destinationKey)
             .single();
 
+        // ใช้ ship_to_code เก็บทั้งต้นทางและปลายทาง (คั่นด้วย ->)
+        // รูปแบบ: "ต้นทาง -> ปลายทาง"
+        const routeCode = `${originKey} -> ${destinationKey}`;
+        const routeName = `${originData?.name || originKey} -> ${destinationData?.name || destinationKey}`;
+
         const jobData = {
             reference: reference,
             drivers: driverData,
             vehicle_desc: vehicle,
-            // Receiving plant (ต้นทาง)
-            receiving_plant: originKey,
-            // Ship to (ปลายทาง)
-            ship_to_code: destinationKey,
-            ship_to_name: destinationData?.name || destinationKey,
+            // Ship to code เก็บเป็นรูปแบบ: ต้นทาง -> ปลายทาง
+            ship_to_code: routeCode,
+            // Ship to name เก็บเป็นรูปแบบ: ชื่อต้นทาง -> ชื่อปลายทาง
+            ship_to_name: routeName,
             materials: materials,
             total_qty: quantity,
             status: 'pending',

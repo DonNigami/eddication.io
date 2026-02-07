@@ -152,7 +152,7 @@ async function loadLocationMaster() {
 // ORIGIN DATA
 // ─────────────────────────────────────────────────
 
-window.loadOriginData = async function() {
+async function loadOriginData() {
     console.log('[LocationMaster] Loading origin data...');
 
     const tbody = document.getElementById('origin-tbody');
@@ -234,7 +234,7 @@ function populateRouteFilter() {
     select.value = currentValue;
 }
 
-window.applyOriginFilters = function() {
+function applyOriginFilters() {
     const searchTerm = document.getElementById('origin-search-input')?.value?.toLowerCase() || '';
     const routeFilter = document.getElementById('origin-route-filter')?.value || '';
 
@@ -252,9 +252,9 @@ window.applyOriginFilters = function() {
     state.origin.currentPage = 1;
     renderOriginTable();
     updateOriginPagination();
-};
+}
 
-window.clearOriginFilters = function() {
+function clearOriginFilters() {
     const searchInput = document.getElementById('origin-search-input');
     const routeFilter = document.getElementById('origin-route-filter');
 
@@ -262,7 +262,7 @@ window.clearOriginFilters = function() {
     if (routeFilter) routeFilter.value = '';
 
     applyOriginFilters();
-};
+}
 
 function renderOriginTable() {
     const tbody = document.getElementById('origin-tbody');
@@ -321,28 +321,28 @@ function updateOriginPagination() {
     }
 }
 
-window.prevOriginPage = function() {
+function prevOriginPage() {
     if (state.origin.currentPage > 1) {
         state.origin.currentPage--;
         renderOriginTable();
         updateOriginPagination();
     }
-};
+}
 
-window.nextOriginPage = function() {
+function nextOriginPage() {
     const totalPages = Math.ceil(state.origin.filteredData.length / state.origin.itemsPerPage);
     if (state.origin.currentPage < totalPages) {
         state.origin.currentPage++;
         renderOriginTable();
         updateOriginPagination();
     }
-};
+}
 
 // ─────────────────────────────────────────────────
 // STATION DATA
 // ─────────────────────────────────────────────────
 
-window.loadStationData = async function() {
+async function loadStationData() {
     console.log('[LocationMaster] Loading station data...');
 
     const tbody = document.getElementById('station-tbody');
@@ -419,7 +419,7 @@ function populateAreaFilter() {
     select.value = currentValue;
 }
 
-window.applyStationFilters = function() {
+function applyStationFilters() {
     const searchTerm = document.getElementById('station-search-input')?.value?.toLowerCase() || '';
     const areaFilter = document.getElementById('station-area-filter')?.value || '';
 
@@ -437,9 +437,9 @@ window.applyStationFilters = function() {
     state.station.currentPage = 1;
     renderStationTable();
     updateStationPagination();
-};
+}
 
-window.clearStationFilters = function() {
+function clearStationFilters() {
     const searchInput = document.getElementById('station-search-input');
     const areaFilter = document.getElementById('station-area-filter');
 
@@ -447,7 +447,7 @@ window.clearStationFilters = function() {
     if (areaFilter) areaFilter.value = '';
 
     applyStationFilters();
-};
+}
 
 function renderStationTable() {
     const tbody = document.getElementById('station-tbody');
@@ -506,28 +506,28 @@ function updateStationPagination() {
     }
 }
 
-window.prevStationPage = function() {
+function prevStationPage() {
     if (state.station.currentPage > 1) {
         state.station.currentPage--;
         renderStationTable();
         updateStationPagination();
     }
-};
+}
 
-window.nextStationPage = function() {
+function nextStationPage() {
     const totalPages = Math.ceil(state.station.filteredData.length / state.station.itemsPerPage);
     if (state.station.currentPage < totalPages) {
         state.station.currentPage++;
         renderStationTable();
         updateStationPagination();
     }
-};
+}
 
 // ─────────────────────────────────────────────────
 // CUSTOMER DATA
 // ─────────────────────────────────────────────────
 
-window.loadCustomerData = async function() {
+async function loadCustomerData() {
     console.log('[LocationMaster] Loading customer data...');
 
     const tbody = document.getElementById('customer-tbody');
@@ -583,7 +583,7 @@ function updateCustomerSummary() {
     if (emailCount) emailCount.textContent = customersWithEmail;
 }
 
-window.applyCustomerFilters = function() {
+function applyCustomerFilters() {
     const searchTerm = document.getElementById('customer-search-input')?.value?.toLowerCase() || '';
 
     state.customer.filteredData = state.customer.data.filter(item => {
@@ -595,13 +595,13 @@ window.applyCustomerFilters = function() {
     state.customer.currentPage = 1;
     renderCustomerTable();
     updateCustomerPagination();
-};
+}
 
-window.clearCustomerFilters = function() {
+function clearCustomerFilters() {
     const searchInput = document.getElementById('customer-search-input');
     if (searchInput) searchInput.value = '';
     applyCustomerFilters();
-};
+}
 
 function renderCustomerTable() {
     const tbody = document.getElementById('customer-tbody');
@@ -661,28 +661,28 @@ function updateCustomerPagination() {
     }
 }
 
-window.prevCustomerPage = function() {
+function prevCustomerPage() {
     if (state.customer.currentPage > 1) {
         state.customer.currentPage--;
         renderCustomerTable();
         updateCustomerPagination();
     }
-};
+}
 
-window.nextCustomerPage = function() {
+function nextCustomerPage() {
     const totalPages = Math.ceil(state.customer.filteredData.length / state.customer.itemsPerPage);
     if (state.customer.currentPage < totalPages) {
         state.customer.currentPage++;
         renderCustomerTable();
         updateCustomerPagination();
     }
-};
+}
 
 // ============================================
 // ORIGIN MODAL FUNCTIONS
 // ============================================
 
-window.openOriginModal = function(originKey = null) {
+function openOriginModal(originKey = null) {
     const modal = document.getElementById('origin-modal');
     const title = document.getElementById('origin-modal-title');
     const modeInput = document.getElementById('origin-mode');
@@ -716,17 +716,17 @@ window.openOriginModal = function(originKey = null) {
     }
 
     modal.classList.remove('hidden');
-};
+}
 
-window.closeOriginModal = function() {
+function closeOriginModal() {
     document.getElementById('origin-modal').classList.add('hidden');
-};
+}
 
-window.editOrigin = function(originKey) {
+function editOrigin(originKey) {
     openOriginModal(originKey);
-};
+}
 
-window.saveOrigin = async function(event) {
+async function saveOrigin(event) {
     event.preventDefault();
 
     const mode = document.getElementById('origin-mode').value;
@@ -770,20 +770,20 @@ window.saveOrigin = async function(event) {
         console.error('[LocationMaster] Error saving origin:', error);
         showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
-};
+}
 
-window.confirmDeleteOrigin = function(originKey, name) {
+function confirmDeleteOrigin(originKey, name) {
     document.getElementById('location-delete-type').value = 'origin';
     document.getElementById('location-delete-key').value = originKey;
     document.getElementById('location-delete-name').textContent = name;
     document.getElementById('location-delete-modal').classList.remove('hidden');
-};
+}
 
 // ============================================
 // STATION MODAL FUNCTIONS
 // ============================================
 
-window.openStationModal = function(stationKey = null) {
+function openStationModal(stationKey = null) {
     const modal = document.getElementById('station-modal');
     const title = document.getElementById('station-modal-title');
     const modeInput = document.getElementById('station-mode');
@@ -818,17 +818,17 @@ window.openStationModal = function(stationKey = null) {
     }
 
     modal.classList.remove('hidden');
-};
+}
 
-window.closeStationModal = function() {
+function closeStationModal() {
     document.getElementById('station-modal').classList.add('hidden');
-};
+}
 
-window.editStation = function(stationKey) {
+function editStation(stationKey) {
     openStationModal(stationKey);
-};
+}
 
-window.saveStation = async function(event) {
+async function saveStation(event) {
     event.preventDefault();
 
     const mode = document.getElementById('station-mode').value;
@@ -873,20 +873,20 @@ window.saveStation = async function(event) {
         console.error('[LocationMaster] Error saving station:', error);
         showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
-};
+}
 
-window.confirmDeleteStation = function(stationKey, name) {
+function confirmDeleteStation(stationKey, name) {
     document.getElementById('location-delete-type').value = 'station';
     document.getElementById('location-delete-key').value = stationKey;
     document.getElementById('location-delete-name').textContent = name;
     document.getElementById('location-delete-modal').classList.remove('hidden');
-};
+}
 
 // ============================================
 // CUSTOMER MODAL FUNCTIONS
 // ============================================
 
-window.openCustomerModal = function(stationKey = null) {
+function openCustomerModal(stationKey = null) {
     const modal = document.getElementById('customer-modal');
     const title = document.getElementById('customer-modal-title');
     const modeInput = document.getElementById('customer-mode');
@@ -922,17 +922,17 @@ window.openCustomerModal = function(stationKey = null) {
     }
 
     modal.classList.remove('hidden');
-};
+}
 
-window.closeCustomerModal = function() {
+function closeCustomerModal() {
     document.getElementById('customer-modal').classList.add('hidden');
-};
+}
 
-window.editCustomer = function(stationKey) {
+function editCustomer(stationKey) {
     openCustomerModal(stationKey);
-};
+}
 
-window.saveCustomer = async function(event) {
+async function saveCustomer(event) {
     event.preventDefault();
 
     const mode = document.getElementById('customer-mode').value;
@@ -978,26 +978,26 @@ window.saveCustomer = async function(event) {
         console.error('[LocationMaster] Error saving customer:', error);
         showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
-};
+}
 
-window.confirmDeleteCustomer = function(stationKey, name) {
+function confirmDeleteCustomer(stationKey, name) {
     document.getElementById('location-delete-type').value = 'customer';
     document.getElementById('location-delete-key').value = stationKey;
     document.getElementById('location-delete-name').textContent = name;
     document.getElementById('location-delete-modal').classList.remove('hidden');
-};
+}
 
 // ============================================
 // DELETE CONFIRMATION
 // ============================================
 
-window.closeLocationDeleteModal = function() {
+function closeLocationDeleteModal() {
     document.getElementById('location-delete-modal').classList.add('hidden');
     document.getElementById('location-delete-type').value = '';
     document.getElementById('location-delete-key').value = '';
-};
+}
 
-window.confirmDeleteLocation = async function() {
+async function confirmDeleteLocation() {
     const type = document.getElementById('location-delete-type').value;
     const key = document.getElementById('location-delete-key').value;
 
@@ -1035,7 +1035,7 @@ window.confirmDeleteLocation = async function() {
         console.error('[LocationMaster] Error deleting location:', error);
         showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
-};
+}
 
 // ============================================
 // UTILITY FUNCTIONS
