@@ -297,24 +297,40 @@ export async function handleB100Submit(event) {
 
     const driverData = b100DriverSelect?.value;
     const vehicle = b100VehicleInput?.value;
-    const origin = b100OriginSelect?.value;
-    const destination = b100DestinationSelect?.value;
+    const originKey = b100OriginSelect?.value;
+    const destinationKey = b100DestinationSelect?.value;
     const materials = b100MaterialsSelect?.value;
     const quantity = parseFloat(b100QuantityInput?.value) || 0;
     const reference = b100ReferenceInput?.value;
 
-    if (!driverData || !vehicle || !origin || !destination || quantity <= 0) {
+    if (!driverData || !vehicle || !originKey || !destinationKey || quantity <= 0) {
         showNotification('Please fill all required fields', 'error');
         return;
     }
 
     try {
+        // Fetch origin and destination names from origin table
+        const { data: originData } = await supabase
+            .from('origin')
+            .select('name')
+            .eq('originKey', originKey)
+            .single();
+
+        const { data: destinationData } = await supabase
+            .from('origin')
+            .select('name')
+            .eq('originKey', destinationKey)
+            .single();
+
         const jobData = {
             reference: reference,
             drivers: driverData,
             vehicle_desc: vehicle,
-            ship_to_code: origin,
-            ship_to_name: destination,
+            // Receiving plant (ต้นทาง)
+            receiving_plant: originKey,
+            // Ship to (ปลายทาง)
+            ship_to_code: destinationKey,
+            ship_to_name: destinationData?.name || destinationKey,
             materials: materials,
             total_qty: quantity,
             status: 'pending',
