@@ -119,31 +119,33 @@ export async function initializeApp() {
 
 /**
  * Initialize theme based on localStorage or system preference
+ * Default is DARK mode
  */
 function initTheme() {
-    // Check localStorage first
+    const themeIcon = document.getElementById('theme-icon');
+
+    // Check localStorage first - default to dark if not set
     const savedTheme = localStorage.getItem('theme');
 
     if (savedTheme === 'light') {
         document.body.classList.add('light-mode');
-    } else if (savedTheme === 'dark') {
-        document.body.classList.remove('light-mode');
+        if (themeIcon) themeIcon.textContent = '☀️';
     } else {
-        // Check system preference
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (!prefersDark) {
-            document.body.classList.add('light-mode');
-        }
+        // Default to dark mode
+        document.body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+        if (themeIcon) themeIcon.textContent = '🌙';
     }
 
-    // Listen for system theme changes
+    // Listen for system theme changes (only if user hasn't set preference)
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (!localStorage.getItem('theme')) {
-            // Only change if user hasn't set a preference
-            if (!e.matches) {
+            // Only change if user hasn't set a preference - but we default to dark anyway
+            // So we only switch to light if system prefers light AND no saved preference
+            const hasSavedPref = localStorage.getItem('theme');
+            if (!hasSavedPref && !e.matches) {
                 document.body.classList.add('light-mode');
-            } else {
-                document.body.classList.remove('light-mode');
+                if (themeIcon) themeIcon.textContent = '☀️';
             }
         }
     });
@@ -154,13 +156,18 @@ function initTheme() {
  */
 export function toggleTheme() {
     const isLightMode = document.body.classList.contains('light-mode');
+    const themeIcon = document.getElementById('theme-icon');
 
     if (isLightMode) {
+        // Switch to dark mode
         document.body.classList.remove('light-mode');
         localStorage.setItem('theme', 'dark');
+        if (themeIcon) themeIcon.textContent = '🌙';
     } else {
+        // Switch to light mode
         document.body.classList.add('light-mode');
         localStorage.setItem('theme', 'light');
+        if (themeIcon) themeIcon.textContent = '☀️';
     }
 }
 
@@ -504,6 +511,12 @@ function setupEventListeners() {
     const incentiveModalClose = document.getElementById('incentive-modal-close');
     if (incentiveModalClose) {
         incentiveModalClose.addEventListener('click', closeIncentiveDetailModal);
+    }
+
+    // Theme toggle button
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
     }
 
     const btnCancelIncentive = document.getElementById('btn-cancel-incentive');

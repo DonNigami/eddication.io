@@ -896,6 +896,26 @@ a:hover {
     animation: smoothSpin 0.8s linear;
 }
 
+/* Theme toggle button styles */
+.header-action-btn.theme-toggle-btn {
+    color: var(--text-secondary);
+}
+
+.header-action-btn.theme-toggle-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-default);
+    color: var(--text-primary);
+}
+
+.header-action-btn.theme-toggle-btn .theme-icon {
+    font-size: 18px;
+    transition: transform var(--duration-base) var(--ease-smooth);
+}
+
+.header-action-btn.theme-toggle-btn:hover .theme-icon {
+    transform: scale(1.1);
+}
+
 @keyframes smoothSpin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
