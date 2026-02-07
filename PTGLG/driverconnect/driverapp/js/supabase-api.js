@@ -393,6 +393,9 @@ export const SupabaseAPI = {
    * Upload alcohol check
    * Schema aligned with app/PLAN.md: alcohol_checks table
    * Requires DriverAuth verification before allowing uploads
+   *
+   * IMPORTANT: job_id is now nullable - alcohol checks can be saved even if jobdata doesn't exist yet.
+   * This prevents orphaned files in storage when drivers check alcohol before job is created.
    */
   async uploadAlcohol({ reference, driverName, userId, alcoholValue, imageBase64, lat, lng }) {
     console.log('🍺 Supabase: Uploading alcohol check for', driverName);
@@ -409,7 +412,8 @@ export const SupabaseAPI = {
     }
 
     try {
-      // Get job_id from jobdata table (driver_jobs table doesn't exist)
+      // Get job_id from jobdata table (optional now - nullable)
+      let tripId = null;
       const { data: jobdataData, error: jobdataError } = await supabase
         .from(TABLES.JOBDATA)
         .select('id')
@@ -417,15 +421,17 @@ export const SupabaseAPI = {
         .limit(1)
         .maybeSingle();
 
-      if (jobdataError || !jobdataData) {
-        throw new Error('ไม่พบงาน');
+      if (!jobdataError && jobdataData) {
+        tripId = String(jobdataData.id);
+        console.log('✅ Found jobdata.id for alcohol check:', tripId);
+      } else {
+        console.log('ℹ️ No jobdata found for', reference, '- will save alcohol check with job_id=null');
       }
 
-      const tripId = String(jobdataData.id); // Convert to string for TEXT type compatibility
-      console.log('✅ Using jobdata.id for alcohol check:', tripId);
-
-      // Upload image to Storage (alcohol-evidence bucket per PLAN.md)
+      // Prepare image upload filename (do this BEFORE actual upload to validate)
       let imageUrl = null;
+      let fileName = null;
+
       if (imageBase64) {
         // Sanitize filename: remove spaces and special characters, use only alphanumeric
         // Thai characters in driverName cause "Invalid key" error in Supabase Storage
@@ -434,7 +440,37 @@ export const SupabaseAPI = {
           .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
           .replace(/[^a-zA-Z0-9]/g, '') // Remove non-alphanumeric (including Thai)
           .substring(0, 20); // Limit length
-        const fileName = `${reference}_${safeDriverName || 'driver'}_${Date.now()}.jpg`;
+        fileName = `${reference}_${safeDriverName || 'driver'}_${Date.now()}.jpg`;
+      }
+
+      // Insert alcohol check record FIRST (before uploading image)
+      // This ensures we have a DB record even if upload fails
+      const insertData = {
+        reference: reference,
+        driver_name: driverName,
+        checked_by: userId,
+        alcohol_value: parseFloat(alcoholValue),
+        image_url: null, // Will update after upload
+        location: { lat, lng },
+        checked_at: new Date().toISOString(),
+        job_id: tripId // Can be null now
+      };
+
+      const { data: insertedRecord, error: insertError } = await supabase
+        .from(TABLES.ALCOHOL_CHECKS)
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (insertError) {
+        // If insert fails, don't upload image (prevents orphaned files)
+        throw insertError;
+      }
+
+      console.log('✅ Alcohol check record inserted:', insertedRecord.id);
+
+      // NOW upload the image (after successful DB insert)
+      if (imageBase64 && fileName) {
         const base64Data = imageBase64.split(',')[1] || imageBase64;
 
         try {
@@ -447,37 +483,25 @@ export const SupabaseAPI = {
 
           if (uploadError) {
             console.warn('⚠️ Image upload failed:', uploadError.message);
-            // Continue without image - don't fail the entire alcohol check
+            // Record is already saved, just without image - that's OK
           } else if (uploadData) {
             const { data: urlData } = supabase.storage
               .from(STORAGE_BUCKET)
               .getPublicUrl(fileName);
             imageUrl = urlData.publicUrl;
-            console.log('✅ Image uploaded successfully');
+            console.log('✅ Image uploaded successfully:', imageUrl);
+
+            // Update the record with the image URL
+            await supabase
+              .from(TABLES.ALCOHOL_CHECKS)
+              .update({ image_url: imageUrl })
+              .eq('id', insertedRecord.id);
           }
         } catch (storageErr) {
           console.warn('⚠️ Storage upload exception:', storageErr.message);
-          // Continue without image
+          // Record is already saved, just without image - that's OK
         }
       }
-
-      // Insert alcohol check record (schema per PLAN.md)
-      // Convert tripId to string to handle both bigint and UUID types
-      const { data, error } = await supabase
-        .from(TABLES.ALCOHOL_CHECKS)
-        .insert({
-          job_id: String(tripId), // Convert to string for type compatibility
-          reference: reference,
-          driver_name: driverName,
-          checked_by: userId,
-          alcohol_value: parseFloat(alcoholValue),
-          image_url: imageUrl,
-          location: { lat, lng },
-          checked_at: new Date().toISOString()
-        })
-        .select();
-
-      if (error) throw error;
 
       // Log action
       await supabase
