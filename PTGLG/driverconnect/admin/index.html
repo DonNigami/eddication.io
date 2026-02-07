@@ -246,6 +246,7 @@ This admin panel interfaces with the following Supabase database tables:
                             <li><a href="#" class="nav-link" data-target="odometer-distance-comparison-report"><span>📏 เปรียบเทียบกิโลเมตร</span></a></li>
                             <li><a href="#" class="nav-link" data-target="driver-reports"><span>👤 รายงานคนขับ</span></a></li>
                             <li><a href="#" class="nav-link" data-target="working-hours-report"><span>⏱️ รายงานชั่วโมงการทำงาน</span></a></li>
+                            <li><a href="#" class="nav-link" data-target="alcohol-check-report"><span>🍺 รายงานการเป่าแอลกอฮอล์</span></a></li>
                         </ul>
                     </li>
 
@@ -1778,6 +1779,120 @@ This admin panel interfaces with the following Supabase database tables:
                             </button>
                         </div>
                     </div>
+                </div>
+            </section>
+
+            <!-- ==================== ALCOHOL CHECK REPORT ==================== -->
+            <section id="alcohol-check-report" class="content-section hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h1 style="margin: 0;">🍺 รายงานการเป่าแอลกอฮอล์</h1>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="section-refresh-btn" id="alcohol-report-refresh-btn" onclick="window.loadAlcoholCheckReport && window.loadAlcoholCheckReport()">
+                            <span class="btn-icon">🔄</span> Refresh
+                        </button>
+                        <button id="alcohol-report-export-btn" class="control-btn" style="padding: 8px 16px; background: var(--success-color); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            📥 ส่งออก Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="kpi-cards" style="margin-bottom: 20px;">
+                    <div class="kpi-card">
+                        <h3>จำนวนครั้งทั้งหมด</h3>
+                        <p id="alcohol-total-count">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>คนขับทั้งหมด</h3>
+                        <p id="alcohol-total-drivers">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ค่าเฉลี่ยแอลกอฮอล์</h3>
+                        <p id="alcohol-avg-value">0.000 mg/L</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h3>ค่าสูงสุด</h3>
+                        <p id="alcohol-max-value">0.000 mg/L</p>
+                    </div>
+                </div>
+
+                <!-- Date Range Filter & Controls -->
+                <div style="background: var(--card-bg); padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <!-- First row: Date range and load button -->
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">วันที่เริ่มต้น:</label>
+                            <input type="date" id="alcohol-report-start-date" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">วันที่สิ้นสุด:</label>
+                            <input type="date" id="alcohol-report-end-date" style="padding: 8px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                        </div>
+                        <button id="alcohol-report-load-btn" class="control-btn" style="padding: 10px 20px; background: var(--brand-primary); color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            โหลดรายงาน
+                        </button>
+                        <!-- Quick Date Buttons -->
+                        <div style="display: flex; gap: 8px;">
+                            <button class="alcohol-quick-date-btn" data-range="today" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">วันนี้</button>
+                            <button class="alcohol-quick-date-btn" data-range="week" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">7 วัน</button>
+                            <button class="alcohol-quick-date-btn" data-range="month" style="padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-color); cursor: pointer; font-size: 12px;">30 วัน</button>
+                        </div>
+                    </div>
+                    <!-- Second row: Filters -->
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start;">
+                        <!-- Driver name search -->
+                        <div style="flex: 1; min-width: 250px;">
+                            <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">ค้นหาชื่อคนขับ:</label>
+                            <input type="text" id="alcohol-report-driver-search" placeholder="พิมพ์ชื่อคนขับ..." style="width: 100%; padding: 8px 12px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                        </div>
+                        <!-- Reference search -->
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">ค้นหาเลขที่เอกสาร (Reference):</label>
+                            <input type="text" id="alcohol-report-ref-search" placeholder="พิมพ์เลขที่เอกสาร..." style="width: 100%; padding: 8px 12px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-elevated); color: var(--text-primary);">
+                        </div>
+                        <!-- Result filter -->
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 12px; color: var(--text-tertiary);">กรองตามผล:</label>
+                            <div style="display: flex; gap: 6px; align-items: center;">
+                                <button class="alcohol-result-filter-btn active" data-result-filter="all" style="padding: 6px 12px; border-radius: 18px; border: 1px solid var(--border-color); background: var(--primary-color); color: white; cursor: pointer; transition: all 0.2s; font-size: 13px;">ทั้งหมด</button>
+                                <button class="alcohol-result-filter-btn" data-result-filter="pass" style="padding: 6px 12px; border-radius: 18px; border: 1px solid #22c55e; background: var(--card-bg); color: #22c55e; cursor: pointer; transition: all 0.2s; font-size: 13px;">✅ ผ่าน</button>
+                                <button class="alcohol-result-filter-btn" data-result-filter="fail" style="padding: 6px 12px; border-radius: 18px; border: 1px solid #ef4444; background: var(--card-bg); color: #ef4444; cursor: pointer; transition: all 0.2s; font-size: 13px;">❌ ไม่ผ่าน</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Section -->
+                <div style="background: var(--card-bg); border-radius: 12px; overflow: hidden; margin-bottom: 20px;">
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border-subtle);">
+                        <h3 style="margin: 0;">แผนที่ตำแหน่งการเป่าแอลกอฮอล์</h3>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-tertiary);">แสดงจุดพิกัดที่พนักงานขับรถบันทึกการเป่าแอลกอฮอล์</p>
+                    </div>
+                    <div id="alcohol-check-map" style="height: 450px; width: 100%;"></div>
+                </div>
+
+                <!-- Table Section -->
+                <div class="table-container">
+                    <table id="alcohol-check-table">
+                        <thead>
+                            <tr>
+                                <th>วันที่/เวลา</th>
+                                <th>ชื่อคนขับ</th>
+                                <th>เลขที่เอกสาร</th>
+                                <th>ค่าแอลกอฮอล์</th>
+                                <th>ผล</th>
+                                <th>พิกัด (Lat/Lng)</th>
+                                <th>รูปภาพ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 20px; color: #888;">
+                                    กดปุ่ม "โหลดรายงาน" เพื่อดูข้อมูล
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
 

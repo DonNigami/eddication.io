@@ -961,6 +961,8 @@ export async function loadSectionData(targetId) {
         case 'working-hours-report':
             await import('./working-hours-report.js').then(m => m.initWorkingHoursReport());
             break;
+        case 'alcohol-check-report':
+            await import('./alcohol-check-report.js').then(m => m.initAlcoholCheckReport());
             break;
         case 'map':
             await import('./map.js').then(m => m.initMap());
