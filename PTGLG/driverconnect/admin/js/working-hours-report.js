@@ -213,7 +213,7 @@ async function loadDashboardData() {
         // Fetch all drivers
         const { data: drivers, error: driversError } = await supabase
             .from('user_profiles')
-            .select('user_id, display_name, driver_code, status')
+            .select('user_id, display_name, status')
             .eq('user_type', 'DRIVER')
             .order('display_name', { ascending: true });
 
@@ -245,7 +245,7 @@ function processDriverData(drivers, jobs) {
         driverMap.set(driver.user_id, {
             userId: driver.user_id,
             name: driver.display_name || '-',
-            driverCode: driver.driver_code || '-',
+            driverCode: '-',
             status: driver.status || 'active',
             jobs: [],
             totalMinutes: 0,
