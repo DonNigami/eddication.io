@@ -988,7 +988,13 @@ This admin panel interfaces with the following Supabase database tables:
             <section id="driver-master" class="content-section hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h1 style="margin: 0;">👨‍✈️ ฐานข้อมูลคนขับรถ (Driver Master)</h1>
-                    <button class="section-refresh-btn" id="driver-master-refresh-btn" onclick="loadDriverMaster()"><span class="btn-icon">🔄</span> Refresh</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="section-refresh-btn" id="driver-master-refresh-btn" onclick="loadDriverMaster()"><span class="btn-icon">🔄</span> Refresh</button>
+                        <button onclick="openDriverMasterModal()" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--primary-color); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);">
+                            <span style="font-size: 16px;">➕</span>
+                            <span>เพิ่มคนขับรถ</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Summary Cards -->
@@ -1050,14 +1056,6 @@ This admin panel interfaces with the following Supabase database tables:
                     <button id="dm-prev-btn" onclick="prevDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">&laquo; ก่อนหน้า</button>
                     <span id="dm-page-info" style="color: var(--text-sub);">หน้า 1 จาก 1</span>
                     <button id="dm-next-btn" onclick="nextDriverMasterPage()" disabled style="padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--card-bg); color: var(--text-color); cursor: not-allowed;">ถัดไป &raquo;</button>
-                </div>
-
-                <!-- Add Driver Button - Prominent at Bottom -->
-                <div style="display: flex; justify-content: center; margin-top: 30px; padding: 20px; background: var(--card-bg); border-radius: 12px; border: 2px dashed var(--primary-color);">
-                    <button onclick="openDriverMasterModal()" style="display: flex; align-items: center; gap: 10px; padding: 15px 40px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); transition: transform 0.2s, box-shadow 0.2s;">
-                        <span style="font-size: 20px;">➕</span>
-                        <span>เพิ่มคนขับรถใหม่</span>
-                    </button>
                 </div>
             </section>
 

@@ -10,7 +10,7 @@ import { supabase } from '../../shared/config.js';
 let driverMasterData = [];
 let filteredDriverMasterData = [];
 let currentPage = 1;
-const itemsPerPage = 20;
+const itemsPerPage = 10;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
