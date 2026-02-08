@@ -488,7 +488,7 @@ function openDriverDetail(driverId) {
         if (driver.jobs.length === 0) {
             elements.detailJobsTableBody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-sub);">
+                    <td colspan="7" class="text-center">
                         ไม่พบข้อมูลการทำงาน
                     </td>
                 </tr>
@@ -499,10 +499,10 @@ function openDriverDetail(driverId) {
                     <td>${job.reference}</td>
                     <td>${job.checkinDate}</td>
                     <td>${job.checkinTimeFormatted} - ${job.checkoutTimeFormatted}</td>
-                    <td style="text-align: center;"><strong>${job.durationFormatted}</strong></td>
+                    <td class="text-center"><strong>${job.durationFormatted}</strong></td>
                     <td>${job.origin || '-'}</td>
                     <td>${job.destination}</td>
-                    <td style="text-align: center;">${job.distance || '-'}</td>
+                    <td class="text-center">${job.distance || '-'}</td>
                 </tr>
             `).join('');
         }

@@ -896,60 +896,60 @@ This admin panel interfaces with the following Supabase database tables:
 
             <!-- Driver Detail Modal -->
             <div id="wh-detail-modal" class="modal hidden">
-                <div class="modal-content" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
-                    <span class="close-button" id="wh-detail-modal-close" style="font-size: 28px; cursor: pointer; float: right;">&times;</span>
+                <div class="modal-content">
+                    <span class="close-button" id="wh-detail-modal-close">&times;</span>
 
                     <!-- Modal Header -->
-                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0; margin: -20px -20px 20px -20px;">
-                        <h2 id="wh-detail-driver-name" style="margin: 0; font-size: 24px;">-</h2>
-                        <p id="wh-detail-driver-code" style="margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;">-</p>
-                        <p id="wh-detail-period" style="margin: 5px 0 0 0; opacity: 0.8; font-size: 13px;">-</p>
+                    <div class="wh-detail-header">
+                        <h2 id="wh-detail-driver-name">-</h2>
+                        <p id="wh-detail-driver-code">-</p>
+                        <p id="wh-detail-period">-</p>
                     </div>
 
                     <!-- Summary Stats -->
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">งานทั้งหมด</div>
-                            <div id="wh-detail-total-jobs" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                    <div class="wh-detail-stats-grid">
+                        <div class="wh-detail-stat-card">
+                            <div class="wh-detail-stat-label">งานทั้งหมด</div>
+                            <div id="wh-detail-total-jobs" class="wh-detail-stat-value">0</div>
                         </div>
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">รวมชั่วโมง</div>
-                            <div id="wh-detail-total-hours" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                        <div class="wh-detail-stat-card">
+                            <div class="wh-detail-stat-label">รวมชั่วโมง</div>
+                            <div id="wh-detail-total-hours" class="wh-detail-stat-value">0</div>
                         </div>
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">เฉลี่ย/งาน</div>
-                            <div id="wh-detail-avg-per-job" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                        <div class="wh-detail-stat-card">
+                            <div class="wh-detail-stat-label">เฉลี่ย/งาน</div>
+                            <div id="wh-detail-avg-per-job" class="wh-detail-stat-value">0</div>
                         </div>
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">ทำงาน</div>
-                            <div style="font-size: 24px; font-weight: 700; color: var(--primary-color);"><span id="wh-detail-working-days">0</span> วัน</div>
+                        <div class="wh-detail-stat-card">
+                            <div class="wh-detail-stat-label">ทำงาน</div>
+                            <div id="wh-detail-working-days" class="wh-detail-stat-value">0 วัน</div>
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
-                        <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 10px;">
-                            <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 5px;">เฉลี่ย/วัน</div>
-                            <div id="wh-detail-avg-per-day" style="font-size: 24px; font-weight: 700; color: var(--primary-color);">0</div>
+                    <div class="wh-detail-stats-row-2">
+                        <div class="wh-detail-stat-card">
+                            <div class="wh-detail-stat-label">เฉลี่ย/วัน</div>
+                            <div id="wh-detail-avg-per-day" class="wh-detail-stat-value">0</div>
                         </div>
                     </div>
 
                     <!-- Jobs Table -->
-                    <h3 style="margin: 0 0 15px 0; font-size: 16px;">รายละเอียดการทำงาน</h3>
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 16px; color: var(--text-primary);">รายละเอียดการทำงาน</h3>
+                    <div class="wh-detail-table-container">
+                        <table class="wh-detail-table">
                             <thead>
-                                <tr style="background: #f8f9fa;">
-                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">เลขที่งาน</th>
-                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">วันที่</th>
-                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">เวลา</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">ระยะเวลา</th>
-                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">ต้นทาง</th>
-                                    <th style="padding: 10px; text-align: left; border-bottom: 2px solid #dee2e6;">ปลายทาง</th>
-                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #dee2e6;">กม.</th>
+                                <tr>
+                                    <th>เลขที่งาน</th>
+                                    <th>วันที่</th>
+                                    <th>เวลา</th>
+                                    <th style="text-align: center;">ระยะเวลา</th>
+                                    <th>ต้นทาง</th>
+                                    <th>ปลายทาง</th>
+                                    <th style="text-align: center;">กม.</th>
                                 </tr>
                             </thead>
                             <tbody id="wh-detail-jobs-tbody">
                                 <tr>
-                                    <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-sub);">
+                                    <td colspan="7" style="text-align: center; padding: 30px; color: var(--text-tertiary);">
                                         ไม่พบข้อมูล
                                     </td>
                                 </tr>

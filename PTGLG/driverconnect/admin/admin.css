@@ -3692,6 +3692,171 @@ html, body {
     to { transform: rotate(360deg); }
 }
 
+/* ============================================
+   WORKING HOURS DETAIL MODAL STYLES
+   ============================================ */
+
+/* Detail Modal - Use max-width class */
+#wh-detail-modal .modal-content {
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Detail Modal Header - Purple gradient */
+.wh-detail-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px 12px 0 0;
+    margin: -20px -20px 20px -20px;
+}
+
+.wh-detail-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: white;
+}
+
+.wh-detail-header p {
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+    font-size: 14px;
+    color: white;
+}
+
+.wh-detail-header p:last-child {
+    opacity: 0.8;
+    font-size: 13px;
+}
+
+/* Detail Stats Grid */
+.wh-detail-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.wh-detail-stats-row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* Detail Stat Card - Dark mode compatible */
+.wh-detail-stat-card {
+    text-align: center;
+    padding: 15px;
+    background: var(--bg-elevated-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+}
+
+.wh-detail-stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+}
+
+.wh-detail-stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--brand-primary-light);
+}
+
+/* Detail Table Styles */
+.wh-detail-table-container {
+    overflow-x: auto;
+}
+
+.wh-detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.wh-detail-table thead tr {
+    background: var(--bg-elevated-2);
+    border-bottom: 2px solid var(--border-default);
+}
+
+.wh-detail-table th {
+    padding: 12px 10px;
+    text-align: left;
+    color: var(--text-secondary);
+    font-weight: var(--font-semibold);
+    border-bottom: 1px solid var(--border-default);
+}
+
+.wh-detail-table th[style*="center"] {
+    text-align: center;
+}
+
+.wh-detail-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.wh-detail-table td.text-center {
+    text-align: center;
+}
+
+.wh-detail-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.wh-detail-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Close button for detail modal */
+#wh-detail-modal-close {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: var(--radius-full);
+    color: white;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-smooth);
+    font-size: 20px;
+    float: none;
+}
+
+#wh-detail-modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+/* Mobile responsive for detail modal */
+@media (max-width: 768px) {
+    .wh-detail-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .wh-detail-stats-row-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .wh-detail-table {
+        font-size: 11px;
+    }
+
+    .wh-detail-table th,
+    .wh-detail-table td {
+        padding: 8px 6px;
+    }
+}
+
 /* Table Styles */
 .text-center {
     text-align: center;
