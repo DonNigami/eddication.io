@@ -397,21 +397,30 @@ function closeDmDeleteModal() {
  */
 async function confirmDeleteDriverMaster() {
     const employeeCode = document.getElementById('dm-delete-employee-code').value;
+    console.log('[DEBUG] confirmDeleteDriverMaster called with employeeCode:', employeeCode);
 
     try {
-        const { error } = await supabase
+        console.log('[DEBUG] Starting delete operation...');
+        const { data, error, count } = await supabase
             .from('driver_master')
             .delete()
-            .eq('employee_code', employeeCode);
+            .eq('employee_code', employeeCode)
+            .select();
 
-        if (error) throw error;
+        console.log('[DEBUG] Delete result:', { data, error, count });
 
+        if (error) {
+            console.error('[DEBUG] Delete error:', error);
+            throw error;
+        }
+
+        console.log('[DEBUG] Delete successful!');
         showNotification('ลบข้อมูลสำเร็จ', 'success');
         closeDmDeleteModal();
         loadDriverMaster();
         loadFilterOptions();
     } catch (error) {
-        console.error('Error deleting driver master:', error);
+        console.error('[DEBUG] Error deleting driver master:', error);
         showNotification(`เกิดข้อผิดพลาด: ${error.message}`, 'error');
     }
 }
