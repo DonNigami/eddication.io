@@ -401,9 +401,33 @@ async function confirmDeleteDriverMaster() {
 
     try {
         console.log('[DEBUG] Starting delete operation...');
+
+        // First check if record exists
+        const { data: existingRecord, error: checkError } = await supabase
+            .from('driver_master')
+            .select('*')
+            .eq('employee_code', employeeCode)
+            .single();
+
+        console.log('[DEBUG] Existing record check:', { existingRecord, checkError });
+
+        if (checkError) {
+            console.error('[DEBUG] Check error:', checkError);
+            showNotification(`ไม่พบข้อมูล: ${checkError.message}`, 'error');
+            return;
+        }
+
+        if (!existingRecord) {
+            showNotification('ไม่พบข้อมูลคนขับรถที่ต้องการลบ', 'error');
+            closeDmDeleteModal();
+            loadDriverMaster();
+            return;
+        }
+
+        // Delete with count to verify
         const { data, error, count } = await supabase
             .from('driver_master')
-            .delete()
+            .delete({ count: 'exact' })
             .eq('employee_code', employeeCode)
             .select();
 
@@ -414,7 +438,14 @@ async function confirmDeleteDriverMaster() {
             throw error;
         }
 
-        console.log('[DEBUG] Delete successful!');
+        // Check if actually deleted
+        if (count === 0) {
+            console.error('[DEBUG] No rows deleted! RLS policy may be blocking delete.');
+            showNotification('ไม่สามารถลบข้อมูลได้ (อาจเกิดจากสิทธิ์การเข้าถึง)', 'error');
+            return;
+        }
+
+        console.log('[DEBUG] Delete successful! Rows affected:', count);
         showNotification('ลบข้อมูลสำเร็จ', 'success');
         closeDmDeleteModal();
         loadDriverMaster();
