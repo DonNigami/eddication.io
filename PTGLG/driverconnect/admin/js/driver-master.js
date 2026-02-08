@@ -112,6 +112,80 @@ function loadFilterOptions() {
         truckTypeFilter.innerHTML = '<option value="" style="background-color: #1a202e; color: #f7f8fa;">ทุกประเภทรถ</option>' +
             truckTypes.map(t => `<option value="${t}" ${t === currentValue ? 'selected' : ''} style="background-color: #1a202e; color: #f7f8fa;">${t}</option>`).join('');
     }
+
+    // Load form dropdown options from driver_master table
+    loadFormDropdownOptions();
+}
+
+/**
+ * Load form dropdown options from driver_master table
+ * This populates the datalists and select dropdowns in the add/edit form
+ */
+function loadFormDropdownOptions() {
+    // Get unique values from driver_master data
+    const sections = [...new Set(driverMasterData.map(d => d.section).filter(Boolean))].sort();
+    const truckTypes = [...new Set(driverMasterData.map(d => d.truck_type).filter(Boolean))].sort();
+    const positions = [...new Set(driverMasterData.map(d => d.position).filter(Boolean))].sort();
+
+    // Update section datalist
+    const sectionList = document.getElementById('dm-section-list');
+    if (sectionList) {
+        if (sections.length > 0) {
+            sectionList.innerHTML = sections
+                .map(s => `<option value="${escapeHtml(s)}" style="background-color: #1a202e; color: #f7f8fa;">`)
+                .join('');
+        } else {
+            // Keep default options if no data exists
+            sectionList.innerHTML = `
+                <option value="ขนส่งที่ 1" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="ขนส่งที่ 2" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="ขนส่งที่ 3" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="ขนส่งที่ 4" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="ฝ่ายช่าง" style="background-color: #1a202e; color: #f7f8fa;">
+            `;
+        }
+    }
+
+    // Update truck type select
+    const truckTypeSelect = document.getElementById('dm-truck-type');
+    if (truckTypeSelect) {
+        const currentValue = truckTypeSelect.value;
+        if (truckTypes.length > 0) {
+            truckTypeSelect.innerHTML = '<option value="" style="background-color: #1a202e; color: #f7f8fa;">-- เลือกประเภทรถ --</option>' +
+                truckTypes
+                    .map(t => `<option value="${escapeHtml(t)}" ${t === currentValue ? 'selected' : ''} style="background-color: #1a202e; color: #f7f8fa;">${escapeHtml(t)}</option>`)
+                    .join('');
+        } else {
+            // Keep default options if no data exists
+            truckTypeSelect.innerHTML = `
+                <option value="" style="background-color: #1a202e; color: #f7f8fa;">-- เลือกประเภทรถ --</option>
+                <option value="รถบรรทุก 4 ล้อ" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุก 4 ล้อ</option>
+                <option value="รถบรรทุก 6 ล้อ" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุก 6 ล้อ</option>
+                <option value="รถบรรทุก 10 ล้อ" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุก 10 ล้อ</option>
+                <option value="รถพ่วง" style="background-color: #1a202e; color: #f7f8fa;">รถพ่วง</option>
+                <option value="รถถัง" style="background-color: #1a202e; color: #f7f8fa;">รถถัง</option>
+                <option value="รถบรรทุกน้ำมัน" style="background-color: #1a202e; color: #f7f8fa;">รถบรรทุกน้ำมัน</option>
+            `;
+        }
+    }
+
+    // Update position datalist
+    const positionList = document.getElementById('dm-position-list');
+    if (positionList) {
+        if (positions.length > 0) {
+            positionList.innerHTML = positions
+                .map(p => `<option value="${escapeHtml(p)}" style="background-color: #1a202e; color: #f7f8fa;">`)
+                .join('');
+        } else {
+            // Keep default options if no data exists
+            positionList.innerHTML = `
+                <option value="พนักงานขับรถ" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="พนักงานขับรถนำ" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="พนักงานขับรถร่วม" style="background-color: #1a202e; color: #f7f8fa;">
+                <option value="หัวหน้างานขนส่ง" style="background-color: #1a202e; color: #f7f8fa;">
+            `;
+        }
+    }
 }
 
 /**
