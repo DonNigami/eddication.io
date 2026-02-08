@@ -155,19 +155,24 @@ function initTheme() {
  * Toggle theme between dark and light mode
  */
 export function toggleTheme() {
+    console.log('🔄 Toggle theme clicked');
     const isLightMode = document.body.classList.contains('light-mode');
     const themeIcon = document.getElementById('theme-icon');
+
+    console.log('Current mode:', isLightMode ? 'light' : 'dark');
 
     if (isLightMode) {
         // Switch to dark mode
         document.body.classList.remove('light-mode');
         localStorage.setItem('theme', 'dark');
         if (themeIcon) themeIcon.textContent = '🌙';
+        console.log('✅ Switched to dark mode');
     } else {
         // Switch to light mode
         document.body.classList.add('light-mode');
         localStorage.setItem('theme', 'light');
         if (themeIcon) themeIcon.textContent = '☀️';
+        console.log('✅ Switched to light mode');
     }
 }
 
@@ -516,7 +521,10 @@ function setupEventListeners() {
     // Theme toggle button
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
     if (themeToggleBtn) {
+        console.log('✅ Theme toggle button found, adding listener');
         themeToggleBtn.addEventListener('click', toggleTheme);
+    } else {
+        console.log('❌ Theme toggle button NOT found');
     }
 
     const btnCancelIncentive = document.getElementById('btn-cancel-incentive');
