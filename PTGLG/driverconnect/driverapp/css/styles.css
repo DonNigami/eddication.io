@@ -2128,6 +2128,114 @@ button:disabled {
 }
 
 /* ============================================
+   Registration Prompt Styles
+   ============================================ */
+.registration-prompt {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  margin: 12px 0;
+  border: 2px solid;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.registration-prompt.new {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, rgba(26, 188, 156, 0.1) 0%, var(--card-bg) 100%);
+}
+
+.registration-prompt.pending {
+  border-color: #f39c12;
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.1) 0%, var(--card-bg) 100%);
+}
+
+.registration-prompt.rejected {
+  border-color: #e74c3c;
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, var(--card-bg) 100%);
+}
+
+.registration-prompt-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.registration-prompt-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-main);
+}
+
+.registration-prompt.new .registration-prompt-title {
+  color: var(--primary);
+}
+
+.registration-prompt.pending .registration-prompt-title {
+  color: #f39c12;
+}
+
+.registration-prompt.rejected .registration-prompt-title {
+  color: #e74c3c;
+}
+
+.registration-prompt-message {
+  font-size: 0.9rem;
+  color: var(--text-sub);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.registration-prompt-button {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.registration-prompt-button.primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(26, 188, 156, 0.3);
+}
+
+.registration-prompt-button.primary:hover,
+.registration-prompt-button.primary:active {
+  background: #16a085;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(26, 188, 156, 0.4);
+}
+
+.registration-prompt-button:not(.primary) {
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+}
+
+.registration-prompt-button:not(.primary):hover,
+.registration-prompt-button:not(.primary):active {
+  background: var(--input-border);
+}
+
+/* Dark mode adjustments for registration prompt */
+[data-theme="dark"] .registration-prompt.new {
+  background: linear-gradient(135deg, rgba(26, 188, 156, 0.15) 0%, var(--card-bg) 100%);
+}
+
+[data-theme="dark"] .registration-prompt.pending {
+  background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, var(--card-bg) 100%);
+}
+
+[data-theme="dark"] .registration-prompt.rejected {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.15) 0%, var(--card-bg) 100%);
+}
+
+/* ============================================
    Media Queries
    ============================================ */
 @media (max-width: 480px) {

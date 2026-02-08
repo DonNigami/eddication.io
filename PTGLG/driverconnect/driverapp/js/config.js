@@ -3,7 +3,7 @@
  * Supabase Version
  */
 
-import { SUPABASE_URL as SU, SUPABASE_ANON_KEY as SAK, LIFF_IDS } from '../../shared/config.js';
+import { SUPABASE_URL as SU, SUPABASE_ANON_KEY as SAK, LIFF_IDS, REGISTRATION_URL as REG_URL } from '../../shared/config.js';
 
 // Supabase Configuration
 export const SUPABASE_URL = SU;
@@ -11,6 +11,9 @@ export const SUPABASE_ANON_KEY = SAK;
 
 // LIFF Configuration
 export const LIFF_ID = LIFF_IDS.DRIVER_APP;
+
+// Registration URL
+export const REGISTRATION_URL = REG_URL;
 
 // App Settings
 export const APP_CONFIG = {

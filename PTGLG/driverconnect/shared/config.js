@@ -18,3 +18,6 @@ export const LIFF_IDS = {
     CRM_INDEX: '2006397073-kK6uCiwf', // project/crm/index.html
     CRM_TEST: '2006397073-3wO44G35', // project/crm/test.html
 };
+
+// Driver registration URL
+export const REGISTRATION_URL = 'https://liff.line.me/2007705394-Fgx9wdHu'; // LIFF URL to register-new.html

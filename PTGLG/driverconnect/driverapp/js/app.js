@@ -7,7 +7,7 @@
 let lastLocalUpdateTime = 0;
 const REALTIME_DEBOUNCE_MS = 2000; // Ignore realtime updates for 2s after local update
 
-import { LIFF_ID, APP_CONFIG } from './config.js';
+import { LIFF_ID, APP_CONFIG, REGISTRATION_URL } from './config.js';
 import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64, vibrateSuccess, vibrateError, vibrateWarning, vibrateNotification, vibrateImpact, formatDuration } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
 import { initSupabase, SupabaseAPI } from './supabase-api.js';
@@ -1330,6 +1330,93 @@ function toggleAdminMode() {
 }
 
 // ============================================
+// REGISTRATION PROMPT HELPER
+// ============================================
+/**
+ * Render registration prompt HTML based on user status
+ * @param {string} status - User status (APPROVED, PENDING, REJECTED, or null)
+ * @returns {string} HTML for registration prompt
+ */
+function renderRegistrationPrompt(status) {
+  if (status === 'PENDING') {
+    return `
+      <div class="registration-prompt pending">
+        <div class="registration-prompt-icon">⏳</div>
+        <div class="registration-prompt-title">สถานะ: รอการอนุมัติ</div>
+        <div class="registration-prompt-message">
+          ข้อมูลของคุณอยู่ระหว่างการตรวจสอบ<br>
+          ทางผู้ดูแลระบบจะตรวจสอบและอนุมัติภายใน 24 ชั่วโมง
+        </div>
+      </div>
+    `;
+  } else if (status === 'REJECTED') {
+    return `
+      <div class="registration-prompt rejected">
+        <div class="registration-prompt-icon">✕</div>
+        <div class="registration-prompt-title">ไม่ได้รับอนุมัติใช้งาน</div>
+        <div class="registration-prompt-message">
+          กรุณาติดต่อผู้ดูแลระบบ
+        </div>
+        <a href="${REGISTRATION_URL}" class="registration-prompt-button">ติดต่อผู้ดูแล</a>
+      </div>
+    `;
+  } else {
+    // New user or null status
+    return `
+      <div class="registration-prompt new">
+        <div class="registration-prompt-icon">📝</div>
+        <div class="registration-prompt-title">ยังไม่ได้ลงทะเบียนใช้งาน</div>
+        <div class="registration-prompt-message">
+          กรุณาลงทะเบียนก่อนใช้งานแอปพลิเคชัน
+        </div>
+        <a href="${REGISTRATION_URL}" class="registration-prompt-button primary">ลงทะเบียน</a>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Disable all features for unapproved users
+ */
+function disableFeaturesForUnapproved() {
+  // Disable search input and button
+  const keywordInput = document.getElementById('keyword');
+  const searchBtn = document.getElementById('btnSearch');
+  const reportBtn = document.getElementById('btnReportBreakdown');
+
+  if (keywordInput) {
+    keywordInput.disabled = true;
+    keywordInput.placeholder = 'กรุณาลงทะเบียนก่อนใช้งาน';
+  }
+  if (searchBtn) {
+    searchBtn.disabled = true;
+  }
+  if (reportBtn) {
+    reportBtn.disabled = true;
+  }
+}
+
+/**
+ * Enable all features for approved users
+ */
+function enableFeaturesForApproved() {
+  const keywordInput = document.getElementById('keyword');
+  const searchBtn = document.getElementById('btnSearch');
+  const reportBtn = document.getElementById('btnReportBreakdown');
+
+  if (keywordInput) {
+    keywordInput.disabled = false;
+    keywordInput.placeholder = 'กรอกเลข Reference เช่น 2511S15403';
+  }
+  if (searchBtn) {
+    searchBtn.disabled = false;
+  }
+  if (reportBtn) {
+    reportBtn.disabled = false;
+  }
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 async function initApp() {
@@ -1424,6 +1511,9 @@ async function initApp() {
         `;
         statusEl.style.color = 'var(--text-main)';
 
+        // Enable features for approved users
+        enableFeaturesForApproved();
+
         // Show admin button if user's type is admin
         if (currentUserProfile.user_type === 'ADMIN') {
           document.getElementById('adminToggle').style.display = 'block';
@@ -1437,10 +1527,15 @@ async function initApp() {
           window.liveTracking = liveTracking;
         }
       } else {
-        statusEl.innerHTML = `<span>สถานะ: รอการอนุมัติใช้งาน</span>`;
-        statusEl.style.color = 'orange';
-        // Reset flex styles if no image
+        // Show registration prompt for unapproved users
+        const userStatus = currentUserProfile?.status || null;
+        statusEl.innerHTML = renderRegistrationPrompt(userStatus);
+        statusEl.style.color = 'var(--text-sub)';
+        // Reset flex styles for registration prompt
         statusEl.style.display = 'block';
+
+        // Disable features for unapproved users
+        disableFeaturesForUnapproved();
       }
 
     } else {
