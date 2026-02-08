@@ -177,8 +177,8 @@
    Applied when .light-mode class is added to body
    ============================================ */
 
-body.light-mode,
-body:not(.dark-mode):not([data-theme="dark"]) {
+/* Only apply light mode when explicitly requested via .light-mode class */
+body.light-mode {
     /* Override variables for light mode */
     --bg-deep: hsl(210, 20%, 98%);         /* #f8fafc */
     --bg-base: hsl(210, 20%, 96%);          /* #f1f5f9 */
@@ -195,6 +195,37 @@ body:not(.dark-mode):not([data-theme="dark"]) {
     --text-tertiary: hsl(210, 8%, 55%);    /* #64748b */
     --text-muted: hsl(210, 6%, 60%);       /* #718096 */
     --text-inverse: hsl(0, 0%, 100%);      /* White for colored backgrounds */
+
+    /* Border Colors for light mode */
+    --border-subtle: hsl(210, 15%, 88%);
+    --border-default: hsl(210, 15%, 82%);
+    --border-strong: hsl(210, 15%, 70%);
+    --border-brand: hsl(var(--hue-brand), 50%, 45%);
+
+    /* Brand colors adjustment for light mode */
+    --brand-primary: hsl(var(--hue-brand), 70%, 35%);
+    --brand-primary-light: hsl(var(--hue-brand), 65%, 45%);
+    --brand-primary-dim: hsla(var(--hue-brand), 50%, 35%, 0.1);
+    --brand-primary-glow: hsla(var(--hue-brand), 70%, 50%, 0.1);
+
+    /* Semantic Colors for light mode */
+    --success-color: hsl(150, 70%, 35%);
+    --success-dim: hsla(150, 60%, 35%, 0.1);
+    --success-glow: hsla(150, 70%, 45%, 0.15);
+
+    --warning-color: hsl(42, 95%, 50%);
+    --warning-dim: hsla(42, 80%, 45%, 0.1);
+
+    --error-color: hsl(350, 80%, 45%);
+    --error-dim: hsla(350, 70%, 45%, 0.1);
+    --error-glow: hsla(350, 80%, 50%, 0.15);
+
+    --info-color: hsl(200, 80%, 40%);
+    --info-dim: hsla(200, 70%, 40%, 0.1);
+
+    /* Accent colors */
+    --accent-color: hsl(var(--hue-accent), 75%, 45%);
+    --accent-dim: hsla(var(--hue-accent), 70%, 40%, 0.1);
 }
 
 /* ============================================
