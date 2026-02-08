@@ -399,6 +399,14 @@ async function confirmDeleteDriverMaster() {
     const employeeCode = document.getElementById('dm-delete-employee-code').value;
     console.log('[DEBUG] confirmDeleteDriverMaster called with employeeCode:', employeeCode);
 
+    // Debug: Check auth session
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log('[DEBUG] Current session:', session ? 'Active' : 'None');
+    if (session) {
+        console.log('[DEBUG] User ID:', session.user?.id);
+        console.log('[DEBUG] Access token exists:', !!session.access_token);
+    }
+
     try {
         console.log('[DEBUG] Starting delete operation...');
 
