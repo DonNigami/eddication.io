@@ -178,6 +178,11 @@ function mapRowToDatabase(row) {
       let value = row[sheetCol];
       const originalValue = value;
 
+      // Debug: Log ship_to values
+      if (dbCol === 'ship_to') {
+        console.log(`🔍 ship_to mapping: "${sheetCol}" = "${value}" (type: ${typeof value})`);
+      }
+
       // Type conversions
       if (dbCol === 'distance' || dbCol === 'delivery_qty') {
         // Remove thousands separators (comma) before parsing
@@ -310,10 +315,18 @@ window.testMapping = function() {
   const rowIndex = parseInt(document.getElementById('rowSelect').value);
   const row = window.sheetData.data[rowIndex];
 
+  // Debug: Show all row keys and values
+  console.log('🔍 All row fields:', Object.keys(row).map(k => `"${k}" = "${row[k]}"`));
+
+  // Debug: Specifically check Ship to
+  console.log('🔍 Ship to value:', row['Ship to']);
+  console.log('🔍 All keys containing "ship" or "Ship":', Object.keys(row).filter(k => k.toLowerCase().includes('ship')));
+
   const mapped = mapRowToDatabase(row);
 
   result.innerHTML = `<span class="success">✓ Mapped!</span>\n\n` +
     `Original Row (first 5 fields):\n${sanitizeHTML(JSON.stringify(Object.fromEntries(Object.entries(row).slice(0, 5)), null, 2))}\n\n` +
+    `All Row Keys:\n${sanitizeHTML(JSON.stringify(Object.keys(row), null, 2))}\n\n` +
     `Mapped Data:\n${sanitizeHTML(JSON.stringify(mapped, null, 2))}`;
 
   window.testMappedData = mapped;
