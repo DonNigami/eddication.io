@@ -29,10 +29,10 @@ import { initBreakdownReport } from './breakdown-report.js';
 // SEARCH FUNCTION
 // ============================================
 async function search(isSilent = false) {
-  // User Approval Check (reverted to 'APPROVED' as per user request)
+  // User Approval Check - MUST be approved in BOTH user_profiles AND register_data
   const currentUserProfile = StateManager.get(StateKeys.USER_PROFILE);
-  if (currentUserProfile?.status !== 'APPROVED') {
-    showError('คุณยังไม่ได้รับอนุมัติให้ใช้งานระบบ', 'กรุณาติดต่อผู้ดูแล');
+  if (!currentUserProfile?.is_fully_approved) {
+    showError('คุณยังไม่ได้รับอนุมัติให้ใช้งานระบบ', 'กรุณาลงทะเบียนและรอการอนุมัติจากผู้ดูแล');
     return;
   }
 
@@ -1334,10 +1334,95 @@ function toggleAdminMode() {
 // ============================================
 /**
  * Render registration prompt HTML based on user status
- * @param {string} status - User status (APPROVED, PENDING, REJECTED, or null)
+ * Now considers both user_profiles and register_data status
+ *
+ * @param {Object|string} statusOrProfile - Either status string OR merged profile object
  * @returns {string} HTML for registration prompt
  */
-function renderRegistrationPrompt(status) {
+function renderRegistrationPrompt(statusOrProfile) {
+  // Handle merged profile object (from getUserProfile)
+  if (typeof statusOrProfile === 'object' && statusOrProfile !== null) {
+    const profile = statusOrProfile;
+
+    // If not in register_data at all
+    if (!profile.register_data) {
+      return `
+        <div class="registration-prompt new">
+          <div class="registration-prompt-icon">📝</div>
+          <div class="registration-prompt-title">ยังไม่ได้ลงทะเบียนข้อมูลคนขับ</div>
+          <div class="registration-prompt-message">
+            คุณมีบัญชี LINE แต่ยังไม่ได้ลงทะเบียนข้อมูลคนขับ
+          </div>
+          <a href="${REGISTRATION_URL}" class="registration-prompt-button primary">ลงทะเบียนคนขับ</a>
+        </div>
+      `;
+    }
+
+    // Check register_data status
+    const regStatus = profile.registration_status;
+    if (regStatus === 'PENDING') {
+      return `
+        <div class="registration-prompt pending">
+          <div class="registration-prompt-icon">⏳</div>
+          <div class="registration-prompt-title">สถานะ: รอการอนุมัติ</div>
+          <div class="registration-prompt-message">
+            ข้อมูลคนขับของคุณอยู่ระหว่างการตรวจสอบ<br>
+            ทางผู้ดูแลระบบจะตรวจสอบและอนุมัติภายใน 24 ชั่วโมง
+          </div>
+        </div>
+      `;
+    } else if (regStatus === 'REJECTED') {
+      return `
+        <div class="registration-prompt rejected">
+          <div class="registration-prompt-icon">✕</div>
+          <div class="registration-prompt-title">ไม่ได้รับอนุมัติใช้งาน</div>
+          <div class="registration-prompt-message">
+            ข้อมูลคนขับไม่ผ่านการอนุมัติ<br>
+            กรุณาติดต่อผู้ดูแลระบบ
+          </div>
+          <a href="${REGISTRATION_URL}" class="registration-prompt-button">ติดต่อผู้ดูแล</a>
+        </div>
+      `;
+    } else if (regStatus === 'REQUIRES_CHANGES') {
+      return `
+        <div class="registration-prompt pending">
+          <div class="registration-prompt-icon">✏️</div>
+          <div class="registration-prompt-title">กรุณาแก้ไขข้อมูล</div>
+          <div class="registration-prompt-message">
+            กรุณาแก้ไขข้อมูลการลงทะเบียน<br>
+            ติดต่อผู้ดูแลระบบเพื่อแก้ไข
+          </div>
+          <a href="${REGISTRATION_URL}" class="registration-prompt-button">แก้ไขข้อมูล</a>
+        </div>
+      `;
+    }
+
+    // If register_data is approved but user_profiles is not
+    if (profile.status === 'PENDING') {
+      return `
+        <div class="registration-prompt pending">
+          <div class="registration-prompt-icon">⏳</div>
+          <div class="registration-prompt-title">บัญชี LINE รอการอนุมัติ</div>
+          <div class="registration-prompt-message">
+            บัญชี LINE ของคุณอยู่ระหว่างการตรวจสอบ
+          </div>
+        </div>
+      `;
+    } else if (profile.status === 'REJECTED') {
+      return `
+        <div class="registration-prompt rejected">
+          <div class="registration-prompt-icon">✕</div>
+          <div class="registration-prompt-title">บัญชี LINE ไม่ได้รับอนุมัติ</div>
+          <div class="registration-prompt-message">
+            กรุณาติดต่อผู้ดูแลระบบ
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Handle simple status string (backward compatibility)
+  const status = statusOrProfile;
   if (status === 'PENDING') {
     return `
       <div class="registration-prompt pending">
@@ -1495,9 +1580,9 @@ async function initApp() {
       statusEl.style.alignItems = 'center';
       statusEl.style.gap = '10px';
 
-      // Logic based on 'APPROVED' status as per user request
-      if (currentUserProfile?.status === 'APPROVED') {
-        const displayName = currentUserProfile.display_name || profile.displayName;
+      // Logic based on FULL approval (BOTH user_profiles AND register_data)
+      if (currentUserProfile?.is_fully_approved) {
+        const displayName = currentUserProfile.driver_name || currentUserProfile.display_name || profile.displayName;
         const welcomeText = currentUserProfile.user_type === 'ADMIN' ? 'สวัสดี Admin ' : 'สวัสดี ';
 
         let profileImageHtml = '';
@@ -1528,8 +1613,8 @@ async function initApp() {
         }
       } else {
         // Show registration prompt for unapproved users
-        const userStatus = currentUserProfile?.status || null;
-        statusEl.innerHTML = renderRegistrationPrompt(userStatus);
+        // Pass the full profile object to get detailed status from both tables
+        statusEl.innerHTML = renderRegistrationPrompt(currentUserProfile || null);
         statusEl.style.color = 'var(--text-sub)';
         // Reset flex styles for registration prompt
         statusEl.style.display = 'block';

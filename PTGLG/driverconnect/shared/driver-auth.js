@@ -47,8 +47,12 @@ export class DriverAuth {
      * Check if a user (by LINE User ID) is approved to use the system.
      * This is the primary approval check function.
      *
+     * NOW CHECKS BOTH TABLES:
+     * 1. user_profiles.status = 'APPROVED'
+     * 2. register_data.registration_status = 'APPROVED' (must exist AND be approved)
+     *
      * @param {string} lineUserId - The user's LINE User ID
-     * @returns {Promise<boolean>} - True if user is approved
+     * @returns {Promise<boolean>} - True if user is approved in BOTH tables
      */
     static async isUserApproved(lineUserId) {
         if (!lineUserId) {
@@ -59,31 +63,45 @@ export class DriverAuth {
         try {
             const supabase = supabaseClient;
 
-            // Option 1: Use the database function (recommended)
-            const { data, error } = await supabase
-                .rpc('is_user_approved', { p_user_id: lineUserId });
+            // Step 1: Check user_profiles status
+            const { data: profile, error: profileError } = await supabase
+                .from('user_profiles')
+                .select('status')
+                .eq('user_id', lineUserId)
+                .maybeSingle();
 
-            if (error) {
-                // Fallback: Direct query if function doesn't exist yet
-                const { data: profile, error: profileError } = await supabase
-                    .from('user_profiles')
-                    .select('status')
-                    .eq('user_id', lineUserId)
-                    .maybeSingle();
-
-                if (profileError) {
-                    console.error('❌ DriverAuth.isUserApproved error:', profileError);
-                    return false;
-                }
-
-                const isApproved = profile?.status === ApprovalStatus.APPROVED;
-                if (!isApproved) {
-                    console.warn(`⚠️ DriverAuth: User ${lineUserId} status is ${profile?.status || 'unknown'}`);
-                }
-                return isApproved;
+            if (profileError) {
+                console.error('❌ DriverAuth.isUserApproved error (user_profiles):', profileError);
+                return false;
             }
 
-            return data === true;
+            const isProfileApproved = profile?.status === ApprovalStatus.APPROVED;
+            if (!isProfileApproved) {
+                console.warn(`⚠️ DriverAuth: User ${lineUserId} user_profiles status is ${profile?.status || 'not found'}`);
+                return false;
+            }
+
+            // Step 2: Check register_data status (MUST exist AND be approved)
+            const { data: registerData, error: registerError } = await supabase
+                .from('register_data')
+                .select('registration_status, driver_name')
+                .eq('line_user_id', lineUserId)
+                .maybeSingle();
+
+            if (registerError) {
+                console.error('❌ DriverAuth.isUserApproved error (register_data):', registerError);
+                return false;
+            }
+
+            // User must exist in register_data AND be approved
+            const isRegisterApproved = registerData?.registration_status === 'APPROVED';
+            if (!isRegisterApproved) {
+                console.warn(`⚠️ DriverAuth: User ${lineUserId} register_data status is ${registerData?.registration_status || 'not found'}`);
+                return false;
+            }
+
+            console.log(`✅ DriverAuth: User ${lineUserId} (${registerData.driver_name}) approved in BOTH tables`);
+            return true;
         } catch (err) {
             console.error('❌ DriverAuth.isUserApproved exception:', err);
             return false;
@@ -91,11 +109,15 @@ export class DriverAuth {
     }
 
     /**
-     * Get user profile including approval status.
-     * Returns null if user not found.
+     * Get user profile including approval status from BOTH tables.
+     * Returns merged profile or null if user not found.
+     *
+     * Combines data from:
+     * - user_profiles: LINE profile data, usage stats
+     * - register_data: Driver registration data, registration status
      *
      * @param {string} lineUserId - The user's LINE User ID
-     * @returns {Promise<Object|null>} - User profile or null
+     * @returns {Promise<Object|null>} - Merged user profile or null
      */
     static async getUserProfile(lineUserId) {
         if (!lineUserId) {
@@ -106,18 +128,67 @@ export class DriverAuth {
         try {
             const supabase = supabaseClient;
 
-            const { data, error } = await supabase
-                .from('user_profiles')
-                .select('*')
-                .eq('user_id', lineUserId)
-                .maybeSingle();
+            // Fetch from both tables in parallel
+            const [profileResult, registerResult] = await Promise.all([
+                supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('user_id', lineUserId)
+                    .maybeSingle(),
+                supabase
+                    .from('register_data')
+                    .select('*')
+                    .eq('line_user_id', lineUserId)
+                    .maybeSingle()
+            ]);
 
-            if (error) {
-                console.error('❌ DriverAuth.getUserProfile error:', error);
+            if (profileResult.error) {
+                console.error('❌ DriverAuth.getUserProfile error (user_profiles):', profileResult.error);
                 return null;
             }
 
-            return data;
+            if (registerResult.error) {
+                console.error('❌ DriverAuth.getUserProfile error (register_data):', registerResult.error);
+                return null;
+            }
+
+            const profile = profileResult.data;
+            const register = registerResult.data;
+
+            // If user not found in user_profiles, return null
+            if (!profile) {
+                console.warn(`⚠️ DriverAuth: No user_profiles found for ${lineUserId}`);
+                return null;
+            }
+
+            // Merge the data, prioritizing fields from each table appropriately
+            // For approval status, use register_data.registration_status as primary
+            const mergedProfile = {
+                ...profile,
+                // Add register_data fields
+                register_data: register || null,
+                // Override status with register_data status for accurate approval state
+                registration_status: register?.registration_status || profile.status,
+                // Add driver info from register_data
+                driver_name: register?.driver_name || profile.display_name,
+                employee_code: register?.employee_code || null,
+                driver_sap_code: register?.driver_sap_code || null,
+                section: register?.section || null,
+                truck_type: register?.truck_type || null,
+                position: register?.position || null,
+                // Combined approval status: true only if BOTH tables approve
+                is_fully_approved: profile.status === ApprovalStatus.APPROVED &&
+                                   register?.registration_status === 'APPROVED'
+            };
+
+            // Log for debugging
+            if (!register) {
+                console.warn(`⚠️ DriverAuth: User ${lineUserId} found in user_profiles but NOT in register_data`);
+            } else if (register.registration_status !== 'APPROVED') {
+                console.warn(`⚠️ DriverAuth: User ${lineUserId} register_data status is ${register.registration_status}`);
+            }
+
+            return mergedProfile;
         } catch (err) {
             console.error('❌ DriverAuth.getUserProfile exception:', err);
             return null;
@@ -240,11 +311,51 @@ export class DriverAuth {
 
     /**
      * Get approval status message for UI display.
+     * Now considers both user_profiles and register_data status.
      *
-     * @param {string} status - Status value from user_profiles
+     * @param {Object|string} statusOrProfile - Either status string OR merged profile object
      * @returns {string} - User-friendly message
      */
-    static getStatusMessage(status) {
+    static getStatusMessage(statusOrProfile) {
+        // Handle merged profile object (from getUserProfile)
+        if (typeof statusOrProfile === 'object' && statusOrProfile !== null) {
+            const profile = statusOrProfile;
+
+            // If not in register_data at all
+            if (!profile.register_data) {
+                return '📝 ยังไม่ได้ลงทะเบียนข้อมูลคนขับ\nกรุณาลงทะเบียนก่อนใช้งาน';
+            }
+
+            // Check register_data status
+            const regStatus = profile.registration_status;
+            if (regStatus === 'PENDING') {
+                return '⏳ ข้อมูลคนขับอยู่ระหว่างการตรวจสอบ\nกรุณารอสักครู่';
+            } else if (regStatus === 'REJECTED') {
+                return '❌ ข้อมูลคนขับไม่ผ่านการอนุมัติ\nกรุณาติดต่อผู้ดูแลระบบ';
+            } else if (regStatus === 'REQUIRES_CHANGES') {
+                return '✏️ กรุณาแก้ไขข้อมูลการลงทะเบียน\nกรุณาติดต่อผู้ดูแลระบบ';
+            } else if (regStatus !== 'APPROVED') {
+                return `⚠️ สถานะ: ${regStatus}\nกรุณาติดต่อผู้ดูแลระบบ`;
+            }
+
+            // If register_data is approved but user_profiles is not
+            if (profile.status !== ApprovalStatus.APPROVED) {
+                switch (profile.status) {
+                    case ApprovalStatus.PENDING:
+                        return '⏳ บัญชี LINE อยู่ระหว่างการตรวจสอบ';
+                    case ApprovalStatus.REJECTED:
+                        return '❌ บัญชี LINE ไม่ได้รับอนุมัติ';
+                    default:
+                        return '⚠️ สถานะบัญชีไม่ชัดเจน';
+                }
+            }
+
+            // Both approved - no message needed
+            return null;
+        }
+
+        // Handle simple status string (backward compatibility)
+        const status = statusOrProfile;
         switch (status) {
             case ApprovalStatus.APPROVED:
                 return null; // No message needed for approved users
