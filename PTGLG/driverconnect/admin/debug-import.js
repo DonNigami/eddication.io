@@ -319,8 +319,16 @@ window.testMapping = function() {
   console.log('🔍 All row fields:', Object.keys(row).map(k => `"${k}" = "${row[k]}"`));
 
   // Debug: Specifically check Ship to
-  console.log('🔍 Ship to value:', row['Ship to']);
+  const shipToValue = row['Ship to'];
+  console.log('🔍 Ship to value:', shipToValue);
+  console.log('🔍 Ship to value type:', typeof shipToValue);
+  console.log('🔍 Ship to is empty string:', shipToValue === '');
+  console.log('🔍 Ship to is undefined:', shipToValue === undefined);
+  console.log('🔍 Ship to trimmed:', shipToValue?.trim());
   console.log('🔍 All keys containing "ship" or "Ship":', Object.keys(row).filter(k => k.toLowerCase().includes('ship')));
+
+  // Alert the ship_to value for debugging
+  alert(`🔍 Ship to Debug:\nOriginal value: "${shipToValue}"\nType: ${typeof shipToValue}\nIs empty: ${shipToValue === ''}\nTrimmed: "${shipToValue?.trim()}"`);
 
   const mapped = mapRowToDatabase(row);
 
