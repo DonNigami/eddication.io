@@ -58,6 +58,9 @@ function parseCSVLine(line) {
 function parseCSV(csvText) {
   const lines = csvText.split('\n').filter(line => line.trim());
   const headers = parseCSVLine(lines[0]);
+  console.log('🔍 CSV Headers:', headers);
+  console.log('🔍 Total CSV rows:', lines.length - 1);
+
   const data = [];
 
   for (let i = 1; i < lines.length; i++) {
@@ -66,6 +69,20 @@ function parseCSV(csvText) {
     headers.forEach((header, index) => {
       row[header] = values[index] || '';
     });
+
+    // Debug: Log rows with empty Ship to but have Ship to Name
+    if (!row['Ship to'] && row['Ship to Name']) {
+      console.log(`🔍 Row ${i} has empty Ship to but has Ship to Name:`, {
+        'Ship to': row['Ship to'],
+        'Ship to Name': row['Ship to Name'],
+        'Reference': row['Reference'],
+        'Raw values count': values.length,
+        'Headers count': headers.length
+      });
+      // Log raw line for this row
+      console.log(`🔍 Raw line ${i}:`, lines[i].substring(0, 500) + '...');
+    }
+
     data.push(row);
   }
 
