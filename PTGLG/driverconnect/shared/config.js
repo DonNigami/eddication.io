@@ -20,4 +20,4 @@ export const LIFF_IDS = {
 };
 
 // Driver registration URL
-export const REGISTRATION_URL = 'https://liff.line.me/2007705394-Fgx9wdHu'; // LIFF URL to register-new.html
+export const REGISTRATION_URL = 'https://liff.line.me/2007705394-V1GJOjgN'; // LIFF URL to register-new.html
