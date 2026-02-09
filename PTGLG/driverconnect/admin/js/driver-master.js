@@ -345,6 +345,9 @@ function openDriverMasterModal() {
 
     form.reset();
     modal.classList.remove('hidden');
+
+    // Load dropdown options from driver_master table
+    loadFormDropdownOptions();
 }
 
 /**
