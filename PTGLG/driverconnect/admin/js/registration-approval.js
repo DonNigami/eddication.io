@@ -175,6 +175,39 @@ function createRegistrationRow(reg) {
     `;
 }
 
+// Store handler references for removal
+// Declare BEFORE setupActionButtons to avoid TDZ issues
+let modalHandlerAttached = false;
+const modalHandlers = {
+    closeDetail: () => {
+        document.getElementById('registration-detail-modal')?.classList.add('hidden');
+    },
+    closeDetail2: () => {
+        document.getElementById('registration-detail-modal')?.classList.add('hidden');
+    },
+    closeReview: () => {
+        document.getElementById('reg-review-modal')?.classList.add('hidden');
+    },
+    cancelReview: () => {
+        document.getElementById('reg-review-modal')?.classList.add('hidden');
+    },
+    approve: () => {
+        approveRegistration();
+    },
+    reject: () => {
+        openReviewModal('reject');
+    },
+    requestChanges: () => {
+        openReviewModal('changes');
+    },
+    copyToMaster: () => {
+        copyToDriverMaster();
+    },
+    confirmReview: () => {
+        confirmReview();
+    }
+};
+
 /**
  * Setup action buttons
  */
@@ -214,47 +247,42 @@ function setupActionButtons() {
  * Setup modal handlers
  */
 function setupModalHandlers() {
+    // Only setup once to prevent duplicate listeners
+    if (modalHandlerAttached) return;
+    modalHandlerAttached = true;
+
     const detailModal = document.getElementById('registration-detail-modal');
     const reviewModal = document.getElementById('reg-review-modal');
 
     // Close detail modal
-    document.getElementById('reg-modal-close')?.addEventListener('click', () => {
-        detailModal?.classList.add('hidden');
-    });
+    const btnModalClose = document.getElementById('reg-modal-close');
+    if (btnModalClose) btnModalClose.addEventListener('click', modalHandlers.closeDetail);
 
-    document.getElementById('btn-close-registration')?.addEventListener('click', () => {
-        detailModal?.classList.add('hidden');
-    });
+    const btnCloseRegistration = document.getElementById('btn-close-registration');
+    if (btnCloseRegistration) btnCloseRegistration.addEventListener('click', modalHandlers.closeDetail2);
 
     // Close review modal
-    document.getElementById('reg-review-modal-close')?.addEventListener('click', () => {
-        reviewModal?.classList.add('hidden');
-    });
+    const btnReviewModalClose = document.getElementById('reg-review-modal-close');
+    if (btnReviewModalClose) btnReviewModalClose.addEventListener('click', modalHandlers.closeReview);
 
-    document.getElementById('btn-cancel-review')?.addEventListener('click', () => {
-        reviewModal?.classList.add('hidden');
-    });
+    const btnCancelReview = document.getElementById('btn-cancel-review');
+    if (btnCancelReview) btnCancelReview.addEventListener('click', modalHandlers.cancelReview);
 
     // Action buttons
-    document.getElementById('btn-approve-registration')?.addEventListener('click', () => {
-        approveRegistration();
-    });
+    const btnApprove = document.getElementById('btn-approve-registration');
+    if (btnApprove) btnApprove.addEventListener('click', modalHandlers.approve);
 
-    document.getElementById('btn-reject-registration')?.addEventListener('click', () => {
-        openReviewModal('reject');
-    });
+    const btnReject = document.getElementById('btn-reject-registration');
+    if (btnReject) btnReject.addEventListener('click', modalHandlers.reject);
 
-    document.getElementById('btn-request-changes')?.addEventListener('click', () => {
-        openReviewModal('changes');
-    });
+    const btnRequestChanges = document.getElementById('btn-request-changes');
+    if (btnRequestChanges) btnRequestChanges.addEventListener('click', modalHandlers.requestChanges);
 
-    document.getElementById('btn-copy-driver-master')?.addEventListener('click', () => {
-        copyToDriverMaster();
-    });
+    const btnCopy = document.getElementById('btn-copy-driver-master');
+    if (btnCopy) btnCopy.addEventListener('click', modalHandlers.copyToMaster);
 
-    document.getElementById('btn-confirm-review')?.addEventListener('click', () => {
-        confirmReview();
-    });
+    const btnConfirm = document.getElementById('btn-confirm-review');
+    if (btnConfirm) btnConfirm.addEventListener('click', modalHandlers.confirmReview);
 }
 
 /**
