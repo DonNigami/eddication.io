@@ -29,55 +29,66 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  * @returns {Promise<Object|null>} - Origin data or null
  */
 export async function getOriginConfig(route = null) {
-  // Check cache first
-  if (cache.origin && Date.now() < cache.originExpiry) {
-    return cache.origin;
-  }
-
+  // IMPORTANT: Do NOT use cache for origin lookup since different routes may have different origins
+  // Cache was causing wrong origin to be returned for different routes
   let originData = null;
 
-  // 1. Try by route code
+  // 1. Try by route code (exact match with routeCode or first 3 chars)
   if (route) {
     const routePrefix = route.substring(0, 3).toUpperCase();
+    console.log(`🔍 Looking up origin for route: "${route}" (prefix: "${routePrefix}")`);
+
     try {
-      const { data } = await supabase
+      // First try: exact match with routeCode
+      const { data: exactData } = await supabase
         .from('origin')
         .select('originKey, name, lat, lng, radiusMeters, routeCode')
-        .or(`routeCode.ilike.${routePrefix}%,originKey.ilike.${routePrefix}%`)
+        .eq('routeCode', routePrefix)
+        .eq('active', true)
         .limit(1)
         .maybeSingle();
 
-      if (data) {
-        originData = data;
-        console.log(`✅ Found origin by route: ${originData.name}`);
+      if (exactData) {
+        originData = exactData;
+        console.log(`✅ Found origin by routeCode "${routePrefix}": ${originData.name} (originKey: ${originData.originKey})`);
+      } else {
+        // Second try: match by originKey (in case routePrefix matches an originKey)
+        const { data: keyData } = await supabase
+          .from('origin')
+          .select('originKey, name, lat, lng, radiusMeters, routeCode')
+          .eq('originKey', routePrefix)
+          .eq('active', true)
+          .limit(1)
+          .maybeSingle();
+
+        if (keyData) {
+          originData = keyData;
+          console.log(`✅ Found origin by originKey "${routePrefix}": ${originData.name}`);
+        }
       }
     } catch (error) {
       console.warn('⚠️ Error fetching origin by route:', error.message);
     }
   }
 
-  // 2. Fallback to default origin (first row)
+  // 2. Fallback to default origin (first active row)
   if (!originData) {
     try {
       const { data } = await supabase
         .from('origin')
         .select('originKey, name, lat, lng, radiusMeters, routeCode')
+        .eq('active', true)
+        .order('routeCode', { ascending: true })
         .limit(1)
         .maybeSingle();
 
       if (data) {
         originData = data;
-        console.log(`✅ Using default origin: ${originData.name}`);
+        console.log(`✅ Using default origin: ${originData.name} (originKey: ${originData.originKey}, routeCode: ${originData.routeCode})`);
       }
     } catch (error) {
       console.warn('⚠️ Error fetching default origin:', error.message);
     }
-  }
-
-  // Cache the result
-  if (originData) {
-    cache.origin = originData;
-    cache.originExpiry = Date.now() + CACHE_TTL;
   }
 
   return originData;

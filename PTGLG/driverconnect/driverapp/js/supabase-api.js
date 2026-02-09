@@ -329,18 +329,21 @@ export const SupabaseAPI = {
           // Use first row for other data
           const firstRow = filteredDriverJobsRows[0];
           const routeCode = firstRow.route || firstRow.trip || null;
+          console.log(`🔍 driver_jobs routeCode: "${routeCode}"`);
 
           // Get origin name from origin table BEFORE creating stops
           const { getOriginConfig } = await import('./location-service.js');
           const originData = await getOriginConfig(routeCode);
           const originName = originData?.name || routeCode || 'ต้นทาง';
 
+          console.log(`✅ Origin data: originKey="${originData?.originKey}", name="${originName}", routeCode="${originData?.routeCode}"`);
+
           // Add origin stop as the first stop (seq 1)
           const originStop = {
             rowIndex: 'origin',
             seq: 1,
-            shipToCode: originData?.originKey || '',
-            shipToName: originName,
+            shipToCode: originData?.originKey || '',  // Will be saved to jobdata.ship_to_code
+            shipToName: originName,                   // Will be saved to jobdata.ship_to_name
             address: originName,
             status: 'PENDING',
             checkInTime: null,
