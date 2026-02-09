@@ -326,24 +326,31 @@ export const SupabaseAPI = {
             };
           });
 
+          // Use first row for other data
+          const firstRow = filteredDriverJobsRows[0];
+          const routeCode = firstRow.route || firstRow.trip || null;
+
+          // Get origin name from origin table BEFORE creating stops
+          const { getOriginConfig } = await import('./location-service.js');
+          const originData = await getOriginConfig(routeCode);
+          const originName = originData?.name || routeCode || 'ต้นทาง';
+
           // Add origin stop as the first stop (seq 1)
-          // Use the first row for origin data
-          const firstRowForOrigin = filteredDriverJobsRows[0];
           const originStop = {
             rowIndex: 'origin',
             seq: 1,
-            shipToCode: '',
-            shipToName: firstRowForOrigin.route || firstRowForOrigin.trip || 'ต้นทาง',
-            address: 'ต้นทาง',
+            shipToCode: originData?.originKey || '',
+            shipToName: originName,
+            address: originName,
             status: 'PENDING',
             checkInTime: null,
             checkOutTime: null,
             fuelingTime: null,
             unloadDoneTime: null,
             isOriginStop: true,
-            destLat: null, // Will be enriched by location-service
-            destLng: null,
-            radiusM: null,
+            destLat: originData?.lat || null, // Use origin coordinates directly
+            destLng: originData?.lng || null,
+            radiusM: originData?.radiusMeters || null,
             distanceKm: null,
             totalQty: null,
             materials: ''
@@ -351,15 +358,13 @@ export const SupabaseAPI = {
 
           // Insert origin stop at the beginning
           stops.unshift(originStop);
-          console.log('✅ Added origin stop as seq 1, total stops:', stops.length);
+          console.log('✅ Added origin stop as seq 1 with name:', originName, ', total stops:', stops.length);
 
-          // Use first row for other data
-          const firstRow = filteredDriverJobsRows[0];
           const drivers = firstRow.drivers ? firstRow.drivers.split('/').map(d => d.trim()) :
                           (firstRow.driver_name ? [firstRow.driver_name] : []);
 
-          // Enrich stops with coordinates (will fetch from master location tables)
-          const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || firstRow.trip || null);
+          // Enrich remaining stops with coordinates (origin already has coordinates)
+          const enrichedStops = await enrichStopsWithCoordinates(stops, routeCode);
 
           // Sync to jobdata for future queries
           await syncToJobdata(driverJobsRows, enrichedStops, reference);
