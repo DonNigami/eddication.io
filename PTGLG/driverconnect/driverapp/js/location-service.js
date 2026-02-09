@@ -40,44 +40,52 @@ export async function getOriginConfig(route = null) {
 
     try {
       // First try: exact match with routeCode
-      const { data: exactData } = await supabase
+      const { data: exactData, error: exactError } = await supabase
         .from('origin')
-        .select('originKey, name, lat, lng, radiusMeters, routeCode')
+        .select('"originKey", name, lat, lng, "radiusMeters", "routeCode"')
         .eq('routeCode', routePrefix)
-        .eq('active', true)
         .limit(1)
         .maybeSingle();
+
+      console.log(`🔍 Query result for routeCode="${routePrefix}":`, exactData, 'Error:', exactError);
 
       if (exactData) {
         originData = exactData;
         console.log(`✅ Found origin by routeCode "${routePrefix}": ${originData.name} (originKey: ${originData.originKey})`);
       } else {
         // Second try: match by originKey (in case routePrefix matches an originKey)
-        const { data: keyData } = await supabase
+        const { data: keyData, error: keyError } = await supabase
           .from('origin')
-          .select('originKey, name, lat, lng, radiusMeters, routeCode')
+          .select('"originKey", name, lat, lng, "radiusMeters", "routeCode"')
           .eq('originKey', routePrefix)
-          .eq('active', true)
           .limit(1)
           .maybeSingle();
+
+        console.log(`🔍 Query result for originKey="${routePrefix}":`, keyData, 'Error:', keyError);
 
         if (keyData) {
           originData = keyData;
           console.log(`✅ Found origin by originKey "${routePrefix}": ${originData.name}`);
         }
       }
+
+      // Debug: List ALL origins in database
+      const { data: allOrigins } = await supabase
+        .from('origin')
+        .select('"originKey", name, "routeCode"');
+      console.log(`🔍 ALL origins in database:`, allOrigins);
+
     } catch (error) {
       console.warn('⚠️ Error fetching origin by route:', error.message);
     }
   }
 
-  // 2. Fallback to default origin (first active row)
+  // 2. Fallback to default origin (first row)
   if (!originData) {
     try {
       const { data } = await supabase
         .from('origin')
-        .select('originKey, name, lat, lng, radiusMeters, routeCode')
-        .eq('active', true)
+        .select('"originKey", name, lat, lng, "radiusMeters", "routeCode"')
         .order('routeCode', { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -146,11 +154,17 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     // Step 2: Query station table for codes not found in customer
     const stillUncachedCodes = uncachedCodes.filter(code => !cache.customers.has(code));
     if (stillUncachedCodes.length > 0) {
-      // Station table uses Thai column name 'ชื่อสถานีบริการ' for name
-      // Also try 'station_name' as fallback (some migrations use this)
+      // Station table structure (actual schema):
+      // - stationKey (TEXT, NOT NULL)
+      // - ชื่อสถานีบริการ (TEXT) - Thai column name
+      // - lat (DOUBLE PRECISION, nullable)
+      // - lng (DOUBLE PRECISION, nullable)
+      // - plant code (TEXT, NOT NULL)
+      // - Mobile, Name_Area, Phone_Area, Name_Region, Phone_Region, GPS, ระยะเวลาเปิดให้บริการ, Depot
+      // Note: No radiusMeters column in station table - use default 100m
       const { data: stationData, error: stationError } = await supabase
         .from('station')
-        .select('"stationKey", "ชื่อสถานีบริการ", lat, lng, "radiusMeters"')
+        .select('"stationKey", "ชื่อสถานีบริการ", lat, lng')
         .in('"stationKey"', stillUncachedCodes);
 
       if (stationError) {
@@ -167,10 +181,10 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 
           if (!isNaN(lat) && !isNaN(lng)) {
             cache.customers.set(s.stationKey, {
-              name: s['ชื่อสถานีบริการ'] || s.station_name || s.stationKey,
+              name: s['ชื่อสถานีบริการ'] || s.stationKey,
               lat,
               lng,
-              radiusMeters: s.radiusMeters
+              radiusMeters: 100 // Default radius for stations since table doesn't have this column
             });
           }
         });
@@ -199,47 +213,20 @@ async function getStationByName(name) {
   }
 
   try {
-    // Try exact match - the station table uses Thai column name 'ชื่อสถานีบริการ'
-    // Also try 'station_name' as fallback (some migrations use this)
-    let stationData = null;
-    let error = null;
-
-    // First try with Thai column name
-    const thaiResult = await supabase
+    // Station table schema: stationKey, ชื่อสถานีบริการ, lat, lng (no radiusMeters)
+    const { data: stationData, error } = await supabase
       .from('station')
-      .select('"stationKey", "ชื่อสถานีบริการ", lat, lng, "radiusMeters"')
+      .select('"stationKey", "ชื่อสถานีบริการ", lat, lng')
       .eq('"ชื่อสถานีบริการ"', name)
       .limit(1)
       .maybeSingle();
 
-    if (!thaiResult.error && thaiResult.data) {
-      stationData = {
-        stationKey: thaiResult.data.stationKey,
-        name: thaiResult.data['ชื่อสถานีบริการ'],
-        lat: thaiResult.data.lat,
-        lng: thaiResult.data.lng,
-        radiusMeters: thaiResult.data.radiusMeters
-      };
-    } else {
-      // Try with station_name as fallback
-      const fallbackResult = await supabase
-        .from('station')
-        .select('"stationKey", station_name, lat, lng, "radiusMeters"')
-        .eq('station_name', name)
-        .limit(1)
-        .maybeSingle();
-      error = fallbackResult.error;
-      stationData = fallbackResult.data;
-    }
-
-    // Check for specific error codes
-    if (error && !stationData) {
+    if (error) {
       // If table doesn't exist or permission denied, just return null
       if (error.code === 'PGRST116' || error.code === '42501') {
         console.warn(`⚠️ Station table not accessible (${error.code})`);
         return null;
       }
-      // For other errors, log and continue
       console.warn(`⚠️ Error looking up station by name "${name}":`, error.message);
       return null;
     }
@@ -248,13 +235,15 @@ async function getStationByName(name) {
       const lat = parseFloat(stationData.lat);
       const lng = parseFloat(stationData.lng);
       if (!isNaN(lat) && !isNaN(lng)) {
-        cache.customers.set(stationData.stationKey, {
-          name: stationData.name || stationData.station_name || stationData['ชื่อสถานีบริการ'],
+        const result = {
+          stationKey: stationData.stationKey,
+          name: stationData['ชื่อสถานีบริการ'] || name,
           lat,
           lng,
-          radiusMeters: stationData.radiusMeters
-        });
-        return stationData;
+          radiusMeters: 100 // Default since table doesn't have this column
+        };
+        cache.customers.set(stationData.stationKey, result);
+        return result;
       }
     }
   } catch (err) {
