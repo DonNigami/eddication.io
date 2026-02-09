@@ -104,9 +104,14 @@ export async function getOriginConfig(route = null) {
 
 /**
  * Get customer/station coordinates by shipToCodes
- * Queries both 'customer' and 'station' tables
+ * Queries both 'station' and 'customer' tables
+ *
+ * Priority order:
+ * 1. station table - match by plant_code OR stationKey
+ * 2. customer table - match by stationKey OR stationKey2
+ *
  * @param {string[]} shipToCodes - Array of ship to codes
- * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng, radiusMeters }
+ * @returns {Promise<Map>} - Map of shipToCode -> { lat, lng, radiusMeters, name, source }
  */
 export async function getCustomerCoordinates(shipToCodes = []) {
   if (shipToCodes.length === 0) {
@@ -120,76 +125,138 @@ export async function getCustomerCoordinates(shipToCodes = []) {
     return new Map(cache.customers);
   }
 
+  console.log(`🔍 Looking up coordinates for ${uncachedCodes.length} shipToCodes:`, uncachedCodes);
+
   try {
-    // Step 1: Query customer table
-    const { data: customerData, error: customerError } = await supabase
-      .from('customer')
-      .select('"stationKey", name, lat, lng, "radiusMeters"')
-      .in('"stationKey"', uncachedCodes);
+    // ============================================================
+    // STEP 1: Query station table FIRST (by plant_code OR stationKey)
+    // ============================================================
+    // Station table structure:
+    // - stationKey (TEXT, NOT NULL)
+    // - plant_code (TEXT, NOT NULL) - Note: actual column name may vary
+    // - ชื่อสถานีบริการ (TEXT) - Thai column name
+    // - lat (DOUBLE PRECISION, nullable)
+    // - lng (DOUBLE PRECISION, nullable)
+    // - Mobile, Name_Area, Phone_Area, Name_Region, Phone_Region, GPS, ระยะเวลาเปิดให้บริการ, Depot
+    // Note: No radiusMeters column in station table - use default 100m
 
-    if (customerError) {
-      // Check if table doesn't exist or permission denied
-      if (customerError.code === 'PGRST116' || customerError.code === '42501') {
-        console.warn(`⚠️ Customer table not accessible (${customerError.code}), skipping...`);
-      } else {
-        console.warn('⚠️ Customer table query error:', customerError.message);
-      }
-    } else if (customerData) {
-      customerData.forEach(c => {
-        const lat = parseFloat(c.lat);
-        const lng = parseFloat(c.lng);
+    // Try by plant_code first (if column exists)
+    let stationData = [];
+    let stationError = null;
 
-        if (!isNaN(lat) && !isNaN(lng)) {
-          cache.customers.set(c.stationKey, {
-            name: c.name,
-            lat,
-            lng,
-            radiusMeters: c.radiusMeters
-          });
-        }
-      });
-      console.log(`✅ Loaded ${customerData.length} customer coordinates`);
+    // Query by plant_code
+    const { data: stationByPlantCode, error: plantCodeError } = await supabase
+      .from('station')
+      .select('"stationKey", "plant_code", "ชื่อสถานีบริการ", lat, lng')
+      .in('plant_code', uncachedCodes);
+
+    console.log(`🔍 Station query by plant_code:`, stationByPlantCode?.length || 0, 'found, Error:', plantCodeError?.message);
+
+    if (!plantCodeError && stationByPlantCode) {
+      stationData = stationByPlantCode;
     }
 
-    // Step 2: Query station table for codes not found in customer
-    const stillUncachedCodes = uncachedCodes.filter(code => !cache.customers.has(code));
-    if (stillUncachedCodes.length > 0) {
-      // Station table structure (actual schema):
-      // - stationKey (TEXT, NOT NULL)
-      // - ชื่อสถานีบริการ (TEXT) - Thai column name
-      // - lat (DOUBLE PRECISION, nullable)
-      // - lng (DOUBLE PRECISION, nullable)
-      // - plant code (TEXT, NOT NULL)
-      // - Mobile, Name_Area, Phone_Area, Name_Region, Phone_Region, GPS, ระยะเวลาเปิดให้บริการ, Depot
-      // Note: No radiusMeters column in station table - use default 100m
-      const { data: stationData, error: stationError } = await supabase
-        .from('station')
-        .select('"stationKey", "ชื่อสถานีบริการ", lat, lng')
-        .in('"stationKey"', stillUncachedCodes);
+    // Query by stationKey for remaining codes
+    const stillUncachedFromPlant = uncachedCodes.filter(code =>
+      !stationData.some(s => s.plant_code === code || s.stationKey === code)
+    );
 
-      if (stationError) {
-        // Check if table doesn't exist or permission denied
-        if (stationError.code === 'PGRST116' || stationError.code === '42501') {
-          console.warn(`⚠️ Station table not accessible (${stationError.code}), skipping...`);
-        } else {
-          console.warn('⚠️ Station table query error:', stationError.message);
+    if (stillUncachedFromPlant.length > 0) {
+      const { data: stationByKey, error: keyError } = await supabase
+        .from('station')
+        .select('"stationKey", "plant_code", "ชื่อสถานีบริการ", lat, lng')
+        .in('"stationKey"', stillUncachedFromPlant);
+
+      console.log(`🔍 Station query by stationKey:`, stationByKey?.length || 0, 'found, Error:', keyError?.message);
+
+      if (!keyError && stationByKey) {
+        stationData = [...stationData, ...stationByKey];
+      }
+    }
+
+    // Process station data
+    if (stationData.length > 0) {
+      stationData.forEach(s => {
+        const lat = parseFloat(s.lat);
+        const lng = parseFloat(s.lng);
+        const matchCode = s.plant_code || s.stationKey;
+
+        if (!isNaN(lat) && !isNaN(lng)) {
+          cache.customers.set(matchCode, {
+            name: s['ชื่อสถานีบริการ'] || s.stationKey,
+            lat,
+            lng,
+            radiusMeters: 100, // Default radius for stations since table doesn't have this column
+            source: 'station'
+          });
+          console.log(`✅ Found in station table: "${matchCode}" -> ${lat}, ${lng}`);
         }
-      } else if (stationData) {
-        stationData.forEach(s => {
-          const lat = parseFloat(s.lat);
-          const lng = parseFloat(s.lng);
+      });
+      console.log(`✅ Loaded ${stationData.length} station coordinates`);
+    }
+
+    // ============================================================
+    // STEP 2: Query customer table (by stationKey OR stationKey2)
+    // ============================================================
+    const stillUncachedCodes = uncachedCodes.filter(code => !cache.customers.has(code));
+
+    if (stillUncachedCodes.length > 0) {
+      console.log(`🔍 Still uncached after station lookup:`, stillUncachedCodes);
+
+      // Query by stationKey
+      const { data: customerByKey, error: customerError } = await supabase
+        .from('customer')
+        .select('"stationKey", "stationKey2", name, lat, lng, "radiusMeters"')
+        .or('"stationKey".in.(' + stillUncachedCodes.map(c => `'${c}'`).join(',') + '),"stationKey2".in.(' + stillUncachedCodes.map(c => `'${c}'`).join(',') + ')');
+
+      console.log(`🔍 Customer query result:`, customerByKey?.length || 0, 'found, Error:', customerError?.message);
+
+      if (customerError) {
+        // Check if table doesn't exist or permission denied
+        if (customerError.code === 'PGRST116' || customerError.code === '42501') {
+          console.warn(`⚠️ Customer table not accessible (${customerError.code}), skipping...`);
+        } else {
+          console.warn('⚠️ Customer table query error:', customerError.message);
+        }
+      } else if (customerByKey && customerByKey.length > 0) {
+        customerByKey.forEach(c => {
+          const lat = parseFloat(c.lat);
+          const lng = parseFloat(c.lng);
+
+          // Match by either stationKey or stationKey2
+          const matchCode1 = c.stationKey;
+          const matchCode2 = c.stationKey2;
 
           if (!isNaN(lat) && !isNaN(lng)) {
-            cache.customers.set(s.stationKey, {
-              name: s['ชื่อสถานีบริการ'] || s.stationKey,
+            const customerData = {
+              name: c.name,
               lat,
               lng,
-              radiusMeters: 100 // Default radius for stations since table doesn't have this column
-            });
+              radiusMeters: c.radiusMeters || 50,
+              source: 'customer'
+            };
+
+            // Cache by stationKey if it's in our lookup list
+            if (matchCode1 && stillUncachedCodes.includes(matchCode1)) {
+              cache.customers.set(matchCode1, customerData);
+              console.log(`✅ Found in customer table by stationKey: "${matchCode1}" -> ${lat}, ${lng}`);
+            }
+
+            // Also cache by stationKey2 if it's in our lookup list and different from stationKey
+            if (matchCode2 && stillUncachedCodes.includes(matchCode2) && matchCode2 !== matchCode1) {
+              cache.customers.set(matchCode2, customerData);
+              console.log(`✅ Found in customer table by stationKey2: "${matchCode2}" -> ${lat}, ${lng}`);
+            }
           }
         });
-        console.log(`✅ Loaded ${stationData.length} station coordinates`);
+        console.log(`✅ Loaded customer coordinates`);
       }
+    }
+
+    // Log any codes that still don't have coordinates
+    const notFound = uncachedCodes.filter(code => !cache.customers.has(code));
+    if (notFound.length > 0) {
+      console.warn(`⚠️ No coordinates found for: ${notFound.join(', ')}`);
     }
 
     cache.customersExpiry = Date.now() + CACHE_TTL;

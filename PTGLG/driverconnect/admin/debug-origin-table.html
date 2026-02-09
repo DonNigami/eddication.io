@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Debug Origin Table</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #fff; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+    th { background: #333; }
+    pre { background: #2d2d2d; padding: 10px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Debug Origin Table</h1>
+  <button onclick="fetchOrigins()">Fetch Origins</button>
+  <pre id="result">Click button to fetch...</pre>
+
+  <table id="table" style="display:none;">
+    <thead>
+      <tr>
+        <th>originKey</th>
+        <th>name</th>
+        <th>routeCode</th>
+        <th>lat</th>
+        <th>lng</th>
+        <th>radiusMeters</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJidGJsZyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzY4NDAyNjg4LCJleHAiOjIwODM5Nzg2ODh9.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function fetchOrigins() {
+      const result = document.getElementById('result');
+      const table = document.getElementById('table');
+      const tbody = table.querySelector('tbody');
+
+      result.textContent = 'Fetching...';
+      tbody.innerHTML = '';
+
+      try {
+        const { data, error } = await supabase
+          .from('origin')
+          .select('originKey, name, routeCode, lat, lng, radiusMeters')
+          .order('routeCode');
+
+        if (error) {
+          result.textContent = 'Error: ' + JSON.stringify(error, null, 2);
+          return;
+        }
+
+        result.textContent = 'Found ' + data.length + ' rows:\n' + JSON.stringify(data, null, 2);
+        table.style.display = 'table';
+
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.originKey || ''}</td>
+            <td>${row.name || ''}</td>
+            <td>${row.routeCode || ''}</td>
+            <td>${row.lat || ''}</td>
+            <td>${row.lng || ''}</td>
+            <td>${row.radiusMeters || ''}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        result.textContent = 'Exception: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
