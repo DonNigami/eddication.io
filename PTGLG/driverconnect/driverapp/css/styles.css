@@ -1991,6 +1991,35 @@ button:disabled {
   box-shadow: 0 8px 18px rgba(231, 76, 60, 0.35);
 }
 
+/* Register Driver Button */
+.btn-register-driver {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 20px;
+  margin-top: 8px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-register-driver:hover {
+  background: linear-gradient(135deg, #2980b9, #21618c);
+  box-shadow: 0 8px 18px rgba(52, 152, 219, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-register-driver:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+}
+
 /* Report breakdown current job info */
 .report-breakdown-current-job {
   padding: 12px 16px;
