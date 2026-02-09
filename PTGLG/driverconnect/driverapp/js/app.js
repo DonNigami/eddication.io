@@ -11,6 +11,7 @@ import { LIFF_ID, APP_CONFIG, REGISTRATION_URL } from './config.js';
 import { escapeHtml, sanitizeInput, validateInput, withRetry, fileToBase64, vibrateSuccess, vibrateError, vibrateWarning, vibrateNotification, vibrateImpact, formatDuration } from './utils.js';
 import { OfflineQueue, executeOrQueue, initOfflineQueue, isOnline, setCurrentReference } from './offline-queue.js';
 import { initSupabase, SupabaseAPI } from './supabase-api.js';
+import { DriverAuth } from '../../shared/driver-auth.js';
 import { getCurrentPositionAsync, checkGpsStatus, navigateToCoords, haversineDistanceMeters } from './gps.js';
 import {
   showLoading, closeLoading, showError, showSuccess, showInfo,
@@ -1567,7 +1568,8 @@ async function initApp() {
 
       if (userId.startsWith('U')) {
         await SupabaseAPI.saveUserProfile(profile);
-        const userProfile = await SupabaseAPI.getUserProfile(userId);
+        // Use DriverAuth.getUserProfile to get merged data from both user_profiles AND register_data
+        const userProfile = await DriverAuth.getUserProfile(userId);
         StateManager.set(StateKeys.USER_PROFILE, userProfile);
       }
 
