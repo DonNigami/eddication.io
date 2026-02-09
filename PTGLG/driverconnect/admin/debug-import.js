@@ -99,6 +99,21 @@ function convertDateFormat(dateStr) {
     return dateStr;
   }
 
+  // Excel serial date format (e.g., 46267)
+  // Excel dates are stored as days since January 1, 1900 (with a bug treating 1900 as a leap year)
+  if (/^\d{4,5}$/.test(dateStr)) {
+    const excelSerial = parseInt(dateStr, 10);
+    if (excelSerial > 0 && excelSerial < 100000) {
+      // Convert Excel serial date to JavaScript date
+      // Excel epoch is December 30, 1899 (to account for the 1900 leap year bug)
+      const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
+      const convertedDate = new Date(excelEpoch.getTime() + excelSerial * 24 * 60 * 60 * 1000);
+      const converted = convertedDate.toISOString().split('T')[0];
+      console.log(`Excel serial date converted: ${dateStr} → ${converted}`);
+      return converted;
+    }
+  }
+
   // Convert DD/MM/YYYY to YYYY-MM-DD
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
     const [day, month, year] = dateStr.split('/');
@@ -119,9 +134,13 @@ function convertDateFormat(dateStr) {
   try {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
-      const converted = date.toISOString().split('T')[0];
-      console.log(`Date parsed: ${dateStr} → ${converted}`);
-      return converted;
+      // Check if the year is reasonable (between 1900 and 2100)
+      const year = date.getFullYear();
+      if (year >= 1900 && year <= 2100) {
+        const converted = date.toISOString().split('T')[0];
+        console.log(`Date parsed: ${dateStr} → ${converted}`);
+        return converted;
+      }
     }
   } catch (e) {
     console.warn('Failed to parse date:', dateStr, e);
@@ -497,8 +516,10 @@ window.importAllRows = async function() {
       break;
     }
 
+    let row = null; // Define outside try block so it's accessible in catch
+
     try {
-      const row = data[i];
+      row = data[i];
       const mapped = mapRowToDatabase(row);
 
       // Check for unconverted dates (warning only, don't stop)
@@ -557,7 +578,8 @@ window.importAllRows = async function() {
     } catch (error) {
       stats.failed++;
       const errorMsg = error.message || String(error);
-      const errorDetail = `Row ${i + 2} (${row['Reference'] || row['Shipment No.'] || 'Unknown'}): ${errorMsg}`;
+      const rowInfo = row ? `${row['Reference'] || row['Shipment No.'] || 'Unknown'}` : 'Data unavailable';
+      const errorDetail = `Row ${i + 2} (${rowInfo}): ${errorMsg}`;
       stats.errors.push(errorDetail);
       console.error(errorDetail, error);
 
