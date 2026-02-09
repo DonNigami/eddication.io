@@ -307,7 +307,7 @@ export const SupabaseAPI = {
 
             return {
               rowIndex: String(row.id),
-              seq: index + 1, // Use index as sequence since driver_jobs doesn't have seq column
+              seq: index + 2, // Start from 2 because we'll add origin as seq 1
               shipToCode: shipToCode,
               shipToName: shipToName,
               address: row.ship_to_address || row.street_5 || shipToName,
@@ -316,7 +316,7 @@ export const SupabaseAPI = {
               checkOutTime: null, // driver_jobs schema doesn't have checkout_time
               fuelingTime: null,
               unloadDoneTime: null,
-              isOriginStop: index === 0, // First row is origin
+              isOriginStop: false, // None of these are origin stops
               destLat: null, // driver_jobs schema doesn't have destination coordinates
               destLng: null,
               radiusM: null,
@@ -326,6 +326,34 @@ export const SupabaseAPI = {
             };
           });
 
+          // Add origin stop as the first stop (seq 1)
+          // Use the first row for origin data
+          const firstRowForOrigin = filteredDriverJobsRows[0];
+          const originStop = {
+            rowIndex: 'origin',
+            seq: 1,
+            shipToCode: '',
+            shipToName: firstRowForOrigin.route || firstRowForOrigin.trip || 'ต้นทาง',
+            address: 'ต้นทาง',
+            status: 'PENDING',
+            checkInTime: null,
+            checkOutTime: null,
+            fuelingTime: null,
+            unloadDoneTime: null,
+            isOriginStop: true,
+            destLat: null, // Will be enriched by location-service
+            destLng: null,
+            radiusM: null,
+            distanceKm: null,
+            totalQty: null,
+            materials: ''
+          };
+
+          // Insert origin stop at the beginning
+          stops.unshift(originStop);
+          console.log('✅ Added origin stop as seq 1, total stops:', stops.length);
+
+          // Use first row for other data
           const firstRow = filteredDriverJobsRows[0];
           const drivers = firstRow.drivers ? firstRow.drivers.split('/').map(d => d.trim()) :
                           (firstRow.driver_name ? [firstRow.driver_name] : []);

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Check Origin Table</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <h1>Origin Table Data</h1>
+  <div id="result">Loading...</div>
+
+  <script>
+    const SUPABASE_URL = 'https://myplpshpcordggbbtblg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15cGxwc2hwY29yZGdnYmJ0YmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MDI2ODgsImV4cCI6MjA4Mzk3ODY4OH0.UC42xLgqSdqgaogHmyRpES_NMy5t1j7YhdEZVwWUsJ8';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function checkOriginTable() {
+      try {
+        const { data, error } = await supabase
+          .from('origin')
+          .select('*')
+          .limit(10);
+
+        const resultDiv = document.getElementById('result');
+
+        if (error) {
+          resultDiv.innerHTML = `<p style="color:red">Error: ${error.message} (${error.code})</p>`;
+          console.error('Error:', error);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          resultDiv.innerHTML = '<p style="color:orange">No data found in origin table</p>';
+          return;
+        }
+
+        // Create table
+        let html = '<table border="1" cellpadding="8" style="border-collapse:collapse">';
+        html += '<tr style="background:#eee">';
+        const columns = Object.keys(data[0]);
+        columns.forEach(col => {
+          html += `<th>${col}</th>`;
+        });
+        html += '</tr>';
+
+        data.forEach(row => {
+          html += '<tr>';
+          columns.forEach(col => {
+            html += `<td>${row[col] ?? 'NULL'}</td>`;
+          });
+          html += '</tr>';
+        });
+
+        html += '</table>';
+        html += `<p style="margin-top:10px"><strong>Total rows:</strong> ${data.length}</p>`;
+
+        resultDiv.innerHTML = html;
+        console.log('Origin table data:', data);
+
+      } catch (err) {
+        document.getElementById('result').innerHTML = `<p style="color:red">Exception: ${err.message}</p>`;
+        console.error('Exception:', err);
+      }
+    }
+
+    checkOriginTable();
+  </script>
+</body>
+</html>
