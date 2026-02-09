@@ -129,28 +129,26 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 
   try {
     // ============================================================
-    // STEP 1: Query station table FIRST (by plant_code OR stationKey)
+    // STEP 1: Query station table FIRST (by "plant code" OR stationKey)
     // ============================================================
-    // Station table structure:
+    // Station table structure (actual schema):
     // - stationKey (TEXT, NOT NULL)
-    // - plant_code (TEXT, NOT NULL) - Note: actual column name may vary
+    // - plant code (TEXT, NOT NULL) - Note: column name has SPACE, not underscore
     // - ชื่อสถานีบริการ (TEXT) - Thai column name
     // - lat (DOUBLE PRECISION, nullable)
     // - lng (DOUBLE PRECISION, nullable)
     // - Mobile, Name_Area, Phone_Area, Name_Region, Phone_Region, GPS, ระยะเวลาเปิดให้บริการ, Depot
     // Note: No radiusMeters column in station table - use default 100m
 
-    // Try by plant_code first (if column exists)
     let stationData = [];
-    let stationError = null;
 
-    // Query by plant_code
+    // Query by "plant code" first (column name has space)
     const { data: stationByPlantCode, error: plantCodeError } = await supabase
       .from('station')
-      .select('"stationKey", "plant_code", "ชื่อสถานีบริการ", lat, lng')
-      .in('plant_code', uncachedCodes);
+      .select('"stationKey", "plant code", "ชื่อสถานีบริการ", lat, lng')
+      .in('"plant code"', uncachedCodes);
 
-    console.log(`🔍 Station query by plant_code:`, stationByPlantCode?.length || 0, 'found, Error:', plantCodeError?.message);
+    console.log(`🔍 Station query by "plant code":`, stationByPlantCode?.length || 0, 'found, Error:', plantCodeError?.message);
 
     if (!plantCodeError && stationByPlantCode) {
       stationData = stationByPlantCode;
@@ -158,13 +156,13 @@ export async function getCustomerCoordinates(shipToCodes = []) {
 
     // Query by stationKey for remaining codes
     const stillUncachedFromPlant = uncachedCodes.filter(code =>
-      !stationData.some(s => s.plant_code === code || s.stationKey === code)
+      !stationData.some(s => s['plant code'] === code || s.stationKey === code)
     );
 
     if (stillUncachedFromPlant.length > 0) {
       const { data: stationByKey, error: keyError } = await supabase
         .from('station')
-        .select('"stationKey", "plant_code", "ชื่อสถานีบริการ", lat, lng')
+        .select('"stationKey", "plant code", "ชื่อสถานีบริการ", lat, lng')
         .in('"stationKey"', stillUncachedFromPlant);
 
       console.log(`🔍 Station query by stationKey:`, stationByKey?.length || 0, 'found, Error:', keyError?.message);
@@ -179,7 +177,7 @@ export async function getCustomerCoordinates(shipToCodes = []) {
       stationData.forEach(s => {
         const lat = parseFloat(s.lat);
         const lng = parseFloat(s.lng);
-        const matchCode = s.plant_code || s.stationKey;
+        const matchCode = s['plant code'] || s.stationKey;
 
         if (!isNaN(lat) && !isNaN(lng)) {
           cache.customers.set(matchCode, {
