@@ -73,14 +73,14 @@ async function syncToJobdata(trips, stops, reference) {
       .delete()
       .eq('reference', reference);
 
-    // The first trip row contains shared info like vehicle, drivers, route
+    // The first trip row contains shared info like vehicle, drivers, route/trip
     const sharedTripInfo = trips[0] || {};
 
     // Create jobdata rows from the processed STOPS array
     const jobdataRows = filteredStops.map(stop => {
       return {
         reference: reference,
-        shipment_no: stop.shipmentNo || '',
+        shipment_no: sharedTripInfo.shipment_no || stop.shipmentNo || '',
         ship_to_code: stop.shipToCode || '',
         ship_to_name: stop.shipToName || '',
         status: stop.status || 'PENDING',
@@ -88,10 +88,10 @@ async function syncToJobdata(trips, stops, reference) {
         checkout_time: stop.checkOutTime || null,
         fueling_time: stop.fuelingTime || null,
         unload_done_time: stop.unloadDoneTime || null,
-        vehicle_desc: sharedTripInfo.vehicle_desc || '',
-        drivers: sharedTripInfo.drivers || '',
+        vehicle_desc: sharedTripInfo.vehicle_desc || sharedTripInfo.vehicle || '',
+        drivers: sharedTripInfo.drivers || sharedTripInfo.driver_name || '',
         seq: stop.seq,
-        route: sharedTripInfo.route || '',
+        route: sharedTripInfo.route || sharedTripInfo.trip || '',
         is_origin_stop: stop.isOriginStop || false,
         materials: stop.materials || '',
         total_qty: stop.totalQty || null,
@@ -255,14 +255,114 @@ export const SupabaseAPI = {
         }
       }
 
-      // Log jobdata result
-      if (jobdataError) {
-        console.warn('⚠️ jobdata query error:', jobdataError.message);
-        return { success: false, message: '⚠️ ไม่พบข้อมูลในระบบ\n\nReference: ' + reference };
+      // ============================================
+      // Step 2: Fallback - Search in driver_jobs table
+      // ============================================
+      console.log('🔍 Step 2: Searching in driver_jobs table as fallback...');
+
+      let driverJobsRows = null;
+      let driverJobsError = null;
+
+      try {
+        const result = await supabase
+          .from('driver_jobs')
+          .select('*')
+          .eq('reference', reference)
+          .order('shipment_item', { ascending: true, nullsFirst: false });
+
+        driverJobsRows = result.data;
+        driverJobsError = result.error;
+      } catch (err) {
+        console.warn('⚠️ driver_jobs query exception:', err.message);
+        driverJobsError = err;
       }
 
-      // No data found in jobdata
-      console.log('ℹ️ No data found in jobdata for reference:', reference);
+      // If found in driver_jobs, use it
+      if (!driverJobsError && driverJobsRows && driverJobsRows.length > 0) {
+        console.log('✅ Found in driver_jobs:', driverJobsRows.length, 'rows');
+
+        // Filter out "คลังศรีราชา" stops
+        const filteredDriverJobsRows = driverJobsRows.filter(row => {
+          const shipToName = row.ship_to || row.ship_to_name || row.receiving_plant || '';
+          return shipToName && !shipToName.includes('คลังศรีราชา');
+        });
+
+        if (filteredDriverJobsRows.length === 0) {
+          console.log('ℹ️ All driver_jobs rows were filtered out as "คลังศรีราชา".');
+        } else {
+          console.log('✅ Filtered to:', filteredDriverJobsRows.length, 'rows from driver_jobs');
+
+          // Get alcohol checks
+          const { data: alcoholData } = await supabase
+            .from(TABLES.ALCOHOL_CHECKS)
+            .select('driver_name')
+            .eq('reference', reference);
+
+          const checkedDrivers = alcoholData ? [...new Set(alcoholData.map(a => a.driver_name))] : [];
+
+          // Convert driver_jobs rows to stops format
+          const stops = filteredDriverJobsRows.map((row, index) => {
+            const shipToName = row.ship_to_name || row.ship_to || row.receiving_plant || `จุดส่งที่ ${index + 1}`;
+            const shipToCode = row.ship_to || row.receiving_plant || '';
+
+            return {
+              rowIndex: String(row.id),
+              seq: index + 1, // Use index as sequence since driver_jobs doesn't have seq column
+              shipToCode: shipToCode,
+              shipToName: shipToName,
+              address: row.ship_to_address || row.street_5 || shipToName,
+              status: row.status === 'active' ? 'PENDING' : (row.status || 'PENDING').toUpperCase(),
+              checkInTime: null, // driver_jobs schema doesn't have checkin_time
+              checkOutTime: null, // driver_jobs schema doesn't have checkout_time
+              fuelingTime: null,
+              unloadDoneTime: null,
+              isOriginStop: index === 0, // First row is origin
+              destLat: null, // driver_jobs schema doesn't have destination coordinates
+              destLng: null,
+              radiusM: null,
+              distanceKm: row.distance || null,
+              totalQty: row.delivery_qty || null,
+              materials: row.material_desc || row.material || row.delivery || ''
+            };
+          });
+
+          const firstRow = filteredDriverJobsRows[0];
+          const drivers = firstRow.drivers ? firstRow.drivers.split('/').map(d => d.trim()) :
+                          (firstRow.driver_name ? [firstRow.driver_name] : []);
+
+          // Enrich stops with coordinates (will fetch from master location tables)
+          const enrichedStops = await enrichStopsWithCoordinates(stops, firstRow.route || firstRow.trip || null);
+
+          // Sync to jobdata for future queries
+          await syncToJobdata(driverJobsRows, enrichedStops, reference);
+
+          return {
+            success: true,
+            source: 'driver_jobs',
+            data: {
+              referenceNo: reference,
+              vehicleDesc: firstRow.vehicle_desc || firstRow.vehicle || '',
+              shipmentNos: firstRow.shipment_no ? [firstRow.shipment_no] : [],
+              totalStops: enrichedStops.length,
+              stops: enrichedStops,
+              alcohol: {
+                drivers: drivers,
+                checkedDrivers: checkedDrivers
+              },
+              jobClosed: false, // driver_jobs schema doesn't have this field
+              tripEnded: false   // driver_jobs schema doesn't have this field
+            }
+          };
+        }
+      }
+
+      // Log driver_jobs result
+      if (driverJobsError) {
+        console.warn('⚠️ driver_jobs query error:', driverJobsError.message);
+      }
+
+      // No data found in both tables
+      console.log('ℹ️ No data found in jobdata or driver_jobs for reference:', reference);
       return { success: false, message: 'ไม่พบข้อมูลงาน Reference: ' + reference };
     } catch (err) {
       console.error('❌ Supabase search error:', err);
