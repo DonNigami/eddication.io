@@ -236,6 +236,13 @@ async function loadDashboardData() {
 
 /**
  * Process driver data from jobs and driver profiles
+ *
+ * IMPORTANT: Working hours calculation is based on reference-level duration.
+ * For each reference, we calculate:
+ * - Start time = MIN(checkin_time) across all stops in the reference
+ * - End time = MAX(checkout_time) across all stops in the reference
+ * - Duration = End time - Start time
+ * - All drivers in the same reference get the same duration (they worked together)
  */
 function processDriverData(drivers, jobs) {
     // Create driver map
@@ -255,40 +262,97 @@ function processDriverData(drivers, jobs) {
         });
     });
 
-    // Process each job
+    // Group jobs by reference to calculate correct duration
+    // For each reference, find the earliest checkin and latest checkout
+    const referenceMap = new Map();
+
     jobs.forEach(job => {
-        const driverList = parseDriversField(job.drivers);
+        const ref = job.reference || '-';
+        if (!referenceMap.has(ref)) {
+            referenceMap.set(ref, {
+                reference: ref,
+                shipmentNo: job.shipment_no || '-',
+                drivers: parseDriversField(job.drivers),
+                stops: [],
+                earliestCheckin: null,
+                latestCheckout: null,
+                totalDistance: 0,
+                origins: [],
+                destinations: []
+            });
+        }
 
-        driverList.forEach(driverId => {
-            const driver = driverMap.get(driverId);
-            if (!driver) return;
+        const refData = referenceMap.get(ref);
+        refData.stops.push(job);
 
-            const duration = calculateTripDuration(job.checkin_time, job.checkout_time);
+        // Track earliest checkin
+        if (job.checkin_time) {
+            if (!refData.earliestCheckin || new Date(job.checkin_time) < new Date(refData.earliestCheckin)) {
+                refData.earliestCheckin = job.checkin_time;
+            }
+        }
 
-            if (duration > 0) {
-                const checkinDate = new Date(job.checkin_time).toDateString();
+        // Track latest checkout
+        if (job.checkout_time) {
+            if (!refData.latestCheckout || new Date(job.checkout_time) > new Date(refData.latestCheckout)) {
+                refData.latestCheckout = job.checkout_time;
+            }
+        }
+
+        // Track distance
+        refData.totalDistance += (job.distance_km || 0);
+
+        // Track origins and destinations
+        if (job.is_origin_stop && job.ship_to_name) {
+            refData.origins.push(job.ship_to_name);
+        }
+        if (job.ship_to_name && !job.is_origin_stop) {
+            refData.destinations.push(job.ship_to_name);
+        }
+    });
+
+    // Calculate duration for each reference and assign to drivers
+    referenceMap.forEach(refData => {
+        // Calculate reference-level duration
+        const duration = calculateTripDuration(refData.earliestCheckin, refData.latestCheckout);
+
+        if (duration > 0) {
+            const checkinDate = new Date(refData.earliestCheckin).toDateString();
+            const uniqueOrigins = [...new Set(refData.origins)].filter(Boolean);
+            const uniqueDestinations = [...new Set(refData.destinations)].filter(Boolean);
+            const originText = uniqueOrigins.length > 0 ? uniqueOrigins[0] : '-';
+            const destinationText = uniqueDestinations.length > 0
+                ? uniqueDestinations.slice(0, 2).join(' → ')
+                : (refData.stops[0]?.ship_to_name || '-');
+
+            // Assign this job to all drivers in the reference
+            refData.drivers.forEach(driverId => {
+                const driver = driverMap.get(driverId);
+                if (!driver) return;
+
                 driver.uniqueDates.add(checkinDate);
 
                 driver.jobs.push({
-                    reference: job.reference || '-',
-                    shipmentNo: job.shipment_no || '-',
-                    origin: job.is_origin_stop ? (job.ship_to_name || '-') : null,
-                    destination: job.ship_to_name || '-',
-                    checkinTime: job.checkin_time,
-                    checkoutTime: job.checkout_time,
-                    checkinDate: formatDateThai(job.checkin_time),
-                    checkinTimeFormatted: formatTime(job.checkin_time),
-                    checkoutTimeFormatted: formatTime(job.checkout_time),
+                    reference: refData.reference,
+                    shipmentNo: refData.shipmentNo,
+                    origin: originText,
+                    destination: destinationText,
+                    checkinTime: refData.earliestCheckin,
+                    checkoutTime: refData.latestCheckout,
+                    checkinDate: formatDateThai(refData.earliestCheckin),
+                    checkinTimeFormatted: formatTime(refData.earliestCheckin),
+                    checkoutTimeFormatted: formatTime(refData.latestCheckout),
                     duration,
                     durationFormatted: formatDuration(duration),
-                    distance: job.distance_km || 0
+                    distance: refData.totalDistance || 0,
+                    stopsCount: refData.stops.length
                 });
 
                 driver.totalMinutes += duration;
                 driver.totalTrips += 1;
-                driver.totalDistance += (job.distance_km || 0);
-            }
-        });
+                driver.totalDistance += refData.totalDistance;
+            });
+        }
     });
 
     // Convert to array and calculate derived metrics
