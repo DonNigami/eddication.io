@@ -7,6 +7,7 @@ on:
     paths:
       - 'PTGLG/driverconnect/**'
       - 'project/line/clinic-connect-saas/**'
+      - 'wawa2559/**'
       - '.github/workflows/deploy-all.yml'
 
   # Allows you to run this workflow manually from the Actions tab
@@ -62,6 +63,7 @@ jobs:
           # Preserve full directory structure
           cp -r PTGLG deploy-pages/
           cp -r project deploy-pages/
+          cp -r wawa2559 deploy-pages/
 
       # Create index page with links to all apps
       - name: Create index page
@@ -144,6 +146,10 @@ jobs:
                 <a href="/project/line/clinic-connect-saas/apps/liff-patient/" class="app-card">
                   <h2>👤 LIFF Patient</h2>
                   <p>Patient Registration & Management</p>
+                </a>
+                <a href="/wawa2559/" class="app-card">
+                  <h2>📦 Wawa2559 Apps</h2>
+                  <p>Stock, OCR, and Broadcast Tools</p>
                 </a>
               </div>
             </div>
