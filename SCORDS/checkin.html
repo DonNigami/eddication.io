@@ -467,6 +467,14 @@
         <!-- Queue Indicator (Offline Mode) -->
         <div id="queueIndicator" class="queue-indicator hidden"></div>
 
+        <!-- Pull to Refresh Indicator -->
+        <div id="pullToRefreshIndicator" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 rounded-b-2xl shadow-lg transition-all duration-200 pointer-events-none" style="opacity: 0; transform: translateY(0); padding: 20px;">
+            <div class="text-center">
+                <div class="text-2xl mb-2">⬇️</div>
+                <p class="text-sm text-gray-400">ลากลงเพื่อรีเฟรช</p>
+            </div>
+        </div>
+
         <!-- Tabs -->
         <div class="flex border-b border-gray-700 mb-6 animate-fadeIn" style="animation-delay: 0.2s;">
             <button class="tab-btn flex-1 py-3 text-center tab-active" data-tab="checkIn">เช็คชื่อ</button>
@@ -2469,34 +2477,58 @@
             }
         ];
 
-        function loadGamesData() {
-            // Load user points from localStorage
-            const savedPoints = localStorage.getItem('scords_user_points');
-            userPoints = savedPoints ? parseInt(savedPoints) : 0;
-            document.getElementById('userPoints').textContent = userPoints;
+        async function loadGamesData() {
+            try {
+                // Load user points from API
+                const pointsResponse = await fetch(`${API_URL}?action=getUserPoints&userId=${userId}`);
+                const pointsResult = await pointsResponse.json();
 
-            // Load points history
-            const savedHistory = localStorage.getItem('scords_points_history');
-            pointsHistory = savedHistory ? JSON.parse(savedHistory) : [];
-            loadPointsHistory();
+                if (pointsResult.success && pointsResult.data) {
+                    userPoints = pointsResult.data.points || 0;
+                    document.getElementById('userPoints').textContent = userPoints;
+                } else {
+                    userPoints = 0;
+                    document.getElementById('userPoints').textContent = '0';
+                }
 
-            // Load points leaderboard
-            loadPointsLeaderboard();
+                // Load points history from API
+                const historyResponse = await fetch(`${API_URL}?action=getUserPointsHistory&userId=${userId}&limit=10`);
+                const historyResult = await historyResponse.json();
 
-            // Show admin panel if admin
-            if (userRole === 'admin') {
-                document.getElementById('adminPanel').classList.remove('hidden');
-                loadAdminPointsHistory();
-            }
+                if (historyResult.success && historyResult.data.history) {
+                    pointsHistory = historyResult.data.history;
+                    loadPointsHistory();
+                } else {
+                    pointsHistory = [];
+                    loadPointsHistory();
+                }
 
-            // Load daily game counts
-            const today = new Date().toDateString();
-            const savedDailyCount = localStorage.getItem('scords_daily_games');
-            if (savedDailyCount) {
-                const dailyData = JSON.parse(savedDailyCount);
-                if (dailyData.date === today) {
-                    todaySpinCount = dailyData.spinCount || 0;
-                    todayQuizCount = dailyData.quizCount || 0;
+                // Load points leaderboard
+                loadPointsLeaderboard();
+
+                // Show admin panel if admin
+                if (userRole === 'admin') {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadAdminPointsHistory();
+                }
+
+                // Reset daily game counts (always start fresh)
+                todaySpinCount = 0;
+                todayQuizCount = 0;
+
+            } catch (error) {
+                console.error('Error loading games data:', error);
+                // Set default values on error
+                userPoints = 0;
+                pointsHistory = [];
+                document.getElementById('userPoints').textContent = '0';
+                loadPointsHistory();
+                loadPointsLeaderboard();
+
+                // Show admin panel if admin
+                if (userRole === 'admin') {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadAdminPointsHistory();
                 }
             }
         }
@@ -2628,19 +2660,17 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // Update local storage
-                    userPoints += points;
-                    localStorage.setItem('scords_user_points', userPoints.toString());
+                    // Update local variable (no localStorage)
+                    userPoints = result.data.totalPoints || (userPoints + points);
                     document.getElementById('userPoints').textContent = userPoints;
 
-                    // Add to local history
+                    // Add to local history array
                     const historyItem = {
                         date: new Date().toISOString(),
                         activity: activity,
                         points: points
                     };
                     pointsHistory.unshift(historyItem);
-                    localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
                     loadPointsHistory();
 
                     // Show success notification
@@ -2654,36 +2684,18 @@
             } catch (error) {
                 console.error('Error adding points:', error);
 
-                // Fallback: Save to localStorage only
-                userPoints += points;
-                localStorage.setItem('scords_user_points', userPoints.toString());
-                document.getElementById('userPoints').textContent = userPoints;
-
-                const historyItem = {
-                    date: new Date().toISOString(),
-                    activity: activity,
-                    points: points
-                };
-                pointsHistory.unshift(historyItem);
-                localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
-                loadPointsHistory();
-
+                // Show error notification
                 Toast.fire({
-                    icon: 'warning',
-                    title: `ได้รับ +${points} แต้ม (ออฟไลน์)`,
-                    text: 'ข้อมูลจะถูก sync เมื่อกลับออนไลน์'
+                    icon: 'error',
+                    title: 'เพิ่มแต้มไม่สำเร็จ',
+                    text: 'กรุณาลองใหม่อีกครั้ง'
                 });
             }
         }
 
         function saveDailyGames() {
-            const today = new Date().toDateString();
-            const dailyData = {
-                date: today,
-                spinCount: todaySpinCount,
-                quizCount: todayQuizCount
-            };
-            localStorage.setItem('scords_daily_games', JSON.stringify(dailyData));
+            // No longer saving to localStorage - data will be reset each tab open
+            // Daily game counts are now temporary and reset on tab switch
         }
 
         // Spin Wheel Functions
@@ -3063,7 +3075,6 @@
                 if (result.success) {
                     // Backend already saved to sheets, just update UI locally
                     userPoints += qrData.points;
-                    localStorage.setItem('scords_user_points', userPoints.toString());
                     document.getElementById('userPoints').textContent = userPoints;
 
                     // Add to local history
@@ -3073,7 +3084,6 @@
                         points: qrData.points
                     };
                     pointsHistory.unshift(historyItem);
-                    localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
                     loadPointsHistory();
 
                     Swal.fire({
@@ -3156,48 +3166,9 @@
          * Sync ประวัติการเล่นเกมส์จาก localStorage ไป Backend
          */
         async function syncLocalGameHistory() {
-            try {
-                const savedHistory = localStorage.getItem('scords_points_history');
-                if (!savedHistory) return;
-
-                const localHistory = JSON.parse(savedHistory);
-
-                // Filter only game-related activities (not QR code rewards)
-                const gameHistory = localHistory.filter(item => {
-                    return !item.activity.includes('QR Code');
-                });
-
-                if (gameHistory.length === 0) return;
-
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: "syncLocalHistory",
-                        userId: userId,
-                        localHistory: gameHistory
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    console.log(`Synced ${result.data.syncedCount} game records to sheets`);
-
-                    // Clear synced items from localStorage to prevent duplicate sync
-                    if (result.data.syncedCount > 0) {
-                        const remainingHistory = localHistory.filter(item => {
-                            return item.activity.includes('QR Code'); // Keep QR records
-                        });
-                        localStorage.setItem('scords_points_history', JSON.stringify(remainingHistory));
-                        pointsHistory = remainingHistory;
-                        loadPointsHistory();
-                    }
-                }
-            } catch (error) {
-                console.error('Error syncing local history:', error);
-                // Don't show error to user, just log it
-            }
+            // No longer syncing from localStorage - all data is now fetched from sheets
+            // This function is kept for compatibility but does nothing
+            return;
         }
 
         document.getElementById('groupSelect').addEventListener('change', function() {
@@ -3232,6 +3203,136 @@
                 e.preventDefault();
             }
         });
+
+        // ========================================
+        // PULL TO REFRESH FUNCTIONALITY
+        // ========================================
+        let startY = 0;
+        let currentY = 0;
+        let isPulling = false;
+        let pullThreshold = 120; // pixels
+        let currentTab = 'checkIn';
+
+        // Update currentTab when tab is clicked
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', function() {
+                currentTab = this.getAttribute('data-tab');
+            });
+        });
+
+        // Touch start
+        document.addEventListener('touchstart', function(e) {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        // Touch move
+        document.addEventListener('touchmove', function(e) {
+            if (!isPulling || window.scrollY > 0) return;
+
+            currentY = e.touches[0].clientY;
+            const pullDistance = currentY - startY;
+
+            if (pullDistance > 0 && pullDistance < 300) {
+                // Calculate opacity based on pull distance
+                const opacity = Math.min(pullDistance / pullThreshold, 1);
+                const pullIndicator = document.getElementById('pullToRefreshIndicator');
+
+                if (pullIndicator) {
+                    pullIndicator.style.opacity = opacity;
+                    pullIndicator.style.transform = `translateY(${Math.min(pullDistance, 150)}px)`;
+
+                    if (pullDistance >= pullThreshold) {
+                        pullIndicator.innerHTML = '<div class="text-center"><div class="inline-block animate-spin text-2xl mb-2">🔄</div><p class="text-sm text-gray-400">ปล่อยเพื่อรีเฟรช</p></div>';
+                    } else {
+                        pullIndicator.innerHTML = '<div class="text-center"><div class="text-2xl mb-2">⬇️</div><p class="text-sm text-gray-400">ลากลงเพื่อรีเฟรช</p></div>';
+                    }
+                }
+            }
+        }, { passive: true });
+
+        // Touch end
+        document.addEventListener('touchend', function(e) {
+            if (!isPulling) return;
+
+            const pullDistance = currentY - startY;
+            const pullIndicator = document.getElementById('pullToRefreshIndicator');
+
+            if (pullDistance >= pullThreshold) {
+                // Trigger refresh
+                refreshCurrentTab();
+            }
+
+            // Reset
+            if (pullIndicator) {
+                pullIndicator.style.opacity = '0';
+                pullIndicator.style.transform = 'translateY(0)';
+            }
+            startY = 0;
+            currentY = 0;
+            isPulling = false;
+        }, { passive: true });
+
+        // Refresh current tab data
+        async function refreshCurrentTab() {
+            const pullIndicator = document.getElementById('pullToRefreshIndicator');
+            if (pullIndicator) {
+                pullIndicator.innerHTML = '<div class="text-center"><div class="inline-block animate-spin text-2xl mb-2">🔄</div><p class="text-sm text-yellow-400">กำลังรีเฟรช...</p></div>';
+                pullIndicator.style.opacity = '1';
+                pullIndicator.style.transform = 'translateY(80px)';
+            }
+
+            try {
+                switch(currentTab) {
+                    case 'checkIn':
+                        await loadActivities();
+                        break;
+                    case 'history':
+                        await loadHistoryData();
+                        break;
+                    case 'leaderboard':
+                        await loadLeaderboardData();
+                        break;
+                    case 'achievements':
+                        await loadAchievementsData();
+                        break;
+                    case 'games':
+                        await loadGamesData();
+                        break;
+                    case 'dashboard':
+                        if (userRole === 'admin') {
+                            await loadDashboardData();
+                            await loadAdminPointsHistory();
+                        }
+                        break;
+                }
+
+                // Show success message
+                if (pullIndicator) {
+                    pullIndicator.innerHTML = '<div class="text-center"><div class="text-2xl mb-2">✅</div><p class="text-sm text-green-400">รีเฟรชสำเร็จ!</p></div>';
+                }
+
+                // Hide after 1 second
+                setTimeout(() => {
+                    if (pullIndicator) {
+                        pullIndicator.style.opacity = '0';
+                        pullIndicator.style.transform = 'translateY(0)';
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error refreshing tab:', error);
+                if (pullIndicator) {
+                    pullIndicator.innerHTML = '<div class="text-center"><div class="text-2xl mb-2">❌</div><p class="text-sm text-red-400">รีเฟรชไม่สำเร็จ</p></div>';
+                    setTimeout(() => {
+                        pullIndicator.style.opacity = '0';
+                        pullIndicator.style.transform = 'translateY(0)';
+                    }, 1000);
+                }
+            }
+        }
     </script>
 
     <!-- Spin Wheel Modal -->

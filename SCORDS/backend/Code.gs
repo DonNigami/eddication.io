@@ -46,6 +46,19 @@ function doGet(e) {
       return createJsonResponse({ success: true, data: { history: getQRGenerationHistory() } });
     }
 
+    if (action === "getUserPoints") {
+      const userId = e.parameter.userId;
+      if (!userId) throw new Error("User ID is required.");
+      return createJsonResponse({ success: true, data: getUserPointsData(userId) });
+    }
+
+    if (action === "getUserPointsHistory") {
+      const userId = e.parameter.userId;
+      if (!userId) throw new Error("User ID is required.");
+      const limit = e.parameter.limit || "10";
+      return createJsonResponse({ success: true, data: { history: getUserPointsHistory(userId, limit) } });
+    }
+
     return createJsonResponse({
       success: true,
       message: "Check-in API is running."
@@ -939,4 +952,47 @@ function getQRGenerationHistory() {
   }))
   .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) // Sort by newest first
   .slice(0, 50); // Last 50 records
+}
+
+/**
+ * ดึงข้อมูลแต้มของ user คนเดียว
+ * @param {string} userId - LINE User ID
+ * @returns {Object} ข้อมูลแต้มของ user
+ */
+function getUserPointsData(userId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const totalPoints = getUserTotalPoints(ss, userId);
+
+  return {
+    userId: userId,
+    points: totalPoints
+  };
+}
+
+/**
+ * ดึงประวัติการได้แต้มของ user คนเดียว
+ * @param {string} userId - LINE User ID
+ * @param {string} limit - จำนวนรายการที่ต้องการ (default: 10)
+ * @returns {Array} ประวัติการได้แต้ม
+ */
+function getUserPointsHistory(userId, limit) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+
+  if (!historySheet) {
+    return [];
+  }
+
+  const historyData = getSheetData(historySheet);
+  const limitNum = parseInt(limit) || 10;
+
+  return historyData
+    .filter(row => row.UserID === userId)
+    .map(row => ({
+      date: row.Timestamp,
+      activity: row.Activity,
+      points: parseInt(row.Points) || 0
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, limitNum);
 }
