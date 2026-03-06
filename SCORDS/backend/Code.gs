@@ -67,6 +67,8 @@ function doPost(e) {
         return createJsonResponse(processCheckIn(requestData));
       case "redeemPointsQR":
         return createJsonResponse(redeemPointsQR(requestData));
+      case "addGamePoints":
+        return createJsonResponse(addGamePoints(requestData));
       default:
         throw new Error("Invalid action specified.");
     }
@@ -650,6 +652,61 @@ function redeemPointsQR(data) {
       note: qrData.note
     }
   };
+}
+
+/**
+ * เพิ่มแต้มจากการเล่นเกมส์
+ */
+function addGamePoints(data) {
+  const { userId, activity, points, displayName } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!userId) {
+    return { success: false, message: "User ID is required" };
+  }
+
+  if (!activity || !points) {
+    return { success: false, message: "Activity and points are required" };
+  }
+
+  try {
+    // Add points using existing function
+    addPointsToUser(ss, userId, points, activity);
+
+    // Get user info for response
+    const userInfo = getUserInfo(ss, userId);
+    const totalPoints = getUserTotalPoints(ss, userId);
+
+    return {
+      success: true,
+      message: `ได้รับ ${points} แต้ม!`,
+      data: {
+        points: points,
+        activity: activity,
+        totalPoints: totalPoints
+      }
+    };
+  } catch (error) {
+    console.error("Error adding game points:", error);
+    return {
+      success: false,
+      message: "เพิ่มแต้มไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
+/**
+ * ดึงแต้มรวมของ user
+ */
+function getUserTotalPoints(ss, userId) {
+  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+
+  if (!pointsSheet) {
+    return 0;
+  }
+
+  const userRow = findRow(pointsSheet, 'UserID', userId);
+  return userRow ? (parseInt(userRow.Points) || 0) : 0;
 }
 
 /**

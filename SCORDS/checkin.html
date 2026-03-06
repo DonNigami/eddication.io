@@ -704,6 +704,17 @@
                 </div>
             </div>
 
+            <!-- Scan QR Code -->
+            <div class="game-card" onclick="openPointsQRScanner()">
+                <div class="game-icon">📱</div>
+                <h4 class="text-md font-bold text-white mb-1">สแกน QR รับแต้ม</h4>
+                <p class="text-sm text-gray-400">สแกน QR Code ที่ admin แจกให้</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">🎁 รับแต้มพิเศษ</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">สแกนเลย</button>
+                </div>
+            </div>
+
             <!-- Points History -->
             <div class="mt-6">
                 <h3 class="text-lg font-medium text-gray-200 mb-3">ประวัติการได้แต้ม</h3>
@@ -2583,34 +2594,78 @@
             });
         }
 
-        function addPoints(points, activity) {
-            userPoints += points;
-            localStorage.setItem('scords_user_points', userPoints.toString());
-            document.getElementById('userPoints').textContent = userPoints;
-
-            // Add to history
-            const historyItem = {
-                date: new Date().toISOString(),
-                activity: activity,
-                points: points
-            };
-            pointsHistory.unshift(historyItem);
-            localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
-            loadPointsHistory();
-
-            // Show notification
+        async function addPoints(points, activity) {
+            // Show loading
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
                 showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: true
+                timer: 3000
             });
 
-            Toast.fire({
-                icon: 'success',
-                title: `ได้รับ +${points} แต้ม!`
-            });
+            try {
+                // Send to backend to save in sheets
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "addGamePoints",
+                        userId: userId,
+                        displayName: displayName,
+                        activity: activity,
+                        points: points
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local storage
+                    userPoints += points;
+                    localStorage.setItem('scords_user_points', userPoints.toString());
+                    document.getElementById('userPoints').textContent = userPoints;
+
+                    // Add to local history
+                    const historyItem = {
+                        date: new Date().toISOString(),
+                        activity: activity,
+                        points: points
+                    };
+                    pointsHistory.unshift(historyItem);
+                    localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
+                    loadPointsHistory();
+
+                    // Show success notification
+                    Toast.fire({
+                        icon: 'success',
+                        title: `ได้รับ +${points} แต้ม!`
+                    });
+                } else {
+                    throw new Error(result.message || 'Failed to add points');
+                }
+            } catch (error) {
+                console.error('Error adding points:', error);
+
+                // Fallback: Save to localStorage only
+                userPoints += points;
+                localStorage.setItem('scords_user_points', userPoints.toString());
+                document.getElementById('userPoints').textContent = userPoints;
+
+                const historyItem = {
+                    date: new Date().toISOString(),
+                    activity: activity,
+                    points: points
+                };
+                pointsHistory.unshift(historyItem);
+                localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
+                loadPointsHistory();
+
+                Toast.fire({
+                    icon: 'warning',
+                    title: `ได้รับ +${points} แต้ม (ออฟไลน์)`,
+                    text: 'ข้อมูลจะถูก sync เมื่อกลับออนไลน์'
+                });
+            }
         }
 
         function saveDailyGames() {
@@ -2642,13 +2697,13 @@
             document.getElementById('spinWheelModal').classList.add('hidden');
         }
 
-        function spinWheel() {
+        async function spinWheel() {
             const wheel = document.getElementById('spinWheel');
             const randomDegree = Math.floor(Math.random() * 360) + 720; // At least 2 full rotations
             wheel.style.transform = `rotate(${randomDegree}deg)`;
 
             // Calculate points based on final position
-            setTimeout(() => {
+            setTimeout(async () => {
                 const finalPosition = randomDegree % 360;
                 let points = 0;
 
@@ -2662,7 +2717,7 @@
                 todaySpinCount++;
                 saveDailyGames();
 
-                addPoints(points, 'หมุนวงล้อนำโชค');
+                await addPoints(points, 'หมุนวงล้อนำโชค');
                 closeSpinWheel();
 
                 // Reset wheel for next spin
@@ -2750,13 +2805,13 @@
             }, 1500);
         }
 
-        function showQuizResult() {
+        async function showQuizResult() {
             const totalPoints = parseInt(sessionStorage.getItem('quizTotalPoints'));
             todayQuizCount += 3;
             saveDailyGames();
 
             if (totalPoints > 0) {
-                addPoints(totalPoints, 'คำถามประจำวัน');
+                await addPoints(totalPoints, 'คำถามประจำวัน');
             }
 
             document.getElementById('quizPointsEarned').textContent = totalPoints;
@@ -2811,15 +2866,15 @@
                     flippedCards.push(card);
 
                     if (flippedCards.length === 2) {
-                        setTimeout(() => {
+                        setTimeout(async () => {
                             if (flippedCards[0].dataset.symbol === flippedCards[1].dataset.symbol) {
                                 flippedCards.forEach(c => c.classList.add('matched'));
                                 matchedPairs++;
 
                                 if (matchedPairs === 8) {
-                                    setTimeout(() => {
+                                    setTimeout(async () => {
                                         closeMiniGame();
-                                        addPoints(20, 'เกมส์จับคู่');
+                                        await addPoints(20, 'เกมส์จับคู่');
                                     }, 500);
                                 }
                             } else {
@@ -2972,7 +3027,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    addPoints(qrData.points, qrData.note || 'รับแต้มจาก QR Code');
+                    await addPoints(qrData.points, qrData.note || 'รับแต้มจาก QR Code');
 
                     Swal.fire({
                         icon: 'success',
