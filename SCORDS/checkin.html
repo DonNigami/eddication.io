@@ -201,6 +201,113 @@
             right: 0;
             border-width: 0 3px 3px 0;
         }
+
+        /* Offline Queue & Achievements Styles */
+        .queue-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+            animation: bounce 2s infinite;
+        }
+
+        .achievement-card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 1px solid #FFD700;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.2);
+        }
+
+        .achievement-card.locked {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .achievement-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .achievement-rarity {
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .rarity-common { background: #9CA3AF; }
+        .rarity-uncommon { background: #10B981; }
+        .rarity-rare { background: #3B82F6; }
+        .rarity-epic { background: #8B5CF6; }
+        .rarity-legendary { background: #F59E0B; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border: 1px solid #444444;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #9CA3AF;
+            margin-top: 4px;
+        }
+
+        .achievement-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
     </style>
 </head>
 <body class="min-h-screen gradient-bg">
@@ -231,11 +338,15 @@
             </div>
         </header>
 
+        <!-- Queue Indicator (Offline Mode) -->
+        <div id="queueIndicator" class="queue-indicator hidden"></div>
+
         <!-- Tabs -->
         <div class="flex border-b border-gray-700 mb-6 animate-fadeIn" style="animation-delay: 0.2s;">
             <button class="tab-btn flex-1 py-3 text-center tab-active" data-tab="checkIn">เช็คชื่อ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="history">ประวัติ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="leaderboard">จัดอันดับ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="achievements">ความสำเร็จ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="dashboard">แดชบอร์ด</button>
         </div>
 
@@ -372,10 +483,55 @@
             </div>
         </div>
 
+        <!-- Achievements -->
+        <div id="achievementsTab" class="tab-content hidden animate-fadeIn">
+            <!-- User Stats -->
+            <div class="card rounded-xl p-5 mb-6">
+                <h3 class="text-lg font-medium text-gray-200 mb-4">สถิติของคุณ</h3>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statTotalCheckIns">0</div>
+                        <div class="stat-label">เช็คชื่อทั้งหมด</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statCurrentStreak">0</div>
+                        <div class="stat-label">สตรีคปัจจุบัน</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statOnTimeRate">0%</div>
+                        <div class="stat-label">ตรงเวลา</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statUnlockedAchievements">0</div>
+                        <div class="stat-label">ความสำเร็จ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achievements List -->
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">ความสำเร็จที่ปลดล็อคแล้ว</h3>
+                <div id="unlockedAchievementsList" class="space-y-3">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-medium text-gray-200 mb-3">ความสำเร็จที่ยังไม่ได้ปลดล็อค</h3>
+                <div id="lockedAchievementsList" class="space-y-3">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Dashboard -->
         <div id="dashboardTab" class="tab-content hidden animate-fadeIn">
             <h3 class="text-lg font-medium text-gray-200 mb-4">แดชบอร์ดสรุปผล</h3>
-            
+
             <!-- Group -->
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-400 mb-2">เลือกกลุ่ม</label>
@@ -384,7 +540,7 @@
                     <!-- Groups will be populated dynamically -->
                 </select>
             </div>
-            
+
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="card rounded-xl p-4">
@@ -400,7 +556,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Status -->
             <div class="card rounded-xl p-5 mb-6">
                 <h4 class="text-md font-medium text-gray-200 mb-3">สถานะการเช็คชื่อ</h4>
@@ -434,7 +590,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Activity -->
             <h4 class="text-md font-medium text-gray-200 mb-3">กิจกรรมล่าสุด</h4>
             <div id="recentActivityList" class="space-y-3">
@@ -564,9 +720,549 @@
         let leaderboardData = [];
         let currentLeaderboardPeriod = 7; // Default: 7 days
 
-
         const API_URL = "https://script.google.com/macros/s/AKfycbxvCNUyaSycHwJaag_eN0AVtM_a2n37YJXw_6qK4tPdjZuuwRs5jDlPS4oK5eAYc1DzQw/exec";
-         const LIFF_ID = '2009342397-n6oBMLI6';
+        const LIFF_ID = '2009342397-n6oBMLI6';
+
+        // ========================================
+        // OFFLINE QUEUE SYSTEM
+        // ========================================
+        class OfflineQueue {
+            constructor() {
+                this.queue = JSON.parse(localStorage.getItem('scords_offline_queue') || '[]');
+                this.isSyncing = false;
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                window.addEventListener('online', () => this.sync());
+                window.addEventListener('offline', () => this.showOfflineNotification());
+            }
+
+            add(checkInData) {
+                const queueItem = {
+                    id: Date.now() + Math.random(),
+                    data: checkInData,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                };
+                this.queue.push(queueItem);
+                this.save();
+
+                this.showQueueNotification(this.queue.length);
+                this.updateQueueUI();
+            }
+
+            async sync() {
+                if (this.isSyncing || this.queue.length === 0 || !navigator.onLine) return;
+
+                this.isSyncing = true;
+                showLoading('กำลังส่งข้อมูลที่ค้างอยู่...');
+
+                const failedItems = [];
+
+                for (const item of this.queue) {
+                    if (item.status !== 'pending') continue;
+
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify(item.data)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            item.status = 'success';
+                            this.showSyncSuccess(item.data.activityName || item.data.activityId);
+                        } else {
+                            item.status = 'failed';
+                            failedItems.push(item);
+                        }
+                    } catch (error) {
+                        console.error('Sync failed:', error);
+                        item.status = 'failed';
+                        failedItems.push(item);
+                    }
+                }
+
+                // Remove successful items, keep failed
+                this.queue = failedItems;
+                this.save();
+                this.isSyncing = false;
+                this.updateQueueUI();
+
+                hideLoading();
+
+                if (this.queue.length === 0) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ!',
+                        text: 'ส่งข้อมูลทั้งหมดเรียบร้อยแล้ว',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    await fetchAllData();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'บางรายการล้มเหลว',
+                        text: `มี ${this.queue.length} รายการที่ยังส่งไม่สำเร็จ`,
+                        confirmButtonColor: '#FFD700'
+                    });
+                }
+            }
+
+            save() {
+                localStorage.setItem('scords_offline_queue', JSON.stringify(this.queue));
+            }
+
+            getQueueCount() {
+                return this.queue.filter(item => item.status === 'pending').length;
+            }
+
+            showQueueNotification(count) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.onmouseenter = Swal.stopTimer;
+                        toast.onmouseleave = Swal.resumeTimer;
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'info',
+                    title: `เก็บข้อมูลไว้ในคิว (${count} รายการ)`
+                });
+            }
+
+            showOfflineNotification() {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'ออฟไลน์ - ข้อมูลจะถูกเก็บไว้ในคิว'
+                });
+            }
+
+            showSyncSuccess(activityName) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: `ส่ง ${activityName} สำเร็จ!`
+                });
+            }
+
+            updateQueueUI() {
+                const queueIndicator = document.getElementById('queueIndicator');
+                const count = this.getQueueCount();
+
+                if (count > 0 && queueIndicator) {
+                    queueIndicator.classList.remove('hidden');
+                    queueIndicator.innerHTML = `
+                        <span class="animate-pulse mr-2">📡</span>
+                        คิว: ${count}
+                    `;
+                } else if (queueIndicator) {
+                    queueIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Initialize Offline Queue
+        const offlineQueue = new OfflineQueue();
+
+        // ========================================
+        // ACHIEVEMENT SYSTEM
+        // ========================================
+        class AchievementManager {
+            constructor() {
+                this.achievements = this.defineAchievements();
+                this.userAchievements = JSON.parse(localStorage.getItem('scords_achievements') || '{}');
+                this.userStats = JSON.parse(localStorage.getItem('scords_stats') || '{}');
+            }
+
+            defineAchievements() {
+                return {
+                    // Milestone Achievements
+                    FIRST_CHECKIN: {
+                        id: 'first_checkin',
+                        name: 'ครั้งแรก',
+                        description: 'เช็คชื่อครั้งแรก',
+                        icon: '🎯',
+                        rarity: 'common',
+                        condition: (stats) => stats.totalCheckIns === 1
+                    },
+                    FIVE_CHECKINS: {
+                        id: 'five_checkins',
+                        name: 'มือใหม่',
+                        description: 'เช็คชื่อ 5 ครั้ง',
+                        icon: '🌟',
+                        rarity: 'common',
+                        condition: (stats) => stats.totalCheckIns === 5
+                    },
+                    TEN_CHECKINS: {
+                        id: 'ten_checkins',
+                        name: 'มั่นใจ',
+                        description: 'เช็คชื่อ 10 ครั้ง',
+                        icon: '💪',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.totalCheckIns === 10
+                    },
+                    TWENTY_FIVE_CHECKINS: {
+                        id: 'twenty_five_checkins',
+                        name: 'ขาเก่า',
+                        description: 'เช็คชื่อ 25 ครั้ง',
+                        icon: '🏅',
+                        rarity: 'rare',
+                        condition: (stats) => stats.totalCheckIns === 25
+                    },
+                    FIFTY_CHECKINS: {
+                        id: 'fifty_checkins',
+                        name: 'ตำนาน',
+                        description: 'เช็คชื่อ 50 ครั้ง',
+                        icon: '👑',
+                        rarity: 'epic',
+                        condition: (stats) => stats.totalCheckIns === 50
+                    },
+                    HUNDRED_CHECKINS: {
+                        id: 'hundred_checkins',
+                        name: 'หายาก',
+                        description: 'เช็คชื่อ 100 ครั้ง',
+                        icon: '💎',
+                        rarity: 'legendary',
+                        condition: (stats) => stats.totalCheckIns === 100
+                    },
+
+                    // Perfect Attendance
+                    PERFECT_DAY: {
+                        id: 'perfect_day',
+                        name: 'สมบูรณ์แบบ',
+                        description: 'เช็คชื่อครบทุกกิจกรรมใน 1 วัน',
+                        icon: '✨',
+                        rarity: 'rare',
+                        condition: (stats) => stats.todayCheckedInAll === true
+                    },
+                    PERFECT_WEEK: {
+                        id: 'perfect_week',
+                        name: 'สัปดาห์ทอง',
+                        description: 'เช็คชื่อตรงเวลาทุกวัน 7 วันติด',
+                        icon: '🌈',
+                        rarity: 'epic',
+                        condition: (stats) => stats.weekStreak >= 7 && stats.weekOnTimeRate === 100
+                    },
+                    PERFECT_MONTH: {
+                        id: 'perfect_month',
+                        name: 'เดือนมหัศจรรย์',
+                        description: 'เช็คชื่อตรงเวลาทุกวัน 30 วัน',
+                        icon: '🌟',
+                        rarity: 'legendary',
+                        condition: (stats) => stats.monthStreak >= 30 && stats.monthOnTimeRate === 100
+                    },
+
+                    // Streak Achievements
+                    STREAK_3: {
+                        id: 'streak_3',
+                        name: 'เริ่มต้น',
+                        description: 'เช็คชื่อติดต่อกัน 3 วัน',
+                        icon: '🔥',
+                        rarity: 'common',
+                        condition: (stats) => stats.currentStreak === 3
+                    },
+                    STREAK_7: {
+                        id: 'streak_7',
+                        name: 'ลุกไหม้',
+                        description: 'เช็คชื่อติดต่อกัน 7 วัน',
+                        icon: '🔥🔥',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.currentStreak === 7
+                    },
+                    STREAK_14: {
+                        id: 'streak_14',
+                        name: 'ไฟแรง',
+                        description: 'เช็คชื่อติดต่อกัน 14 วัน',
+                        icon: '🔥🔥🔥',
+                        rarity: 'rare',
+                        condition: (stats) => stats.currentStreak === 14
+                    },
+                    STREAK_30: {
+                        id: 'streak_30',
+                        name: 'ไฟไหม้',
+                        description: 'เช็คชื่อติดต่อกัน 30 วัน',
+                        icon: '💥',
+                        rarity: 'epic',
+                        condition: (stats) => stats.currentStreak === 30
+                    },
+
+                    // Punctuality
+                    ALWAYS_ON_TIME: {
+                        id: 'always_on_time',
+                        name: 'ตรงเวลาเสมอ',
+                        description: 'เช็คชื่อตรงเวลา 10 ครั้งติดต่อกัน',
+                        icon: '⏰',
+                        rarity: 'rare',
+                        condition: (stats) => stats.onTimeStreak >= 10
+                    },
+                    SPEED_DEMON: {
+                        id: 'speed_demon',
+                        name: 'เร็วมาก',
+                        description: 'เช็คชื่อภายใน 5 นาทีแรก 5 ครั้ง',
+                        icon: '⚡',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.earlyCheckIns >= 5
+                    },
+
+                    // Early Bird
+                    EARLY_BIRD_5: {
+                        id: 'early_bird_5',
+                        name: 'นกตื่นเช้า',
+                        description: 'เช็คชื่อก่อนเวลา 5 ครั้ง',
+                        icon: '🐦',
+                        rarity: 'common',
+                        condition: (stats) => stats.earlyBirdCount >= 5
+                    },
+                    EARLY_BIRD_20: {
+                        id: 'early_bird_20',
+                        name: 'นกตื่นเช้าตามรุ่ง',
+                        description: 'เช็คชื่อก่อนเวลา 20 ครั้ง',
+                        icon: '🦅',
+                        rarity: 'rare',
+                        condition: (stats) => stats.earlyBirdCount >= 20
+                    },
+
+                    // Special
+                    NIGHT_OWL: {
+                        id: 'night_owl',
+                        name: 'นกฮูก',
+                        description: 'เช็คชื่อหลัง 22:00 น.',
+                        icon: '🦉',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.nightOwl === true
+                    },
+                    WEEKEND_WARRIOR: {
+                        id: 'weekend_warrior',
+                        name: 'นักรบเสาร์-อาทิตย์',
+                        description: 'เช็คชื่อในวันหยุด 5 ครั้ง',
+                        icon: '🛡️',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.weekendCheckIns >= 5
+                    }
+                };
+            }
+
+            calculateStats(historyData, activities = []) {
+                const stats = {
+                    totalCheckIns: historyData.length,
+                    onTimeCount: historyData.filter(h => h.status === 'ตรงเวลา').length,
+                    lateCount: historyData.filter(h => h.status === 'สาย').length,
+                    currentStreak: 0,
+                    longestStreak: 0,
+                    onTimeStreak: 0,
+                    earlyCheckIns: 0,
+                    earlyBirdCount: historyData.filter(h => h.status === 'ตรงเวลา').length,
+                    nightOwl: false,
+                    weekendCheckIns: 0,
+                    weekOnTimeRate: 0,
+                    monthOnTimeRate: 0,
+                    weekStreak: 0,
+                    monthStreak: 0,
+                    todayCheckedInAll: false
+                };
+
+                // Calculate streaks
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const sortedHistory = [...historyData].sort((a, b) =>
+                    new Date(b.date) - new Date(a.date)
+                );
+
+                // Current streak
+                let streak = 0;
+                let checkDate = new Date(today);
+
+                for (const record of sortedHistory) {
+                    const recordDate = new Date(record.date);
+                    recordDate.setHours(0, 0, 0, 0);
+
+                    const dayDiff = Math.floor((checkDate - recordDate) / (1000 * 60 * 60 * 24));
+
+                    if (dayDiff === streak) {
+                        streak++;
+                        checkDate.setDate(checkDate.getDate() - 1);
+                    } else {
+                        break;
+                    }
+                }
+                stats.currentStreak = streak;
+                stats.longestStreak = Math.max(stats.longestStreak, streak);
+
+                // On-time streak
+                let onTimeStreak = 0;
+                for (const record of sortedHistory) {
+                    if (record.status === 'ตรงเวลา') {
+                        onTimeStreak++;
+                    } else {
+                        break;
+                    }
+                }
+                stats.onTimeStreak = onTimeStreak;
+
+                // Early check-ins (within 5 minutes)
+                stats.earlyCheckIns = historyData.filter(h => {
+                    const checkTime = new Date(h.date);
+                    const timeStr = checkTime.toTimeString().slice(0, 5);
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return minutes < 5;
+                }).length;
+
+                // Night owl (after 22:00)
+                stats.nightOwl = historyData.some(h => {
+                    const checkTime = new Date(h.date);
+                    return checkTime.getHours() >= 22;
+                });
+
+                // Weekend check-ins
+                stats.weekendCheckIns = historyData.filter(h => {
+                    const checkDate = new Date(h.date);
+                    const day = checkDate.getDay();
+                    return day === 0 || day === 6; // Sunday or Saturday
+                }).length;
+
+                // Weekly/Monthly rates
+                const lastWeek = historyData.filter(h => {
+                    const daysDiff = (today - new Date(h.date)) / (1000 * 60 * 60 * 24);
+                    return daysDiff <= 7;
+                });
+                const weekOnTime = lastWeek.filter(h => h.status === 'ตรงเวลา').length;
+                stats.weekOnTimeRate = lastWeek.length > 0 ? Math.round((weekOnTime / lastWeek.length) * 100) : 0;
+                stats.weekStreak = Math.min(stats.currentStreak, 7);
+
+                const lastMonth = historyData.filter(h => {
+                    const daysDiff = (today - new Date(h.date)) / (1000 * 60 * 60 * 24);
+                    return daysDiff <= 30;
+                });
+                const monthOnTime = lastMonth.filter(h => h.status === 'ตรงเวลา').length;
+                stats.monthOnTimeRate = lastMonth.length > 0 ? Math.round((monthOnTime / lastMonth.length) * 100) : 0;
+                stats.monthStreak = Math.min(stats.currentStreak, 30);
+
+                // Check if checked in all activities today
+                if (activities.length > 0) {
+                    const todayCheckedIn = activities.filter(a => a.checkedIn).length;
+                    stats.todayCheckedInAll = todayCheckedIn === activities.length;
+                }
+
+                return stats;
+            }
+
+            checkAchievements(historyData, activities = []) {
+                const stats = this.calculateStats(historyData, activities);
+                this.userStats = stats;
+                this.saveStats(stats);
+
+                const newAchievements = [];
+
+                for (const [key, achievement] of Object.entries(this.achievements)) {
+                    // Skip if already unlocked
+                    if (this.userAchievements[achievement.id]) continue;
+
+                    // Check condition
+                    try {
+                        if (achievement.condition(stats)) {
+                            this.userAchievements[achievement.id] = {
+                                ...achievement,
+                                unlockedAt: new Date().toISOString()
+                            };
+                            newAchievements.push(achievement);
+                        }
+                    } catch (error) {
+                        console.error(`Error checking achievement ${key}:`, error);
+                    }
+                }
+
+                if (newAchievements.length > 0) {
+                    this.saveAchievements();
+                    this.showAchievementNotification(newAchievements);
+                }
+
+                return newAchievements;
+            }
+
+            saveAchievements() {
+                localStorage.setItem('scords_achievements', JSON.stringify(this.userAchievements));
+            }
+
+            saveStats(stats) {
+                localStorage.setItem('scords_stats', JSON.stringify(stats));
+            }
+
+            showAchievementNotification(achievements) {
+                const achievement = achievements[0]; // Show first one
+                const rarityColors = {
+                    common: '#9CA3AF',
+                    uncommon: '#10B981',
+                    rare: '#3B82F6',
+                    epic: '#8B5CF6',
+                    legendary: '#F59E0B'
+                };
+
+                Swal.fire({
+                    title: '🎉 ปลดล็อค Achievement!',
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">${achievement.icon}</div>
+                            <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">${achievement.name}</h3>
+                            <p style="color: #9CA3AF; margin-bottom: 16px;">${achievement.description}</p>
+                            <span style="background: ${rarityColors[achievement.rarity]}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; text-transform: uppercase;">
+                                ${achievement.rarity}
+                            </span>
+                        </div>
+                    `,
+                    background: '#111827',
+                    color: '#fff',
+                    confirmButtonColor: '#FFD700',
+                    confirmButtonText: 'เยี่ยมมาก!'
+                });
+
+                if (achievements.length > 1) {
+                    setTimeout(() => {
+                        this.showAchievementNotification(achievements.slice(1));
+                    }, 3000);
+                }
+            }
+
+            getUnlockedAchievements() {
+                return Object.values(this.userAchievements).sort((a, b) =>
+                    new Date(b.unlockedAt) - new Date(a.unlockedAt)
+                );
+            }
+
+            getLockedAchievements() {
+                return Object.values(this.achievements).filter(a => !this.userAchievements[a.id]);
+            }
+
+            getStats() {
+                return this.userStats;
+            }
+        }
+
+        // Initialize Achievement Manager
+        const achievementManager = new AchievementManager();
 
         document.addEventListener('DOMContentLoaded', () => {
             initializeLIFF();
@@ -624,9 +1320,16 @@
                     loadActivities();
                     loadHistoryData();
                     loadDashboardData();
+                    loadAchievementsData();
+
+                    // Check for new achievements
+                    achievementManager.checkAchievements(historyData, activities);
 
                     // Load initial leaderboard data
                     await updateLeaderboardPeriod(currentLeaderboardPeriod);
+
+                    // Update offline queue UI
+                    offlineQueue.updateQueueUI();
 
                     hideLoading();
                     document.getElementById('mainContainer').classList.remove('hidden');
@@ -773,46 +1476,138 @@
         function loadDashboardData() {
             document.getElementById('checkedInCount').textContent = dashboardData.checkedIn || 0;
             document.getElementById('totalCount').textContent = dashboardData.total || 0;
-            
+
             const attendanceRate = dashboardData.total ? Math.round((dashboardData.checkedIn / dashboardData.total) * 100) : 0;
             document.getElementById('attendanceRate').textContent = `${attendanceRate}%`;
             document.getElementById('attendanceBar').style.width = `${attendanceRate}%`;
-            
+
             document.getElementById('onTimeCount').textContent = dashboardData.onTime || 0;
             document.getElementById('lateCount').textContent = dashboardData.late || 0;
             document.getElementById('absentCount').textContent = dashboardData.absent || 0;
-            
+
             const onTimePercent = dashboardData.total ? Math.round((dashboardData.onTime / dashboardData.total) * 100) : 0;
             const latePercent = dashboardData.total ? Math.round((dashboardData.late / dashboardData.total) * 100) : 0;
             const absentPercent = dashboardData.total ? Math.round((dashboardData.absent / dashboardData.total) * 100) : 0;
-            
+
             document.getElementById('onTimeBar').style.width = `${onTimePercent}%`;
             document.getElementById('lateBar').style.width = `${latePercent}%`;
             document.getElementById('absentBar').style.width = `${absentPercent}%`;
-            
+
             const recentActivityList = document.getElementById('recentActivityList');
             recentActivityList.innerHTML = '';
-            
+
             if (!dashboardData.recentActivity || dashboardData.recentActivity.length === 0) {
                 recentActivityList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ไม่มีกิจกรรมล่าสุด</p></div>`;
                 return;
             }
-            
+
             dashboardData.recentActivity.forEach((item, index) => {
                 const activityItem = document.createElement('div');
                 activityItem.className = 'card rounded-lg p-3 animate-fadeIn';
                 activityItem.style.animationDelay = `${0.1 * index}s`;
-                
+
                 let statusClass = 'bg-green-900 text-green-300';
                 if (item.status === 'สาย') {
                     statusClass = 'bg-yellow-900 text-yellow-300';
                 } else if (item.status === 'ขาด') {
                     statusClass = 'bg-red-900 text-red-300';
                 }
-                
+
                 activityItem.innerHTML = `<div class="flex justify-between items-center"><div><p class="text-sm font-medium text-white">${item.name}</p><p class="text-xs text-gray-400">${item.activity} - ${item.time} น.</p></div><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${item.status}</span></div>`;
                 recentActivityList.appendChild(activityItem);
             });
+        }
+
+        function loadAchievementsData() {
+            const stats = achievementManager.getStats();
+            const unlockedAchievements = achievementManager.getUnlockedAchievements();
+            const lockedAchievements = achievementManager.getLockedAchievements();
+
+            // Update stats display
+            document.getElementById('statTotalCheckIns').textContent = stats.totalCheckIns || 0;
+            document.getElementById('statCurrentStreak').textContent = `${stats.currentStreak || 0} วัน`;
+            document.getElementById('statOnTimeRate').textContent = `${stats.weekOnTimeRate || 0}%`;
+            document.getElementById('statUnlockedAchievements').textContent = unlockedAchievements.length;
+
+            // Display unlocked achievements
+            const unlockedList = document.getElementById('unlockedAchievementsList');
+            unlockedList.innerHTML = '';
+
+            if (unlockedAchievements.length === 0) {
+                unlockedList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                        </svg>
+                        <p class="mt-4">ยังไม่มีความสำเร็จ</p>
+                        <p class="text-xs mt-2">เช็คชื่อเพื่อปลดล็อคความสำเร็จแรกของคุณ!</p>
+                    </div>
+                `;
+            } else {
+                unlockedAchievements.forEach((achievement, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'achievement-card achievement-shine';
+                    card.style.animationDelay = `${0.1 * index}s`;
+
+                    const unlockDate = achievement.unlockedAt ?
+                        new Date(achievement.unlockedAt).toLocaleDateString('th-TH', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                        }) : '-';
+
+                    card.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="mr-4">
+                                <div class="achievement-icon">${achievement.icon}</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-sm font-bold text-white">${achievement.name}</h4>
+                                    <span class="achievement-rarity rarity-${achievement.rarity}">${achievement.rarity}</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mb-2">${achievement.description}</p>
+                                <p class="text-xs text-yellow-400">ปลดล็อค: ${unlockDate}</p>
+                            </div>
+                        </div>
+                    `;
+                    unlockedList.appendChild(card);
+                });
+            }
+
+            // Display locked achievements
+            const lockedList = document.getElementById('lockedAchievementsList');
+            lockedList.innerHTML = '';
+
+            if (lockedAchievements.length === 0) {
+                lockedList.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        <p>🎉 ปลดล็อคครบทุกความสำเร็จแล้ว!</p>
+                    </div>
+                `;
+            } else {
+                lockedAchievements.slice(0, 10).forEach((achievement, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'achievement-card locked';
+                    card.style.animationDelay = `${0.1 * index}s`;
+
+                    card.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="mr-4">
+                                <div class="achievement-icon opacity-50">${achievement.icon}</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-sm font-bold text-gray-400">${achievement.name}</h4>
+                                    <span class="achievement-rarity rarity-${achievement.rarity}">${achievement.rarity}</span>
+                                </div>
+                                <p class="text-xs text-gray-500">${achievement.description}</p>
+                            </div>
+                        </div>
+                    `;
+                    lockedList.appendChild(card);
+                });
+            }
         }
 
         function loadLeaderboardData() {
@@ -981,68 +1776,132 @@
         async function processQRCode(activityId, qrResult, coords) {
             document.getElementById('qrScannerOverlay').classList.add('hidden');
             showLoading("กำลังบันทึกข้อมูล");
-            
+
             try {
                 const timestamp = new Date().toISOString();
-                
+                const activity = activities.find(a => a.id.toString() === activityId.toString());
+                const checkInData = {
+                    action: "checkIn",
+                    userId: userId,
+                    displayName: displayName,
+                    activityId: activityId,
+                    activityName: activity ? activity.name : `Activity ${activityId}`,
+                    qrCode: qrResult,
+                    timestamp: timestamp,
+                    latitude: coords.latitude,
+                    longitude: coords.longitude
+                };
+
+                // Check if online
+                if (!navigator.onLine) {
+                    hideLoading();
+                    offlineQueue.add(checkInData);
+
+                    // Show local feedback
+                    const now = new Date();
+                    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} น.`;
+
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ออฟไลน์',
+                        html: `
+                            <div class="text-center">
+                                <div style="font-size: 48px; margin-bottom: 16px;">📡</div>
+                                <p style="color: #fff;">บันทึกข้อมูลเรียบร้อยแล้ว</p>
+                                <p style="color: #9CA3AF; font-size: 14px;">ข้อมูลจะถูกส่งเมื่อกลับมาออนไลน์</p>
+                            </div>
+                        `,
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+
+                    // Refresh activities to show checked-in state locally
+                    await fetchAllData();
+                    return;
+                }
+
+                // Try to send to server
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({
-                        action: "checkIn",
-                        userId: userId,
-                        displayName: displayName,
-                        activityId: activityId,
-                        qrCode: qrResult,
-                        timestamp: timestamp,
-                        latitude: coords.latitude,
-                        longitude: coords.longitude
-                    })
+                    body: JSON.stringify(checkInData)
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     hideLoading();
                     const now = new Date();
                     const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} น.`;
-                    const activity = activities.find(a => a.id.toString() === activityId.toString());
 
                     if (liff.isInClient()) {
                         const flexMessage = createFlexMessage(activity.name, displayName, currentTime, result.data.status);
                         await liff.sendMessages([flexMessage]).then(function () {
-                const Toast = Swal.mixin({
-                    toast: true,
-                    position: "top-end",
-                    showConfirmButton: false,
-                    timer: 3000,
-                    timerProgressBar: true,
-                    didOpen: (toast) => {
-                        toast.onmouseenter = Swal.stopTimer;
-                        toast.onmouseleave = Swal.resumeTimer;
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: "top-end",
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                didOpen: (toast) => {
+                                    toast.onmouseenter = Swal.stopTimer;
+                                    toast.onmouseleave = Swal.resumeTimer;
+                                }
+                            });
+                            Toast.fire({
+                                icon: "success",
+                                title: "ส่งเข้าแชทเรียบร้อย"
+                            })
+                        });
                     }
-                });
-                Toast.fire({
-                    icon: "success",
-                    title: "ส่งเข้าแชทเรียบร้อย"
-                })
 
-            });
-                    }
-                    
                     document.getElementById('successActivity').textContent = activity ? activity.name : '';
                     document.getElementById('successTime').textContent = currentTime;
                     document.getElementById('successStatus').textContent = `สถานะ: ${result.data.status}`;
                     document.getElementById('successModal').classList.remove('hidden');
-                                        
+
+                    // Check for achievements after successful check-in
                     await fetchAllData();
-                    
                 } else {
                     throw new Error(result.message || "Check-in failed");
                 }
             } catch (error) {
                 hideLoading();
-                showError('เช็คชื่อไม่สำเร็จ', error.message || 'กรุณาลองใหม่อีกครั้ง');
+
+                // If network error, add to queue
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    const activity = activities.find(a => a.id.toString() === activityId.toString());
+                    const checkInData = {
+                        action: "checkIn",
+                        userId: userId,
+                        displayName: displayName,
+                        activityId: activityId,
+                        activityName: activity ? activity.name : `Activity ${activityId}`,
+                        qrCode: qrResult,
+                        timestamp: new Date().toISOString(),
+                        latitude: coords.latitude,
+                        longitude: coords.longitude
+                    };
+
+                    offlineQueue.add(checkInData);
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'การเชื่อมต่อล้มเหลว',
+                        html: `
+                            <div class="text-center">
+                                <p style="color: #fff;">บันทึกข้อมูลไว้ในคิวแล้ว</p>
+                                <p style="color: #9CA3AF; font-size: 14px;">ข้อมูลจะถูกส่งอัตโนมัติเมื่อกลับมาออนไลน์</p>
+                            </div>
+                        `,
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+                } else {
+                    showError('เช็คชื่อไม่สำเร็จ', error.message || 'กรุณาลองใหม่อีกครั้ง');
+                }
             }
         }
 
@@ -1272,6 +2131,11 @@
                 this.classList.add('tab-active', 'text-white');
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
                 document.getElementById(`${tabId}Tab`).classList.remove('hidden');
+
+                // Load achievements data when switching to achievements tab
+                if (tabId === 'achievements') {
+                    loadAchievementsData();
+                }
             });
         });
 

@@ -20,7 +20,7 @@ function doGet(e) {
     if (action === "getDashboard") {
       const group = e.parameter.group;
       if (!group) throw new Error("Group is required.");
-      return createJsonResponse(getDashboardData(group));
+      return createJsonResponse(getDashboardData(group, null, true));
     }
 
     if (action === "getHistory") {
@@ -101,7 +101,7 @@ function getAllData(userId, days) {
       userInfo: userInfo,
       activities: activities,
       history: getHistory(ss, userId, days),
-      dashboardData: getDashboardData(ss, userInfo ? userInfo.group : 'all'),
+      dashboardData: getDashboardData(ss, userInfo ? userInfo.group : 'all', false),
       groups: getGroups(ss)
     }
   };
@@ -242,7 +242,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
 /**
  * ดึงข้อมูล Dashboard ตามกลุ่ม
  */
-function getDashboardData(ssOrGroup, group) {
+function getDashboardData(ssOrGroup, group, returnFullResponse = false) {
     let ss;
     let selectedGroup = group;
 
@@ -289,17 +289,23 @@ function getDashboardData(ssOrGroup, group) {
             status: c.Status
         }));
 
-    return {
-        success: true,
-        data: {
-            checkedIn: checkedInCount,
-            total: totalUsers,
-            onTime: onTimeCount,
-            late: lateCount,
-            absent: absentCount,
-            recentActivity: recentActivity
-        }
+    const dashboardResult = {
+        checkedIn: checkedInCount,
+        total: totalUsers,
+        onTime: onTimeCount,
+        late: lateCount,
+        absent: absentCount,
+        recentActivity: recentActivity
     };
+
+    // Return format depends on how it's called
+    if (returnFullResponse) {
+        return {
+            success: true,
+            data: dashboardResult
+        };
+    }
+    return dashboardResult;
 }
 
 /**
@@ -329,12 +335,25 @@ function getUserInfo(ss, userId) {
 
 /**
  * ดึงประวัติการเช็คชื่อ
- * @param {SpreadsheetApp.Spreadsheet} ss - Spreadsheet object
- * @param {string} userId - LINE User ID
+ * @param {SpreadsheetApp.Spreadsheet|string} ssOrUserId - Spreadsheet object or userId
+ * @param {string} userId - LINE User ID (optional if first param is ss)
  * @param {string} days - จำนวนวันที่ต้องการ (7, 30, all)
  * @returns {Array} ประวัติการเช็คชื่อ
  */
-function getHistory(ss, userId, days) {
+function getHistory(ssOrUserId, userId, days) {
+  let ss;
+  let actualUserId;
+
+  // Handle both calling conventions: getHistory(ss, userId, days) and getHistory(userId, days)
+  if (typeof ssOrUserId === 'string') {
+    ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    actualUserId = ssOrUserId;
+    days = userId; // Shift parameter since first param was userId
+  } else {
+    ss = ssOrUserId;
+    actualUserId = userId;
+  }
+
   const logData = getSheetData(ss.getSheetByName(SHEET_NAMES.LOG));
   const activitiesData = getSheetData(ss.getSheetByName(SHEET_NAMES.ACTIVITIES));
 
@@ -357,7 +376,7 @@ function getHistory(ss, userId, days) {
   return logData
     .filter(row => {
       // กรองตาม userId
-      if (row.UserID !== userId) return false;
+      if (row.UserID !== actualUserId) return false;
 
       // กรองตามวันที่ (ถ้าระบุ)
       if (filterDate) {
