@@ -6,7 +6,7 @@
     <title>SMART CHECK-IN</title>
      <meta name="description" content="SMART CHECK-IN for LIFF App / MINI App" />
     <meta name="author" content="iton5" />
-    <meta property="og:title" content="SMART CHECK-IN-iton5-thailand" />
+    <meta property="og:title" content="SMART CHECK-IN-PTG SCORDS" />
     <meta property="og:description" content="SMART CHECK-IN for LIFF App / MINI App" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
@@ -423,19 +423,49 @@
     </div>
 
     <!-- ลงทะเบียน -->
-    <div id="registrationModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+    <div id="registrationModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden overflow-y-auto py-8">
         <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500">
-            <div class="text-center mb-4">
+            <div class="text-center mb-6">
                 <h3 class="text-xl font-bold text-white">ลงทะเบียนผู้ใช้งาน</h3>
-                <p class="text-gray-400 mt-2">กรุณาเลือกกลุ่มของคุณ</p>
+                <p class="text-gray-400 mt-2">กรอกข้อมูลส่วนตัวของคุณ</p>
             </div>
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-400 mb-2">กลุ่ม</label>
-                <select id="registerGroupSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                    <!-- Groups will be populated dynamically -->
-                </select>
+
+            <div class="space-y-4">
+                <!-- ชื่อ -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">ชื่อ <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerFirstName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="กรอกชื่อจริง">
+                </div>
+
+                <!-- นามสกุล -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">นามสกุล <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerLastName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="กรอกนามสกุล">
+                </div>
+
+                <!-- รหัสพนักงาน -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">รหัสพนักงาน <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerEmployeeId" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="เช่น EMP001">
+                </div>
+
+                <!-- ตำแหน่ง -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">ตำแหน่ง <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerPosition" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="เช่น พนักงานขับรถ, ผู้จัดการ">
+                </div>
+
+                <!-- กลุ่ม -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">กลุ่ม <span class="text-red-500">*</span></label>
+                    <select id="registerGroupSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        <option value="">-- เลือกกลุ่ม --</option>
+                        <!-- Groups will be populated dynamically -->
+                    </select>
+                </div>
             </div>
-            <button id="registerButton" class="btn-gradient font-medium py-3 px-6 rounded-full w-full">
+
+            <button id="registerButton" class="btn-gradient font-medium py-3 px-6 rounded-full w-full mt-6">
                 ลงทะเบียน
             </button>
         </div>
@@ -702,24 +732,32 @@
         function populateGroupSelects() {
             const groupSelect = document.getElementById('groupSelect');
             const registerGroupSelect = document.getElementById('registerGroupSelect');
-            
+
+            // Clear dashboard select but keep "all" option
             while (groupSelect.options.length > 1) {
                 groupSelect.remove(1);
             }
+
+            // Clear registration select completely (including default option)
             registerGroupSelect.innerHTML = '';
-            
+            // Add default option back
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "-- เลือกกลุ่ม --";
+            registerGroupSelect.appendChild(defaultOption);
+
             groups.forEach(group => {
                 const option1 = document.createElement('option');
                 option1.value = group;
                 option1.textContent = group;
                 groupSelect.appendChild(option1);
-                
+
                 const option2 = document.createElement('option');
                 option2.value = group;
                 option2.textContent = group;
                 registerGroupSelect.appendChild(option2);
             });
-            
+
             if (userGroup) {
                 groupSelect.value = userGroup;
             }
@@ -913,14 +951,43 @@
         }
 
         async function registerUser() {
+            // รับค่าจากฟอร์ม
+            const firstName = document.getElementById('registerFirstName').value.trim();
+            const lastName = document.getElementById('registerLastName').value.trim();
+            const employeeId = document.getElementById('registerEmployeeId').value.trim();
+            const position = document.getElementById('registerPosition').value.trim();
             const selectedGroup = document.getElementById('registerGroupSelect').value;
-            if (!selectedGroup) {
-                showError("การลงทะเบียนล้มเหลว", "กรุณาเลือกกลุ่ม");
+
+            // ตรวจสอบข้อมูลที่จำเป็น
+            if (!firstName) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกชื่อ");
                 return;
             }
+            if (!lastName) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกนามสกุล");
+                return;
+            }
+            if (!employeeId) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกรหัสพนักงาน");
+                return;
+            }
+            if (!position) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกตำแหน่ง");
+                return;
+            }
+            if (!selectedGroup) {
+                showError("ข้อมูลไม่ครบ", "กรุณาเลือกกลุ่ม");
+                return;
+            }
+
+            // ตรวจสอบรหัสพนักงานว่าเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น
+            if (!/^[A-Z0-9-]+$/i.test(employeeId)) {
+                showError("รูปแบบผิด", "รหัสพนักงานต้องเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น");
+                return;
+            }
+
             showLoading("กำลังลงทะเบียน");
             try {
-                
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -928,12 +995,16 @@
                         action: "registerUser",
                         userId: userId,
                         displayName: displayName,
+                        firstName: firstName,
+                        lastName: lastName,
+                        employeeId: employeeId,
+                        position: position,
                         group: selectedGroup
                     })
                 });
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     document.getElementById('registrationModal').classList.add('hidden');
                     await fetchAllData();
