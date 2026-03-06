@@ -3,7 +3,9 @@ const SHEET_NAMES = {
   USERS: "Users",
   ACTIVITIES: "Activities",
   LOG: "Checkin_Log",
-  GROUPS: "Groups"
+  GROUPS: "Groups",
+  POINTS: "Points",
+  POINTS_HISTORY: "Points_History"
 };
 
 function doGet(e) {
@@ -35,6 +37,10 @@ function doGet(e) {
       return createJsonResponse({ success: true, data: { leaderboard: getLeaderboard(days) } });
     }
 
+    if (action === "getPointsLeaderboard") {
+      return createJsonResponse({ success: true, data: { leaderboard: getPointsLeaderboard() } });
+    }
+
     return createJsonResponse({
       success: true,
       message: "Check-in API is running."
@@ -59,6 +65,8 @@ function doPost(e) {
         return createJsonResponse(registerUser(requestData));
       case "checkIn":
         return createJsonResponse(processCheckIn(requestData));
+      case "redeemPointsQR":
+        return createJsonResponse(redeemPointsQR(requestData));
       default:
         throw new Error("Invalid action specified.");
     }
@@ -528,4 +536,174 @@ function getSheetData(sheet) {
 function findRow(sheet, columnName, value) {
   const data = getSheetData(sheet);
   return data.find(row => row[columnName] == value) || null;
+}
+
+/**
+ * ดึงข้อมูล Points Leaderboard
+ */
+function getPointsLeaderboard() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+
+  if (!pointsSheet) {
+    // Create sheet if not exists
+    ss.insertSheet(SHEET_NAMES.POINTS);
+    pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+    pointsSheet.appendRow(['UserID', 'Points', 'UpdatedAt']);
+  }
+
+  const pointsData = getSheetData(pointsSheet);
+  const usersData = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
+
+  // Create user map
+  const userMap = {};
+  usersData.forEach(user => {
+    userMap[user.UserID] = {
+      name: user.FirstName && user.LastName ?
+        `${user.FirstName} ${user.LastName}` :
+        user.DisplayName,
+      group: user.Group,
+      profilePicture: user.ProfilePicture || null
+    };
+  });
+
+  // Build leaderboard
+  const leaderboard = pointsData
+    .map(row => ({
+      userId: row.UserID,
+      points: parseInt(row.Points) || 0,
+      name: userMap[row.UserID]?.name || row.UserID,
+      group: userMap[row.UserID]?.group || '-',
+      profilePicture: userMap[row.UserID]?.profilePicture || null
+    }))
+    .filter(item => item.points > 0)
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 50); // Top 50
+
+  // Add ranking
+  return leaderboard.map((item, index) => ({
+    ...item,
+    rank: index + 1
+  }));
+}
+
+/**
+ * แลก QR Code รับแต้ม
+ */
+function redeemPointsQR(data) {
+  const { userId, qrData } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Validate QR data
+  if (!qrData || qrData.type !== 'points_reward') {
+    return { success: false, message: "QR Code ไม่ถูกต้อง" };
+  }
+
+  // Check if QR has remaining uses
+  const pointsHistorySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+  if (!pointsHistorySheet) {
+    ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
+    // Create sheet with headers
+    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+    newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
+  }
+
+  // Count how many times this QR has been used
+  const historyData = getSheetData(pointsHistorySheet);
+  const qrUses = historyData.filter(row => {
+    try {
+      const qr = JSON.parse(row.QRCodeData);
+      return qr.createdAt === qrData.createdAt;
+    } catch {
+      return false;
+    }
+  }).length;
+
+  if (qrUses >= qrData.uses) {
+    return { success: false, message: "QR Code นี้ถูกใช้ครบแล้ว" };
+  }
+
+  // Check if user already used this QR
+  const alreadyUsed = historyData.some(row =>
+    row.UserID === userId &&
+    row.QRCodeData === JSON.stringify(qrData)
+  );
+
+  if (alreadyUsed && qrData.uses === 1) {
+    return { success: false, message: "คุณใช้ QR Code นี้ไปแล้ว" };
+  }
+
+  // Get user info
+  const userInfo = getUserInfo(ss, userId);
+  const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
+    `${userInfo.firstName} ${userInfo.lastName}` :
+    userInfo.name) : data.displayName || userId;
+
+  // Add points to user
+  addPointsToUser(ss, userId, qrData.points, qrData.note || 'รับแต้มจาก QR Code', qrData);
+
+  return {
+    success: true,
+    message: `รับ ${qrData.points} แต้มสำเร็จ!`,
+    data: {
+      points: qrData.points,
+      note: qrData.note
+    }
+  };
+}
+
+/**
+ * เพิ่มแต้มให้ user
+ */
+function addPointsToUser(ss, userId, points, activity, qrData = null) {
+  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+
+  if (!pointsSheet) {
+    ss.insertSheet(SHEET_NAMES.POINTS);
+    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+    newSheet.appendRow(['UserID', 'Points', 'UpdatedAt']);
+    pointsSheet = newSheet;
+  }
+
+  // Find existing user points
+  const existingRow = findRow(pointsSheet, 'UserID', userId);
+
+  if (existingRow) {
+    // Update existing points
+    const currentPoints = parseInt(existingRow.Points) || 0;
+    const newPoints = currentPoints + points;
+
+    // Find row index and update
+    const data = getSheetData(pointsSheet);
+    const rowIndex = data.findIndex(row => row.UserID === userId) + 2; // +2 for header and 1-based index
+
+    pointsSheet.getRange(rowIndex, 2).setValue(newPoints);
+    pointsSheet.getRange(rowIndex, 3).setValue(new Date());
+  } else {
+    // Add new user points
+    pointsSheet.appendRow([userId, points, new Date()]);
+  }
+
+  // Add to history
+  const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+  if (!historySheet) {
+    ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
+    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+    newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
+    historySheet = newSheet;
+  }
+
+  const userInfo = getUserInfo(ss, userId);
+  const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
+    `${userInfo.firstName} ${userInfo.lastName}` :
+    userInfo.displayName) : userId;
+
+  historySheet.appendRow([
+    new Date(),
+    userId,
+    userName,
+    points,
+    activity,
+    qrData ? JSON.stringify(qrData) : ''
+  ]);
 }

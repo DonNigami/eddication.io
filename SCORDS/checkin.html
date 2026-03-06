@@ -15,6 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         * {
             font-family: 'line_seed_sans_th';
@@ -308,6 +309,132 @@
             0% { transform: translateX(-100%) rotate(45deg); }
             100% { transform: translateX(100%) rotate(45deg); }
         }
+
+        /* Games & Points Styles */
+        .points-badge {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #111111;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .points-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border: 1px solid #FFD700;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(255, 215, 0, 0.3);
+        }
+
+        .game-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .quiz-option {
+            background: linear-gradient(135deg, #333333 0%, #444444 100%);
+            border: 2px solid #555555;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: #FFD700;
+            transform: translateX(8px);
+        }
+
+        .quiz-option.selected {
+            border-color: #10B981;
+            background: linear-gradient(135deg, #1a3a1a 0%, #2d4a2d 100%);
+        }
+
+        .quiz-option.correct {
+            border-color: #10B981;
+            background: linear-gradient(135deg, #0a3a0a 0%, #1a4a1a 100%);
+        }
+
+        .quiz-option.incorrect {
+            border-color: #EF4444;
+            background: linear-gradient(135deg, #3a1a1a 0%, #4a2a2a 100%);
+        }
+
+        .points-history-item {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border-left: 4px solid #FFD700;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .qr-code-display {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .qr-code-display canvas {
+            border-radius: 8px;
+        }
+
+        .admin-panel-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #0f3460;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .spin-wheel {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: conic-gradient(
+                #FFD700 0deg 60deg,
+                #FFA500 60deg 120deg,
+                #FF6B6B 120deg 180deg,
+                #4ECDC4 180deg 240deg,
+                #45B7D1 240deg 300deg,
+                #96CEB4 300deg 360deg
+            );
+            position: relative;
+            margin: 20px auto;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .spin-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid #FFD700;
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="min-h-screen gradient-bg">
@@ -347,7 +474,8 @@
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="history">ประวัติ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="leaderboard">จัดอันดับ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="achievements">ความสำเร็จ</button>
-            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="dashboard">แดชบอร์ด</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="games">เกมส์</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400 hidden" id="dashboardTabBtn" data-tab="dashboard">แดชบอร์ด</button>
         </div>
 
         <!-- Check-in Tab -->
@@ -523,6 +651,120 @@
                 <div id="lockedAchievementsList" class="space-y-3">
                     <div class="text-center py-4 text-gray-500">
                         <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Games -->
+        <div id="gamesTab" class="tab-content hidden animate-fadeIn">
+            <!-- Points Display -->
+            <div class="card rounded-xl p-5 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-200 mb-1">แต้มสะสมของคุณ</h3>
+                        <p class="text-sm text-gray-400">เล่นเกมส์และตอบคำถามเพื่อสะสมแต้ม!</p>
+                    </div>
+                    <div class="points-badge">
+                        <span>⭐</span>
+                        <span id="userPoints" class="points-display">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Games List -->
+            <h3 class="text-lg font-medium text-gray-200 mb-4">เกมส์และกิจกรรม</h3>
+
+            <div class="game-card" onclick="openSpinWheel()">
+                <div class="game-icon">🎡</div>
+                <h4 class="text-md font-bold text-white mb-1">วงล้อนำโชค</h4>
+                <p class="text-sm text-gray-400">หมุนวงล้อมีโอกาสได้รับแต้ม x2</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">✨ 1 ครั้ง/วัน</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">เล่นเลย</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="openQuiz()">
+                <div class="game-icon">🧠</div>
+                <h4 class="text-md font-bold text-white mb-1">คำถามประจำวัน</h4>
+                <p class="text-sm text-gray-400">ตอบคำถามรับแต้มสูงสุด 100 แต้ม</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">🎯 3 คำถาม/วัน</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">เริ่มทำแบบทดสอบ</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="openMiniGame('memory')">
+                <div class="game-icon">🎮</div>
+                <h4 class="text-md font-bold text-white mb-1">Mini Games</h4>
+                <p class="text-sm text-gray-400">เกมส์เล็กๆ เล่นสนุก ได้แต้มไปเลย</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">🕹️ เล่นได้ไม่จำกัด</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">เล่นเกมส์</button>
+                </div>
+            </div>
+
+            <!-- Points History -->
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">ประวัติการได้แต้ม</h3>
+                <div id="pointsHistoryList" class="space-y-2">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>ยังไม่มีประวัติการได้แต้ม</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Points Leaderboard -->
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">จัดอันดับแต้ม</h3>
+                <div id="pointsLeaderboardList" class="space-y-2">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Panel (Only for admin) -->
+            <div id="adminPanel" class="mt-6 hidden">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">🔐 Admin Panel</h3>
+
+                <!-- QR Code Generator -->
+                <div class="admin-panel-card">
+                    <h4 class="text-md font-bold text-white mb-3">สร้าง QR Code แจกแต้ม</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">จำนวนแต้ม</label>
+                            <input type="number" id="qrPoints" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" placeholder="ระบุจำนวนแต้ม" min="1" max="1000">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">หมายเหตุ (ไม่ระบุก็ได้)</label>
+                            <input type="text" id="qrNote" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" placeholder="เช่น โบนัส, รางวัล">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">จำนวนครั้งที่ใช้ได้ (1 = ครั้งเดียว)</label>
+                            <input type="number" id="qrUses" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" placeholder="ระบุจำนวนครั้ง" min="1" max="100" value="1">
+                        </div>
+                        <button onclick="generatePointsQR()" class="btn-gradient w-full py-3 rounded-lg font-medium">สร้าง QR Code</button>
+                    </div>
+
+                    <!-- QR Code Display -->
+                    <div id="qrCodeDisplay" class="mt-4 text-center hidden">
+                        <div class="qr-code-display">
+                            <canvas id="qrCanvas"></canvas>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">สแกน QR เพื่อรับแต้ม</p>
+                        <button onclick="downloadQR()" class="mt-3 text-sm text-yellow-400 underline">ดาวน์โหลด QR Code</button>
+                    </div>
+                </div>
+
+                <!-- Points Distribution History -->
+                <div class="admin-panel-card">
+                    <h4 class="text-md font-bold text-white mb-3">ประวัติการแจกแต้ม</h4>
+                    <div id="adminPointsHistory" class="space-y-2">
+                        <div class="text-center py-4 text-gray-500">
+                            <p>ยังไม่มีประวัติ</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1310,6 +1552,14 @@
                     activities.sort((a, b) => a.time.localeCompare(b.time));
 
                     populateGroupSelects();
+
+                    // Show dashboard tab only for admin users
+                    if (userRole === 'admin') {
+                        const dashboardTabBtn = document.getElementById('dashboardTabBtn');
+                        if (dashboardTabBtn) {
+                            dashboardTabBtn.classList.remove('hidden');
+                        }
+                    }
 
                     if (!data.userInfo) {
                         hideLoading();
@@ -2127,6 +2377,20 @@
         document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.addEventListener('click', function() {
                 const tabId = this.getAttribute('data-tab');
+
+                // Prevent non-admin users from accessing dashboard
+                if (tabId === 'dashboard' && userRole !== 'admin') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไม่มีสิทธิ์เข้าถึง',
+                        text: 'แดชบอร์ดสำหรับผู้ดูแลระบบเท่านั้น',
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+                    return;
+                }
+
                 document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active', 'text-white'));
                 this.classList.add('tab-active', 'text-white');
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
@@ -2136,8 +2400,599 @@
                 if (tabId === 'achievements') {
                     loadAchievementsData();
                 }
+
+                // Load games data when switching to games tab
+                if (tabId === 'games') {
+                    loadGamesData();
+                }
             });
         });
+
+        // ========================================
+        // GAMES & POINTS SYSTEM
+        // ========================================
+        let userPoints = 0;
+        let pointsHistory = [];
+        let pointsLeaderboard = [];
+        let todaySpinCount = 0;
+        let todayQuizCount = 0;
+
+        // Sample quiz questions
+        const quizQuestions = [
+            {
+                question: "SCORDS ย่อมาจากคำว่าอะไร?",
+                options: ["Score Card System", "Smart Check-In Data System", "School Coordination System", "Smart Coordination Data System"],
+                correct: 1,
+                points: 50
+            },
+            {
+                question: "เวลาเช็คชื่อเปิดให้บริการกี่โมง?",
+                options: ["08:00 น.", "09:00 น.", "07:00 น.", "10:00 น."],
+                correct: 0,
+                points: 30
+            },
+            {
+                question: "ต้องเช็คชื่อตรงเวลากี่ครั้งถึงจะได้รับ achievement 'ตรงเวลาเสมอ'?",
+                options: ["5 ครั้ง", "10 ครั้ง", "15 ครั้ง", "20 ครั้ง"],
+                correct: 1,
+                points: 40
+            },
+            {
+                question: "หมุนวงล้อมีโอกาสได้แต้มสูงสุดเท่าไหร่?",
+                options: ["50 แต้ม", "100 แต้ม", "200 แต้ม", "500 แต้ม"],
+                correct: 2,
+                points: 60
+            },
+            {
+                question: "admin panel สำหรับอะไร?",
+                options: ["ดูประวัติ", "สร้าง QR Code แจกแต้ม", "เช็คชื่อ", "เล่นเกมส์"],
+                correct: 1,
+                points: 30
+            }
+        ];
+
+        function loadGamesData() {
+            // Load user points from localStorage
+            const savedPoints = localStorage.getItem('scords_user_points');
+            userPoints = savedPoints ? parseInt(savedPoints) : 0;
+            document.getElementById('userPoints').textContent = userPoints;
+
+            // Load points history
+            const savedHistory = localStorage.getItem('scords_points_history');
+            pointsHistory = savedHistory ? JSON.parse(savedHistory) : [];
+            loadPointsHistory();
+
+            // Load points leaderboard
+            loadPointsLeaderboard();
+
+            // Show admin panel if admin
+            if (userRole === 'admin') {
+                document.getElementById('adminPanel').classList.remove('hidden');
+                loadAdminPointsHistory();
+            }
+
+            // Load daily game counts
+            const today = new Date().toDateString();
+            const savedDailyCount = localStorage.getItem('scords_daily_games');
+            if (savedDailyCount) {
+                const dailyData = JSON.parse(savedDailyCount);
+                if (dailyData.date === today) {
+                    todaySpinCount = dailyData.spinCount || 0;
+                    todayQuizCount = dailyData.quizCount || 0;
+                }
+            }
+        }
+
+        function loadPointsHistory() {
+            const historyList = document.getElementById('pointsHistoryList');
+            historyList.innerHTML = '';
+
+            if (pointsHistory.length === 0) {
+                historyList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ยังไม่มีประวัติการได้แต้ม</p></div>`;
+                return;
+            }
+
+            pointsHistory.slice(0, 10).forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'points-history-item';
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.activity}</p>
+                            <p class="text-xs text-gray-400">${formatDate(item.date)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-yellow-400">+${item.points}</p>
+                        </div>
+                    </div>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        async function loadPointsLeaderboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPointsLeaderboard`);
+                const result = await response.json();
+
+                if (result.success && result.data.leaderboard) {
+                    pointsLeaderboard = result.data.leaderboard;
+                    displayPointsLeaderboard();
+                }
+            } catch (error) {
+                console.error('Error loading points leaderboard:', error);
+                // Show mock data for now
+                displayMockPointsLeaderboard();
+            }
+        }
+
+        function displayPointsLeaderboard() {
+            const leaderboardList = document.getElementById('pointsLeaderboardList');
+            leaderboardList.innerHTML = '';
+
+            if (pointsLeaderboard.length === 0) {
+                displayMockPointsLeaderboard();
+                return;
+            }
+
+            pointsLeaderboard.slice(0, 10).forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-yellow-400 w-6">${index + 1}</span>
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.name}</p>
+                            <p class="text-xs text-gray-400">${item.group || '-'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-yellow-400">${item.points} แต้ม</p>
+                    </div>
+                `;
+                leaderboardList.appendChild(row);
+            });
+        }
+
+        function displayMockPointsLeaderboard() {
+            const leaderboardList = document.getElementById('pointsLeaderboardList');
+            const mockData = [
+                { rank: 1, name: 'ผู้เล่นตัวอย่าง', group: 'ทีม A', points: 1500 },
+                { rank: 2, name: 'นักสะสมแต้ม', group: 'ทีม B', points: 1200 },
+                { rank: 3, name: 'หมุนวงล้อเก่ง', group: 'ทีม C', points: 980 },
+                { rank: 4, name: 'เฉลยเก่ง', group: 'ทีม A', points: 850 },
+                { rank: 5, name: 'Mini Game Master', group: 'ทีม D', points: 720 }
+            ];
+
+            leaderboardList.innerHTML = '';
+            mockData.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-yellow-400 w-6">${item.rank}</span>
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.name}</p>
+                            <p class="text-xs text-gray-400">${item.group}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-yellow-400">${item.points} แต้ม</p>
+                    </div>
+                `;
+                leaderboardList.appendChild(row);
+            });
+        }
+
+        function addPoints(points, activity) {
+            userPoints += points;
+            localStorage.setItem('scords_user_points', userPoints.toString());
+            document.getElementById('userPoints').textContent = userPoints;
+
+            // Add to history
+            const historyItem = {
+                date: new Date().toISOString(),
+                activity: activity,
+                points: points
+            };
+            pointsHistory.unshift(historyItem);
+            localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
+            loadPointsHistory();
+
+            // Show notification
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+
+            Toast.fire({
+                icon: 'success',
+                title: `ได้รับ +${points} แต้ม!`
+            });
+        }
+
+        function saveDailyGames() {
+            const today = new Date().toDateString();
+            const dailyData = {
+                date: today,
+                spinCount: todaySpinCount,
+                quizCount: todayQuizCount
+            };
+            localStorage.setItem('scords_daily_games', JSON.stringify(dailyData));
+        }
+
+        // Spin Wheel Functions
+        function openSpinWheel() {
+            if (todaySpinCount >= 1) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'หมดโควต้าแล้ว',
+                    text: 'คุณหมุนวงล้อครบ 1 ครั้ง/วันแล้ว กลับมาใหม่วันพรุ่งนี้นะ!',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            document.getElementById('spinWheelModal').classList.remove('hidden');
+        }
+
+        function closeSpinWheel() {
+            document.getElementById('spinWheelModal').classList.add('hidden');
+        }
+
+        function spinWheel() {
+            const wheel = document.getElementById('spinWheel');
+            const randomDegree = Math.floor(Math.random() * 360) + 720; // At least 2 full rotations
+            wheel.style.transform = `rotate(${randomDegree}deg)`;
+
+            // Calculate points based on final position
+            setTimeout(() => {
+                const finalPosition = randomDegree % 360;
+                let points = 0;
+
+                if (finalPosition < 60) points = 50;
+                else if (finalPosition < 120) points = 30;
+                else if (finalPosition < 180) points = 100;
+                else if (finalPosition < 240) points = 20;
+                else if (finalPosition < 300) points = 40;
+                else points = 60;
+
+                todaySpinCount++;
+                saveDailyGames();
+
+                addPoints(points, 'หมุนวงล้อนำโชค');
+                closeSpinWheel();
+
+                // Reset wheel for next spin
+                setTimeout(() => {
+                    wheel.style.transform = 'rotate(0deg)';
+                }, 1000);
+            }, 3000);
+        }
+
+        // Quiz Functions
+        function openQuiz() {
+            if (todayQuizCount >= 3) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'หมดโควต้าแล้ว',
+                    text: 'คุณตอบคำถามครบ 3 ครั้ง/วันแล้ว กลับมาใหม่วันพรุ่งนี้นะ!',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            // Get random questions
+            const shuffledQuestions = [...quizQuestions].sort(() => Math.random() - 0.5).slice(0, 3);
+            sessionStorage.setItem('quizQuestions', JSON.stringify(shuffledQuestions));
+            sessionStorage.setItem('currentQuestionIndex', '0');
+            sessionStorage.setItem('quizTotalPoints', '0');
+
+            showQuestion();
+            document.getElementById('quizModal').classList.remove('hidden');
+        }
+
+        function closeQuiz() {
+            document.getElementById('quizModal').classList.add('hidden');
+            document.getElementById('quizContent').classList.remove('hidden');
+            document.getElementById('quizResult').classList.add('hidden');
+        }
+
+        function showQuestion() {
+            const questions = JSON.parse(sessionStorage.getItem('quizQuestions'));
+            const currentIndex = parseInt(sessionStorage.getItem('currentQuestionIndex'));
+
+            if (currentIndex >= questions.length) {
+                showQuizResult();
+                return;
+            }
+
+            const question = questions[currentIndex];
+            document.getElementById('quizQuestion').textContent = question.question;
+            document.getElementById('quizProgress').textContent = `${currentIndex + 1}/${questions.length}`;
+
+            const optionsContainer = document.getElementById('quizOptions');
+            optionsContainer.innerHTML = '';
+
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'quiz-option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(index, question);
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        function selectAnswer(selectedIndex, question) {
+            const options = document.querySelectorAll('.quiz-option');
+            options.forEach((option, index) => {
+                option.onclick = null; // Disable clicks
+                if (index === question.correct) {
+                    option.classList.add('correct');
+                } else if (index === selectedIndex) {
+                    option.classList.add('incorrect');
+                }
+            });
+
+            // Check if correct
+            if (selectedIndex === question.correct) {
+                const totalPoints = parseInt(sessionStorage.getItem('quizTotalPoints')) + question.points;
+                sessionStorage.setItem('quizTotalPoints', totalPoints.toString());
+            }
+
+            // Next question after delay
+            setTimeout(() => {
+                const currentIndex = parseInt(sessionStorage.getItem('currentQuestionIndex')) + 1;
+                sessionStorage.setItem('currentQuestionIndex', currentIndex.toString());
+                showQuestion();
+            }, 1500);
+        }
+
+        function showQuizResult() {
+            const totalPoints = parseInt(sessionStorage.getItem('quizTotalPoints'));
+            todayQuizCount += 3;
+            saveDailyGames();
+
+            if (totalPoints > 0) {
+                addPoints(totalPoints, 'คำถามประจำวัน');
+            }
+
+            document.getElementById('quizPointsEarned').textContent = totalPoints;
+            document.getElementById('quizContent').classList.add('hidden');
+            document.getElementById('quizResult').classList.remove('hidden');
+        }
+
+        // Mini Game Functions
+        function openMiniGame(gameType) {
+            const modal = document.getElementById('miniGameModal');
+            const content = document.getElementById('miniGameContent');
+
+            if (gameType === 'memory') {
+                document.getElementById('miniGameTitle').textContent = '🎮 เกมส์จับคู่';
+                content.innerHTML = `
+                    <div class="grid grid-cols-4 gap-2 mb-4" id="memoryGrid">
+                        <!-- Memory cards will be generated -->
+                    </div>
+                    <p class="text-center text-gray-400">จับคู่การ์ดให้ถูกต้อง!</p>
+                `;
+                initMemoryGame();
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeMiniGame() {
+            document.getElementById('miniGameModal').classList.add('hidden');
+        }
+
+        function initMemoryGame() {
+            const symbols = ['🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎢', '🎡'];
+            const cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
+            const grid = document.getElementById('memoryGrid');
+
+            grid.innerHTML = '';
+            let flippedCards = [];
+            let matchedPairs = 0;
+
+            cards.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center text-3xl cursor-pointer hover:bg-gray-600 transition';
+                card.dataset.symbol = symbol;
+                card.dataset.index = index;
+                card.textContent = '?';
+
+                card.onclick = () => {
+                    if (flippedCards.length === 2 || card.classList.contains('matched')) return;
+
+                    card.textContent = symbol;
+                    card.classList.add('bg-yellow-600');
+                    flippedCards.push(card);
+
+                    if (flippedCards.length === 2) {
+                        setTimeout(() => {
+                            if (flippedCards[0].dataset.symbol === flippedCards[1].dataset.symbol) {
+                                flippedCards.forEach(c => c.classList.add('matched'));
+                                matchedPairs++;
+
+                                if (matchedPairs === 8) {
+                                    setTimeout(() => {
+                                        closeMiniGame();
+                                        addPoints(20, 'เกมส์จับคู่');
+                                    }, 500);
+                                }
+                            } else {
+                                flippedCards.forEach(c => {
+                                    c.textContent = '?';
+                                    c.classList.remove('bg-yellow-600');
+                                });
+                            }
+                            flippedCards = [];
+                        }, 1000);
+                    }
+                };
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Admin QR Code Functions
+        function generatePointsQR() {
+            const points = parseInt(document.getElementById('qrPoints').value);
+            const note = document.getElementById('qrNote').value;
+            const uses = parseInt(document.getElementById('qrUses').value);
+
+            if (!points || points <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'กรุณาระบุแต้ม',
+                    text: 'กรุณาระบุจำนวนแต้มที่ต้องการแจก',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            // Create QR code data
+            const qrData = JSON.stringify({
+                type: 'points_reward',
+                points: points,
+                note: note || 'รางวัล',
+                uses: uses,
+                createdAt: new Date().toISOString(),
+                createdBy: userId
+            });
+
+            // Generate QR code (using a simple library or API)
+            generateQRCode(qrData);
+        }
+
+        function generateQRCode(data) {
+            const qrDisplay = document.getElementById('qrCodeDisplay');
+            qrDisplay.classList.remove('hidden');
+
+            const canvas = document.getElementById('qrCanvas');
+
+            QRCode.toCanvas(canvas, data, {
+                width: 200,
+                margin: 2,
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
+                }
+            }, function(error) {
+                if (error) {
+                    console.error(error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'สร้าง QR Code ไม่สำเร็จ',
+                        confirmButtonColor: '#FFD700'
+                    });
+                }
+            });
+
+            // Store for download
+            sessionStorage.setItem('currentQRData', data);
+        }
+
+        function downloadQR() {
+            const canvas = document.getElementById('qrCanvas');
+            const url = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `points-qr-${Date.now()}.png`;
+            a.click();
+        }
+
+        function scanPointsQR() {
+            closePointsQRScanner();
+
+            if (!liff.isInClient()) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่รองรับ',
+                    text: 'กรุณาใช้งานใน LINE Application',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            showLoading('สแกน QR Code...');
+
+            liff.scanCodeV2().then(result => {
+                hideLoading();
+
+                try {
+                    const qrData = JSON.parse(result.value);
+
+                    if (qrData.type !== 'points_reward') {
+                        throw new Error('QR Code ไม่ถูกต้อง');
+                    }
+
+                    redeemPointsQR(qrData);
+                } catch (error) {
+                    showError('QR Code ไม่ถูกต้อง', 'QR Code นี้ไม่ใช่ QR Code สำหรับรับแต้ม');
+                }
+            }).catch(error => {
+                hideLoading();
+                showError('สแกนไม่สำเร็จ', error.message);
+            });
+        }
+
+        async function redeemPointsQR(qrData) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'redeemPointsQR',
+                        userId: userId,
+                        qrData: qrData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    addPoints(qrData.points, qrData.note || 'รับแต้มจาก QR Code');
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'รับแต้มสำเร็จ!',
+                        html: `
+                            <div class="text-center">
+                                <div class="text-6xl mb-4">🎉</div>
+                                <p class="text-2xl font-bold text-white">+${qrData.points} แต้ม</p>
+                                <p class="text-gray-400 mt-2">${qrData.note || 'รางวัล'}</p>
+                            </div>
+                        `,
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+                } else {
+                    throw new Error(result.message || 'Failed to redeem points');
+                }
+            } catch (error) {
+                showError('รับแต้มไม่สำเร็จ', error.message);
+            }
+        }
+
+        function openPointsQRScanner() {
+            document.getElementById('pointsQRScannerModal').classList.remove('hidden');
+        }
+
+        function closePointsQRScanner() {
+            document.getElementById('pointsQRScannerModal').classList.add('hidden');
+        }
+
+        function loadAdminPointsHistory() {
+            const adminHistory = document.getElementById('adminPointsHistory');
+            // Load admin distribution history from backend
+            // For now, show placeholder
+            adminHistory.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ยังไม่มีประวัติการแจกแต้ม</p></div>`;
+        }
 
         document.getElementById('groupSelect').addEventListener('change', function() {
             updateDashboard(this.value);
@@ -2172,5 +3027,68 @@
             }
         });
     </script>
+
+    <!-- Spin Wheel Modal -->
+    <div id="spinWheelModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-md border border-yellow-500">
+            <h3 class="text-xl font-bold text-white text-center mb-4">🎡 วงล้อนำโชค</h3>
+            <div class="spin-wheel" id="spinWheel">
+                <div class="spin-pointer"></div>
+            </div>
+            <p class="text-center text-gray-400 mb-4">หมุนวงล้อเพื่อรับแต้ม!</p>
+            <div class="flex gap-3">
+                <button onclick="closeSpinWheel()" class="flex-1 bg-gray-700 text-white py-3 rounded-lg">ปิด</button>
+                <button onclick="spinWheel()" class="flex-1 btn-gradient py-3 rounded-lg font-medium">หมุนเลย!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden overflow-y-auto py-8">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-md border border-yellow-500">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-white">🧠 คำถามประจำวัน</h3>
+                <span id="quizProgress" class="text-sm text-yellow-400">1/3</span>
+            </div>
+            <div id="quizContent">
+                <p class="text-lg text-white mb-6" id="quizQuestion">โหลดคำถาม...</p>
+                <div id="quizOptions" class="space-y-3">
+                    <!-- Options will be populated dynamically -->
+                </div>
+            </div>
+            <div id="quizResult" class="hidden text-center">
+                <div class="text-6xl mb-4">🎉</div>
+                <h4 class="text-2xl font-bold text-white mb-2">สำเร็จ!</h4>
+                <p class="text-gray-400 mb-2">คุณได้รับ</p>
+                <p class="text-4xl font-bold text-yellow-400 mb-4" id="quizPointsEarned">0</p>
+                <p class="text-gray-400 mb-4">แต้ม</p>
+                <button onclick="closeQuiz()" class="btn-gradient px-6 py-3 rounded-lg">รับทราบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Game Modal -->
+    <div id="miniGameModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-md border border-yellow-500">
+            <h3 class="text-xl font-bold text-white text-center mb-4" id="miniGameTitle">🎮 Mini Game</h3>
+            <div id="miniGameContent">
+                <!-- Game content will be loaded dynamically -->
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeMiniGame()" class="flex-1 bg-gray-700 text-white py-3 rounded-lg">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Points QR Scanner Modal -->
+    <div id="pointsQRScannerModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500 text-center">
+            <div class="text-6xl mb-4">📱</div>
+            <h3 class="text-xl font-bold text-white mb-2">สแกน QR รับแต้ม</h3>
+            <p class="text-gray-400 mb-4">สแกน QR Code ที่ admin สร้างให้</p>
+            <button onclick="scanPointsQR()" class="btn-gradient w-full py-3 rounded-lg font-medium">สแกน QR Code</button>
+            <button onclick="closePointsQRScanner()" class="w-full bg-gray-700 text-white py-3 rounded-lg mt-3">ปิด</button>
+        </div>
+    </div>
 </body>
 </html>
