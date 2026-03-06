@@ -13,13 +13,26 @@ function doGet(e) {
     if (action === "getAllData") {
       const userId = e.parameter.userId;
       if (!userId) throw new Error("User ID is required.");
-      return createJsonResponse(getAllData(userId));
+      const days = e.parameter.days || "7"; // Default: 7 days
+      return createJsonResponse(getAllData(userId, days));
     }
 
     if (action === "getDashboard") {
       const group = e.parameter.group;
       if (!group) throw new Error("Group is required.");
       return createJsonResponse(getDashboardData(group));
+    }
+
+    if (action === "getHistory") {
+      const userId = e.parameter.userId;
+      const days = e.parameter.days || "7"; // Default: 7 days
+      if (!userId) throw new Error("User ID is required.");
+      return createJsonResponse({ success: true, data: { history: getHistory(userId, days) } });
+    }
+
+    if (action === "getLeaderboard") {
+      const days = e.parameter.days || "7"; // Default: 7 days
+      return createJsonResponse({ success: true, data: { leaderboard: getLeaderboard(days) } });
     }
 
     return createJsonResponse({
@@ -58,7 +71,7 @@ function doPost(e) {
   }
 }
 
-function getAllData(userId) {
+function getAllData(userId, days) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const userInfo = getUserInfo(ss, userId);
   const today = new Date();
@@ -87,7 +100,7 @@ function getAllData(userId) {
     data: {
       userInfo: userInfo,
       activities: activities,
-      history: getHistory(ss, userId),
+      history: getHistory(ss, userId, days),
       dashboardData: getDashboardData(ss, userInfo ? userInfo.group : 'all'),
       groups: getGroups(ss)
     }
@@ -312,12 +325,13 @@ function getUserInfo(ss, userId) {
 }
 
 /**
- * ดึงประวัติการเช็คชื่อ 7 วันล่าสุด
+ * ดึงประวัติการเช็คชื่อ
+ * @param {SpreadsheetApp.Spreadsheet} ss - Spreadsheet object
+ * @param {string} userId - LINE User ID
+ * @param {string} days - จำนวนวันที่ต้องการ (7, 30, all)
+ * @returns {Array} ประวัติการเช็คชื่อ
  */
-function getHistory(ss, userId) {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
+function getHistory(ss, userId, days) {
   const logData = getSheetData(ss.getSheetByName(SHEET_NAMES.LOG));
   const activitiesData = getSheetData(ss.getSheetByName(SHEET_NAMES.ACTIVITIES));
 
@@ -326,9 +340,29 @@ function getHistory(ss, userId) {
       return map;
   }, {});
 
+  // กำหนดช่วงเวลาตาม parameter
+  let filterDate;
+  if (days === "all") {
+    // ดึงทั้งหมด - ไม่ต้องกรองด้วยวันที่
+    filterDate = null;
+  } else {
+    const daysNum = parseInt(days);
+    filterDate = new Date();
+    filterDate.setDate(filterDate.getDate() - daysNum);
+  }
+
   return logData
     .filter(row => {
-      return row.UserID === userId && new Date(row.Timestamp) >= sevenDaysAgo;
+      // กรองตาม userId
+      if (row.UserID !== userId) return false;
+
+      // กรองตามวันที่ (ถ้าระบุ)
+      if (filterDate) {
+        return new Date(row.Timestamp) >= filterDate;
+      }
+
+      // ถ้า days = "all" ให้ดึงทั้งหมด
+      return true;
     })
     .map(row => ({
       date: row.Timestamp,
@@ -337,6 +371,78 @@ function getHistory(ss, userId) {
       status: row.Status
     }))
     .sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+/**
+ * ดึงข้อมูลจัดอันดับ (Top 10 ผู้เช็คชื่อตรงเวลา)
+ * @param {string} days - จำนวนวันที่ต้องการ (7, 30, all)
+ * @returns {Array} ข้อมูลจัดอันดับ
+ */
+function getLeaderboard(days) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const logData = getSheetData(ss.getSheetByName(SHEET_NAMES.LOG));
+  const usersData = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
+
+  // สร้าง map สำหรับ user info
+  const userMap = usersData.reduce((map, user) => {
+    map[user.UserID] = {
+      name: user.FirstName && user.LastName ?
+        `${user.FirstName} ${user.LastName}` :
+        user.DisplayName,
+      group: user.Group
+    };
+    return map;
+  }, {});
+
+  // กำหนดช่วงเวลาตาม parameter
+  let filterDate;
+  if (days !== "all") {
+    const daysNum = parseInt(days);
+    filterDate = new Date();
+    filterDate.setDate(filterDate.getDate() - daysNum);
+  }
+
+  // กรองข้อมูลตามช่วงเวลา
+  const filteredLogData = filterDate ?
+    logData.filter(row => new Date(row.Timestamp) >= filterDate) :
+    logData;
+
+  // นับจำนวนการเช็คชื่อตรงเวลาและทั้งหมดของแต่ละคน
+  const userStats = {};
+  filteredLogData.forEach(row => {
+    if (!userStats[row.UserID]) {
+      userStats[row.UserID] = {
+        userId: row.UserID,
+        onTimeCount: 0,
+        totalCount: 0
+      };
+    }
+    userStats[row.UserID].totalCount++;
+    if (row.Status === 'ตรงเวลา') {
+      userStats[row.UserID].onTimeCount++;
+    }
+  });
+
+  // แปลงเป็น array และเพิ่มข้อมูลชื่อและกลุ่ม
+  let leaderboard = Object.values(userStats)
+    .map(stat => ({
+      userId: stat.userId,
+      name: userMap[stat.userId]?.name || stat.userId,
+      group: userMap[stat.userId]?.group || '-',
+      onTimeCount: stat.onTimeCount,
+      totalCount: stat.totalCount
+    }))
+    .filter(item => item.onTimeCount > 0) // เอาเฉพาะคนที่เคยเช็คชื่อตรงเวลา
+    .sort((a, b) => b.onTimeCount - a.onTimeCount); // เรียงตามจำนวนครั้งที่เช็คชื่อตรงเวลา
+
+  // เพิ่ม ranking
+  leaderboard = leaderboard.map((item, index) => ({
+    ...item,
+    rank: index + 1
+  }));
+
+  // เอาเฉพาะ Top 10
+  return leaderboard.slice(0, 10);
 }
 
 /**

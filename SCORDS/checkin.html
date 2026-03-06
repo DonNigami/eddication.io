@@ -235,6 +235,7 @@
         <div class="flex border-b border-gray-700 mb-6 animate-fadeIn" style="animation-delay: 0.2s;">
             <button class="tab-btn flex-1 py-3 text-center tab-active" data-tab="checkIn">เช็คชื่อ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="history">ประวัติ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="leaderboard">จัดอันดับ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="dashboard">แดชบอร์ด</button>
         </div>
 
@@ -283,13 +284,90 @@
 
         <!-- History -->
         <div id="historyTab" class="tab-content hidden animate-fadeIn">
-            <h3 class="text-lg font-medium text-gray-200 mb-4">ประวัติการเช็คชื่อ (7 วันล่าสุด)</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-200">ประวัติการเช็คชื่อ</h3>
+                <select id="historyPeriodSelect" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="7">7 วันล่าสุด</option>
+                    <option value="30">30 วันล่าสุด</option>
+                    <option value="all">ทั้งหมด</option>
+                </select>
+            </div>
             <div id="historyList" class="space-y-4">
                 <div class="text-center py-8 text-gray-500">
                     <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     <p class="mt-4">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="leaderboardTab" class="tab-content hidden animate-fadeIn">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-200">จัดอันดับผู้เช็คชื่อตรงเวลา</h3>
+                <select id="leaderboardPeriodSelect" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="7">7 วันล่าสุด</option>
+                    <option value="30">30 วันล่าสุด</option>
+                    <option value="all">ทั้งหมด</option>
+                </select>
+            </div>
+
+            <!-- Top 3 Podium -->
+            <div id="top3Podium" class="flex justify-center items-end gap-4 mb-6">
+                <!-- 2nd Place -->
+                <div class="flex flex-col items-center">
+                    <div class="w-20 h-20 rounded-full bg-gray-700 border-4 border-gray-400 overflow-hidden mb-2 relative" id="rank2Avatar">
+                        <svg class="w-full h-full text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg px-3 py-2 text-center mb-2 w-24">
+                        <div class="text-2xl font-bold text-gray-400">2</div>
+                        <p class="text-xs text-white font-medium mt-1 truncate" id="rank2Name">-</p>
+                        <p class="text-xs text-yellow-400" id="rank2Count">0 ครั้ง</p>
+                    </div>
+                    <div class="text-4xl">🥈</div>
+                </div>
+
+                <!-- 1st Place -->
+                <div class="flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-full bg-yellow-600 border-4 border-yellow-400 overflow-hidden mb-2 relative" id="rank1Avatar">
+                        <svg class="w-full h-full text-yellow-700" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="bg-gradient-to-b from-yellow-600 to-yellow-700 rounded-lg px-4 py-3 text-center mb-2 w-28 shadow-lg">
+                        <div class="text-3xl font-bold text-white">1</div>
+                        <p class="text-sm text-white font-bold mt-1 truncate" id="rank1Name">-</p>
+                        <p class="text-xs text-yellow-200" id="rank1Count">0 ครั้ง</p>
+                    </div>
+                    <div class="text-5xl">🥇</div>
+                </div>
+
+                <!-- 3rd Place -->
+                <div class="flex flex-col items-center">
+                    <div class="w-20 h-20 rounded-full bg-orange-700 border-4 border-orange-500 overflow-hidden mb-2 relative" id="rank3Avatar">
+                        <svg class="w-full h-full text-orange-800" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="bg-orange-800 rounded-lg px-3 py-2 text-center mb-2 w-24">
+                        <div class="text-2xl font-bold text-orange-400">3</div>
+                        <p class="text-xs text-white font-medium mt-1 truncate" id="rank3Name">-</p>
+                        <p class="text-xs text-orange-400" id="rank3Count">0 ครั้ง</p>
+                    </div>
+                    <div class="text-4xl">🥉</div>
+                </div>
+            </div>
+
+            <!-- Rest of Leaderboard (4-10) -->
+            <div class="card rounded-xl p-4">
+                <h4 class="text-md font-medium text-gray-200 mb-3">อันดับ 4-10</h4>
+                <div id="leaderboardList" class="space-y-2">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -481,6 +559,9 @@
         let historyData = [];
         let dashboardData = {};
         let groups = [];
+        let currentHistoryPeriod = 7; // Default: 7 days
+        let leaderboardData = [];
+        let currentLeaderboardPeriod = 7; // Default: 7 days
         
         
         const API_URL = "https://script.google.com/macros/s/AKfycbxvCNUyaSycHwJaag_eN0AVtM_a2n37YJXw_6qK4tPdjZuuwRs5jDlPS4oK5eAYc1DzQw/exec"; 
@@ -515,11 +596,11 @@
         async function fetchAllData() {
             try {
                 showLoading("กำลังโหลดข้อมูล");
-                
-                const response = await fetch(`${API_URL}?action=getAllData&userId=${userId}`);
+
+                const response = await fetch(`${API_URL}?action=getAllData&userId=${userId}&days=${currentHistoryPeriod}`);
                 const result = await response.json();
                 console.log("Data from API:", result);
-                
+
                 if (result.success) {
                     const data = result.data;
                     userGroup = data.userInfo ? data.userInfo.group : null;
@@ -530,19 +611,22 @@
                     groups = data.groups || [];
 
                     activities.sort((a, b) => a.time.localeCompare(b.time));
-                    
+
                     populateGroupSelects();
-                    
+
                     if (!data.userInfo) {
                         hideLoading();
                         showRegistrationModal();
                         return;
                     }
-                    
+
                     loadActivities();
                     loadHistoryData();
                     loadDashboardData();
-                    
+
+                    // Load initial leaderboard data
+                    await updateLeaderboardPeriod(currentLeaderboardPeriod);
+
                     hideLoading();
                     document.getElementById('mainContainer').classList.remove('hidden');
                 } else {
@@ -726,6 +810,61 @@
                 
                 activityItem.innerHTML = `<div class="flex justify-between items-center"><div><p class="text-sm font-medium text-white">${item.name}</p><p class="text-xs text-gray-400">${item.activity} - ${item.time} น.</p></div><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${item.status}</span></div>`;
                 recentActivityList.appendChild(activityItem);
+            });
+        }
+
+        function loadLeaderboardData() {
+            // Update Top 3 Podium
+            if (leaderboardData.length >= 1) {
+                const rank1 = leaderboardData[0];
+                document.getElementById('rank1Name').textContent = rank1.name;
+                document.getElementById('rank1Count').textContent = `${rank1.onTimeCount} ครั้ง`;
+            }
+
+            if (leaderboardData.length >= 2) {
+                const rank2 = leaderboardData[1];
+                document.getElementById('rank2Name').textContent = rank2.name;
+                document.getElementById('rank2Count').textContent = `${rank2.onTimeCount} ครั้ง`;
+            }
+
+            if (leaderboardData.length >= 3) {
+                const rank3 = leaderboardData[2];
+                document.getElementById('rank3Name').textContent = rank3.name;
+                document.getElementById('rank3Count').textContent = `${rank3.onTimeCount} ครั้ง`;
+            }
+
+            // Update Leaderboard List (Rank 4-10)
+            const leaderboardList = document.getElementById('leaderboardList');
+            leaderboardList.innerHTML = '';
+
+            if (leaderboardData.length <= 3) {
+                leaderboardList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ไม่มีข้อมูลเพิ่มเติม</p></div>`;
+                return;
+            }
+
+            // Show ranks 4-10
+            const restRanks = leaderboardData.slice(3, 10);
+            restRanks.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800 animate-fadeIn';
+                row.style.animationDelay = `${0.1 * index}s`;
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold text-yellow-400">
+                            ${item.rank}
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.name}</p>
+                            <p class="text-xs text-gray-400">${item.group || '-'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-green-400">${item.onTimeCount} ครั้ง</p>
+                        <p class="text-xs text-gray-400">${item.totalCount} รวม</p>
+                    </div>
+                `;
+                leaderboardList.appendChild(row);
             });
         }
 
@@ -1022,13 +1161,55 @@
                 showLoading("กำลังโหลดข้อมูลแดชบอร์ด");
                 const response = await fetch(`${API_URL}?action=getDashboard&group=${group}`);
                 const result = await response.json();
-                
+
                 if (result.success) {
                     dashboardData = result.data;
                     loadDashboardData();
                     hideLoading();
                 } else {
                     throw new Error(result.message || "Failed to fetch dashboard data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        async function updateHistoryPeriod(days) {
+            try {
+                showLoading("กำลังโหลดประวัติ");
+                currentHistoryPeriod = days;
+
+                const response = await fetch(`${API_URL}?action=getHistory&userId=${userId}&days=${days}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    historyData = result.data.history || [];
+                    loadHistoryData();
+                    hideLoading();
+                } else {
+                    throw new Error(result.message || "Failed to fetch history data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        async function updateLeaderboardPeriod(days) {
+            try {
+                showLoading("กำลังโหลดจัดอันดับ");
+                currentLeaderboardPeriod = days;
+
+                const response = await fetch(`${API_URL}?action=getLeaderboard&days=${days}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    leaderboardData = result.data.leaderboard || [];
+                    loadLeaderboardData();
+                    hideLoading();
+                } else {
+                    throw new Error(result.message || "Failed to fetch leaderboard data");
                 }
             } catch (error) {
                 hideLoading();
@@ -1069,6 +1250,14 @@
 
         document.getElementById('groupSelect').addEventListener('change', function() {
             updateDashboard(this.value);
+        });
+
+        document.getElementById('historyPeriodSelect').addEventListener('change', function() {
+            updateHistoryPeriod(this.value);
+        });
+
+        document.getElementById('leaderboardPeriodSelect').addEventListener('change', function() {
+            updateLeaderboardPeriod(this.value);
         });
 
         document.getElementById('registerButton').addEventListener('click', registerUser);
