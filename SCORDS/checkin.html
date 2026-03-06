@@ -15,7 +15,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         * {
             font-family: 'line_seed_sans_th';
@@ -2872,25 +2871,43 @@
             const qrDisplay = document.getElementById('qrCodeDisplay');
             qrDisplay.classList.remove('hidden');
 
-            const canvas = document.getElementById('qrCanvas');
+            // Use QRServer API to generate QR code
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
 
-            QRCode.toCanvas(canvas, data, {
-                width: 200,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            }, function(error) {
-                if (error) {
-                    console.error(error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'สร้าง QR Code ไม่สำเร็จ',
-                        confirmButtonColor: '#FFD700'
-                    });
-                }
-            });
+            const canvas = document.getElementById('qrCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                canvas.width = 200;
+                canvas.height = 200;
+                ctx.drawImage(img, 0, 0);
+
+                // Show success message
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'สร้าง QR Code สำเร็จ!'
+                });
+            };
+
+            img.onerror = () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'สร้าง QR Code ไม่สำเร็จ',
+                    text: 'กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonColor: '#FFD700'
+                });
+            };
+
+            img.src = qrUrl;
 
             // Store for download
             sessionStorage.setItem('currentQRData', data);
