@@ -8,6 +8,7 @@ on:
       - 'PTGLG/driverconnect/**'
       - 'project/line/clinic-connect-saas/**'
       - 'wawa2559/**'
+      - 'SCORDS/**'
       - '.github/workflows/deploy-all.yml'
 
   # Allows you to run this workflow manually from the Actions tab
@@ -64,6 +65,7 @@ jobs:
           cp -r PTGLG deploy-pages/
           cp -r project deploy-pages/
           cp -r wawa2559 deploy-pages/
+          cp -r SCORDS deploy-pages/
 
       # Create index page with links to all apps
       - name: Create index page
@@ -150,6 +152,10 @@ jobs:
                 <a href="/wawa2559/" class="app-card">
                   <h2>📦 Wawa2559 Apps</h2>
                   <p>Stock, OCR, and Broadcast Tools</p>
+                </a>
+                <a href="/SCORDS/checkin.html" class="app-card">
+                  <h2>✅ SCORDS Check-In</h2>
+                  <p>SMART CHECK-IN System with QR Code & GPS</p>
                 </a>
               </div>
             </div>
