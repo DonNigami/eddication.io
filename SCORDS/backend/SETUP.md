@@ -11,10 +11,10 @@
 ### สร้าง Sheet ชื่อ: `Users`
 
 ### Header (Row 1):
-| UserID | DisplayName | FirstName | LastName | EmployeeID | Position | Group | Role | CreatedAt |
-|--------|-------------|-----------|----------|------------|----------|-------|------|-----------|
-| U123abc | สมชาย ใจดี | สมชาย | ใจดี | EMP001 | พนักงานขับรถ | ทีม A | user | 2026-03-06 |
-| U456def | สมหญิง เก่งมาก | สมหญิง | เก่งมาก | EMP002 | ผู้จัดการ | ทีม B | admin | 2026-03-06 |
+| UserID | DisplayName | FirstName | LastName | EmployeeID | Position | Group | Role | ProfilePicture | CreatedAt |
+|--------|-------------|-----------|----------|------------|----------|-------|------|----------------|-----------|
+| U123abc | สมชาย ใจดี | สมชาย | ใจดี | EMP001 | พนักงานขับรถ | ทีม A | user | | 2026-03-06 |
+| U456def | สมหญิง เก่งมาก | สมหญิง | เก่งมาก | EMP002 | ผู้จัดการ | ทีม B | admin | https://profile.line-pic.net/... | 2026-03-06 |
 
 ### คำอธิบายคอลัมน์:
 - **UserID**: LINE User ID (Unique)
@@ -25,6 +25,7 @@
 - **Position**: ตำแหน่งงาน
 - **Group**: กลุ่ม/ทีม
 - **Role**: สิทธิ์ (user หรือ admin)
+- **ProfilePicture**: รูปโปรไฟล์จาก LINE Profile (URL) - เว้นว่างได้
 - **CreatedAt**: วันที่สร้างบัญชี
 
 ---

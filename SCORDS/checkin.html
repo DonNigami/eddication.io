@@ -553,6 +553,7 @@
        
         let userId = null;
         let displayName = null;
+        let pictureUrl = null; // LINE Profile Picture URL
         let userGroup = null;
         let userRole = null;
         let activities = [];
@@ -562,11 +563,11 @@
         let currentHistoryPeriod = 7; // Default: 7 days
         let leaderboardData = [];
         let currentLeaderboardPeriod = 7; // Default: 7 days
-        
-        
-        const API_URL = "https://script.google.com/macros/s/AKfycbxvCNUyaSycHwJaag_eN0AVtM_a2n37YJXw_6qK4tPdjZuuwRs5jDlPS4oK5eAYc1DzQw/exec"; 
+
+
+        const API_URL = "https://script.google.com/macros/s/AKfycbxvCNUyaSycHwJaag_eN0AVtM_a2n37YJXw_6qK4tPdjZuuwRs5jDlPS4oK5eAYc1DzQw/exec";
          const LIFF_ID = '2009342397-n6oBMLI6';
-       
+
         document.addEventListener('DOMContentLoaded', () => {
             initializeLIFF();
             updateDateTime();
@@ -642,6 +643,7 @@
         function displayUserProfile(profile) {
             document.getElementById('displayName').textContent = profile.displayName;
             if (profile.pictureUrl) {
+                pictureUrl = profile.pictureUrl; // เก็บ URL ไว้ใช้ตอนลงทะเบียน
                 document.getElementById('profileImage').innerHTML = `<img src="${profile.pictureUrl}" alt="Profile" class="w-full h-full object-cover">`;
             }
         }
@@ -819,18 +821,36 @@
                 const rank1 = leaderboardData[0];
                 document.getElementById('rank1Name').textContent = rank1.name;
                 document.getElementById('rank1Count').textContent = `${rank1.onTimeCount} ครั้ง`;
+
+                // Update profile picture for rank 1
+                const rank1Avatar = document.getElementById('rank1Avatar');
+                if (rank1.profilePicture) {
+                    rank1Avatar.innerHTML = `<img src="${rank1.profilePicture}" alt="${rank1.name}" class="w-full h-full object-cover">`;
+                }
             }
 
             if (leaderboardData.length >= 2) {
                 const rank2 = leaderboardData[1];
                 document.getElementById('rank2Name').textContent = rank2.name;
                 document.getElementById('rank2Count').textContent = `${rank2.onTimeCount} ครั้ง`;
+
+                // Update profile picture for rank 2
+                const rank2Avatar = document.getElementById('rank2Avatar');
+                if (rank2.profilePicture) {
+                    rank2Avatar.innerHTML = `<img src="${rank2.profilePicture}" alt="${rank2.name}" class="w-full h-full object-cover">`;
+                }
             }
 
             if (leaderboardData.length >= 3) {
                 const rank3 = leaderboardData[2];
                 document.getElementById('rank3Name').textContent = rank3.name;
                 document.getElementById('rank3Count').textContent = `${rank3.onTimeCount} ครั้ง`;
+
+                // Update profile picture for rank 3
+                const rank3Avatar = document.getElementById('rank3Avatar');
+                if (rank3.profilePicture) {
+                    rank3Avatar.innerHTML = `<img src="${rank3.profilePicture}" alt="${rank3.name}" class="w-full h-full object-cover">`;
+                }
             }
 
             // Update Leaderboard List (Rank 4-10)
@@ -849,11 +869,17 @@
                 row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800 animate-fadeIn';
                 row.style.animationDelay = `${0.1 * index}s`;
 
+                const profilePicHtml = item.profilePicture ?
+                    `<img src="${item.profilePicture}" alt="${item.name}" class="w-8 h-8 rounded-full object-cover">` :
+                    `<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-yellow-400">${item.rank}</div>`;
+
                 row.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-sm font-bold text-yellow-400">
-                            ${item.rank}
-                        </div>
+                        ${!item.profilePicture ? profilePicHtml : ''}
+                        ${item.profilePicture ? `<div class="flex items-center gap-2">
+                            <span class="text-sm font-bold text-yellow-400 w-6">${item.rank}</span>
+                            ${profilePicHtml}
+                        </div>` : ''}
                         <div>
                             <p class="text-sm font-medium text-white">${item.name}</p>
                             <p class="text-xs text-gray-400">${item.group || '-'}</p>
@@ -1138,7 +1164,8 @@
                         lastName: lastName,
                         employeeId: employeeId,
                         position: position,
-                        group: selectedGroup
+                        group: selectedGroup,
+                        pictureUrl: pictureUrl || null
                     })
                 });
 

@@ -117,10 +117,11 @@ function getAllData(userId, days) {
  * @param {string} data.employeeId - รหัสพนักงาน
  * @param {string} data.position - ตำแหน่ง
  * @param {string} data.group - กลุ่ม
+ * @param {string} data.pictureUrl - รูปโปรไฟล์จาก LINE Profile
  * @returns {Object} ผลลัพธ์การลงทะเบียน
  */
 function registerUser(data) {
-  const { userId, displayName, firstName, lastName, employeeId, position, group } = data;
+  const { userId, displayName, firstName, lastName, employeeId, position, group, pictureUrl } = data;
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
 
@@ -135,7 +136,7 @@ function registerUser(data) {
   }
 
   // บันทึกข้อมูลลงใน Sheet
-  // โครงสร้าง: UserID, DisplayName, FirstName, LastName, EmployeeID, Position, Group, Role, CreatedAt
+  // โครงสร้าง: UserID, DisplayName, FirstName, LastName, EmployeeID, Position, Group, Role, ProfilePicture, CreatedAt
   userSheet.appendRow([
     userId,
     displayName || '',
@@ -145,6 +146,7 @@ function registerUser(data) {
     position || '',
     group || '',
     'user',
+    pictureUrl || '',
     new Date()
   ]);
 
@@ -318,7 +320,8 @@ function getUserInfo(ss, userId) {
       position: user.Position,
       name: user.FirstName && user.LastName ? `${user.FirstName} ${user.LastName}` : user.DisplayName,
       group: user.Group,
-      role: user.Role
+      role: user.Role,
+      profilePicture: user.ProfilePicture || null
     };
   }
   return null;
@@ -389,7 +392,8 @@ function getLeaderboard(days) {
       name: user.FirstName && user.LastName ?
         `${user.FirstName} ${user.LastName}` :
         user.DisplayName,
-      group: user.Group
+      group: user.Group,
+      profilePicture: user.ProfilePicture || null
     };
     return map;
   }, {});
@@ -429,6 +433,7 @@ function getLeaderboard(days) {
       userId: stat.userId,
       name: userMap[stat.userId]?.name || stat.userId,
       group: userMap[stat.userId]?.group || '-',
+      profilePicture: userMap[stat.userId]?.profilePicture || null,
       onTimeCount: stat.onTimeCount,
       totalCount: stat.totalCount
     }))
