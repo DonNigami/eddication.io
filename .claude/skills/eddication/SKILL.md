@@ -1,15 +1,15 @@
 ---
 name: eddication
-description: World-class expert across full-stack, frontend, TypeScript, Python, Google Apps Script, testing, marketing, SaaS, Lean Six Sigma, data analytics, and executive dashboard design. Specialized in PostgreSQL/Supabase, LINE Platform, production-grade application development, and Japanese-style data visualization for executive presentations. Only use when explicitly invoked by user via /eddication command.
+description: World-class expert across full-stack, frontend, TypeScript, Python, Google Apps Script, testing, marketing, SaaS, Lean Six Sigma, data analytics, executive dashboard design, RAG (Retrieval-Augmented Generation), Agentic AI systems, and OCR (Optical Character Recognition). Specialized in PostgreSQL/Supabase, LINE Platform, production-grade application development, Japanese-style data visualization for executive presentations, AI-powered document processing, and intelligent agent orchestration. Only use when explicitly invoked by user via /eddication command.
 license: Complete terms in LICENSE.txt
 invocable: true
 ---
 
-# Eddication Expert - World-Class Full-Stack Specialist
+# Eddication Expert - World-Class Full-Stack & AI Specialist
 
 ## Overview
 
-You are a world-class full-stack expert specializing in **production-grade application development** and **executive dashboard design**. Your expertise spans modern web development, database architecture, API integrations, testing, business intelligence, process optimization, and creating beautiful, intuitive data presentations.
+You are a world-class full-stack expert specializing in **production-grade application development**, **executive dashboard design**, and **AI-powered systems**. Your expertise spans modern web development, database architecture, API integrations, testing, business intelligence, process optimization, creating beautiful, intuitive data presentations, and building intelligent AI systems including RAG applications, Agentic AI workflows, and OCR document processing.
 
 ### Core Competencies
 
@@ -18,8 +18,11 @@ You are a world-class full-stack expert specializing in **production-grade appli
 | **Frontend** | React, Vue, Vanilla JS, LINE LIFF, Mobile-First CSS, TailwindCSS |
 | **Dashboard Design** | Japanese minimal design, Executive presentations, Chart.js, Data visualization |
 | **Backend** | Node.js/Express, Python/FastAPI/Django, Google Apps Script |
-| **Database** | PostgreSQL 15+, Supabase (RLS, Realtime, Edge Functions), MongoDB, Redis |
+| **Database** | PostgreSQL 15+, Supabase (RLS, Realtime, Edge Functions), MongoDB, Redis, Vector DBs (pgvector, Pinecone, Qdrant) |
 | **APIs & Integration** | LINE Platform, REST APIs, Webhooks, OAuth, Third-party integrations |
+| **RAG & AI** | LangChain, LlamaIndex, OpenAI, Anthropic, Vector embeddings, Semantic search, Retrieval strategies |
+| **Agentic AI** | AutoGen, CrewAI, LangGraph, Multi-agent systems, Tool use, Function calling, Agent orchestration |
+| **OCR & Documents** | Tesseract, Pytesseract, PaddleOCR, AWS Textract, GPT-4 Vision, Document parsing, PDF extraction |
 | **Testing** | Playwright E2E, Vitest/Jest, Pytest, Integration testing |
 | **Analytics** | Python Pandas, SQL analytics, KPI dashboards, Data visualization |
 | **Business** | SaaS metrics, Pricing strategy, LTV/CAC analysis, Funnel optimization |
@@ -1371,6 +1374,1553 @@ sql_templates = {
         FROM funnel_steps
         ORDER BY count DESC;
     """
+}
+```
+
+## RAG (Retrieval-Augmented Generation)
+
+### Basic RAG Pipeline with LangChain
+
+```python
+# rag/basic_rag.py
+"""
+Basic RAG pipeline for document Q&A
+Supports: PDF, TXT, DOCX with vector storage
+"""
+
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import PGVector, Pinecone, Qdrant
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import RetrievalQA
+from langchain.chat_models import ChatOpenAI
+from langchain.document_loaders import (
+    PyPDFLoader,
+    TextLoader,
+    Docx2txtLoader,
+    DirectoryLoader
+)
+from typing import List, Optional
+import os
+
+class RAGPipeline:
+    """Production RAG pipeline with multiple vector backends"""
+
+    def __init__(
+        self,
+        vector_backend: str = "pgvector",  # pgvector, pinecone, qdrant
+        embedding_model: str = "text-embedding-3-small",
+        llm_model: str = "gpt-4o",
+        chunk_size: int = 1000,
+        chunk_overlap: int = 200
+    ):
+        self.embeddings = OpenAIEmbeddings(model=embedding_model)
+        self.vector_backend = vector_backend
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+
+        # Text splitter for chunking
+        self.text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            separators=["\n\n", "\n", ". ", " ", ""]
+        )
+
+        # Initialize vector store
+        self.vector_store = self._init_vector_store()
+
+        # Initialize LLM
+        self.llm = ChatOpenAI(model=llm_model, temperature=0)
+
+    def _init_vector_store(self):
+        """Initialize vector store based on backend choice"""
+        if self.vector_backend == "pgvector":
+            # PostgreSQL with pgvector extension
+            connection_string = os.getenv("DATABASE_URL")
+            return PGVector(
+                connection_string=connection_string,
+                embedding_function=self.embeddings,
+                collection_name="rag_documents"
+            )
+        elif self.vector_backend == "pinecone":
+            import pinecone
+            pinecone.init(api_key=os.getenv("PINECONE_API_KEY"))
+            return Pinecone.from_existing_index(
+                "rag-documents",
+                self.embeddings
+            )
+        elif self.vector_backend == "qdrant":
+            from qdrant_client import QdrantClient
+            return Qdrant(
+                client=QdrantClient(url=os.getenv("QDRANT_URL")),
+                collection_name="rag_documents",
+                embeddings=self.embeddings
+            )
+
+    def load_documents(self, path: str, glob: str = "**/*.*") -> List:
+        """Load documents from directory"""
+        loaders = {
+            ".pdf": PyPDFLoader,
+            ".txt": TextLoader,
+            ".docx": Docx2txtLoader,
+        }
+
+        documents = []
+        for ext, loader_class in loaders.items():
+            try:
+                loader = DirectoryLoader(
+                    path,
+                    glob=glob if glob == "**/*.*" else f"**/*{ext}",
+                    loader_cls=loader_class
+                )
+                documents.extend(loader.load())
+            except Exception as e:
+                print(f"Error loading {ext} files: {e}")
+
+        return documents
+
+    def index_documents(self, documents: List) -> dict:
+        """Split and index documents into vector store"""
+        # Split documents
+        chunks = self.text_splitter.split_documents(documents)
+
+        # Add to vector store
+        self.vector_store.add_documents(chunks)
+
+        return {
+            "total_documents": len(documents),
+            "total_chunks": len(chunks),
+            "vector_backend": self.vector_backend
+        }
+
+    def create_qa_chain(self, retrieval_kwargs: Optional[dict] = None):
+        """Create RAG QA chain"""
+        retriever = self.vector_store.as_retriever(
+            search_type="similarity_score_threshold",
+            search_kwargs={
+                "k": 4,
+                "score_threshold": 0.7,
+                **(retrieval_kwargs or {})
+            }
+        )
+
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=retriever,
+            return_source_documents=True,
+            chain_type_kwargs={
+                "prompt": self._get_qa_prompt()
+            }
+        )
+
+        return qa_chain
+
+    def _get_qa_prompt(self) -> str:
+        """Custom QA prompt template"""
+        from langchain.prompts import PromptTemplate
+
+        template = """Use the following pieces of context to answer the question at the end.
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
+
+Context:
+{context}
+
+Question: {question}
+
+Answer:"""
+
+        return PromptTemplate(
+            template=template,
+            input_variables=["context", "question"]
+        )
+
+    def query(self, question: str) -> dict:
+        """Query the RAG system"""
+        qa_chain = self.create_qa_chain()
+        result = qa_chain({"query": question})
+
+        return {
+            "answer": result["result"],
+            "source_documents": [
+                {
+                    "content": doc.page_content,
+                    "metadata": doc.metadata
+                }
+                for doc in result["source_documents"]
+            ]
+        }
+```
+
+### Advanced RAG with Hybrid Search
+
+```python
+# rag/hybrid_rag.py
+"""
+Hybrid RAG combining vector search + keyword search (BM25)
+Best for: Domain-specific terminology, exact matches
+"""
+
+from langchain.retrievers import BM25Retriever, EnsembleRetriever
+from langchain.vectorstores import PGVector
+from typing import List
+
+class HybridRAG(RAGPipeline):
+    """RAG with hybrid vector + keyword search"""
+
+    def create_hybrid_retriever(
+        self,
+        documents: List,
+        vector_weight: float = 0.5,
+        keyword_weight: float = 0.5
+    ):
+        """Create ensemble retriever combining both methods"""
+
+        # Vector retriever
+        vector_retriever = self.vector_store.as_retriever(
+            search_kwargs={"k": 5}
+        )
+
+        # Keyword retriever (BM25)
+        keyword_retriever = BM25Retriever.from_documents(
+            documents
+        )
+        keyword_retriever.k = 5
+
+        # Ensemble retriever
+        ensemble_retriever = EnsembleRetriever(
+            retrievers=[vector_retriever, keyword_retriever],
+            weights=[vector_weight, keyword_weight]
+        )
+
+        return ensemble_retriever
+```
+
+### RAG with Metadata Filtering
+
+```python
+# rag/metadata_filter.py
+"""
+RAG with metadata filtering for multi-tenant systems
+"""
+
+def create_filtered_retriever(vector_store, filters: dict):
+    """Create retriever with metadata filters"""
+
+    return vector_store.as_retriever(
+        search_type="similarity",
+        search_kwargs={
+            "k": 5,
+            "filter": {
+                "tenant_id": filters.get("tenant_id"),
+                "document_type": filters.get("document_type"),
+                "date": filters.get("date")
+            }
+        }
+    )
+
+# Example usage
+# retriever = create_filtered_retriever(
+#     vector_store,
+#     filters={"tenant_id": "acme-corp", "document_type": "contract"}
+# )
+```
+
+### Supabase RAG with pgvector
+
+```sql
+-- Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Create documents table with embeddings
+CREATE TABLE rag_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  embedding vector(1536),  -- OpenAI embedding dimension
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create vector index for similarity search
+CREATE INDEX idx_rag_embedding ON rag_documents
+  USING ivfflat (embedding vector_cosine_ops)
+  WITH (lists = 100);
+
+-- RLS for multi-tenant
+ALTER TABLE rag_documents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant isolation" ON rag_documents
+  FOR SELECT USING (tenant_id = current_setting('app.tenant_id', true));
+
+-- Similarity search function
+CREATE OR REPLACE FUNCTION search_documents(
+  query_embedding vector(1536),
+  tenant_param TEXT,
+  match_threshold FLOAT DEFAULT 0.7,
+  match_count INT DEFAULT 5
+)
+RETURNS TABLE(
+  id UUID,
+  content TEXT,
+  metadata JSONB,
+  similarity FLOAT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    rag_documents.id,
+    rag_documents.content,
+    rag_documents.metadata,
+    1 - (rag_documents.embedding <=> query_embedding) AS similarity
+  FROM rag_documents
+  WHERE rag_documents.tenant_id = tenant_param
+    AND 1 - (rag_documents.embedding <=> query_embedding) > match_threshold
+  ORDER BY rag_documents.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
+```
+
+```typescript
+// rag/supabase-rag.ts
+/**
+ * Supabase RAG implementation with pgvector
+ */
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { OpenAI } from 'openai';
+
+interface Document {
+  id: string;
+  tenant_id: string;
+  content: string;
+  metadata?: Record<string, any>;
+}
+
+interface SearchResult extends Document {
+  similarity: number;
+}
+
+export class SupabaseRAG {
+  private supabase: SupabaseClient;
+  private openai: OpenAI;
+  private embeddingModel = 'text-embedding-3-small';
+
+  constructor(
+    supabaseUrl: string,
+    supabaseKey: string,
+    openaiKey: string
+  ) {
+    this.supabase = createClient(supabaseUrl, supabaseKey);
+    this.openai = new OpenAI({ apiKey: openaiKey });
+  }
+
+  async generateEmbedding(text: string): Promise<number[]> {
+    const response = await this.openai.embeddings.create({
+      model: this.embeddingModel,
+      input: text,
+    });
+    return response.data[0].embedding;
+  }
+
+  async indexDocument(document: Omit<Document, 'id'>): Promise<string> {
+    const embedding = await this.generateEmbedding(document.content);
+
+    const { data, error } = await this.supabase
+      .from('rag_documents')
+      .insert({
+        tenant_id: document.tenant_id,
+        content: document.content,
+        metadata: document.metadata || {},
+        embedding
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data.id;
+  }
+
+  async search(
+    query: string,
+    tenantId: string,
+    threshold: number = 0.7,
+    limit: number = 5
+  ): Promise<SearchResult[]> {
+    const queryEmbedding = await this.generateEmbedding(query);
+
+    const { data, error } = await this.supabase.rpc('search_documents', {
+      query_embedding: queryEmbedding,
+      tenant_param: tenantId,
+      match_threshold: threshold,
+      match_count: limit
+    });
+
+    if (error) throw error;
+    return data;
+  }
+
+  async ask(question: string, tenantId: string): Promise<{
+    answer: string;
+    sources: SearchResult[];
+  }> {
+    // Retrieve relevant documents
+    const sources = await this.search(question, tenantId);
+
+    // Build context from sources
+    const context = sources
+      .map(s => s.content)
+      .join('\n\n---\n\n');
+
+    // Generate answer with context
+    const response = await this.openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: 'Answer the question using the provided context. If the answer is not in the context, say "I don\'t have enough information to answer."'
+        },
+        {
+          role: 'user',
+          content: `Context:\n${context}\n\nQuestion: ${question}`
+        }
+      ]
+    });
+
+    return {
+      answer: response.choices[0].message.content || '',
+      sources
+    };
+  }
+}
+```
+
+## Agentic AI - Multi-Agent Systems
+
+### Agent Orchestration with LangGraph
+
+```python
+# agents/langgraph_agents.py
+"""
+Multi-agent system using LangGraph for complex workflows
+"""
+
+from langgraph.graph import StateGraph, END
+from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.tools import Tool
+from langchain.chat_models import ChatOpenAI
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from typing import TypedDict, Annotated, List
+import operator
+
+class AgentState(TypedDict):
+    """Shared state for agents"""
+    messages: Annotated[List[str], operator.add]
+    current_user: str
+    context: dict
+    next_agent: str
+
+class MultiAgentOrchestrator:
+    """Orchestrator for managing multiple specialized agents"""
+
+    def __init__(self, openai_api_key: str):
+        self.llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4o", temperature=0)
+        self.agents = {}
+        self.tools = {}
+        self.graph = None
+
+    def create_tool(self, name: str, func: callable, description: str) -> Tool:
+        """Create a LangChain tool"""
+        tool = Tool(
+            name=name,
+            func=func,
+            description=description
+        )
+        self.tools[name] = tool
+        return tool
+
+    def create_agent(self, name: str, role: str, tools: List[Tool]) -> AgentExecutor:
+        """Create a specialized agent"""
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", f"You are a {role}. Use the available tools to accomplish your task."),
+            MessagesPlaceholder(variable_name="chat_history", optional=True),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad")
+        ])
+
+        agent = create_openai_functions_agent(self.llm, tools, prompt)
+        executor = AgentExecutor(
+            agent=agent,
+            tools=tools,
+            verbose=True,
+            handle_parsing_errors=True
+        )
+
+        self.agents[name] = executor
+        return executor
+
+    def router_agent(self, state: AgentState) -> str:
+        """Decide which agent should handle the request"""
+        last_message = state["messages"][-1] if state["messages"] else ""
+
+        # Simple keyword-based routing (can use LLM for complex routing)
+        if any(word in last_message.lower() for word in ["database", "sql", "query"]):
+            return "data_agent"
+        elif any(word in last_message.lower() for word in ["file", "document", "read"]):
+            return "file_agent"
+        elif any(word in last_message.lower() for word in ["web", "http", "api"]):
+            return "web_agent"
+        else:
+            return "general_agent"
+
+    def build_graph(self) -> StateGraph:
+        """Build the agent workflow graph"""
+        workflow = StateGraph(AgentState)
+
+        # Add nodes for each agent
+        for agent_name, agent_executor in self.agents.items():
+            async def agent_node(state: AgentState, executor=agent_executor):
+                result = await executor.ainvoke({
+                    "input": state["messages"][-1] if state["messages"] else "",
+                    "chat_history": state["messages"][:-1] if len(state["messages"]) > 1 else []
+                })
+                return {
+                    "messages": [result["output"]],
+                    "context": {**state.get("context", {}), **result.get("context", {})}
+                }
+
+            workflow.add_node(agent_name, agent_node)
+
+        # Add routing logic
+        workflow.add_conditional_edges(
+            "router",
+            self.router_agent,
+            self.agents.keys()
+        )
+
+        # Set entry point
+        workflow.set_entry_point("router")
+
+        self.graph = workflow.compile()
+        return self.graph
+
+    async def run(self, user_input: str, user_id: str = "default") -> dict:
+        """Run the multi-agent system"""
+        if not self.graph:
+            self.build_graph()
+
+        initial_state = AgentState(
+            messages=[user_input],
+            current_user=user_id,
+            context={},
+            next_agent="router"
+        )
+
+        result = await self.graph.ainvoke(initial_state)
+        return {
+            "response": result["messages"][-1] if result["messages"] else "",
+            "context": result.get("context", {})
+        }
+```
+
+### CrewAI Multi-Agent Pattern
+
+```python
+# agents/crewai_agents.py
+"""
+CrewAI-based multi-agent system for collaborative problem solving
+"""
+
+from crewai import Agent, Task, Crew, Process
+from langchain.llms import OpenAI
+
+class AgentCrew:
+    """Crew of specialized agents working together"""
+
+    def __init__(self, openai_api_key: str):
+        self.llm = OpenAI(temperature=0, openai_api_key=openai_api_key)
+        self.agents = {}
+        self.crew = None
+
+    def create_researcher(self) -> Agent:
+        """Agent specialized in information gathering"""
+        return Agent(
+            role="Research Specialist",
+            goal="Find and analyze relevant information from multiple sources",
+            backstory="""You are an expert researcher with 20 years of experience
+            in finding and synthesizing information from various domains.""",
+            verbose=True,
+            llm=self.llm,
+            tools=[
+                # Add search tools, database tools, etc.
+            ]
+        )
+
+    def create_analyst(self) -> Agent:
+        """Agent specialized in data analysis"""
+        return Agent(
+            role="Data Analyst",
+            goal="Analyze data and extract meaningful insights",
+            backstory="""You are a senior data analyst with expertise in
+            statistical analysis and data visualization.""",
+            verbose=True,
+            llm=self.llm
+        )
+
+    def create_writer(self) -> Agent:
+        """Agent specialized in creating reports"""
+        return Agent(
+            role="Technical Writer",
+            goal="Create clear, comprehensive reports from analysis",
+            backstory="""You are an expert technical writer who can translate
+            complex findings into accessible content.""",
+            verbose=True,
+            llm=self.llm
+        )
+
+    def build_crew(self, task_description: str) -> Crew:
+        """Build and configure the crew"""
+        researcher = self.create_researcher()
+        analyst = self.create_analyst()
+        writer = self.create_writer()
+
+        # Define tasks
+        research_task = Task(
+            description=f"Research: {task_description}",
+            agent=researcher
+        )
+
+        analysis_task = Task(
+            description="Analyze the research findings and extract key insights",
+            agent=analyst,
+            context=[research_task]
+        )
+
+        writing_task = Task(
+            description="Create a comprehensive report from the analysis",
+            agent=writer,
+            context=[analysis_task]
+        )
+
+        # Create crew
+        self.crew = Crew(
+            agents=[researcher, analyst, writer],
+            tasks=[research_task, analysis_task, writing_task],
+            process=Process.sequential,
+            verbose=True
+        )
+
+        return self.crew
+
+    def kickoff(self, task: str) -> str:
+        """Execute the crew workflow"""
+        if not self.crew:
+            self.build_crew(task)
+
+        result = self.crew.kickoff()
+        return result
+```
+
+### AutoGen Multi-Agent Conversation
+
+```python
+# agents/autogen_agents.py
+"""
+Microsoft AutoGen for conversational multi-agent systems
+"""
+
+import autogen
+
+class AutoGenOrchestrator:
+    """Orchestrator for AutoGen-based agent conversations"""
+
+    def __init__(self, api_key: str):
+        self.config_list = [{
+            "model": "gpt-4o",
+            "api_key": api_key
+        }]
+        self.agents = {}
+
+    def create_assistant(
+        self,
+        name: str,
+        system_message: str,
+        tools: list = None
+    ) -> autogen.AssistantAgent:
+        """Create an assistant agent"""
+        agent = autogen.AssistantAgent(
+            name=name,
+            system_message=system_message,
+            llm_config={
+                "config_list": self.config_list,
+                "tools": tools or []
+            }
+        )
+        self.agents[name] = agent
+        return agent
+
+    def create_user_proxy(self, name: str = "user_proxy") -> autogen.UserProxyAgent:
+        """Create a user proxy agent"""
+        agent = autogen.UserProxyAgent(
+            name=name,
+            human_input_mode="NEVER",
+            max_consecutive_auto_reply=10,
+            code_execution_config={
+                "work_dir": "agent_output",
+                "use_docker": False
+            }
+        )
+        self.agents[name] = agent
+        return agent
+
+    def create_chat(
+        self,
+        task: str,
+        participants: list
+    ) -> autogen.GroupChat:
+        """Create a group chat"""
+        groupchat = autogen.GroupChat(
+            agents=participants,
+            messages=[],
+            max_round=20
+        )
+
+        manager = autogen.GroupChatManager(
+            groupchat=groupchat,
+            llm_config={"config_list": self.config_list}
+        )
+
+        return manager
+
+    def run(self, task: str) -> str:
+        """Run the multi-agent conversation"""
+        # Create agents
+        user_proxy = self.create_user_proxy()
+
+        assistant = self.create_assistant(
+            name="assistant",
+            system_message="""You are a helpful assistant that can analyze
+            problems and provide solutions. Use tools when available."""
+        )
+
+        # Start conversation
+        user_proxy.initiate_chat(
+            assistant,
+            message=task
+        )
+
+        return assistant.last_message()["content"]
+```
+
+### Agent Tools Integration
+
+```python
+# agents/tools.py
+"""
+Common tools for AI agents
+"""
+
+from langchain.tools import tool
+from typing import Optional
+import requests
+import sqlite3
+
+@tool
+def search_database(query: str, table: str) -> str:
+    """
+    Search SQLite database with SQL query.
+
+    Args:
+        query: SQL SELECT query
+        table: Table name to query
+
+    Returns:
+        Query results as formatted string
+    """
+    try:
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute(query)
+        results = cursor.fetchall()
+        conn.close()
+
+        return str(results)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@tool
+def call_api(url: str, method: str = "GET", body: Optional[dict] = None) -> str:
+    """
+    Make HTTP request to external API.
+
+    Args:
+        url: API endpoint URL
+        method: HTTP method (GET, POST, PUT, DELETE)
+        body: Request body for POST/PUT
+
+    Returns:
+        API response as string
+    """
+    try:
+        if method == "GET":
+            response = requests.get(url)
+        elif method == "POST":
+            response = requests.post(url, json=body)
+        else:
+            return f"Unsupported method: {method}"
+
+        return response.text
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@tool
+def read_file(file_path: str) -> str:
+    """
+    Read contents of a text file.
+
+    Args:
+        file_path: Path to the file
+
+    Returns:
+        File contents as string
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@tool
+def write_file(file_path: str, content: str) -> str:
+    """
+    Write content to a text file.
+
+    Args:
+        file_path: Path to the file
+        content: Content to write
+
+    Returns:
+        Success message
+    """
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"Successfully wrote to {file_path}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+# Available tools list
+AGENT_TOOLS = [
+    search_database,
+    call_api,
+    read_file,
+    write_file
+]
+```
+
+## OCR (Optical Character Recognition)
+
+### Tesseract OCR Engine
+
+```python
+# ocr/tesseract_ocr.py
+"""
+OCR using Tesseract engine
+Supports: Multi-language, Thai, PDF, Images
+"""
+
+import pytesseract
+from PIL import Image
+import pdf2image
+from typing import List, Union
+import io
+
+class TesseractOCR:
+    """Production OCR with Tesseract"""
+
+    def __init__(
+        self,
+        languages: List[str] = ['eng', 'tha'],
+        tesseract_path: str = None
+    ):
+        self.languages = '+'.join(languages)
+        if tesseract_path:
+            pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
+    def extract_text_from_image(
+        self,
+        image_path: str,
+        config: str = None
+    ) -> dict:
+        """Extract text from image file"""
+
+        image = Image.open(image_path)
+
+        # Default config for better accuracy
+        default_config = '--oem 3 --psm 6'
+        ocr_config = config or default_config
+
+        # Extract text
+        text = pytesseract.image_to_string(
+            image,
+            lang=self.languages,
+            config=ocr_config
+        )
+
+        # Get detailed data (bounding boxes, confidence)
+        data = pytesseract.image_to_data(
+            image,
+            lang=self.languages,
+            output_type=pytesseract.Output.DICT
+        )
+
+        return {
+            'text': text.strip(),
+            'confidence': self._calculate_confidence(data),
+            'details': data
+        }
+
+    def extract_text_from_pdf(
+        self,
+        pdf_path: str,
+        dpi: int = 300,
+        first_page: int = 1,
+        last_page: int = None
+    ) -> List[dict]:
+        """Extract text from PDF (image-based)"""
+
+        # Convert PDF to images
+        images = pdf2image.convert_from_path(
+            pdf_path,
+            dpi=dpi,
+            first_page=first_page,
+            last_page=last_page
+        )
+
+        results = []
+        for i, image in enumerate(images, start=first_page):
+            text = pytesseract.image_to_string(
+                image,
+                lang=self.languages
+            )
+
+            results.append({
+                'page': i,
+                'text': text.strip()
+            })
+
+        return results
+
+    def extract_with_bounding_boxes(
+        self,
+        image_path: str
+    ) -> List[dict]:
+        """Extract text with bounding box coordinates"""
+
+        image = Image.open(image_path)
+
+        data = pytesseract.image_to_data(
+            image,
+            lang=self.languages,
+            output_type=pytesseract.Output.DICT
+        )
+
+        results = []
+        n_boxes = len(data['text'])
+
+        for i in range(n_boxes):
+            text = data['text'][i].strip()
+            if text and int(data['conf'][i]) > 60:
+                results.append({
+                    'text': text,
+                    'confidence': int(data['conf'][i]),
+                    'bbox': {
+                        'left': data['left'][i],
+                        'top': data['top'][i],
+                        'width': data['width'][i],
+                        'height': data['height'][i]
+                    }
+                })
+
+        return results
+
+    def extract_table(
+        self,
+        image_path: str
+    ) -> List[List[str]]:
+        """Extract tabular data from image"""
+
+        # Use segmentation mode for tables
+        config = '--oem 3 --psm 6 -c preserve_interword_spaces=1'
+
+        image = Image.open(image_path)
+        text = pytesseract.image_to_string(
+            image,
+            lang=self.languages,
+            config=config
+        )
+
+        # Parse into table structure
+        rows = [line.split() for line in text.split('\n') if line.strip()]
+        return rows
+
+    def _calculate_confidence(self, data: dict) -> float:
+        """Calculate average confidence score"""
+        confidences = [
+            int(conf) for conf in data['conf']
+            if str(conf).isdigit() and int(conf) > 0
+        ]
+        return sum(confidences) / len(confidences) if confidences else 0
+```
+
+### PaddleOCR (Deep Learning OCR)
+
+```python
+# ocr/paddle_ocr.py
+"""
+PaddleOCR - Deep learning based OCR
+Better for: Thai text, complex layouts, handwritten
+"""
+
+from paddleocr import PaddleOCR
+from typing import List, Union
+import cv2
+import numpy as np
+
+class PaddleOCREngine:
+    """Production OCR with PaddleOCR"""
+
+    def __init__(
+        self,
+        language: str = 'ch',  # 'ch' for Chinese/Thai mix, 'en' for English
+        use_angle_cls: bool = True,
+        use_gpu: bool = False
+    ):
+        self.ocr = PaddleOCR(
+            use_angle_cls=use_angle_cls,
+            lang=language,
+            use_gpu=use_gpu,
+            show_log=False
+        )
+
+    def extract_text(self, image_path: str) -> dict:
+        """Extract text from image"""
+
+        result = self.ocr.ocr(image_path, cls=True)
+
+        texts = []
+        confidences = []
+        boxes = []
+
+        for line in result[0]:
+            box = line[0]
+            text_info = line[1]
+            text = text_info[0]
+            confidence = text_info[1]
+
+            texts.append(text)
+            confidences.append(confidence)
+            boxes.append(box)
+
+        return {
+            'text': '\n'.join(texts),
+            'lines': texts,
+            'confidences': confidences,
+            'boxes': boxes,
+            'avg_confidence': sum(confidences) / len(confidences) if confidences else 0
+        }
+
+    def extract_with_layout(self, image_path: str) -> List[dict]:
+        """Extract text preserving layout information"""
+
+        result = self.ocr.ocr(image_path, cls=True)
+
+        elements = []
+        for line in result[0]:
+            box = line[0]
+            text_info = line[1]
+
+            # Calculate position
+            x = min([p[0] for p in box])
+            y = min([p[1] for p in box])
+            width = max([p[0] for p in box]) - x
+            height = max([p[1] for p in box]) - y
+
+            elements.append({
+                'text': text_info[0],
+                'confidence': text_info[1],
+                'position': {'x': x, 'y': y, 'width': width, 'height': height}
+            })
+
+        # Sort by y position (top to bottom), then x (left to right)
+        elements.sort(key=lambda e: (e['position']['y'], e['position']['x']))
+
+        return elements
+```
+
+### AWS Textract (Document Analysis)
+
+```python
+# ocr/aws_textract.py
+"""
+AWS Textract for advanced document processing
+Supports: Forms, tables, handwriting, key-value pairs
+"""
+
+import boto3
+from typing import List, Dict
+
+class AWSTextractOCR:
+    """OCR with AWS Textract"""
+
+    def __init__(self, aws_access_key: str, aws_secret_key: str, region: str = 'us-east-1'):
+        self.client = boto3.client(
+            'textract',
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+            region_name=region
+        )
+
+    def extract_text(self, document_path: str) -> dict:
+        """Extract text from document"""
+
+        with open(document_path, 'rb') as document:
+            response = self.client.detect_document_text(
+                Document={'Bytes': document.read()}
+            )
+
+        blocks = response['Blocks']
+        text = '\n'.join([
+            block['Text']
+            for block in blocks
+            if block['BlockType'] == 'LINE'
+        ])
+
+        return {
+            'text': text,
+            'blocks': blocks,
+            'pages': response.get('DocumentMetadata', {}).get('Pages', 1)
+        }
+
+    def analyze_document(self, document_path: str) -> dict:
+        """Extract text, forms, and tables"""
+
+        with open(document_path, 'rb') as document:
+            response = self.client.analyze_document(
+                Document={'Bytes': document.read()},
+                FeatureTypes=['FORMS', 'TABLES']
+            )
+
+        # Extract text
+        text_lines = [
+            block['Text']
+            for block in response['Blocks']
+            if block['BlockType'] == 'LINE'
+        ]
+
+        # Extract form key-value pairs
+        form_data = {}
+        for block in response['Blocks']:
+            if block['BlockType'] == 'KEY_VALUE_SET':
+                if 'KEY' in block['EntityTypes']:
+                    key = block['Text']
+                    # Find value
+                    for rel in block.get('Relationships', []):
+                        if rel['Type'] == 'VALUE':
+                            value_id = rel['Ids'][0]
+                            value_block = next(
+                                b for b in response['Blocks']
+                                if b['Id'] == value_id
+                            )
+                            form_data[key] = value_block.get('Text', '')
+
+        # Extract tables
+        tables = []
+        table_blocks = [b for b in response['Blocks'] if b['BlockType'] == 'TABLE']
+
+        for table in table_blocks:
+            table_data = []
+            cells = [
+                b for b in response['Blocks']
+                if b.get('Relationships', [])
+                and any(r['Ids'] == [table['Id']] for r in b['Relationships'])
+            ]
+
+            # Build table from cells
+            # (simplified - real implementation needs proper cell positioning)
+            table_data = [cell.get('Text', '') for cell in cells]
+            tables.append(table_data)
+
+        return {
+            'text': '\n'.join(text_lines),
+            'forms': form_data,
+            'tables': tables
+        }
+
+    def extract_from_pdf(self, s3_bucket: str, s3_key: str) -> dict:
+        """Extract from PDF stored in S3 (async for multi-page)"""
+
+        response = self.client.start_document_text_detection(
+            DocumentLocation={'S3Object': {'Bucket': s3_bucket, 'Name': s3_key}}
+        )
+
+        job_id = response['JobId']
+
+        # Wait for completion (implement proper polling)
+        waiter = self.client.get_waiter('document_text_detection_complete')
+        waiter.wait(JobId=job_id)
+
+        # Get results
+        result = self.client.get_document_text_detection(JobId=job_id)
+
+        pages = []
+        for block in result['Blocks']:
+            if block['BlockType'] == 'PAGE':
+                pages.append({
+                    'page_number': block.get('Page', 1),
+                    'geometry': block.get('Geometry', {})
+                })
+
+        return {
+            'job_id': job_id,
+            'pages': pages,
+            'status': result['JobStatus']
+        }
+```
+
+### OCR for Thai Documents
+
+```python
+# ocr/thai_ocr.py
+"""
+Thai language optimized OCR
+Combines multiple engines for best accuracy
+"""
+
+class ThaiOCR:
+    """Optimized OCR for Thai documents"""
+
+    def __init__(self, use_paddle: bool = True):
+        if use_paddle:
+            self.engine = PaddleOCREngine(language='ch')
+        else:
+            self.engine = TesseractOCR(languages=['tha', 'eng'])
+
+    def extract_thai_id_card(self, image_path: str) -> dict:
+        """Extract structured data from Thai ID card"""
+
+        result = self.engine.extract_text(image_path)
+        text = result['text']
+
+        # Parse ID card structure (Thai format)
+        import re
+
+        id_number = self._extract_thai_id(text)
+        name_thai = self._extract_name_thai(text)
+        name_english = self._extract_name_english(text)
+        dob = self._extract_dob_thai(text)
+
+        return {
+            'id_number': id_number,
+            'name_thai': name_thai,
+            'name_english': name_english,
+            'date_of_birth': dob,
+            'raw_text': text
+        }
+
+    def _extract_thai_id(self, text: str) -> str:
+        """Extract 13-digit Thai ID number"""
+        match = re.search(r'\d{13}', text)
+        return match.group(0) if match else None
+
+    def _extract_name_thai(self, text: str) -> str:
+        """Extract Thai name"""
+        # Implementation depends on ID card layout
+        lines = text.split('\n')
+        # Thai name typically on line 2-3
+        return lines[1] if len(lines) > 1 else None
+
+    def _extract_name_english(self, text: str) -> str:
+        """Extract English name"""
+        # English name typically contains "Name"
+        for line in text.split('\n'):
+            if 'Name' in line:
+                return line.replace('Name', '').strip()
+        return None
+
+    def _extract_dob_thai(self, text: str) -> str:
+        """Extract date of birth in Thai format"""
+        # Match date patterns like "15 ม.ค. 2568"
+        match = re.search(r'\d{1,2}\s*[ม.ค.-ก.พ.-มี.ค.-เม.ย.-พ.ค.-มิ.ย.-ก.ค.-ส.ค.-ก.ย.-ต.ค.-พ.ย.-ธ.ค.]+\s*\d{4}', text)
+        return match.group(0) if match else None
+```
+
+### Document Processing Pipeline
+
+```python
+# ocr/pipeline.py
+"""
+End-to-end document processing pipeline
+OCR → Extraction → Validation → Storage
+"""
+
+from typing import List, Optional
+import re
+
+class DocumentPipeline:
+    """Complete document processing pipeline"""
+
+    def __init__(
+        self,
+        ocr_engine,
+        storage_client=None  # Supabase, S3, etc.
+    ):
+        self.ocr = ocr_engine
+        self.storage = storage_client
+
+    async def process_document(
+        self,
+        file_path: str,
+        document_type: str,
+        metadata: dict = None
+    ) -> dict:
+        """Process document from file to structured data"""
+
+        # Step 1: OCR extraction
+        ocr_result = self.ocr.extract_text(file_path)
+
+        # Step 2: Extract structured data based on type
+        extracted_data = self._extract_by_type(
+            ocr_result['text'],
+            document_type
+        )
+
+        # Step 3: Validate extracted data
+        validation_result = self._validate_data(
+            extracted_data,
+            document_type
+        )
+
+        # Step 4: Store results
+        result = {
+            'raw_text': ocr_result['text'],
+            'extracted_data': extracted_data,
+            'validation': validation_result,
+            'metadata': metadata or {},
+            'confidence': ocr_result.get('avg_confidence', 0)
+        }
+
+        if self.storage:
+            await self.storage.store(result)
+
+        return result
+
+    def _extract_by_type(self, text: str, doc_type: str) -> dict:
+        """Extract structured data based on document type"""
+
+        extractors = {
+            'invoice': self._extract_invoice,
+            'receipt': self._extract_receipt,
+            'id_card': self._extract_id_card,
+            'contract': self._extract_contract
+        }
+
+        extractor = extractors.get(doc_type, lambda x: {'raw': x})
+        return extractor(text)
+
+    def _extract_invoice(self, text: str) -> dict:
+        """Extract invoice fields"""
+        return {
+            'invoice_number': self._find_pattern(r'Invoice[:\s]*(\w+)', text),
+            'amount': self._find_pattern(r'Total[:\s]*[\$]?\s*([\d,]+\.?\d*)', text),
+            'date': self._find_pattern(r'Date[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})', text),
+            'vendor': self._find_pattern(r'From[:\s]*(.+)', text)
+        }
+
+    def _extract_receipt(self, text: str) -> dict:
+        """Extract receipt fields"""
+        return {
+            'total': self._find_pattern(r'TOTAL[:\s]*([\d,]+\.?\d*)', text),
+            'date': self._find_pattern(r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})', text),
+            'items': self._extract_line_items(text)
+        }
+
+    def _extract_id_card(self, text: str) -> dict:
+        """Extract ID card fields"""
+        return {
+            'id_number': self._find_pattern(r'\d{13}', text),
+            'name': self._find_pattern(r'Name[:\s]*(.+)', text)
+        }
+
+    def _extract_contract(self, text: str) -> dict:
+        """Extract contract fields"""
+        return {
+            'contract_number': self._find_pattern(r'Contract[:\s]*(\w+)', text),
+            'parties': self._find_pattern(r'Between[:\s]*(.+)\s+and', text),
+            'effective_date': self._find_pattern(r'Effective[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})', text)
+        }
+
+    def _find_pattern(self, pattern: str, text: str) -> Optional[str]:
+        """Find first match of regex pattern"""
+        match = re.search(pattern, text, re.IGNORECASE)
+        return match.group(1).strip() if match else None
+
+    def _extract_line_items(self, text: str) -> List[dict]:
+        """Extract line items from receipt/invoice"""
+        items = []
+        lines = text.split('\n')
+
+        for line in lines:
+            # Look for patterns like "Item name 100.00"
+            match = re.search(r'(.+?)\s+(\d+\.?\d*)$', line)
+            if match:
+                items.append({
+                    'description': match.group(1).strip(),
+                    'amount': match.group(2)
+                })
+
+        return items
+
+    def _validate_data(self, data: dict, doc_type: str) -> dict:
+        """Validate extracted data"""
+        errors = []
+
+        validators = {
+            'invoice': [
+                ('invoice_number', lambda x: bool(x)),
+                ('amount', lambda x: x and float(x.replace(',', '')) > 0)
+            ],
+            'id_card': [
+                ('id_number', lambda x: x and len(x) == 13)
+            ]
+        }
+
+        rules = validators.get(doc_type, [])
+
+        for field, validator in rules:
+            if field in data and not validator(data[field]):
+                errors.append(f'Invalid {field}')
+
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors
+        }
+```
+
+### Supabase OCR Integration
+
+```sql
+-- Store OCR results in Supabase
+CREATE TABLE ocr_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_path TEXT,
+  document_type TEXT,
+  raw_text TEXT,
+  extracted_data JSONB DEFAULT '{}'::jsonb,
+  confidence FLOAT,
+  validation_result JSONB,
+  status TEXT DEFAULT 'pending', -- pending, processing, completed, failed
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  processed_at TIMESTAMPTZ
+);
+
+-- RLS for multi-tenant
+ALTER TABLE ocr_documents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Tenant can view own documents" ON ocr_documents
+  FOR SELECT USING (tenant_id = auth.uid()::text);
+
+CREATE POLICY "Tenant can insert own documents" ON ocr_documents
+  FOR INSERT WITH CHECK (tenant_id = auth.uid()::text);
+```
+
+```typescript
+// ocr/supabase-ocr.ts
+/**
+ * Supabase integration for OCR results storage
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import { ThaiOCR } from './thai-ocr';
+
+export class SupabaseOCR {
+  private supabase: any;
+  private ocr: ThaiOCR;
+
+  constructor(supabaseUrl: string, supabaseKey: string) {
+    this.supabase = createClient(supabaseUrl, supabaseKey);
+    this.ocr = new ThaiOCR();
+  }
+
+  async processDocument(
+    filePath: string,
+    fileName: string,
+    documentType: string,
+    tenantId: string
+  ) {
+    // Update status to processing
+    const { data: doc } = await this.supabase
+      .from('ocr_documents')
+      .insert({
+        tenant_id: tenantId,
+        file_name: fileName,
+        file_path: filePath,
+        document_type: documentType,
+        status: 'processing'
+      })
+      .select()
+      .single();
+
+    try {
+      // Run OCR
+      const ocrResult = await this.ocr.extractText(filePath);
+
+      // Update with results
+      const { data: result } = await this.supabase
+        .from('ocr_documents')
+        .update({
+          raw_text: ocrResult.text,
+          extracted_data: ocrResult.extractedData || {},
+          confidence: ocrResult.confidence,
+          status: 'completed',
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', doc.id)
+        .select()
+        .single();
+
+      return result;
+    } catch (error) {
+      // Update with error
+      await this.supabase
+        .from('ocr_documents')
+        .update({
+          status: 'failed',
+          validation_result: { errors: [error.message] }
+        })
+        .eq('id', doc.id);
+
+      throw error;
+    }
+  }
+
+  async searchDocuments(
+    tenantId: string,
+    query: string
+  ) {
+    // Full-text search on OCR results
+    const { data } = await this.supabase
+      .from('ocr_documents')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .textSearch('raw_text', query);
+
+    return data;
+  }
 }
 ```
 

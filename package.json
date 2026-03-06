@@ -1,4 +1,13 @@
 {
+  "scripts": {
+    "test": "cd JETSETGO && vitest run",
+    "test:unit": "cd JETSETGO && vitest run tests/unit",
+    "test:integration": "cd JETSETGO && vitest run tests/integration"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.9",
+    "vitest": "^2.1.9"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",
     "dotenv": "^17.2.4"
