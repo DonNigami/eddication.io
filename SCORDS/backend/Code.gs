@@ -5,7 +5,8 @@ const SHEET_NAMES = {
   LOG: "Checkin_Log",
   GROUPS: "Groups",
   POINTS: "Points",
-  POINTS_HISTORY: "Points_History"
+  POINTS_HISTORY: "Points_History",
+  QR_GENERATION_HISTORY: "QR_Generation_History"
 };
 
 function doGet(e) {
@@ -41,6 +42,10 @@ function doGet(e) {
       return createJsonResponse({ success: true, data: { leaderboard: getPointsLeaderboard() } });
     }
 
+    if (action === "getQRGenerationHistory") {
+      return createJsonResponse({ success: true, data: { history: getQRGenerationHistory() } });
+    }
+
     return createJsonResponse({
       success: true,
       message: "Check-in API is running."
@@ -69,6 +74,10 @@ function doPost(e) {
         return createJsonResponse(redeemPointsQR(requestData));
       case "addGamePoints":
         return createJsonResponse(addGamePoints(requestData));
+      case "syncLocalHistory":
+        return createJsonResponse(syncLocalHistory(requestData));
+      case "logQRGeneration":
+        return createJsonResponse(logQRGeneration(requestData));
       default:
         throw new Error("Invalid action specified.");
     }
@@ -644,6 +653,25 @@ function redeemPointsQR(data) {
   // Add points to user
   addPointsToUser(ss, userId, qrData.points, qrData.note || 'รับแต้มจาก QR Code', qrData);
 
+  // Update redeemed count in QR_Generation_History
+  const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+  if (qrHistorySheet) {
+    const qrHistoryData = getSheetData(qrHistorySheet);
+    qrHistoryData.forEach((row, index) => {
+      try {
+        const storedQrData = JSON.parse(row.QRCodeData);
+        if (storedQrData.createdAt === qrData.createdAt) {
+          // Increment redeemed count
+          const currentCount = parseInt(row.RedeemedCount) || 0;
+          const rowIndex = index + 2; // +2 for header and 1-based index
+          qrHistorySheet.getRange(rowIndex, 8).setValue(currentCount + 1);
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
+    });
+  }
+
   return {
     success: true,
     message: `รับ ${qrData.points} แต้มสำเร็จ!`,
@@ -763,4 +791,152 @@ function addPointsToUser(ss, userId, points, activity, qrData = null) {
     activity,
     qrData ? JSON.stringify(qrData) : ''
   ]);
+}
+
+/**
+ * Sync ประวัติการเล่นเกมส์จาก localStorage ไป Sheets
+ */
+function syncLocalHistory(data) {
+  const { userId, localHistory } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!userId || !localHistory) {
+    return { success: false, message: "User ID and local history are required" };
+  }
+
+  try {
+    const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+    if (!historySheet) {
+      ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
+      const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+      newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
+      historySheet = newSheet;
+    }
+
+    // Get existing history from sheets
+    const existingHistory = getSheetData(historySheet);
+    const syncedRecords = existingHistory.map(row => {
+      try {
+        const activity = row.Activity;
+        const timestamp = new Date(row.Timestamp).toISOString();
+        return `${userId}_${activity}_${timestamp}`;
+      } catch {
+        return null;
+      }
+    });
+
+    let syncedCount = 0;
+    const userInfo = getUserInfo(ss, userId);
+    const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
+      `${userInfo.firstName} ${userInfo.lastName}` :
+      userInfo.displayName) : userId;
+
+    // Sync each local history item
+    localHistory.forEach(item => {
+      const recordKey = `${userId}_${item.activity}_${item.date}`;
+
+      // Skip if already synced
+      if (syncedRecords.includes(recordKey)) {
+        return;
+      }
+
+      // Add to history
+      historySheet.appendRow([
+        new Date(item.date),
+        userId,
+        userName,
+        item.points,
+        item.activity,
+        '' // No QR data for game points
+      ]);
+
+      syncedCount++;
+    });
+
+    return {
+      success: true,
+      message: `Sync ประวัติ ${syncedCount} รายการสำเร็จ`,
+      data: {
+        syncedCount: syncedCount
+      }
+    };
+  } catch (error) {
+    console.error("Error syncing local history:", error);
+    return {
+      success: false,
+      message: "Sync ประวัติไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
+/**
+ * บันทึกประวัติการสร้าง QR Code แจกแต้ม
+ */
+function logQRGeneration(data) {
+  const { adminId, adminName, points, note, uses, qrData } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!adminId || !points || !qrData) {
+    return { success: false, message: "Missing required fields" };
+  }
+
+  try {
+    const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+    if (!qrHistorySheet) {
+      ss.insertSheet(SHEET_NAMES.QR_GENERATION_HISTORY);
+      const newSheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+      newSheet.appendRow(['Timestamp', 'AdminID', 'AdminName', 'Points', 'Note', 'Uses', 'QRCodeData', 'RedeemedCount']);
+      return newSheet;
+    }
+
+    // Append QR generation record
+    qrHistorySheet.appendRow([
+      new Date(),
+      adminId,
+      adminName || 'Admin',
+      points,
+      note || 'รางวัล',
+      uses,
+      JSON.stringify(qrData),
+      0 // Initial redeemed count
+    ]);
+
+    return {
+      success: true,
+      message: "บันทึกประวัติการสร้าง QR Code สำเร็จ"
+    };
+  } catch (error) {
+    console.error("Error logging QR generation:", error);
+    return {
+      success: false,
+      message: "บันทึกประวัติไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
+/**
+ * ดึงประวัติการสร้าง QR Code แจกแต้ม
+ */
+function getQRGenerationHistory() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+
+  if (!qrHistorySheet) {
+    return [];
+  }
+
+  const historyData = getSheetData(qrHistorySheet);
+
+  return historyData.map(row => ({
+    timestamp: row.Timestamp,
+    adminId: row.AdminID,
+    adminName: row.AdminName,
+    points: parseInt(row.Points) || 0,
+    note: row.Note || 'รางวัล',
+    uses: parseInt(row.Uses) || 1,
+    redeemedCount: parseInt(row.RedeemedCount) || 0,
+    qrData: row.QRCodeData
+  }))
+  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) // Sort by newest first
+  .slice(0, 50); // Last 50 records
 }

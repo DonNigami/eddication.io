@@ -1591,6 +1591,9 @@
                     // Update offline queue UI
                     offlineQueue.updateQueueUI();
 
+                    // Sync local game history to backend (if any)
+                    await syncLocalGameHistory();
+
                     hideLoading();
                     document.getElementById('mainContainer').classList.remove('hidden');
                 } else {
@@ -2415,6 +2418,11 @@
                 if (tabId === 'games') {
                     loadGamesData();
                 }
+
+                // Load admin data when switching to dashboard tab
+                if (tabId === 'dashboard') {
+                    loadAdminPointsHistory();
+                }
             });
         });
 
@@ -2893,7 +2901,7 @@
         }
 
         // Admin QR Code Functions
-        function generatePointsQR() {
+        async function generatePointsQR() {
             const points = parseInt(document.getElementById('qrPoints').value);
             const note = document.getElementById('qrNote').value;
             const uses = parseInt(document.getElementById('qrUses').value);
@@ -2909,17 +2917,43 @@
             }
 
             // Create QR code data
-            const qrData = JSON.stringify({
+            const qrData = {
                 type: 'points_reward',
                 points: points,
                 note: note || 'รางวัล',
                 uses: uses,
                 createdAt: new Date().toISOString(),
                 createdBy: userId
-            });
+            };
+
+            const qrDataString = JSON.stringify(qrData);
+
+            // Log to backend
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: "logQRGeneration",
+                        adminId: userId,
+                        adminName: displayName,
+                        points: points,
+                        note: note || 'รางวัล',
+                        uses: uses,
+                        qrData: qrData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    console.error('Failed to log QR generation:', result.message);
+                }
+            } catch (error) {
+                console.error('Error logging QR generation:', error);
+            }
 
             // Generate QR code (using a simple library or API)
-            generateQRCode(qrData);
+            generateQRCode(qrDataString);
         }
 
         function generateQRCode(data) {
@@ -3027,7 +3061,20 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    await addPoints(qrData.points, qrData.note || 'รับแต้มจาก QR Code');
+                    // Backend already saved to sheets, just update UI locally
+                    userPoints += qrData.points;
+                    localStorage.setItem('scords_user_points', userPoints.toString());
+                    document.getElementById('userPoints').textContent = userPoints;
+
+                    // Add to local history
+                    const historyItem = {
+                        date: new Date().toISOString(),
+                        activity: qrData.note || 'รับแต้มจาก QR Code',
+                        points: qrData.points
+                    };
+                    pointsHistory.unshift(historyItem);
+                    localStorage.setItem('scords_points_history', JSON.stringify(pointsHistory));
+                    loadPointsHistory();
 
                     Swal.fire({
                         icon: 'success',
@@ -3059,11 +3106,98 @@
             document.getElementById('pointsQRScannerModal').classList.add('hidden');
         }
 
-        function loadAdminPointsHistory() {
+        async function loadAdminPointsHistory() {
             const adminHistory = document.getElementById('adminPointsHistory');
-            // Load admin distribution history from backend
-            // For now, show placeholder
-            adminHistory.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ยังไม่มีประวัติการแจกแต้ม</p></div>`;
+
+            try {
+                const response = await fetch(`${API_URL}?action=getQRGenerationHistory`);
+                const result = await response.json();
+
+                if (result.success && result.data.history.length > 0) {
+                    const historyHTML = result.data.history.map(item => {
+                        const date = new Date(item.timestamp);
+                        const dateStr = date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        const progress = (item.redeemedCount / item.uses) * 100;
+                        const progressColor = progress >= 100 ? 'bg-red-500' : progress >= 50 ? 'bg-yellow-500' : 'bg-green-500';
+
+                        return `
+                            <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p class="text-white font-medium">${item.adminName}</p>
+                                        <p class="text-sm text-gray-400">${item.note}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-yellow-400 font-bold">+${item.points} แต้ม</p>
+                                        <p class="text-xs text-gray-500">${dateStr}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 bg-gray-700 rounded-full h-2">
+                                        <div class="${progressColor} h-2 rounded-full transition-all" style="width: ${Math.min(progress, 100)}%"></div>
+                                    </div>
+                                    <p class="text-xs text-gray-400">${item.redeemedCount}/${item.uses}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    adminHistory.innerHTML = historyHTML;
+                } else {
+                    adminHistory.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ยังไม่มีประวัติการแจกแต้ม</p></div>`;
+                }
+            } catch (error) {
+                console.error('Error loading admin points history:', error);
+                adminHistory.innerHTML = `<div class="text-center py-4 text-red-500"><p>โหลดข้อมูลไม่สำเร็จ</p></div>`;
+            }
+        }
+
+        /**
+         * Sync ประวัติการเล่นเกมส์จาก localStorage ไป Backend
+         */
+        async function syncLocalGameHistory() {
+            try {
+                const savedHistory = localStorage.getItem('scords_points_history');
+                if (!savedHistory) return;
+
+                const localHistory = JSON.parse(savedHistory);
+
+                // Filter only game-related activities (not QR code rewards)
+                const gameHistory = localHistory.filter(item => {
+                    return !item.activity.includes('QR Code');
+                });
+
+                if (gameHistory.length === 0) return;
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "syncLocalHistory",
+                        userId: userId,
+                        localHistory: gameHistory
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    console.log(`Synced ${result.data.syncedCount} game records to sheets`);
+
+                    // Clear synced items from localStorage to prevent duplicate sync
+                    if (result.data.syncedCount > 0) {
+                        const remainingHistory = localHistory.filter(item => {
+                            return item.activity.includes('QR Code'); // Keep QR records
+                        });
+                        localStorage.setItem('scords_points_history', JSON.stringify(remainingHistory));
+                        pointsHistory = remainingHistory;
+                        loadPointsHistory();
+                    }
+                }
+            } catch (error) {
+                console.error('Error syncing local history:', error);
+                // Don't show error to user, just log it
+            }
         }
 
         document.getElementById('groupSelect').addEventListener('change', function() {
