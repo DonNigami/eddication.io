@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART CHECK-IN</title>
+     <meta name="description" content="SMART CHECK-IN for LIFF App / MINI App" />
+    <meta name="author" content="iton5" />
+    <meta property="og:title" content="SMART CHECK-IN-iton5-thailand" />
+    <meta property="og:description" content="SMART CHECK-IN for LIFF App / MINI App" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link rel="stylesheet" href="https://bit.ly/fontiton5" type="text/css" charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            font-family: 'line_seed_sans_th';
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #111111;
+            color: #ffffff;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #111111 0%, #333333 100%);
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #111111;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .card {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border: 1px solid #444444;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .pulse {
+            box-shadow: 0 0 0 rgba(255, 215, 0, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(255, 215, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFD700;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: spin 1s linear infinite;
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #FFD700;
+            color: #FFD700;
+        }
+
+        .progress-bar {
+            background: linear-gradient(to right, #FFD700, #FFA500);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .qr-scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-frame {
+            width: 280px;
+            height: 280px;
+            border: 2px solid #FFD700;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .qr-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #FFD700;
+            top: 0;
+            animation: scanLine 2s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+
+        .qr-corners::before,
+        .qr-corners::after,
+        .qr-corners span::before,
+        .qr-corners span::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #FFD700;
+            border-style: solid;
+        }
+
+        .qr-corners::before {
+            top: 0;
+            left: 0;
+            border-width: 3px 0 0 3px;
+        }
+
+        .qr-corners::after {
+            top: 0;
+            right: 0;
+            border-width: 3px 3px 0 0;
+        }
+
+        .qr-corners span::before {
+            bottom: 0;
+            left: 0;
+            border-width: 0 0 3px 3px;
+        }
+
+        .qr-corners span::after {
+            bottom: 0;
+            right: 0;
+            border-width: 0 3px 3px 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <div id="loadingScreen" class="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
+        <span class="loader mb-4"></span>
+        <h2 id="loadingText" class="text-xl font-bold text-yellow-400 mt-4">กำลังโหลด</h2>
+        <p class="text-gray-300 mt-2">โปรดรอสักครู่...</p>
+    </div>
+
+   
+    <div id="mainContainer" class="container mx-auto px-4 py-6 max-w-md hidden">
+        <!-- Header -->
+        <header class="mb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold header-gradient">SMART CHECK-IN</h1>
+                    <p class="text-gray-400" id="currentDate">วันที่ -</p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="w-12 h-12 rounded-full bg-gray-700 overflow-hidden border-2 border-yellow-400" id="profileImage">
+                        <svg class="w-full h-full text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-yellow-400 font-medium mt-1" id="displayName">-</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-700 mb-6 animate-fadeIn" style="animation-delay: 0.2s;">
+            <button class="tab-btn flex-1 py-3 text-center tab-active" data-tab="checkIn">เช็คชื่อ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="history">ประวัติ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="dashboard">แดชบอร์ด</button>
+        </div>
+
+        <!-- Check-in Tab -->
+        <div id="checkInTab" class="tab-content animate-fadeIn" style="animation-delay: 0.3s;">
+            <!-- Status Card -->
+            <div class="card rounded-xl p-5 mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-medium text-gray-200">สถานะวันนี้</h3>
+                    <span id="statusBadge" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300">รอเช็คชื่อ</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">เวลาเช็คชื่อ</p>
+                        <p class="text-xl font-bold text-yellow-400" id="checkInTime">--:--</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-gray-400 text-sm">เวลาปัจจุบัน</p>
+                        <p class="text-xl font-bold text-white" id="currentTime">--:--</p>
+                    </div>
+                </div>
+                <!-- Daily Progress Bar -->
+                <div class="mt-4">
+                    <div class="flex justify-between items-center text-sm mb-1">
+                        <span class="text-gray-400">ความคืบหน้า</span>
+                        <span class="font-medium text-yellow-400" id="progressText">0/0</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div class="progress-bar rounded-full" id="dailyProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities -->
+            <h3 class="text-lg font-medium text-gray-200 mb-4">กิจกรรมที่เปิดให้เช็คชื่อ</h3>
+            <div id="activitiesList" class="space-y-4">
+                <!-- โหลดกิจกรรม -->
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <p class="mt-4">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div id="historyTab" class="tab-content hidden animate-fadeIn">
+            <h3 class="text-lg font-medium text-gray-200 mb-4">ประวัติการเช็คชื่อ (7 วันล่าสุด)</h3>
+            <div id="historyList" class="space-y-4">
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="mt-4">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboardTab" class="tab-content hidden animate-fadeIn">
+            <h3 class="text-lg font-medium text-gray-200 mb-4">แดชบอร์ดสรุปผล</h3>
+            
+            <!-- Group -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-400 mb-2">เลือกกลุ่ม</label>
+                <select id="groupSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="all">ทั้งหมด</option>
+                    <!-- Groups will be populated dynamically -->
+                </select>
+            </div>
+            
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="card rounded-xl p-4">
+                    <p class="text-gray-400 text-sm mb-1">เช็คชื่อแล้ว</p>
+                    <p class="text-2xl font-bold text-yellow-400" id="checkedInCount">0</p>
+                    <p class="text-xs text-gray-500">จากทั้งหมด <span id="totalCount">0</span> คน</p>
+                </div>
+                <div class="card rounded-xl p-4">
+                    <p class="text-gray-400 text-sm mb-1">อัตราการเข้าร่วม</p>
+                    <p class="text-2xl font-bold text-yellow-400" id="attendanceRate">0%</p>
+                    <div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+                        <div class="progress-bar rounded-full" id="attendanceBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Status -->
+            <div class="card rounded-xl p-5 mb-6">
+                <h4 class="text-md font-medium text-gray-200 mb-3">สถานะการเช็คชื่อ</h4>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-300">ตรงเวลา</span>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-yellow-400 mr-2" id="onTimeCount">0</span>
+                            <div class="w-24 bg-gray-700 rounded-full h-2">
+                                <div class="progress-bar rounded-full" id="onTimeBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-300">มาสาย</span>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-yellow-400 mr-2" id="lateCount">0</span>
+                            <div class="w-24 bg-gray-700 rounded-full h-2">
+                                <div class="progress-bar rounded-full" id="lateBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-300">ขาด</span>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-yellow-400 mr-2" id="absentCount">0</span>
+                            <div class="w-24 bg-gray-700 rounded-full h-2">
+                                <div class="progress-bar rounded-full" id="absentBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activity -->
+            <h4 class="text-md font-medium text-gray-200 mb-3">กิจกรรมล่าสุด</h4>
+            <div id="recentActivityList" class="space-y-3">
+                <div class="text-center py-4 text-gray-500">
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scann -->
+    <div id="qrScannerOverlay" class="qr-scanner-overlay hidden">
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-yellow-400 text-center">สแกน QR Code</h2>
+            <p class="text-gray-300 text-center mt-1" id="scanActivityName">-</p>
+        </div>
+        
+        <div class="qr-frame mb-8">
+            <div class="qr-line"></div>
+            <div class="qr-corners"><span></span></div>
+        </div>
+        
+        <button id="cancelScan" class="btn-gradient font-medium py-3 px-6 rounded-full">
+            ยกเลิก
+        </button>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-yellow-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-12 h-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1" id="successTitle">เช็คชื่อสำเร็จ!</h3>
+                <p class="text-gray-400 mb-2" id="successActivity">-</p>
+                <p class="text-yellow-400 font-medium mb-6" id="successTime">-</p>
+                <p class="text-gray-300 text-sm mb-6" id="successStatus">สถานะ: ตรงเวลา</p>
+                <button id="closeSuccessModal" class="btn-gradient font-medium py-3 px-6 rounded-full w-full">
+                    ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-red-500">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1" id="errorTitle">เกิดข้อผิดพลาด</h3>
+                <p class="text-gray-400 mb-6" id="errorMessage">-</p>
+                <button id="closeErrorModal" class="bg-gray-700 text-white font-medium py-3 px-6 rounded-full w-full hover:bg-gray-600 transition">
+                    ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ลงทะเบียน -->
+    <div id="registrationModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500">
+            <div class="text-center mb-4">
+                <h3 class="text-xl font-bold text-white">ลงทะเบียนผู้ใช้งาน</h3>
+                <p class="text-gray-400 mt-2">กรุณาเลือกกลุ่มของคุณ</p>
+            </div>
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-400 mb-2">กลุ่ม</label>
+                <select id="registerGroupSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <!-- Groups will be populated dynamically -->
+                </select>
+            </div>
+            <button id="registerButton" class="btn-gradient font-medium py-3 px-6 rounded-full w-full">
+                ลงทะเบียน
+            </button>
+        </div>
+    </div>
+
+    <script>
+       
+        let userId = null;
+        let displayName = null;
+        let userGroup = null;
+        let userRole = null;
+        let activities = [];
+        let historyData = [];
+        let dashboardData = {};
+        let groups = [];
+        
+        
+        const API_URL = "https://script.google.com/macros/s/xxxxxxxxx/exec"; 
+         const LIFF_ID = 'xxxxxx';
+       
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeLIFF();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        });
+
+        async function initializeLIFF() {
+            try {
+                await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true }); 
+                
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    userId = profile.userId;
+                    displayName = profile.displayName;
+                    
+                    displayUserProfile(profile);
+                    await fetchAllData();
+                } else {
+                    liff.login({ redirectUri: window.location.href });
+                }
+            } catch (error) {
+                showError("การเชื่อมต่อ LIFF ล้มเหลว", "กรุณาลองใหม่อีกครั้ง");
+                console.error("LIFF initialization failed", error);
+            }
+        }
+
+        async function fetchAllData() {
+            try {
+                showLoading("กำลังโหลดข้อมูล");
+                
+                const response = await fetch(`${API_URL}?action=getAllData&userId=${userId}`);
+                const result = await response.json();
+                console.log("Data from API:", result);
+                
+                if (result.success) {
+                    const data = result.data;
+                    userGroup = data.userInfo ? data.userInfo.group : null;
+                    userRole = data.userInfo ? data.userInfo.role : null;
+                    activities = data.activities || [];
+                    historyData = data.history || [];
+                    dashboardData = data.dashboardData || {};
+                    groups = data.groups || [];
+
+                    activities.sort((a, b) => a.time.localeCompare(b.time));
+                    
+                    populateGroupSelects();
+                    
+                    if (!data.userInfo) {
+                        hideLoading();
+                        showRegistrationModal();
+                        return;
+                    }
+                    
+                    loadActivities();
+                    loadHistoryData();
+                    loadDashboardData();
+                    
+                    hideLoading();
+                    document.getElementById('mainContainer').classList.remove('hidden');
+                } else {
+                    throw new Error(result.message || "Failed to fetch data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        function displayUserProfile(profile) {
+            document.getElementById('displayName').textContent = profile.displayName;
+            if (profile.pictureUrl) {
+                document.getElementById('profileImage').innerHTML = `<img src="${profile.pictureUrl}" alt="Profile" class="w-full h-full object-cover">`;
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('th-TH', options);
+            
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes} น.`;
+        }
+
+        function loadActivities() {
+            const activitiesList = document.getElementById('activitiesList');
+            const checkInTimeEl = document.getElementById('checkInTime');
+            const dailyProgressBar = document.getElementById('dailyProgressBar');
+            const progressText = document.getElementById('progressText');
+            
+            activitiesList.innerHTML = '';
+            
+            if (activities.length === 0) {
+                activitiesList.innerHTML = `<div class="text-center py-8 text-gray-500"><svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg><p class="mt-4">ไม่มีกิจกรรมที่เปิดให้เช็คชื่อในขณะนี้</p></div>`;
+                checkInTimeEl.textContent = "ไม่มีกิจกรรม";
+                progressText.textContent = "0/0";
+                dailyProgressBar.style.width = "0%";
+                return;
+            }
+
+            const checkedInCount = activities.filter(a => a.checkedIn).length;
+            const totalActivities = activities.length;
+            const progressPercentage = totalActivities > 0 ? (checkedInCount / totalActivities) * 100 : 0;
+            progressText.textContent = `${checkedInCount}/${totalActivities}`;
+            dailyProgressBar.style.width = `${progressPercentage}%`;
+
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const nextAvailableActivity = activities.find(a => {
+                if (a.checkedIn) return false;
+                const [endHour, endMinute] = a.time.split(' - ')[1].split(':').map(Number);
+                return currentTime <= (endHour * 60 + endMinute);
+            });
+            
+            if (nextAvailableActivity) {
+                checkInTimeEl.textContent = nextAvailableActivity.time;
+            } else {
+                checkInTimeEl.textContent = activities.every(a => a.checkedIn) ? "เช็คชื่อครบแล้ว" : "กิจกรรมปิดแล้ว";
+            }
+            
+            const lastCheckedIn = activities.filter(a => a.checkedIn).pop();
+            if (lastCheckedIn) {
+                document.getElementById('statusBadge').textContent = lastCheckedIn.status;
+                document.getElementById('statusBadge').className = `px-3 py-1 rounded-full text-xs font-medium ${lastCheckedIn.status === 'ตรงเวลา' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`;
+            }
+            
+            activities.forEach((activity, index) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-xl p-5 animate-fadeIn';
+                card.style.animationDelay = `${0.3 + (index * 0.1)}s`;
+                
+                if (activity.checkedIn) {
+                    card.innerHTML = `<div class="flex justify-between items-start mb-3"><h3 class="text-lg font-medium text-white">${activity.name}</h3><span class="px-3 py-1 rounded-full text-xs font-medium ${activity.status === 'ตรงเวลา' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}">${activity.status}</span></div><p class="text-gray-400 text-sm mb-4">เวลาเช็คชื่อ: ${activity.time} น.</p><button class="w-full py-3 rounded-lg flex items-center justify-center bg-gray-700 text-gray-300 cursor-not-allowed" disabled><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>เช็คชื่อแล้ว</button>`;
+                } else {
+                    const [startHour, startMinute] = activity.time.split(' - ')[0].split(':').map(Number);
+                    const [endHour, endMinute] = activity.time.split(' - ')[1].split(':').map(Number);
+                    const activityStartTime = startHour * 60 + startMinute;
+                    const activityEndTime = endHour * 60 + endMinute;
+                    const isActive = currentTime >= activityStartTime && currentTime <= activityEndTime;
+                    const isPast = currentTime > activityEndTime;
+
+                    let statusText, statusClass, buttonHtml;
+
+                    if (isPast) {
+                        statusText = 'หมดเวลา';
+                        statusClass = 'bg-red-900 text-red-300';
+                        buttonHtml = `<button class="w-full py-3 rounded-lg flex items-center justify-center bg-gray-700 text-gray-300 cursor-not-allowed" disabled><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>ขาดการเช็คชื่อ</button>`;
+                    } else if (isActive) {
+                        statusText = 'เปิดให้เช็คชื่อ';
+                        statusClass = 'bg-green-900 text-green-300';
+                        buttonHtml = `<button class="check-in-btn btn-gradient w-full py-3 rounded-lg flex items-center justify-center" data-activity-id="${activity.id}" data-activity-name="${activity.name}"><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>สแกน QR Code เพื่อเช็คชื่อ</button>`;
+                    } else {
+                        statusText = 'ยังไม่เปิด';
+                        statusClass = 'bg-gray-700 text-gray-400';
+                        buttonHtml = `<button class="w-full py-3 rounded-lg flex items-center justify-center bg-gray-800 text-gray-500 cursor-not-allowed" disabled><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ยังไม่ถึงเวลา</button>`;
+                    }
+                    card.innerHTML = `<div class="flex justify-between items-start mb-3"><h3 class="text-lg font-medium text-white">${activity.name}</h3><span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${statusText}</span></div><p class="text-gray-400 text-sm mb-4">เวลาเช็คชื่อ: ${activity.time} น.</p>${buttonHtml}`;
+                }
+                activitiesList.appendChild(card);
+            });
+            
+            document.querySelectorAll('.check-in-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const activityId = this.getAttribute('data-activity-id');
+                    const activityName = this.getAttribute('data-activity-name');
+                    getLocationAndScan(activityId, activityName);
+                });
+            });
+        }
+
+        function loadHistoryData() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            if (historyData.length === 0) {
+                historyList.innerHTML = `<div class="text-center py-8 text-gray-500"><svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p class="mt-4">ไม่มีประวัติการเช็คชื่อ</p></div>`;
+                return;
+            }
+            
+            historyData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-xl p-4 animate-fadeIn';
+                card.style.animationDelay = `${0.1 * index}s`;
+                
+                let statusClass = 'bg-green-900 text-green-300';
+                if (item.status === 'สาย') {
+                    statusClass = 'bg-yellow-900 text-yellow-300';
+                } else if (item.status === 'ขาด') {
+                    statusClass = 'bg-red-900 text-red-300';
+                }
+                
+                card.innerHTML = `<div class="flex justify-between items-start"><div><p class="text-sm text-gray-400">${formatDate(item.date)}</p><h4 class="text-md font-medium text-white mt-1">${item.activity}</h4><p class="text-sm text-yellow-400 mt-1">${item.time !== '-' ? 'เวลาเช็คชื่อ: ' + item.time + ' น.' : 'ไม่ได้เช็คชื่อ'}</p></div><span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${item.status}</span></div>`;
+                historyList.appendChild(card);
+            });
+        }
+
+        function loadDashboardData() {
+            document.getElementById('checkedInCount').textContent = dashboardData.checkedIn || 0;
+            document.getElementById('totalCount').textContent = dashboardData.total || 0;
+            
+            const attendanceRate = dashboardData.total ? Math.round((dashboardData.checkedIn / dashboardData.total) * 100) : 0;
+            document.getElementById('attendanceRate').textContent = `${attendanceRate}%`;
+            document.getElementById('attendanceBar').style.width = `${attendanceRate}%`;
+            
+            document.getElementById('onTimeCount').textContent = dashboardData.onTime || 0;
+            document.getElementById('lateCount').textContent = dashboardData.late || 0;
+            document.getElementById('absentCount').textContent = dashboardData.absent || 0;
+            
+            const onTimePercent = dashboardData.total ? Math.round((dashboardData.onTime / dashboardData.total) * 100) : 0;
+            const latePercent = dashboardData.total ? Math.round((dashboardData.late / dashboardData.total) * 100) : 0;
+            const absentPercent = dashboardData.total ? Math.round((dashboardData.absent / dashboardData.total) * 100) : 0;
+            
+            document.getElementById('onTimeBar').style.width = `${onTimePercent}%`;
+            document.getElementById('lateBar').style.width = `${latePercent}%`;
+            document.getElementById('absentBar').style.width = `${absentPercent}%`;
+            
+            const recentActivityList = document.getElementById('recentActivityList');
+            recentActivityList.innerHTML = '';
+            
+            if (!dashboardData.recentActivity || dashboardData.recentActivity.length === 0) {
+                recentActivityList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ไม่มีกิจกรรมล่าสุด</p></div>`;
+                return;
+            }
+            
+            dashboardData.recentActivity.forEach((item, index) => {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'card rounded-lg p-3 animate-fadeIn';
+                activityItem.style.animationDelay = `${0.1 * index}s`;
+                
+                let statusClass = 'bg-green-900 text-green-300';
+                if (item.status === 'สาย') {
+                    statusClass = 'bg-yellow-900 text-yellow-300';
+                } else if (item.status === 'ขาด') {
+                    statusClass = 'bg-red-900 text-red-300';
+                }
+                
+                activityItem.innerHTML = `<div class="flex justify-between items-center"><div><p class="text-sm font-medium text-white">${item.name}</p><p class="text-xs text-gray-400">${item.activity} - ${item.time} น.</p></div><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${item.status}</span></div>`;
+                recentActivityList.appendChild(activityItem);
+            });
+        }
+
+        function populateGroupSelects() {
+            const groupSelect = document.getElementById('groupSelect');
+            const registerGroupSelect = document.getElementById('registerGroupSelect');
+            
+            while (groupSelect.options.length > 1) {
+                groupSelect.remove(1);
+            }
+            registerGroupSelect.innerHTML = '';
+            
+            groups.forEach(group => {
+                const option1 = document.createElement('option');
+                option1.value = group;
+                option1.textContent = group;
+                groupSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = group;
+                option2.textContent = group;
+                registerGroupSelect.appendChild(option2);
+            });
+            
+            if (userGroup) {
+                groupSelect.value = userGroup;
+            }
+        }
+
+        function getLocationAndScan(activityId, activityName) {
+            showLoading("กำลังระบุตำแหน่ง...");
+            if (!navigator.geolocation) {
+                hideLoading();
+                showError("ตำแหน่งผิดพลาด", "เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    hideLoading();
+                    openQRScanner(activityId, activityName, position.coords);
+                },
+                () => {
+                    hideLoading();
+                    showError("ตำแหน่งผิดพลาด", "ไม่สามารถระบุตำแหน่งได้ กรุณาอนุญาตให้แอปเข้าถึงตำแหน่งของคุณ");
+                }
+            );
+        }
+
+        function openQRScanner(activityId, activityName, coords) {
+            const overlay = document.getElementById('qrScannerOverlay');
+            document.getElementById('scanActivityName').textContent = activityName;
+            overlay.classList.remove('hidden');
+            
+            scanQRCode(activityId, coords);
+        }
+
+        async function scanQRCode(activityId, coords) {
+            try {
+                const os = liff.getOS();
+                let qrResult;
+                if (os === 'android') {
+                    qrResult = await liff.scanCode();
+                } else {
+                    qrResult = await liff.scanCodeV2();
+                }
+                
+                if (qrResult && qrResult.value) {
+                    processQRCode(activityId, qrResult.value, coords);
+                } else {
+                     document.getElementById('qrScannerOverlay').classList.add('hidden');
+                }
+            } catch (error) {
+                document.getElementById('qrScannerOverlay').classList.add('hidden');
+                showError("การสแกน QR Code ล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+                console.error("QR scan error:", error);
+            }
+        }
+
+        async function processQRCode(activityId, qrResult, coords) {
+            document.getElementById('qrScannerOverlay').classList.add('hidden');
+            showLoading("กำลังบันทึกข้อมูล");
+            
+            try {
+                const timestamp = new Date().toISOString();
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "checkIn",
+                        userId: userId,
+                        displayName: displayName,
+                        activityId: activityId,
+                        qrCode: qrResult,
+                        timestamp: timestamp,
+                        latitude: coords.latitude,
+                        longitude: coords.longitude
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    hideLoading();
+                    const now = new Date();
+                    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} น.`;
+                    const activity = activities.find(a => a.id.toString() === activityId.toString());
+
+                    if (liff.isInClient()) {
+                        const flexMessage = createFlexMessage(activity.name, displayName, currentTime, result.data.status);
+                        await liff.sendMessages([flexMessage]).then(function () {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: "top-end",
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.onmouseenter = Swal.stopTimer;
+                        toast.onmouseleave = Swal.resumeTimer;
+                    }
+                });
+                Toast.fire({
+                    icon: "success",
+                    title: "ส่งเข้าแชทเรียบร้อย"
+                })
+
+            });
+                    }
+                    
+                    document.getElementById('successActivity').textContent = activity ? activity.name : '';
+                    document.getElementById('successTime').textContent = currentTime;
+                    document.getElementById('successStatus').textContent = `สถานะ: ${result.data.status}`;
+                    document.getElementById('successModal').classList.remove('hidden');
+                                        
+                    await fetchAllData();
+                    
+                } else {
+                    throw new Error(result.message || "Check-in failed");
+                }
+            } catch (error) {
+                hideLoading();
+                showError('เช็คชื่อไม่สำเร็จ', error.message || 'กรุณาลองใหม่อีกครั้ง');
+            }
+        }
+
+        function createFlexMessage(activityName, userName, checkInTime, status) {
+            const statusColor = status === 'ตรงเวลา' ? '#1DB446' : '#FFC107';
+            return {
+                "type": "flex",
+                "altText": "การเช็คชื่อ",
+                "contents": {
+                    "type": "bubble",
+                    "hero": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            {
+                                "type": "image",
+                                "url": "https://img.icons8.com/plasticine/2x/checkmark.png",
+                                "size": "sm",
+                                "aspectRatio": "1:1",
+                                "aspectMode": "cover"
+                            },
+                            {
+                                "type": "text",
+                                "text": "CHECK-IN COMPLETE",
+                                "weight": "bold",
+                                "size": "xl",
+                                "color": "#1DB446",
+                                "align": "center",
+                                "margin": "md"
+                            }
+                        ],
+                        "paddingAll": "20px"
+                    },
+                    "body": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "md",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": "รายละเอียดการเช็คชื่อ",
+                                "size": "sm",
+                                "weight": "bold",
+                                "color": "#aaaaaa"
+                            },
+                            { "type": "separator" },
+                            {
+                                "type": "box",
+                                "layout": "vertical",
+                                "spacing": "sm",
+                                "margin": "lg",
+                                "contents": [
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "กิจกรรม:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": activityName, "flex": 2,"color": "#ffffff", "wrap": true, "weight": "bold", "align": "end", "size": "sm" } ] },
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "ผู้เช็คชื่อ:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": userName, "flex": 2,"color": "#ffffff", "wrap": true, "weight": "bold", "align": "end", "size": "sm" } ] },
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "เวลา:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": checkInTime, "flex": 2,"color": "#ffffff", "wrap": true, "weight": "bold", "align": "end", "size": "sm" } ] },
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "สถานะ:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": status, "flex": 2, "wrap": true, "weight": "bold", "align": "end", "size": "sm", "color": statusColor } ] }
+                                ]
+                            }
+                        ]
+                    },
+                    "styles": {
+                        "hero": { "backgroundColor": "#2c2c2c" },
+                        "body": { "backgroundColor": "#333333" }
+                    }
+                }
+            };
+        }
+
+        function showRegistrationModal() {
+            document.getElementById('registrationModal').classList.remove('hidden');
+        }
+
+        async function registerUser() {
+            const selectedGroup = document.getElementById('registerGroupSelect').value;
+            if (!selectedGroup) {
+                showError("การลงทะเบียนล้มเหลว", "กรุณาเลือกกลุ่ม");
+                return;
+            }
+            showLoading("กำลังลงทะเบียน");
+            try {
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "registerUser",
+                        userId: userId,
+                        displayName: displayName,
+                        group: selectedGroup
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('registrationModal').classList.add('hidden');
+                    await fetchAllData();
+                } else {
+                    throw new Error(result.message || "Registration failed");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การลงทะเบียนล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        async function updateDashboard(group) {
+            try {
+                showLoading("กำลังโหลดข้อมูลแดชบอร์ด");
+                const response = await fetch(`${API_URL}?action=getDashboard&group=${group}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    dashboardData = result.data;
+                    loadDashboardData();
+                    hideLoading();
+                } else {
+                    throw new Error(result.message || "Failed to fetch dashboard data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        function showLoading(message) {
+            const loadingScreen = document.getElementById('loadingScreen');
+            document.getElementById('loadingText').textContent = message || "กำลังโหลด";
+            loadingScreen.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingScreen').style.display = 'none';
+        }
+
+        function showError(title, message) {
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active', 'text-white'));
+                this.classList.add('tab-active', 'text-white');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`${tabId}Tab`).classList.remove('hidden');
+            });
+        });
+
+        document.getElementById('groupSelect').addEventListener('change', function() {
+            updateDashboard(this.value);
+        });
+
+        document.getElementById('registerButton').addEventListener('click', registerUser);
+        document.getElementById('closeSuccessModal').addEventListener('click', () => document.getElementById('successModal').classList.add('hidden'));
+        document.getElementById('closeErrorModal').addEventListener('click', () => document.getElementById('errorModal').classList.add('hidden'));
+        document.getElementById('cancelScan').addEventListener('click', () => document.getElementById('qrScannerOverlay').classList.add('hidden'));
+
+        const message = "ไม่อนุญาตให้คลิกขวาครับ";
+
+        document.addEventListener("contextmenu", function (e) {
+            Swal.fire('Oh!', message, 'error');
+
+            e.preventDefault();
+        });
+
+        document.addEventListener("mousedown", function (e) {
+            if (e.button === 2 || e.button === 1) {
+                Swal.fire('Oh!', message, 'error');
+
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
