@@ -1153,8 +1153,43 @@
         class AchievementManager {
             constructor() {
                 this.achievements = this.defineAchievements();
-                this.userAchievements = JSON.parse(localStorage.getItem('scords_achievements') || '{}');
-                this.userStats = JSON.parse(localStorage.getItem('scords_stats') || '{}');
+                this.userAchievements = {};
+                this.userStats = {};
+                this.isLoading = false;
+            }
+
+            async loadFromServer(userId) {
+                if (this.isLoading) return;
+                this.isLoading = true;
+
+                try {
+                    const response = await fetch(`${API_URL}?action=getAchievements&userId=${userId}`);
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        // Convert achievements array to object keyed by id
+                        this.userAchievements = {};
+                        result.data.achievements.forEach(a => {
+                            this.userAchievements[a.id] = {
+                                id: a.id,
+                                name: a.title,
+                                description: a.description,
+                                icon: a.icon,
+                                unlockedAt: a.unlockedAt
+                            };
+                        });
+
+                        this.userStats = result.data.stats || {};
+                        console.log('Achievements loaded from server:', this.userAchievements);
+                    }
+                } catch (error) {
+                    console.error('Error loading achievements from server:', error);
+                    // Fallback to localStorage if server fails
+                    this.userAchievements = JSON.parse(localStorage.getItem('scords_achievements') || '{}');
+                    this.userStats = JSON.parse(localStorage.getItem('scords_stats') || '{}');
+                } finally {
+                    this.isLoading = false;
+                }
             }
 
             defineAchievements() {
@@ -1430,10 +1465,13 @@
                 return stats;
             }
 
-            checkAchievements(historyData, activities = []) {
+            async checkAchievements(historyData, activities = [], userId = null) {
                 const stats = this.calculateStats(historyData, activities);
                 this.userStats = stats;
-                this.saveStats(stats);
+
+                if (userId) {
+                    await this.saveStats(userId, stats);
+                }
 
                 const newAchievements = [];
 
@@ -1446,7 +1484,8 @@
                         if (achievement.condition(stats)) {
                             this.userAchievements[achievement.id] = {
                                 ...achievement,
-                                unlockedAt: new Date().toISOString()
+                                unlockedAt: new Date().toISOString(),
+                                savedToServer: false
                             };
                             newAchievements.push(achievement);
                         }
@@ -1456,18 +1495,83 @@
                 }
 
                 if (newAchievements.length > 0) {
-                    this.saveAchievements();
+                    if (userId) {
+                        await this.saveAchievements(userId);
+                    } else {
+                        this.saveAchievements(); // Fallback to localStorage only
+                    }
                     this.showAchievementNotification(newAchievements);
                 }
 
                 return newAchievements;
             }
 
-            saveAchievements() {
+            async saveAchievements(userId) {
+                // Save to server for each new achievement
+                const newAchievements = [];
+
+                for (const [id, achievement] of Object.entries(this.userAchievements)) {
+                    // Check if it's a new achievement (not saved to server yet)
+                    if (!achievement.savedToServer) {
+                        try {
+                            const response = await fetch(API_URL, {
+                                method: 'POST',
+                                body: JSON.stringify({
+                                    action: 'unlockAchievement',
+                                    userId: userId,
+                                    achievementId: achievement.id,
+                                    title: achievement.name,
+                                    description: achievement.description,
+                                    icon: achievement.icon
+                                })
+                            });
+
+                            const result = await response.json();
+                            if (result.success) {
+                                achievement.savedToServer = true;
+                                newAchievements.push(achievement);
+                            }
+                        } catch (error) {
+                            console.error('Error saving achievement to server:', error);
+                        }
+                    }
+                }
+
+                // Also save to localStorage as backup
                 localStorage.setItem('scords_achievements', JSON.stringify(this.userAchievements));
+
+                return newAchievements;
             }
 
-            saveStats(stats) {
+            async saveStats(userId, stats) {
+                if (!stats) stats = this.userStats;
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'updateAchievementStats',
+                            userId: userId,
+                            stats: {
+                                totalCheckIns: stats.totalCheckIns || 0,
+                                currentStreak: stats.currentStreak || 0,
+                                bestStreak: stats.bestStreak || 0,
+                                weekOnTimeRate: stats.weekOnTimeRate || 0,
+                                monthOnTimeRate: stats.monthOnTimeRate || 0,
+                                totalPoints: stats.totalPoints || 0
+                            }
+                        })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('Stats saved to server');
+                    }
+                } catch (error) {
+                    console.error('Error saving stats to server:', error);
+                }
+
+                // Also save to localStorage as backup
                 localStorage.setItem('scords_stats', JSON.stringify(stats));
             }
 
@@ -1588,10 +1692,10 @@
                     loadActivities();
                     loadHistoryData();
                     loadDashboardData();
-                    loadAchievementsData();
+                    await loadAchievementsData();
 
                     // Check for new achievements
-                    achievementManager.checkAchievements(historyData, activities);
+                    await achievementManager.checkAchievements(historyData, activities, data.userInfo?.userId);
 
                     // Load initial leaderboard data
                     await updateLeaderboardPeriod(currentLeaderboardPeriod);
@@ -1789,7 +1893,12 @@
             });
         }
 
-        function loadAchievementsData() {
+        async function loadAchievementsData() {
+            // Load achievements from server if userId is available
+            if (userId) {
+                await achievementManager.loadFromServer(userId);
+            }
+
             const stats = achievementManager.getStats();
             const unlockedAchievements = achievementManager.getUnlockedAchievements();
             const lockedAchievements = achievementManager.getLockedAchievements();
@@ -2419,7 +2528,7 @@
 
                 // Load achievements data when switching to achievements tab
                 if (tabId === 'achievements') {
-                    loadAchievementsData();
+                    await loadAchievementsData();
                 }
 
                 // Load games data when switching to games tab

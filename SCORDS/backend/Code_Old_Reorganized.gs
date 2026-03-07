@@ -11,13 +11,14 @@ const SHEET_NAMES = {
   ACHIEVEMENT_STATS: "Achievement_Stats"
 };
 
-/**
- * Handle OPTIONS request for CORS preflight
- * CRITICAL: Prevents 302 redirect during LINE webhook verification
- *
- * NOTE: Google Apps Script handles CORS headers automatically when deployed
- * with "Who has access: Anyone". We just need to return a valid JSON response.
- */
+// ═══════════════════════════════════════════════════════════════
+// CONSTANTS & CONFIGURATION
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// HTTP HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
 function doOptions(e) {
   const output = ContentService.createTextOutput(JSON.stringify({
     success: true,
@@ -219,6 +220,62 @@ function doPost(e) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// USER MANAGEMENT FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function registerUser(data) {
+  const { userId, displayName, firstName, lastName, employeeId, position, group, pictureUrl } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+
+  // ตรวจสอบว่า userId ลงทะเบียนแล้วหรือยัง
+  if (findRow(userSheet, 'UserID', userId)) {
+    return { success: false, message: "LINE User ID นี้ลงทะเบียนแล้ว ไม่สามารถลงทะเบียนซ้ำได้" };
+  }
+
+  // ตรวจสอบว่า employeeId ซ้ำหรือไม่
+  if (findRow(userSheet, 'EmployeeID', employeeId)) {
+    return { success: false, message: "รหัสพนักงานนี้ถูกใช้งานแล้ว กรุณาติดต่อผู้ดูแลระบบ" };
+  }
+
+  // บันทึกข้อมูลลงใน Sheet
+  // โครงสร้าง: UserID, DisplayName, FirstName, LastName, EmployeeID, Position, Group, Role, ProfilePicture, CreatedAt
+  userSheet.appendRow([
+    userId,
+    displayName || '',
+    firstName || '',
+    lastName || '',
+    employeeId || '',
+    position || '',
+    group || '',
+    'user',
+    pictureUrl || '',
+    new Date()
+  ]);
+
+  return { success: true, message: "ลงทะเบียนสำเร็จ" };
+}
+
+function getUserInfo(ss, userId) {
+  const user = findRow(ss.getSheetByName(SHEET_NAMES.USERS), 'UserID', userId);
+  if (user) {
+    return {
+      userId: user.UserID,
+      displayName: user.DisplayName,
+      firstName: user.FirstName,
+      lastName: user.LastName,
+      employeeId: user.EmployeeID,
+      position: user.Position,
+      name: user.FirstName && user.LastName ? `${user.FirstName} ${user.LastName}` : user.DisplayName,
+      group: user.Group,
+      role: user.Role,
+      profilePicture: user.ProfilePicture || null
+    };
+  }
+  return null;
+}
+
 function getAllData(userId, days) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const userInfo = getUserInfo(ss, userId);
@@ -255,51 +312,9 @@ function getAllData(userId, days) {
   };
 }
 
-/**
- * ลงทะเบียนผู้ใช้ใหม่
- * @param {Object} data - ข้อมูลการลงทะเบียน
- * @param {string} data.userId - LINE User ID
- * @param {string} data.displayName - ชื่อทางการแสดงใน LINE
- * @param {string} data.firstName - ชื่อจริง
- * @param {string} data.lastName - นามสกุล
- * @param {string} data.employeeId - รหัสพนักงาน
- * @param {string} data.position - ตำแหน่ง
- * @param {string} data.group - กลุ่ม
- * @param {string} data.pictureUrl - รูปโปรไฟล์จาก LINE Profile
- * @returns {Object} ผลลัพธ์การลงทะเบียน
- */
-function registerUser(data) {
-  const { userId, displayName, firstName, lastName, employeeId, position, group, pictureUrl } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
-
-  // ตรวจสอบว่า userId ลงทะเบียนแล้วหรือยัง
-  if (findRow(userSheet, 'UserID', userId)) {
-    return { success: false, message: "LINE User ID นี้ลงทะเบียนแล้ว ไม่สามารถลงทะเบียนซ้ำได้" };
-  }
-
-  // ตรวจสอบว่า employeeId ซ้ำหรือไม่
-  if (findRow(userSheet, 'EmployeeID', employeeId)) {
-    return { success: false, message: "รหัสพนักงานนี้ถูกใช้งานแล้ว กรุณาติดต่อผู้ดูแลระบบ" };
-  }
-
-  // บันทึกข้อมูลลงใน Sheet
-  // โครงสร้าง: UserID, DisplayName, FirstName, LastName, EmployeeID, Position, Group, Role, ProfilePicture, CreatedAt
-  userSheet.appendRow([
-    userId,
-    displayName || '',
-    firstName || '',
-    lastName || '',
-    employeeId || '',
-    position || '',
-    group || '',
-    'user',
-    pictureUrl || '',
-    new Date()
-  ]);
-
-  return { success: true, message: "ลงทะเบียนสำเร็จ" };
-}
+// ═══════════════════════════════════════════════════════════════
+// CHECK-IN SYSTEM FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
 function processCheckIn(data) {
   const { userId, displayName, activityId, qrCode, timestamp, latitude, longitude } = data;
@@ -372,6 +387,21 @@ function processCheckIn(data) {
   };
 }
 
+function findCheckInRecord(ss, userId, activityId) {
+    const logSheet = ss.getSheetByName(SHEET_NAMES.LOG);
+    const data = getSheetData(logSheet);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return data.find(row => {
+        const recordDate = new Date(row.Timestamp);
+        recordDate.setHours(0, 0, 0, 0);
+        return row.UserID === userId &&
+               row.ActivityID.toString() === activityId.toString() &&
+               recordDate.getTime() === today.getTime();
+    });
+}
+
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3; // Earth's radius in metres
   const φ1 = lat1 * Math.PI/180;
@@ -387,9 +417,10 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-/**
- * ดึงข้อมูล Dashboard ตามกลุ่ม
- */
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD & REPORTING FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
 function getDashboardData(ssOrGroup, group, returnFullResponse = false) {
     let ss;
     let selectedGroup = group;
@@ -456,38 +487,6 @@ function getDashboardData(ssOrGroup, group, returnFullResponse = false) {
     return dashboardResult;
 }
 
-/**
- * ดึงข้อมูลผู้ใช้
- * @param {SpreadsheetApp.Spreadsheet} ss - Spreadsheet object
- * @param {string} userId - LINE User ID
- * @returns {Object|null} ข้อมูลผู้ใช้
- */
-function getUserInfo(ss, userId) {
-  const user = findRow(ss.getSheetByName(SHEET_NAMES.USERS), 'UserID', userId);
-  if (user) {
-    return {
-      userId: user.UserID,
-      displayName: user.DisplayName,
-      firstName: user.FirstName,
-      lastName: user.LastName,
-      employeeId: user.EmployeeID,
-      position: user.Position,
-      name: user.FirstName && user.LastName ? `${user.FirstName} ${user.LastName}` : user.DisplayName,
-      group: user.Group,
-      role: user.Role,
-      profilePicture: user.ProfilePicture || null
-    };
-  }
-  return null;
-}
-
-/**
- * ดึงประวัติการเช็คชื่อ
- * @param {SpreadsheetApp.Spreadsheet|string} ssOrUserId - Spreadsheet object or userId
- * @param {string} userId - LINE User ID (optional if first param is ss)
- * @param {string} days - จำนวนวันที่ต้องการ (7, 30, all)
- * @returns {Array} ประวัติการเช็คชื่อ
- */
 function getHistory(ssOrUserId, userId, days) {
   let ss;
   let actualUserId;
@@ -543,11 +542,6 @@ function getHistory(ssOrUserId, userId, days) {
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-/**
- * ดึงข้อมูลจัดอันดับ (Top 10 ผู้เช็คชื่อตรงเวลา)
- * @param {string} days - จำนวนวันที่ต้องการ (7, 30, all)
- * @returns {Array} ข้อมูลจัดอันดับ
- */
 function getLeaderboard(days) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const logData = getSheetData(ss.getSheetByName(SHEET_NAMES.LOG));
@@ -617,9 +611,6 @@ function getLeaderboard(days) {
   return leaderboard.slice(0, 10);
 }
 
-/**
- * ดึงรายการกลุ่มทั้งหมด
- */
 function getGroups(ss) {
   const groupsSheet = ss.getSheetByName(SHEET_NAMES.GROUPS);
   if (!groupsSheet) return [];
@@ -628,72 +619,345 @@ function getGroups(ss) {
   return groupsData.map(row => row.GroupName).filter(g => g);
 }
 
-/**
- * ค้นหาบันทึกการเช็คชื่อ
- */
-function findCheckInRecord(ss, userId, activityId) {
-    const logSheet = ss.getSheetByName(SHEET_NAMES.LOG);
-    const data = getSheetData(logSheet);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+// ═══════════════════════════════════════════════════════════════
+// POINTS SYSTEM FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-    return data.find(row => {
-        const recordDate = new Date(row.Timestamp);
-        recordDate.setHours(0, 0, 0, 0);
-        return row.UserID === userId &&
-               row.ActivityID.toString() === activityId.toString() &&
-               recordDate.getTime() === today.getTime();
+function redeemPointsQR(data) {
+  const { userId, qrData } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // Validate QR data
+  if (!qrData || qrData.type !== 'points_reward') {
+    return { success: false, message: "QR Code ไม่ถูกต้อง" };
+  }
+
+  // Check if QR has remaining uses
+  const pointsHistorySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+  if (!pointsHistorySheet) {
+    ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
+    // Create sheet with headers
+    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+    newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
+  }
+
+  // Count how many times this QR has been used
+  const historyData = getSheetData(pointsHistorySheet);
+  const qrUses = historyData.filter(row => {
+    try {
+      const qr = JSON.parse(row.QRCodeData);
+      return qr.createdAt === qrData.createdAt;
+    } catch {
+      return false;
+    }
+  }).length;
+
+  if (qrUses >= qrData.uses) {
+    return { success: false, message: "QR Code นี้ถูกใช้ครบแล้ว" };
+  }
+
+  // Check if user already used this QR
+  const alreadyUsed = historyData.some(row =>
+    row.UserID === userId &&
+    row.QRCodeData === JSON.stringify(qrData)
+  );
+
+  if (alreadyUsed && qrData.uses === 1) {
+    return { success: false, message: "คุณใช้ QR Code นี้ไปแล้ว" };
+  }
+
+  // Get user info
+  const userInfo = getUserInfo(ss, userId);
+  const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
+    `${userInfo.firstName} ${userInfo.lastName}` :
+    userInfo.name) : data.displayName || userId;
+
+  // Add points to user
+  addPointsToUser(ss, userId, qrData.points, qrData.note || 'รับแต้มจาก QR Code', qrData);
+
+  // Update redeemed count in QR_Generation_History
+  const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+  if (qrHistorySheet) {
+    const qrHistoryData = getSheetData(qrHistorySheet);
+    qrHistoryData.forEach((row, index) => {
+      try {
+        const storedQrData = JSON.parse(row.QRCodeData);
+        if (storedQrData.createdAt === qrData.createdAt) {
+          // Increment redeemed count
+          const currentCount = parseInt(row.RedeemedCount) || 0;
+          const rowIndex = index + 2; // +2 for header and 1-based index
+          qrHistorySheet.getRange(rowIndex, 8).setValue(currentCount + 1);
+        }
+      } catch (e) {
+        // Skip invalid JSON
+      }
     });
+  }
+
+  return {
+    success: true,
+    message: `รับ ${qrData.points} แต้มสำเร็จ!`,
+    data: {
+      points: qrData.points,
+      note: qrData.note
+    }
+  };
 }
 
-/**
- * สร้าง JSON Response
- */
-/**
- * Create JSON response with proper headers
- * CRITICAL: Returns 200 OK instead of 302 redirect
- *
- * NOTE: Google Apps Script handles CORS headers automatically when deployed
- * with "Who has access: Anyone". We just need to return a valid JSON response.
- */
-function createJsonResponse(data) {
-  const jsonString = JSON.stringify(data);
-  const output = ContentService.createTextOutput(jsonString);
+function addGamePoints(data) {
+  const { userId, activity, points, displayName } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
 
-  output.setMimeType(ContentService.MimeType.JSON);
+  if (!userId) {
+    return { success: false, message: "User ID is required" };
+  }
 
-  return output;
+  if (!activity || !points) {
+    return { success: false, message: "Activity and points are required" };
+  }
+
+  try {
+    // Add points using existing function
+    addPointsToUser(ss, userId, points, activity);
+
+    // Get user info for response
+    const userInfo = getUserInfo(ss, userId);
+    const totalPoints = getUserTotalPoints(ss, userId);
+
+    return {
+      success: true,
+      message: `ได้รับ ${points} แต้ม!`,
+      data: {
+        points: points,
+        activity: activity,
+        totalPoints: totalPoints
+      }
+    };
+  } catch (error) {
+    console.error("Error adding game points:", error);
+    return {
+      success: false,
+      message: "เพิ่มแต้มไม่สำเร็จ: " + error.message
+    };
+  }
 }
 
-/**
- * แปลงข้อมูล Sheet เป็น Array of Objects
- */
-function getSheetData(sheet) {
-  if (!sheet) return [];
-  const dataRange = sheet.getDataRange();
-  const values = dataRange.getValues();
+function getUserTotalPoints(ss, userId) {
+  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
 
-  if (!values || values.length === 0) return [];
+  if (!pointsSheet) {
+    return 0;
+  }
 
-  const headers = values[0];
-  return values.slice(1).map(row => {
-    const obj = {};
-    headers.forEach((header, index) => {
-      obj[header] = row[index];
-    });
-    return obj;
+  const userRow = findRow(pointsSheet, 'UserID', userId);
+  return userRow ? (parseInt(userRow.Points) || 0) : 0;
+}
+
+function addPointsToUser(ss, userId, points, activity, qrData = null) {
+  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+
+  if (!pointsSheet) {
+    ss.insertSheet(SHEET_NAMES.POINTS);
+    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+    newSheet.appendRow(['UserID', 'Points', 'UpdatedAt']);
+    pointsSheet = newSheet;
+  }
+
+  // Find existing user points
+  const existingRow = findRow(pointsSheet, 'UserID', userId);
+
+  if (existingRow) {
+    // Update existing points
+    const currentPoints = parseInt(existingRow.Points) || 0;
+    const newPoints = currentPoints + points;
+
+    // Find row index and update
+    const data = getSheetData(pointsSheet);
+    const rowIndex = data.findIndex(row => row.UserID === userId) + 2; // +2 for header and 1-based index
+
+    pointsSheet.getRange(rowIndex, 2).setValue(newPoints);
+    pointsSheet.getRange(rowIndex, 3).setValue(new Date());
+  } else {
+    // Add new user points
+    pointsSheet.appendRow([userId, points, new Date()]);
+  }
+
+  // Add to history
+  const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+  if (!historySheet) {
+    ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
+    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+    newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
+    historySheet = newSheet;
+  }
+
+  const userInfo = getUserInfo(ss, userId);
+  const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
+    `${userInfo.firstName} ${userInfo.lastName}` :
+    userInfo.displayName) : userId;
+
+  historySheet.appendRow([
+    new Date(),
+    userId,
+    userName,
+    points,
+    activity,
+    qrData ? JSON.stringify(qrData) : ''
+  ]);
+}
+
+function getUserPointsData(userId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const totalPoints = getUserTotalPoints(ss, userId);
+
+  return {
+    userId: userId,
+    points: totalPoints
+  };
+}
+
+function getUserPointsHistory(userId, limit) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+
+  if (!historySheet) {
+    return [];
+  }
+
+  const historyData = getSheetData(historySheet);
+  const limitNum = parseInt(limit) || 10;
+
+  return historyData
+    .filter(row => row.UserID === userId)
+    .map(row => ({
+      date: row.Timestamp,
+      activity: row.Activity,
+      points: parseInt(row.Points) || 0
+    }))
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, limitNum);
+}
+
+function getPointsLeaderboard() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+
+  if (!pointsSheet) {
+    // Create sheet if not exists
+    ss.insertSheet(SHEET_NAMES.POINTS);
+    pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
+    pointsSheet.appendRow(['UserID', 'Points', 'UpdatedAt']);
+  }
+
+  const pointsData = getSheetData(pointsSheet);
+  const usersData = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
+
+  // Create user map
+  const userMap = {};
+  usersData.forEach(user => {
+    userMap[user.UserID] = {
+      name: user.FirstName && user.LastName ?
+        `${user.FirstName} ${user.LastName}` :
+        user.DisplayName,
+      group: user.Group,
+      profilePicture: user.ProfilePicture || null
+    };
   });
+
+  // Build leaderboard
+  const leaderboard = pointsData
+    .map(row => ({
+      userId: row.UserID,
+      points: parseInt(row.Points) || 0,
+      name: userMap[row.UserID]?.name || row.UserID,
+      group: userMap[row.UserID]?.group || '-',
+      profilePicture: userMap[row.UserID]?.profilePicture || null
+    }))
+    .filter(item => item.points > 0)
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 50); // Top 50
+
+  // Add ranking
+  return leaderboard.map((item, index) => ({
+    ...item,
+    rank: index + 1
+  }));
 }
 
-// ============================================================
-// AI ASSISTANT FUNCTIONS
-// ============================================================
+// ═══════════════════════════════════════════════════════════════
+// QR SYSTEM FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-/**
- * AI Assistant - ฟังก์ชันหลักสำหรับ RAG
- * รองรับทั้ง GLM API (หลัก) และ OpenAI API (สำรอง)
- * รองรับการค้นหาจาก CSV และ PDF
- */
+function logQRGeneration(data) {
+  const { adminId, adminName, points, note, uses, qrData } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!adminId || !points || !qrData) {
+    return { success: false, message: "Missing required fields" };
+  }
+
+  try {
+    const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+    if (!qrHistorySheet) {
+      ss.insertSheet(SHEET_NAMES.QR_GENERATION_HISTORY);
+      const newSheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+      newSheet.appendRow(['Timestamp', 'AdminID', 'AdminName', 'Points', 'Note', 'Uses', 'QRCodeData', 'RedeemedCount']);
+      return newSheet;
+    }
+
+    // Append QR generation record
+    qrHistorySheet.appendRow([
+      new Date(),
+      adminId,
+      adminName || 'Admin',
+      points,
+      note || 'รางวัล',
+      uses,
+      JSON.stringify(qrData),
+      0 // Initial redeemed count
+    ]);
+
+    return {
+      success: true,
+      message: "บันทึกประวัติการสร้าง QR Code สำเร็จ"
+    };
+  } catch (error) {
+    console.error("Error logging QR generation:", error);
+    return {
+      success: false,
+      message: "บันทึกประวัติไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
+function getQRGenerationHistory() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
+
+  if (!qrHistorySheet) {
+    return [];
+  }
+
+  const historyData = getSheetData(qrHistorySheet);
+
+  return historyData.map(row => ({
+    timestamp: row.Timestamp,
+    adminId: row.AdminID,
+    adminName: row.AdminName,
+    points: parseInt(row.Points) || 0,
+    note: row.Note || 'รางวัล',
+    uses: parseInt(row.Uses) || 1,
+    redeemedCount: parseInt(row.RedeemedCount) || 0,
+    qrData: row.QRCodeData
+  }))
+  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) // Sort by newest first
+  .slice(0, 50); // Last 50 records
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI/LLM FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
 function askAI(requestData) {
   const query = requestData.query;
   const context = requestData.context || {}; // { userId, group, role }
@@ -743,9 +1007,6 @@ function askAI(requestData) {
   }
 }
 
-/**
- * ค้นหาความรู้จาก SCOR_Knowledge Sheet
- */
 function searchKnowledgeBase(query) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName("SCOR_Knowledge");
@@ -787,9 +1048,6 @@ function searchKnowledgeBase(query) {
   return results.sort((a, b) => b.score - a.score).slice(0, 5);
 }
 
-/**
- * ค้นหากติกาแต้มสะสมจาก Points_Rules Sheet
- */
 function searchPointsRules(query) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName("Points_Rules");
@@ -828,12 +1086,6 @@ function searchPointsRules(query) {
   return results.slice(0, 3);
 }
 
-/**
- * ค้นหาเอกสาร PDF (จาก Google Drive)
- * สำหรับเอกสาร PDF ที่อัปโหลดไว้ใน Google Drive
- *
- * OPTIONAL FEATURE: Requires PDF_FOLDER_ID to be set
- */
 function searchPDFDocuments(query) {
   try {
     // รับ PDF folder ID จาก ScriptProperties
@@ -896,11 +1148,6 @@ function searchPDFDocuments(query) {
   }
 }
 
-/**
- * ดึงข้อความจาก PDF (ใช้ Google Drive OCR)
- * NOTE: Advanced Drive Service must be enabled in Google Apps Script
- * Resources > Advanced Google Services > Drive API
- */
 function extractTextFromPDF(blob) {
   try {
     // Check if Drive API is available
@@ -934,9 +1181,6 @@ function extractTextFromPDF(blob) {
   }
 }
 
-/**
- * ดึงส่วนของข้อความที่มีคำค้นหา (สำหรับ PDF snippet)
- */
 function extractSnippet(fullText, query, maxLength) {
   const lowerText = fullText.toLowerCase();
   const lowerQuery = query.toLowerCase();
@@ -954,10 +1198,6 @@ function extractSnippet(fullText, query, maxLength) {
   return snippet;
 }
 
-/**
- * สร้าง context text สำหรับ AI
- * รองรับ Knowledge, Points, และ PDF
- */
 function buildContext(knowledge, pointsInfo, pdfInfo, context) {
   let contextText = "ความรู้ที่เกี่ยวข้อง:\n\n";
 
@@ -987,14 +1227,6 @@ function buildContext(knowledge, pointsInfo, pdfInfo, context) {
   return contextText;
 }
 
-/**
- * เรียก AI API - รองรับหลาย provider
- * Priority: Gemini (primary) -> Z.AI (fallback 1) -> OpenAI (fallback 2)
- *
- * Gemini Models: https://ai.google.dev/models
- * Z.AI Models: https://open.bigmodel.cn/dev/api#glm-4
- * OpenAI Models: https://platform.openai.com/docs/models
- */
 function callGLM(query, context, maxTokens = 2000, detailed = true) {
   // Try Gemini first (Primary - has free tier!)
   const geminiResult = tryGemini(query, context, maxTokens, detailed);
@@ -1018,9 +1250,6 @@ function callGLM(query, context, maxTokens = 2000, detailed = true) {
   throw new Error("All AI providers failed. Please check API keys and account balance.");
 }
 
-/**
- * Try Z.AI API
- */
 function tryZAI(query, context, maxTokens = 2000, detailed = true) {
   const apiKey = ScriptProperties.getProperty("ZAI_API_KEY");
   if (!apiKey) {
@@ -1125,10 +1354,6 @@ ${detailInstruction}
   return null;
 }
 
-/**
- * Try Gemini API (fallback 1)
- * Google Gemini API - Cost-effective with good Thai support
- */
 function tryGemini(query, context, maxTokens = 2000, detailed = true) {
   const apiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
   if (!apiKey) {
@@ -1241,9 +1466,6 @@ ${detailInstruction}
   return null;
 }
 
-/**
- * Try OpenAI API (fallback 2)
- */
 function tryOpenAI(query, context, maxTokens = 2000, detailed = true) {
   const apiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
   if (!apiKey) {
@@ -1328,857 +1550,10 @@ ${detailInstruction}
   }
 }
 
-/**
- * ค้นหาแถวใน Sheet ตาม column และค่าที่ต้องการ
- */
-function findRow(sheet, columnName, value) {
-  const data = getSheetData(sheet);
-  return data.find(row => row[columnName] == value) || null;
-}
+// ═══════════════════════════════════════════════════════════════
+// LINE WEBHOOK & MESSAGING FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-/**
- * ดึงข้อมูล Points Leaderboard
- */
-function getPointsLeaderboard() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
-
-  if (!pointsSheet) {
-    // Create sheet if not exists
-    ss.insertSheet(SHEET_NAMES.POINTS);
-    pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
-    pointsSheet.appendRow(['UserID', 'Points', 'UpdatedAt']);
-  }
-
-  const pointsData = getSheetData(pointsSheet);
-  const usersData = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
-
-  // Create user map
-  const userMap = {};
-  usersData.forEach(user => {
-    userMap[user.UserID] = {
-      name: user.FirstName && user.LastName ?
-        `${user.FirstName} ${user.LastName}` :
-        user.DisplayName,
-      group: user.Group,
-      profilePicture: user.ProfilePicture || null
-    };
-  });
-
-  // Build leaderboard
-  const leaderboard = pointsData
-    .map(row => ({
-      userId: row.UserID,
-      points: parseInt(row.Points) || 0,
-      name: userMap[row.UserID]?.name || row.UserID,
-      group: userMap[row.UserID]?.group || '-',
-      profilePicture: userMap[row.UserID]?.profilePicture || null
-    }))
-    .filter(item => item.points > 0)
-    .sort((a, b) => b.points - a.points)
-    .slice(0, 50); // Top 50
-
-  // Add ranking
-  return leaderboard.map((item, index) => ({
-    ...item,
-    rank: index + 1
-  }));
-}
-
-/**
- * แลก QR Code รับแต้ม
- */
-function redeemPointsQR(data) {
-  const { userId, qrData } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  // Validate QR data
-  if (!qrData || qrData.type !== 'points_reward') {
-    return { success: false, message: "QR Code ไม่ถูกต้อง" };
-  }
-
-  // Check if QR has remaining uses
-  const pointsHistorySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-  if (!pointsHistorySheet) {
-    ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
-    // Create sheet with headers
-    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-    newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
-  }
-
-  // Count how many times this QR has been used
-  const historyData = getSheetData(pointsHistorySheet);
-  const qrUses = historyData.filter(row => {
-    try {
-      const qr = JSON.parse(row.QRCodeData);
-      return qr.createdAt === qrData.createdAt;
-    } catch {
-      return false;
-    }
-  }).length;
-
-  if (qrUses >= qrData.uses) {
-    return { success: false, message: "QR Code นี้ถูกใช้ครบแล้ว" };
-  }
-
-  // Check if user already used this QR
-  const alreadyUsed = historyData.some(row =>
-    row.UserID === userId &&
-    row.QRCodeData === JSON.stringify(qrData)
-  );
-
-  if (alreadyUsed && qrData.uses === 1) {
-    return { success: false, message: "คุณใช้ QR Code นี้ไปแล้ว" };
-  }
-
-  // Get user info
-  const userInfo = getUserInfo(ss, userId);
-  const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
-    `${userInfo.firstName} ${userInfo.lastName}` :
-    userInfo.name) : data.displayName || userId;
-
-  // Add points to user
-  addPointsToUser(ss, userId, qrData.points, qrData.note || 'รับแต้มจาก QR Code', qrData);
-
-  // Update redeemed count in QR_Generation_History
-  const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
-  if (qrHistorySheet) {
-    const qrHistoryData = getSheetData(qrHistorySheet);
-    qrHistoryData.forEach((row, index) => {
-      try {
-        const storedQrData = JSON.parse(row.QRCodeData);
-        if (storedQrData.createdAt === qrData.createdAt) {
-          // Increment redeemed count
-          const currentCount = parseInt(row.RedeemedCount) || 0;
-          const rowIndex = index + 2; // +2 for header and 1-based index
-          qrHistorySheet.getRange(rowIndex, 8).setValue(currentCount + 1);
-        }
-      } catch (e) {
-        // Skip invalid JSON
-      }
-    });
-  }
-
-  return {
-    success: true,
-    message: `รับ ${qrData.points} แต้มสำเร็จ!`,
-    data: {
-      points: qrData.points,
-      note: qrData.note
-    }
-  };
-}
-
-/**
- * เพิ่มแต้มจากการเล่นเกมส์
- */
-function addGamePoints(data) {
-  const { userId, activity, points, displayName } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  if (!userId) {
-    return { success: false, message: "User ID is required" };
-  }
-
-  if (!activity || !points) {
-    return { success: false, message: "Activity and points are required" };
-  }
-
-  try {
-    // Add points using existing function
-    addPointsToUser(ss, userId, points, activity);
-
-    // Get user info for response
-    const userInfo = getUserInfo(ss, userId);
-    const totalPoints = getUserTotalPoints(ss, userId);
-
-    return {
-      success: true,
-      message: `ได้รับ ${points} แต้ม!`,
-      data: {
-        points: points,
-        activity: activity,
-        totalPoints: totalPoints
-      }
-    };
-  } catch (error) {
-    console.error("Error adding game points:", error);
-    return {
-      success: false,
-      message: "เพิ่มแต้มไม่สำเร็จ: " + error.message
-    };
-  }
-}
-
-/**
- * ดึงแต้มรวมของ user
- */
-function getUserTotalPoints(ss, userId) {
-  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
-
-  if (!pointsSheet) {
-    return 0;
-  }
-
-  const userRow = findRow(pointsSheet, 'UserID', userId);
-  return userRow ? (parseInt(userRow.Points) || 0) : 0;
-}
-
-/**
- * เพิ่มแต้มให้ user
- */
-function addPointsToUser(ss, userId, points, activity, qrData = null) {
-  const pointsSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
-
-  if (!pointsSheet) {
-    ss.insertSheet(SHEET_NAMES.POINTS);
-    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS);
-    newSheet.appendRow(['UserID', 'Points', 'UpdatedAt']);
-    pointsSheet = newSheet;
-  }
-
-  // Find existing user points
-  const existingRow = findRow(pointsSheet, 'UserID', userId);
-
-  if (existingRow) {
-    // Update existing points
-    const currentPoints = parseInt(existingRow.Points) || 0;
-    const newPoints = currentPoints + points;
-
-    // Find row index and update
-    const data = getSheetData(pointsSheet);
-    const rowIndex = data.findIndex(row => row.UserID === userId) + 2; // +2 for header and 1-based index
-
-    pointsSheet.getRange(rowIndex, 2).setValue(newPoints);
-    pointsSheet.getRange(rowIndex, 3).setValue(new Date());
-  } else {
-    // Add new user points
-    pointsSheet.appendRow([userId, points, new Date()]);
-  }
-
-  // Add to history
-  const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-  if (!historySheet) {
-    ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
-    const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-    newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
-    historySheet = newSheet;
-  }
-
-  const userInfo = getUserInfo(ss, userId);
-  const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
-    `${userInfo.firstName} ${userInfo.lastName}` :
-    userInfo.displayName) : userId;
-
-  historySheet.appendRow([
-    new Date(),
-    userId,
-    userName,
-    points,
-    activity,
-    qrData ? JSON.stringify(qrData) : ''
-  ]);
-}
-
-/**
- * Sync ประวัติการเล่นเกมส์จาก localStorage ไป Sheets
- */
-function syncLocalHistory(data) {
-  const { userId, localHistory } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  if (!userId || !localHistory) {
-    return { success: false, message: "User ID and local history are required" };
-  }
-
-  try {
-    const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-    if (!historySheet) {
-      ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
-      const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-      newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
-      historySheet = newSheet;
-    }
-
-    // Get existing history from sheets
-    const existingHistory = getSheetData(historySheet);
-    const syncedRecords = existingHistory.map(row => {
-      try {
-        const activity = row.Activity;
-        const timestamp = new Date(row.Timestamp).toISOString();
-        return `${userId}_${activity}_${timestamp}`;
-      } catch {
-        return null;
-      }
-    });
-
-    let syncedCount = 0;
-    const userInfo = getUserInfo(ss, userId);
-    const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
-      `${userInfo.firstName} ${userInfo.lastName}` :
-      userInfo.displayName) : userId;
-
-    // Sync each local history item
-    localHistory.forEach(item => {
-      const recordKey = `${userId}_${item.activity}_${item.date}`;
-
-      // Skip if already synced
-      if (syncedRecords.includes(recordKey)) {
-        return;
-      }
-
-      // Add to history
-      historySheet.appendRow([
-        new Date(item.date),
-        userId,
-        userName,
-        item.points,
-        item.activity,
-        '' // No QR data for game points
-      ]);
-
-      syncedCount++;
-    });
-
-    return {
-      success: true,
-      message: `Sync ประวัติ ${syncedCount} รายการสำเร็จ`,
-      data: {
-        syncedCount: syncedCount
-      }
-    };
-  } catch (error) {
-    console.error("Error syncing local history:", error);
-    return {
-      success: false,
-      message: "Sync ประวัติไม่สำเร็จ: " + error.message
-    };
-  }
-}
-
-/**
- * บันทึกประวัติการสร้าง QR Code แจกแต้ม
- */
-function logQRGeneration(data) {
-  const { adminId, adminName, points, note, uses, qrData } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  if (!adminId || !points || !qrData) {
-    return { success: false, message: "Missing required fields" };
-  }
-
-  try {
-    const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
-    if (!qrHistorySheet) {
-      ss.insertSheet(SHEET_NAMES.QR_GENERATION_HISTORY);
-      const newSheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
-      newSheet.appendRow(['Timestamp', 'AdminID', 'AdminName', 'Points', 'Note', 'Uses', 'QRCodeData', 'RedeemedCount']);
-      return newSheet;
-    }
-
-    // Append QR generation record
-    qrHistorySheet.appendRow([
-      new Date(),
-      adminId,
-      adminName || 'Admin',
-      points,
-      note || 'รางวัล',
-      uses,
-      JSON.stringify(qrData),
-      0 // Initial redeemed count
-    ]);
-
-    return {
-      success: true,
-      message: "บันทึกประวัติการสร้าง QR Code สำเร็จ"
-    };
-  } catch (error) {
-    console.error("Error logging QR generation:", error);
-    return {
-      success: false,
-      message: "บันทึกประวัติไม่สำเร็จ: " + error.message
-    };
-  }
-}
-
-/**
- * ดึงประวัติการสร้าง QR Code แจกแต้ม
- */
-function getQRGenerationHistory() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const qrHistorySheet = ss.getSheetByName(SHEET_NAMES.QR_GENERATION_HISTORY);
-
-  if (!qrHistorySheet) {
-    return [];
-  }
-
-  const historyData = getSheetData(qrHistorySheet);
-
-  return historyData.map(row => ({
-    timestamp: row.Timestamp,
-    adminId: row.AdminID,
-    adminName: row.AdminName,
-    points: parseInt(row.Points) || 0,
-    note: row.Note || 'รางวัล',
-    uses: parseInt(row.Uses) || 1,
-    redeemedCount: parseInt(row.RedeemedCount) || 0,
-    qrData: row.QRCodeData
-  }))
-  .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)) // Sort by newest first
-  .slice(0, 50); // Last 50 records
-}
-
-/**
- * ดึงข้อมูลแต้มของ user คนเดียว
- * @param {string} userId - LINE User ID
- * @returns {Object} ข้อมูลแต้มของ user
- */
-function getUserPointsData(userId) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const totalPoints = getUserTotalPoints(ss, userId);
-
-  return {
-    userId: userId,
-    points: totalPoints
-  };
-}
-
-/**
- * ดึงประวัติการได้แต้มของ user คนเดียว
- * @param {string} userId - LINE User ID
- * @param {string} limit - จำนวนรายการที่ต้องการ (default: 10)
- * @returns {Array} ประวัติการได้แต้ม
- */
-function getUserPointsHistory(userId, limit) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
-
-  if (!historySheet) {
-    return [];
-  }
-
-  const historyData = getSheetData(historySheet);
-  const limitNum = parseInt(limit) || 10;
-
-  return historyData
-    .filter(row => row.UserID === userId)
-    .map(row => ({
-      date: row.Timestamp,
-      activity: row.Activity,
-      points: parseInt(row.Points) || 0
-    }))
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, limitNum);
-}
-
-// ============================================================
-// SETUP FUNCTIONS
-// ============================================================
-
-/**
- * ตั้งค่า ScriptProperties - รันครั้งเดียวเพื่อ setup
- * Run this function ONCE to configure all API keys and IDs
- *
- * Setup Instructions:
- * 1. Get Z.AI API Key from https://z.ai/ (requires account)
- * 2. (Optional) Create Google Drive folder for PDF documents
- * 3. Enable Drive API for PDF search (if needed):
- *    - Go to: Resources > Advanced Google Services
- *    - Enable "Drive API"
- */
-function setupScriptProperties() {
-  // LINE Channel Access Token (Required for LINE Bot & AI Chat)
-  // Get from: https://developers.line.biz/console/
-  // Go to: Your LINE Channel > Messaging API > Channel access token (long-lived)
-  // Required for: LINE webhook handling, AI chat replies
-  ScriptProperties.setProperty("LINE_CHANNEL_ACCESS_TOKEN", "your-line-channel-access-token-here");
-
-  // Google Gemini API Key (Primary AI Provider) ⭐
-  // Get from: https://aistudio.google.com/app/apikey
-  // Models: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro
-  // Note: Free tier available (1,500 requests/day for gemini-1.5-flash)
-  // Docs: https://ai.google.dev/gemini-api/docs/models
-  // Pricing: Very cost-effective with excellent Thai support
-  ScriptProperties.setProperty("GEMINI_API_KEY", "your-gemini-api-key-here");
-
-  // Z.AI API Key (Fallback AI Provider 1)
-  // Get from: https://open.bigmodel.cn/ (Zhipu AI)
-  // Models: glm-4-flash, glm-4, glm-4-plus
-  // Note: Requires account balance/credits to work
-  // Pricing: Very cost-effective for Thai language support
-  ScriptProperties.setProperty("ZAI_API_KEY", "your-zai-api-key-here");
-
-  // OpenAI API Key (Fallback AI Provider 2)
-  // Get from: https://platform.openai.com/api-keys
-  // Note: Used as backup if Gemini and Z.AI fail
-  // Pricing: GPT-4o-mini is very cost-effective
-  ScriptProperties.setProperty("OPENAI_API_KEY", "your-openai-api-key-here");
-
-  // Google Drive Folder ID สำหรับเก็บ PDF documents (OPTIONAL)
-  // Only needed if you want PDF search functionality
-  // Folder URL example: https://drive.google.com/drive/folders/1qvA0sMG024kezPynLHidvpCFUtkj-TjS
-  // The folder ID is the last part of the URL
-  ScriptProperties.setProperty("PDF_FOLDER_ID", "your-pdf-folder-id-here");
-
-  console.log("✅ Script Properties setup complete!");
-  console.log("LINE Channel Access Token: " + (ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN") ? "✅ Set" : "❌ Not set"));
-  console.log("PDF Folder ID: " + (ScriptProperties.getProperty("PDF_FOLDER_ID") || "Not set"));
-  console.log("ZAI API Key: " + (ScriptProperties.getProperty("ZAI_API_KEY") ? "✅ Set" : "❌ Not set"));
-  console.log("GEMINI API Key: " + (ScriptProperties.getProperty("GEMINI_API_KEY") ? "✅ Set" : "❌ Not set"));
-  console.log("OPENAI API Key: " + (ScriptProperties.getProperty("OPENAI_API_KEY") ? "✅ Set" : "❌ Not set"));
-  console.log("\n📝 Note: PDF search requires Drive API to be enabled:");
-  console.log("   Go to: Resources > Advanced Google Services > Drive API > Enable");
-  console.log("\n💡 Note: You need at least one AI provider configured:");
-  console.log("   - Gemini (Primary): https://aistudio.google.com/app/apikey - Free tier (1,500/day)! ⭐");
-  console.log("     Models: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro");
-  console.log("   - Z.AI (Fallback 1): https://open.bigmodel.cn/ - Requires account balance");
-  console.log("     Models: glm-4-flash, glm-4, glm-4-plus");
-  console.log("   - OpenAI (Fallback 2): https://platform.openai.com/ - Pay-as-you-go");
-  console.log("     Models: gpt-4o-mini, gpt-4o");
-  console.log("\n📱 Note: LINE Bot requires LINE_CHANNEL_ACCESS_TOKEN:");
-  console.log("   Get from: https://developers.line.biz/console/");
-  console.log("   Go to: Your Channel > Messaging API > Channel access token (long-lived)");
-  console.log("\n🎯 Recommendation: Start with Gemini (has free tier, great Thai support)");
-  console.log("   Docs: https://ai.google.dev/gemini-api/docs/models");
-}
-
-// ============================================================
-// TEST FUNCTIONS
-// ============================================================
-
-/**
- * ทดสอบการเชื่อมต่อ Google Sheets
- */
-function test_sheetsConnection() {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const users = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
-    const activities = getSheetData(ss.getSheetByName(SHEET_NAMES.ACTIVITIES));
-
-    console.log("✅ Sheets Connection Test Passed!");
-    console.log("Users: " + users.length);
-    console.log("Activities: " + activities.length);
-
-    if (users.length > 0) {
-      console.log("First user: " + JSON.stringify(users[0]));
-    }
-
-    return { success: true, users: users.length, activities: activities.length };
-  } catch (error) {
-    console.error("❌ Sheets Connection Test Failed: " + error.toString());
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * ทดสอบ Dashboard
- */
-function test_dashboard() {
-  try {
-    const result = getDashboardData("all", null, true);
-    console.log("✅ Dashboard Test Passed!");
-    console.log(JSON.stringify(result, null, 2));
-    return result;
-  } catch (error) {
-    console.error("❌ Dashboard Test Failed: " + error.toString());
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * ทดสอบ Leaderboard
- */
-function test_leaderboard() {
-  try {
-    const result = getLeaderboard("7");
-    console.log("✅ Leaderboard Test Passed!");
-    console.log(JSON.stringify(result, null, 2));
-    return result;
-  } catch (error) {
-    console.error("❌ Leaderboard Test Failed: " + error.toString());
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * ทดสอบ Points Leaderboard
- */
-function test_pointsLeaderboard() {
-  try {
-    const result = getPointsLeaderboard();
-    console.log("✅ Points Leaderboard Test Passed!");
-    console.log(JSON.stringify(result, null, 2));
-    return result;
-  } catch (error) {
-    console.error("❌ Points Leaderboard Test Failed: " + error.toString());
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * ทดสอบ AI Assistant (ต้อง setup API Keys ก่อน)
- */
-function test_askAI() {
-  try {
-    const testQuery = "SCOR คืออะไร";
-
-    // ตรวจสอบว่ามีอย่างน้อย 1 API Key
-    const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
-    const geminiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
-    const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
-
-    if (!zaiKey && !geminiKey && !openaiKey) {
-      console.log("❌ No AI API keys found. Please run setupScriptProperties() first.");
-      console.log("   At least one of these is required: ZAI_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY");
-      return { success: false, error: "No AI API keys configured" };
-    }
-
-    console.log("🔍 Testing AI with providers:");
-    if (geminiKey) console.log("   ⭐ Gemini (Primary) - Free tier!");
-    if (zaiKey) console.log("   ✅ Z.AI (Fallback 1)");
-    if (openaiKey) console.log("   ✅ OpenAI (Fallback 2)");
-
-    // ทดสอบ askAI function
-    const result = askAI({
-      query: testQuery,
-      context: { userId: "test_user", group: "IT" }
-    });
-
-    console.log("✅ AI Assistant Test Passed!");
-    console.log(JSON.stringify(result, null, 2));
-    return result;
-  } catch (error) {
-    console.error("❌ AI Assistant Test Failed: " + error.toString());
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * ทดสอบทั้งหมด (Run All Tests)
- */
-function test_runAll() {
-  console.log("=== 🧪 SCORDS Backend Test Suite ===\n");
-
-  const results = {
-    sheetsConnection: test_sheetsConnection(),
-    dashboard: test_dashboard(),
-    leaderboard: test_leaderboard(),
-    pointsLeaderboard: test_pointsLeaderboard(),
-    aiAssistant: test_askAI()
-  };
-
-  console.log("\n=== 📊 Test Summary ===");
-  const passed = Object.values(results).filter(r => r.success).length;
-  const total = Object.keys(results).length;
-  console.log(`Passed: ${passed}/${total}`);
-
-  return results;
-}
-
-/**
- * ทดสอบ LINE Webhook (Mock data)
- */
-function test_lineWebhook() {
-  console.log("=== 📱 Testing LINE Webhook (Mock) ===\n");
-
-  try {
-    // Mock LINE webhook event
-    const mockEvent = {
-      destination: "U1234567890abcdef1234567890abcdef",
-      events: [
-        {
-          type: "message",
-          message: {
-            type: "text",
-            text: "test message",
-            id: "1234567890",
-            quoteToken: null
-          },
-          replyToken: "test-reply-token-abc123",
-          source: {
-            userId: "U9876543210fedcba9876543210fedcba",
-            type: "user"
-          },
-          timestamp: 1678901234567,
-          mode: "active",
-          webhookEventId: "01HXXXXX",
-          deliveryContext: {
-            isRedelivery: false
-          }
-        }
-      ]
-    };
-
-    console.log("📤 Mock Event Created:");
-    console.log("  - Type: " + mockEvent.events[0].type);
-    console.log("  - Message: " + mockEvent.events[0].message.text);
-    console.log("  - Source Type: " + mockEvent.events[0].source.type);
-
-    // Test handleLineWebhook
-    const result = handleLineWebhook(mockEvent);
-
-    console.log("\n✅ LINE Webhook Test Result:");
-    console.log(JSON.stringify(result, null, 2));
-
-    return {
-      success: true,
-      result: result
-    };
-
-  } catch (error) {
-    console.error("❌ LINE Webhook Test Failed:");
-    console.error("  Error: " + error.toString());
-    console.error("  Stack: " + error.stack);
-
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-/**
- * ทดสอบการตั้งค่า LINE Bot
- */
-function test_lineBotSetup() {
-  console.log("=== 🔧 Testing LINE Bot Setup ===\n");
-
-  const results = {};
-
-  // Test 1: Spreadsheet connection
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    results.spreadsheet = { success: true, message: "Connected" };
-    console.log("✅ Spreadsheet: Connected");
-  } catch (error) {
-    results.spreadsheet = { success: false, error: error.message };
-    console.log("❌ Spreadsheet: " + error.message);
-  }
-
-  // Test 2: LINE Channel Access Token
-  const lineToken = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
-  if (lineToken) {
-    results.lineToken = {
-      success: true,
-      message: "Token exists",
-      length: lineToken.length,
-      preview: lineToken.substring(0, 20) + "..."
-    };
-    console.log("✅ LINE Token: Set (" + lineToken.length + " chars)");
-  } else {
-    results.lineToken = {
-      success: false,
-      error: "LINE_CHANNEL_ACCESS_TOKEN not set"
-    };
-    console.log("❌ LINE Token: NOT SET - Run setupScriptProperties()");
-  }
-
-  // Test 3: AI API Keys
-  const geminiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
-  const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
-  const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
-
-  results.aiKeys = {
-    gemini: !!geminiKey,
-    zai: !!zaiKey,
-    openai: !!openaiKey,
-    atLeastOne: !!(geminiKey || zaiKey || openaiKey)
-  };
-
-  console.log("\n🤖 AI API Keys:");
-  console.log("  - Gemini: " + (geminiKey ? "✅" : "❌"));
-  console.log("  - Z.AI: " + (zaiKey ? "✅" : "❌"));
-  console.log("  - OpenAI: " + (openaiKey ? "✅" : "❌"));
-  console.log("  - At least one: " + (results.aiKeys.atLeastOne ? "✅" : "❌"));
-
-  // Test 4: Sheet existence
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
-    const activitiesSheet = ss.getSheetByName(SHEET_NAMES.ACTIVITIES);
-    const logSheet = ss.getSheetByName(SHEET_NAMES.LOG);
-
-    results.sheets = {
-      users: !!usersSheet,
-      activities: !!activitiesSheet,
-      log: !!logSheet
-    };
-
-    console.log("\n📊 Sheets Status:");
-    console.log("  - Users: " + (usersSheet ? "✅" : "❌"));
-    console.log("  - Activities: " + (activitiesSheet ? "✅" : "❌"));
-    console.log("  - Log: " + (logSheet ? "✅" : "❌"));
-  } catch (error) {
-    results.sheets = { error: error.message };
-  }
-
-  // Summary
-  console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("📋 Setup Summary:");
-  console.log("  Spreadsheet: " + (results.spreadsheet.success ? "✅" : "❌"));
-  console.log("  LINE Token: " + (results.lineToken.success ? "✅" : "❌"));
-  console.log("  AI Keys: " + (results.aiKeys.atLeastOne ? "✅" : "❌"));
-
-  const allGood = results.spreadsheet.success &&
-                  results.lineToken.success &&
-                  results.aiKeys.atLeastOne;
-
-  if (allGood) {
-    console.log("\n🎉 Setup looks good! Ready for testing.");
-  } else {
-    console.log("\n⚠️ Setup incomplete. Check the items marked with ❌");
-  }
-
-  return results;
-}
-
-/**
- * ทดสอบ LINE Message Handler (Direct)
- */
-function test_lineMessageHandler() {
-  console.log("=== 💬 Testing LINE Message Handler ===\n");
-
-  const mockEvent = {
-    type: "message",
-    message: {
-      type: "text",
-      text: "help",
-      id: "12345",
-      quoteToken: null
-    },
-    replyToken: "test-reply-token",
-    source: {
-      userId: "test-user-id",
-      type: "user"
-    },
-    timestamp: Date.now()
-  };
-
-  console.log("📤 Testing with command: " + mockEvent.message.text);
-
-  try {
-    const result = handleLineMessage(mockEvent);
-
-    console.log("\n✅ Message Handler Result:");
-    console.log("  Action: " + result.action);
-    console.log("  Success: " + result.success);
-
-    return result;
-  } catch (error) {
-    console.error("❌ Message Handler Error: " + error.toString());
-    return { success: false, error: error.message };
-  }
-}
-
-// ============================================================
-// LINE WEBHOOK & AI CHAT FUNCTIONS
-// ============================================================
-
-/**
- * Handle LINE Webhook events
- * @param {Object} requestData - Webhook request data
- * @returns {Object} Response
- */
 function handleLineWebhook(requestData) {
   const { events } = requestData;
 
@@ -2223,11 +1598,6 @@ function handleLineWebhook(requestData) {
   };
 }
 
-/**
- * Handle LINE message event with AI chat capability
- * @param {Object} event - LINE webhook event
- * @returns {Object} Response
- */
 function handleLineMessage(event) {
   const { replyToken, source, message } = event;
   const userId = source?.userId;
@@ -2327,6 +1697,11 @@ function handleLineMessage(event) {
     console.log(`🤖 [AI] AI chat requested`);
     console.log(`🤖 [AI] User: ${userId}`);
     console.log(`🤖 [AI] Query: "${text}"`);
+  
+  // 🔄 LOADING ANIMATION - Start loading before AI processing
+  if (event && event.replyToken) {
+    sendLineLoadingStart(userId);
+  }
 
     // Start loading animation before calling AI
     console.log(`⏳ [AI] Starting loading animation...`);
@@ -2400,11 +1775,6 @@ Error: ${aiResponse.message}
   }
 }
 
-/**
- * Handle LINE follow event
- * @param {Object} event - LINE webhook event
- * @returns {Object} Response
- */
 function handleLineFollow(event) {
   const { replyToken, source } = event;
   const userId = source?.userId;
@@ -2453,13 +1823,12 @@ function handleLineFollow(event) {
   }
 }
 
-/**
- * Handle LINE AI Chat (dedicated endpoint for LINE Bot)
- * @param {Object} requestData - Request data
- * @returns {Object} Response
- */
 function handleLineAIChat(requestData) {
   const { userId, message, replyToken } = requestData;
+  // 🔄 LOADING ANIMATION - Start loading before processing
+  if (replyToken) {
+    sendLineLoadingStart(userId);
+  }
 
   if (!userId || !message) {
     return {
@@ -2520,11 +1889,6 @@ ${aiResponse.data.answer}`;
   }
 }
 
-/**
- * Send chat loading animation to LINE
- * @param {string} chatId - LINE chat ID
- * @returns {boolean} Success status
- */
 function sendLineLoadingStart(chatId) {
   try {
     console.log(`🔄 [LOADING] Starting loading animation for chat: ${chatId}`);
@@ -2577,13 +1941,6 @@ function sendLineLoadingStart(chatId) {
   }
 }
 
-/**
- * Send reply message to LINE (Direct function)
- * @param {string} replyToken - LINE reply token
- * @param {string} messageText - Message text to send
- * @param {string} quoteToken - Optional quote token for quoting user message
- * @returns {boolean} Success status
- */
 function sendLineReplyDirect(replyToken, messageText, quoteToken = null) {
   try {
     console.log(`💬 [REPLY] Sending reply...`);
@@ -2659,19 +2016,647 @@ function sendLineReplyDirect(replyToken, messageText, quoteToken = null) {
   }
 }
 
-// ============================================================
-// 🔧 DEBUG FUNCTIONS - Comprehensive Diagnostics
-// ============================================================
+// ═══════════════════════════════════════════════════════════════
+// UTILITY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
 
-/**
- * 🔍 Run Full Diagnostic
- * รันฟังก์ชันนี้เพื่อตรวจสอบทุกอย่าง
- *
- * วิธีใช้: รันใน Google Apps Script Editor
- * 1. เลือก debug_runFullDiagnostic
- * 2. คลิก Run
- * 3. ดูผลลัพธ์ใน Execution Log
- */
+function createJsonResponse(data) {
+  const jsonString = JSON.stringify(data);
+  const output = ContentService.createTextOutput(jsonString);
+
+  output.setMimeType(ContentService.MimeType.JSON);
+
+  return output;
+}
+
+function getSheetData(sheet) {
+  if (!sheet) return [];
+  const dataRange = sheet.getDataRange();
+  const values = dataRange.getValues();
+
+  if (!values || values.length === 0) return [];
+
+  const headers = values[0];
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
+      obj[header] = row[index];
+    });
+    return obj;
+  });
+}
+
+function findRow(sheet, columnName, value) {
+  const data = getSheetData(sheet);
+  return data.find(row => row[columnName] == value) || null;
+}
+
+function syncLocalHistory(data) {
+  const { userId, localHistory } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!userId || !localHistory) {
+    return { success: false, message: "User ID and local history are required" };
+  }
+
+  try {
+    const historySheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+    if (!historySheet) {
+      ss.insertSheet(SHEET_NAMES.POINTS_HISTORY);
+      const newSheet = ss.getSheetByName(SHEET_NAMES.POINTS_HISTORY);
+      newSheet.appendRow(['Timestamp', 'UserID', 'UserName', 'Points', 'Activity', 'QRCodeData']);
+      historySheet = newSheet;
+    }
+
+    // Get existing history from sheets
+    const existingHistory = getSheetData(historySheet);
+    const syncedRecords = existingHistory.map(row => {
+      try {
+        const activity = row.Activity;
+        const timestamp = new Date(row.Timestamp).toISOString();
+        return `${userId}_${activity}_${timestamp}`;
+      } catch {
+        return null;
+      }
+    });
+
+    let syncedCount = 0;
+    const userInfo = getUserInfo(ss, userId);
+    const userName = userInfo ? (userInfo.firstName && userInfo.lastName ?
+      `${userInfo.firstName} ${userInfo.lastName}` :
+      userInfo.displayName) : userId;
+
+    // Sync each local history item
+    localHistory.forEach(item => {
+      const recordKey = `${userId}_${item.activity}_${item.date}`;
+
+      // Skip if already synced
+      if (syncedRecords.includes(recordKey)) {
+        return;
+      }
+
+      // Add to history
+      historySheet.appendRow([
+        new Date(item.date),
+        userId,
+        userName,
+        item.points,
+        item.activity,
+        '' // No QR data for game points
+      ]);
+
+      syncedCount++;
+    });
+
+    return {
+      success: true,
+      message: `Sync ประวัติ ${syncedCount} รายการสำเร็จ`,
+      data: {
+        syncedCount: syncedCount
+      }
+    };
+  } catch (error) {
+    console.error("Error syncing local history:", error);
+    return {
+      success: false,
+      message: "Sync ประวัติไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEBUG & TEST FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function setupScriptProperties() {
+  // LINE Channel Access Token (Required for LINE Bot & AI Chat)
+  // Get from: https://developers.line.biz/console/
+  // Go to: Your LINE Channel > Messaging API > Channel access token (long-lived)
+  // Required for: LINE webhook handling, AI chat replies
+  ScriptProperties.setProperty("LINE_CHANNEL_ACCESS_TOKEN", "your-line-channel-access-token-here");
+
+  // Google Gemini API Key (Primary AI Provider) ⭐
+  // Get from: https://aistudio.google.com/app/apikey
+  // Models: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro
+  // Note: Free tier available (1,500 requests/day for gemini-1.5-flash)
+  // Docs: https://ai.google.dev/gemini-api/docs/models
+  // Pricing: Very cost-effective with excellent Thai support
+  ScriptProperties.setProperty("GEMINI_API_KEY", "your-gemini-api-key-here");
+
+  // Z.AI API Key (Fallback AI Provider 1)
+  // Get from: https://open.bigmodel.cn/ (Zhipu AI)
+  // Models: glm-4-flash, glm-4, glm-4-plus
+  // Note: Requires account balance/credits to work
+  // Pricing: Very cost-effective for Thai language support
+  ScriptProperties.setProperty("ZAI_API_KEY", "your-zai-api-key-here");
+
+  // OpenAI API Key (Fallback AI Provider 2)
+  // Get from: https://platform.openai.com/api-keys
+  // Note: Used as backup if Gemini and Z.AI fail
+  // Pricing: GPT-4o-mini is very cost-effective
+  ScriptProperties.setProperty("OPENAI_API_KEY", "your-openai-api-key-here");
+
+  // Google Drive Folder ID สำหรับเก็บ PDF documents (OPTIONAL)
+  // Only needed if you want PDF search functionality
+  // Folder URL example: https://drive.google.com/drive/folders/1qvA0sMG024kezPynLHidvpCFUtkj-TjS
+  // The folder ID is the last part of the URL
+  ScriptProperties.setProperty("PDF_FOLDER_ID", "your-pdf-folder-id-here");
+
+  console.log("✅ Script Properties setup complete!");
+  console.log("LINE Channel Access Token: " + (ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN") ? "✅ Set" : "❌ Not set"));
+  console.log("PDF Folder ID: " + (ScriptProperties.getProperty("PDF_FOLDER_ID") || "Not set"));
+  console.log("ZAI API Key: " + (ScriptProperties.getProperty("ZAI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("GEMINI API Key: " + (ScriptProperties.getProperty("GEMINI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("OPENAI API Key: " + (ScriptProperties.getProperty("OPENAI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("\n📝 Note: PDF search requires Drive API to be enabled:");
+  console.log("   Go to: Resources > Advanced Google Services > Drive API > Enable");
+  console.log("\n💡 Note: You need at least one AI provider configured:");
+  console.log("   - Gemini (Primary): https://aistudio.google.com/app/apikey - Free tier (1,500/day)! ⭐");
+  console.log("     Models: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro");
+  console.log("   - Z.AI (Fallback 1): https://open.bigmodel.cn/ - Requires account balance");
+  console.log("     Models: glm-4-flash, glm-4, glm-4-plus");
+  console.log("   - OpenAI (Fallback 2): https://platform.openai.com/ - Pay-as-you-go");
+  console.log("     Models: gpt-4o-mini, gpt-4o");
+  console.log("\n📱 Note: LINE Bot requires LINE_CHANNEL_ACCESS_TOKEN:");
+  console.log("   Get from: https://developers.line.biz/console/");
+  console.log("   Go to: Your Channel > Messaging API > Channel access token (long-lived)");
+  console.log("\n🎯 Recommendation: Start with Gemini (has free tier, great Thai support)");
+  console.log("   Docs: https://ai.google.dev/gemini-api/docs/models");
+}
+
+function test_sheetsConnection() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const users = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
+    const activities = getSheetData(ss.getSheetByName(SHEET_NAMES.ACTIVITIES));
+
+    console.log("✅ Sheets Connection Test Passed!");
+    console.log("Users: " + users.length);
+    console.log("Activities: " + activities.length);
+
+    if (users.length > 0) {
+      console.log("First user: " + JSON.stringify(users[0]));
+    }
+
+    return { success: true, users: users.length, activities: activities.length };
+  } catch (error) {
+    console.error("❌ Sheets Connection Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+function test_dashboard() {
+  try {
+    const result = getDashboardData("all", null, true);
+    console.log("✅ Dashboard Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ Dashboard Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+function test_leaderboard() {
+  try {
+    const result = getLeaderboard("7");
+    console.log("✅ Leaderboard Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ Leaderboard Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+function test_pointsLeaderboard() {
+  try {
+    const result = getPointsLeaderboard();
+    console.log("✅ Points Leaderboard Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ Points Leaderboard Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+function test_askAI() {
+  try {
+    const testQuery = "SCOR คืออะไร";
+
+    // ตรวจสอบว่ามีอย่างน้อย 1 API Key
+    const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
+    const geminiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
+    const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
+
+    if (!zaiKey && !geminiKey && !openaiKey) {
+      console.log("❌ No AI API keys found. Please run setupScriptProperties() first.");
+      console.log("   At least one of these is required: ZAI_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY");
+      return { success: false, error: "No AI API keys configured" };
+    }
+
+    console.log("🔍 Testing AI with providers:");
+    if (geminiKey) console.log("   ⭐ Gemini (Primary) - Free tier!");
+    if (zaiKey) console.log("   ✅ Z.AI (Fallback 1)");
+    if (openaiKey) console.log("   ✅ OpenAI (Fallback 2)");
+
+    // ทดสอบ askAI function
+    const result = askAI({
+      query: testQuery,
+      context: { userId: "test_user", group: "IT" }
+    });
+
+    console.log("✅ AI Assistant Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ AI Assistant Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+function test_runAll() {
+  console.log("=== 🧪 SCORDS Backend Test Suite ===\n");
+
+  const results = {
+    sheetsConnection: test_sheetsConnection(),
+    dashboard: test_dashboard(),
+    leaderboard: test_leaderboard(),
+    pointsLeaderboard: test_pointsLeaderboard(),
+    aiAssistant: test_askAI()
+  };
+
+  console.log("\n=== 📊 Test Summary ===");
+  const passed = Object.values(results).filter(r => r.success).length;
+  const total = Object.keys(results).length;
+  console.log(`Passed: ${passed}/${total}`);
+
+  return results;
+}
+
+function test_lineWebhook() {
+  console.log("=== 📱 Testing LINE Webhook (Mock) ===\n");
+
+  try {
+    // Mock LINE webhook event
+    const mockEvent = {
+      destination: "U1234567890abcdef1234567890abcdef",
+      events: [
+        {
+          type: "message",
+          message: {
+            type: "text",
+            text: "test message",
+            id: "1234567890",
+            quoteToken: null
+          },
+          replyToken: "test-reply-token-abc123",
+          source: {
+            userId: "U9876543210fedcba9876543210fedcba",
+            type: "user"
+          },
+          timestamp: 1678901234567,
+          mode: "active",
+          webhookEventId: "01HXXXXX",
+          deliveryContext: {
+            isRedelivery: false
+          }
+        }
+      ]
+    };
+
+    console.log("📤 Mock Event Created:");
+    console.log("  - Type: " + mockEvent.events[0].type);
+    console.log("  - Message: " + mockEvent.events[0].message.text);
+    console.log("  - Source Type: " + mockEvent.events[0].source.type);
+
+    // Test handleLineWebhook
+    const result = handleLineWebhook(mockEvent);
+
+    console.log("\n✅ LINE Webhook Test Result:");
+    console.log(JSON.stringify(result, null, 2));
+
+    return {
+      success: true,
+      result: result
+    };
+
+  } catch (error) {
+    console.error("❌ LINE Webhook Test Failed:");
+    console.error("  Error: " + error.toString());
+    console.error("  Stack: " + error.stack);
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+function test_lineBotSetup() {
+  console.log("=== 🔧 Testing LINE Bot Setup ===\n");
+
+  const results = {};
+
+  // Test 1: Spreadsheet connection
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    results.spreadsheet = { success: true, message: "Connected" };
+    console.log("✅ Spreadsheet: Connected");
+  } catch (error) {
+    results.spreadsheet = { success: false, error: error.message };
+    console.log("❌ Spreadsheet: " + error.message);
+  }
+
+  // Test 2: LINE Channel Access Token
+  const lineToken = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+  if (lineToken) {
+    results.lineToken = {
+      success: true,
+      message: "Token exists",
+      length: lineToken.length,
+      preview: lineToken.substring(0, 20) + "..."
+    };
+    console.log("✅ LINE Token: Set (" + lineToken.length + " chars)");
+  } else {
+    results.lineToken = {
+      success: false,
+      error: "LINE_CHANNEL_ACCESS_TOKEN not set"
+    };
+    console.log("❌ LINE Token: NOT SET - Run setupScriptProperties()");
+  }
+
+  // Test 3: AI API Keys
+  const geminiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
+  const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
+  const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
+
+  results.aiKeys = {
+    gemini: !!geminiKey,
+    zai: !!zaiKey,
+    openai: !!openaiKey,
+    atLeastOne: !!(geminiKey || zaiKey || openaiKey)
+  };
+
+  console.log("\n🤖 AI API Keys:");
+  console.log("  - Gemini: " + (geminiKey ? "✅" : "❌"));
+  console.log("  - Z.AI: " + (zaiKey ? "✅" : "❌"));
+  console.log("  - OpenAI: " + (openaiKey ? "✅" : "❌"));
+  console.log("  - At least one: " + (results.aiKeys.atLeastOne ? "✅" : "❌"));
+
+  // Test 4: Sheet existence
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+    const activitiesSheet = ss.getSheetByName(SHEET_NAMES.ACTIVITIES);
+    const logSheet = ss.getSheetByName(SHEET_NAMES.LOG);
+
+    results.sheets = {
+      users: !!usersSheet,
+      activities: !!activitiesSheet,
+      log: !!logSheet
+    };
+
+    console.log("\n📊 Sheets Status:");
+    console.log("  - Users: " + (usersSheet ? "✅" : "❌"));
+    console.log("  - Activities: " + (activitiesSheet ? "✅" : "❌"));
+    console.log("  - Log: " + (logSheet ? "✅" : "❌"));
+  } catch (error) {
+    results.sheets = { error: error.message };
+  }
+
+  // Summary
+  console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("📋 Setup Summary:");
+  console.log("  Spreadsheet: " + (results.spreadsheet.success ? "✅" : "❌"));
+  console.log("  LINE Token: " + (results.lineToken.success ? "✅" : "❌"));
+  console.log("  AI Keys: " + (results.aiKeys.atLeastOne ? "✅" : "❌"));
+
+  const allGood = results.spreadsheet.success &&
+                  results.lineToken.success &&
+                  results.aiKeys.atLeastOne;
+
+  if (allGood) {
+    console.log("\n🎉 Setup looks good! Ready for testing.");
+  } else {
+    console.log("\n⚠️ Setup incomplete. Check the items marked with ❌");
+  }
+
+  return results;
+}
+
+function test_lineMessageHandler() {
+  console.log("=== 💬 Testing LINE Message Handler ===\n");
+
+  const mockEvent = {
+    type: "message",
+    message: {
+      type: "text",
+      text: "help",
+      id: "12345",
+      quoteToken: null
+    },
+    replyToken: "test-reply-token",
+    source: {
+      userId: "test-user-id",
+      type: "user"
+    },
+    timestamp: Date.now()
+  };
+
+  console.log("📤 Testing with command: " + mockEvent.message.text);
+
+  try {
+    const result = handleLineMessage(mockEvent);
+
+    console.log("\n✅ Message Handler Result:");
+    console.log("  Action: " + result.action);
+    console.log("  Success: " + result.success);
+
+    return result;
+  } catch (error) {
+    console.error("❌ Message Handler Error: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ACHIEVEMENT SYSTEM FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function getUserAchievements(userId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  // สร้าง sheets ถ้ายังไม่มี
+  let achievementsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENTS);
+  let statsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENT_STATS);
+
+  if (!achievementsSheet) {
+    achievementsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENTS);
+    achievementsSheet.appendRow(['Timestamp', 'UserID', 'AchievementID', 'Title', 'Description', 'Icon', 'UnlockedAt']);
+    achievementsSheet.setFrozenRows(1);
+  }
+
+  if (!statsSheet) {
+    statsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENT_STATS);
+    statsSheet.appendRow(['UserID', 'TotalCheckIns', 'CurrentStreak', 'BestStreak', 'WeekOnTimeRate', 'MonthOnTimeRate', 'TotalPoints', 'LastUpdatedAt']);
+    statsSheet.setFrozenRows(1);
+  }
+
+  // ดึงข้อมูล achievements
+  const achievementsData = getSheetData(achievementsSheet);
+  const userAchievements = achievementsData
+    .filter(row => row.UserID === userId)
+    .map(row => ({
+      id: row.AchievementID,
+      title: row.Title,
+      description: row.Description,
+      icon: row.Icon,
+      unlockedAt: row.UnlockedAt
+    }));
+
+  // ดึงข้อมูล stats
+  const statsData = getSheetData(statsSheet);
+  const userStats = statsData.find(row => row.UserID === userId);
+
+  const stats = userStats ? {
+    totalCheckIns: parseInt(userStats.TotalCheckIns) || 0,
+    currentStreak: parseInt(userStats.CurrentStreak) || 0,
+    bestStreak: parseInt(userStats.BestStreak) || 0,
+    weekOnTimeRate: parseInt(userStats.WeekOnTimeRate) || 0,
+    monthOnTimeRate: parseInt(userStats.MonthOnTimeRate) || 0,
+    totalPoints: parseInt(userStats.TotalPoints) || 0,
+    lastUpdatedAt: userStats.LastUpdatedAt
+  } : {
+    totalCheckIns: 0,
+    currentStreak: 0,
+    bestStreak: 0,
+    weekOnTimeRate: 0,
+    monthOnTimeRate: 0,
+    totalPoints: 0,
+    lastUpdatedAt: null
+  };
+
+  return {
+    achievements: userAchievements,
+    stats: stats
+  };
+}
+
+function unlockAchievement(data) {
+  const { userId, achievementId, title, description, icon } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!userId || !achievementId) {
+    return { success: false, message: "User ID และ Achievement ID จำเป็นต้องระบุ" };
+  }
+
+  try {
+    let achievementsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENTS);
+    if (!achievementsSheet) {
+      achievementsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENTS);
+      achievementsSheet.appendRow(['Timestamp', 'UserID', 'AchievementID', 'Title', 'Description', 'Icon', 'UnlockedAt']);
+      achievementsSheet.setFrozenRows(1);
+    }
+
+    // ตรวจสอบว่า achievement นี้ถูกปลดล็อคไปแล้วหรือยัง
+    const achievementsData = getSheetData(achievementsSheet);
+    const alreadyUnlocked = achievementsData.some(row =>
+      row.UserID === userId && row.AchievementID === achievementId
+    );
+
+    if (alreadyUnlocked) {
+      return { success: false, message: "Achievement นี้ถูกปลดล็อคไปแล้ว" };
+    }
+
+    // บันทึก achievement ใหม่
+    achievementsSheet.appendRow([
+      new Date(),
+      userId,
+      achievementId,
+      title || achievementId,
+      description || '',
+      icon || '🏆',
+      new Date()
+    ]);
+
+    return {
+      success: true,
+      message: `ยินดีด้วย! คุณได้รับ: ${title || achievementId}`,
+      data: {
+        achievementId,
+        title: title || achievementId,
+        unlockedAt: new Date()
+      }
+    };
+  } catch (error) {
+    console.error("Error unlocking achievement:", error);
+    return {
+      success: false,
+      message: "บันทึก achievement ไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
+function updateAchievementStats(data) {
+  const { userId, stats } = data;
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  if (!userId || !stats) {
+    return { success: false, message: "User ID และ Stats จำเป็นต้องระบุ" };
+  }
+
+  try {
+    let statsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENT_STATS);
+    if (!statsSheet) {
+      statsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENT_STATS);
+      statsSheet.appendRow(['UserID', 'TotalCheckIns', 'CurrentStreak', 'BestStreak', 'WeekOnTimeRate', 'MonthOnTimeRate', 'TotalPoints', 'LastUpdatedAt']);
+      statsSheet.setFrozenRows(1);
+    }
+
+    // ตรวจสอบว่ามี stats ของ user นี้อยู่แล้วหรือยัง
+    const statsData = getSheetData(statsSheet);
+    const existingStats = statsData.find(row => row.UserID === userId);
+
+    if (existingStats) {
+      // อัปเดต stats ที่มีอยู่
+      const rowIndex = statsData.findIndex(row => row.UserID === userId) + 2; // +2 for header and 1-based index
+
+      statsSheet.getRange(rowIndex, 2).setValue(stats.totalCheckIns || 0);
+      statsSheet.getRange(rowIndex, 3).setValue(stats.currentStreak || 0);
+      statsSheet.getRange(rowIndex, 4).setValue(stats.bestStreak || 0);
+      statsSheet.getRange(rowIndex, 5).setValue(stats.weekOnTimeRate || 0);
+      statsSheet.getRange(rowIndex, 6).setValue(stats.monthOnTimeRate || 0);
+      statsSheet.getRange(rowIndex, 7).setValue(stats.totalPoints || 0);
+      statsSheet.getRange(rowIndex, 8).setValue(new Date());
+    } else {
+      // เพิ่ม stats ใหม่
+      statsSheet.appendRow([
+        userId,
+        stats.totalCheckIns || 0,
+        stats.currentStreak || 0,
+        stats.bestStreak || 0,
+        stats.weekOnTimeRate || 0,
+        stats.monthOnTimeRate || 0,
+        stats.totalPoints || 0,
+        new Date()
+      ]);
+    }
+
+    return {
+      success: true,
+      message: "อัปเดตสถิติเรียบร้อยแล้ว"
+    };
+  } catch (error) {
+    console.error("Error updating achievement stats:", error);
+    return {
+      success: false,
+      message: "อัปเดตสถิติไม่สำเร็จ: " + error.message
+    };
+  }
+}
+
 function debug_runFullDiagnostic() {
   console.log("╔══════════════════════════════════════════════════════╗");
   console.log("║  🔍 SCORDS LINE Bot - Full Diagnostic              ║");
@@ -2712,236 +2697,6 @@ function debug_runFullDiagnostic() {
   return results;
 }
 
-function _debug_basicChecks() {
-  console.log("📍 STEP 1: Basic Checks");
-  console.log("──────────────────────────────────────────────────────");
-
-  const issues = [];
-
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    console.log("✅ Spreadsheet: Connected");
-
-    const requiredSheets = ["Users", "Activities", "Checkin_Log"];
-    for (const sheetName of requiredSheets) {
-      const sheet = ss.getSheetByName(sheetName);
-      if (!sheet) {
-        issues.push(`Missing sheet: ${sheetName}`);
-        console.log(`❌ Sheet "${sheetName}": NOT FOUND`);
-      } else {
-        console.log(`✅ Sheet "${sheetName}": OK`);
-      }
-    }
-  } catch (error) {
-    issues.push(`Spreadsheet error: ${error.message}`);
-    console.log(`❌ Spreadsheet: ${error.message}`);
-  }
-
-  return {
-    success: issues.length === 0,
-    error: issues.join("; ")
-  };
-}
-
-function _debug_checkDeployment() {
-  console.log("");
-  console.log("📍 STEP 2: Deployment Check");
-  console.log("──────────────────────────────────────────────────────");
-
-  const issues = [];
-
-  try {
-    const scriptId = ScriptApp.getScriptId();
-
-    console.log(`📝 Script ID: ${scriptId}`);
-
-    // Check if we can access the service
-    const service = ScriptApp.getService();
-    if (!service) {
-      issues.push("No web app deployment found - MUST deploy as Web App!");
-      console.log("❌ No web app deployment found!");
-      console.log("   → Deploy > New deployment > Web app > Anyone");
-
-      console.log(`🔗 Web App URL (not deployed yet):`);
-      console.log(`   https://script.google.com/macros/s/${scriptId}/exec`);
-    } else {
-      console.log(`✅ Web app deployment exists`);
-
-      const deploymentUrl = service.getUrl();
-      console.log(`   Service URL: ${deploymentUrl}`);
-
-      // Extract Deployment ID from URL for reference
-      const deploymentIdMatch = deploymentUrl.match(/\/s\/([^\/]+)/);
-      if (deploymentIdMatch) {
-        console.log(`   Deployment ID: ${deploymentIdMatch[1]}`);
-        console.log(`   ⭐ Use Deployment ID (not Script ID) for webhook URL!`);
-      }
-
-      console.log("   → Webhook accessibility will be tested in Step 4");
-    }
-  } catch (error) {
-    issues.push(`Deployment error: ${error.message}`);
-    console.log(`❌ Error: ${error.message}`);
-  }
-
-  return {
-    success: issues.length === 0,
-    error: issues.join("; ")
-  };
-}
-
-function _debug_checkLineToken() {
-  console.log("");
-  console.log("📍 STEP 3: LINE Token Check");
-  console.log("──────────────────────────────────────────────────────");
-
-  const token = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
-
-  if (!token) {
-    console.log("❌ LINE_CHANNEL_ACCESS_TOKEN: NOT SET");
-    console.log("   Fix: Run setupScriptProperties()");
-    return {
-      success: false,
-      error: "LINE_CHANNEL_ACCESS_TOKEN not set"
-    };
-  }
-
-  console.log("✅ LINE_CHANNEL_ACCESS_TOKEN: SET");
-  console.log(`   Length: ${token.length} chars`);
-
-  // Test token by calling LINE API
-  try {
-    const testUrl = "https://api.line.me/v2/bot/info";
-    const response = UrlFetchApp.fetch(testUrl, {
-      method: "get",
-      headers: {
-        "Authorization": `Bearer ${token}`
-      },
-      muteHttpExceptions: true
-    });
-
-    const responseCode = response.getResponseCode();
-
-    if (responseCode === 200) {
-      console.log("✅ Token validation: VALID");
-      const botInfo = JSON.parse(response.getContentText());
-      console.log(`   Bot Name: ${botInfo.displayName}`);
-      return { success: true };
-    } else {
-      console.log(`❌ Token validation: FAILED (${responseCode})`);
-      return {
-        success: false,
-        error: `Token validation failed: ${responseCode}`
-      };
-    }
-  } catch (error) {
-    console.log(`❌ Token error: ${error.message}`);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-function _debug_testWebhookEndpoint() {
-  console.log("");
-  console.log("📍 STEP 4: Webhook Endpoint Test");
-  console.log("──────────────────────────────────────────────────────");
-
-  // Get the actual deployment URL from ScriptApp service
-  // This returns the REAL deployment URL with the correct Deployment ID
-  const service = ScriptApp.getService();
-
-  if (!service || !service.getUrl()) {
-    console.log("❌ No web app deployment found!");
-    console.log("   Please deploy as Web App first");
-    return {
-      success: false,
-      error: "No web app deployment found"
-    };
-  }
-
-  const deploymentUrl = service.getUrl();
-
-  // Convert /dev to /exec for production testing
-  const webhookUrl = deploymentUrl.replace('/dev', '/exec');
-
-  // Extract Deployment ID for display
-  const deploymentIdMatch = deploymentUrl.match(/\/s\/([^\/]+)/);
-  const deploymentId = deploymentIdMatch ? deploymentIdMatch[1] : 'Unknown';
-
-  console.log(`📝 Deployment ID: ${deploymentId}`);
-  console.log(`🔗 Testing Production URL: ${webhookUrl}`);
-  console.log("   (This is the URL LINE should use)");
-
-  const mockWebhook = {
-    destination: "U1234567890",
-    events: [{
-      type: "message",
-      message: {
-        type: "text",
-        text: "debug_test",
-        id: "12345"
-      },
-      replyToken: "test-token",
-      source: {
-        userId: "test-user",
-        type: "user"
-      },
-      timestamp: Date.now()
-    }]
-  };
-
-  try {
-    const response = UrlFetchApp.fetch(webhookUrl, {
-      method: "post",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      payload: JSON.stringify(mockWebhook),
-      muteHttpExceptions: true
-    });
-
-    const responseCode = response.getResponseCode();
-    const responseBody = response.getContentText();
-
-    console.log(`📥 Response: ${responseCode}`);
-
-    if (responseCode === 200) {
-      console.log("✅ Webhook endpoint: WORKING");
-      console.log(`   Response: ${responseBody.substring(0, 100)}...`);
-      console.log(`   ⭐ Use this URL in LINE Developers Console:`);
-      console.log(`   ${webhookUrl}`);
-      return { success: true };
-    } else {
-      console.log("❌ Webhook endpoint: FAILED");
-      console.log(`   Response: ${responseBody}`);
-
-      // Special handling for 401 (authentication required)
-      if (responseCode === 401) {
-        console.log("   ⚠️  401 error may mean:");
-        console.log("      - Using /dev URL instead of /exec URL");
-        console.log("      - Or 'Who has access' not set to 'Anyone'");
-      }
-
-      return {
-        success: false,
-        error: `Webhook returned ${responseCode}`
-      };
-    }
-  } catch (error) {
-    console.log(`❌ Webhook test error: ${error.message}`);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-/**
- * สร้าง Debug Log Sheet
- * ใช้สำหรับบันทึก log ลง Spreadsheet เพื่อ debugging
- */
 function debug_enableSheetLogging() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let debugSheet = ss.getSheetByName("Debug_Log");
@@ -2968,9 +2723,6 @@ function debug_enableSheetLogging() {
   return "Debug_Log sheet created";
 }
 
-/**
- * แสดง Verification Checklist
- */
 function debug_showChecklist() {
   console.log("════════════════════════════════════════════════════════");
   console.log("✅ VERIFICATION CHECKLIST");
@@ -3000,14 +2752,6 @@ function debug_showChecklist() {
   return "Checklist printed to console";
 }
 
-// ============================================================
-// 🔧 FIX 302 ERROR - DEPLOYMENT & DEBUGGING FUNCTIONS
-// ============================================================
-
-/**
- * Check Web App deployment settings
- * Run this function to verify your deployment is configured correctly
- */
 function debug_checkDeployment() {
   console.log("════════════════════════════════════════════════════════");
   console.log("🔍 Web App Deployment Check");
@@ -3077,201 +2821,6 @@ function debug_checkDeployment() {
   return "Deployment check complete - Deployment ID: " + deploymentId;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ACHIEVEMENT SYSTEM FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * ดึงข้อมูลความสำเร็จและสถิติของ user
- * @param {string} userId - LINE User ID
- * @returns {Object} ข้อมูล achievements และ stats
- */
-function getUserAchievements(userId) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  // สร้าง sheets ถ้ายังไม่มี
-  let achievementsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENTS);
-  let statsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENT_STATS);
-
-  if (!achievementsSheet) {
-    achievementsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENTS);
-    achievementsSheet.appendRow(['Timestamp', 'UserID', 'AchievementID', 'Title', 'Description', 'Icon', 'UnlockedAt']);
-    achievementsSheet.setFrozenRows(1);
-  }
-
-  if (!statsSheet) {
-    statsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENT_STATS);
-    statsSheet.appendRow(['UserID', 'TotalCheckIns', 'CurrentStreak', 'BestStreak', 'WeekOnTimeRate', 'MonthOnTimeRate', 'TotalPoints', 'LastUpdatedAt']);
-    statsSheet.setFrozenRows(1);
-  }
-
-  // ดึงข้อมูล achievements
-  const achievementsData = getSheetData(achievementsSheet);
-  const userAchievements = achievementsData
-    .filter(row => row.UserID === userId)
-    .map(row => ({
-      id: row.AchievementID,
-      title: row.Title,
-      description: row.Description,
-      icon: row.Icon,
-      unlockedAt: row.UnlockedAt
-    }));
-
-  // ดึงข้อมูล stats
-  const statsData = getSheetData(statsSheet);
-  const userStats = statsData.find(row => row.UserID === userId);
-
-  const stats = userStats ? {
-    totalCheckIns: parseInt(userStats.TotalCheckIns) || 0,
-    currentStreak: parseInt(userStats.CurrentStreak) || 0,
-    bestStreak: parseInt(userStats.BestStreak) || 0,
-    weekOnTimeRate: parseInt(userStats.WeekOnTimeRate) || 0,
-    monthOnTimeRate: parseInt(userStats.MonthOnTimeRate) || 0,
-    totalPoints: parseInt(userStats.TotalPoints) || 0,
-    lastUpdatedAt: userStats.LastUpdatedAt
-  } : {
-    totalCheckIns: 0,
-    currentStreak: 0,
-    bestStreak: 0,
-    weekOnTimeRate: 0,
-    monthOnTimeRate: 0,
-    totalPoints: 0,
-    lastUpdatedAt: null
-  };
-
-  return {
-    achievements: userAchievements,
-    stats: stats
-  };
-}
-
-/**
- * ปลดล็อก achievement ใหม่
- * @param {Object} data - { userId, achievementId, title, description, icon }
- * @returns {Object} ผลการบันทึก
- */
-function unlockAchievement(data) {
-  const { userId, achievementId, title, description, icon } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  if (!userId || !achievementId) {
-    return { success: false, message: "User ID และ Achievement ID จำเป็นต้องระบุ" };
-  }
-
-  try {
-    let achievementsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENTS);
-    if (!achievementsSheet) {
-      achievementsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENTS);
-      achievementsSheet.appendRow(['Timestamp', 'UserID', 'AchievementID', 'Title', 'Description', 'Icon', 'UnlockedAt']);
-      achievementsSheet.setFrozenRows(1);
-    }
-
-    // ตรวจสอบว่า achievement นี้ถูกปลดล็อคไปแล้วหรือยัง
-    const achievementsData = getSheetData(achievementsSheet);
-    const alreadyUnlocked = achievementsData.some(row =>
-      row.UserID === userId && row.AchievementID === achievementId
-    );
-
-    if (alreadyUnlocked) {
-      return { success: false, message: "Achievement นี้ถูกปลดล็อคไปแล้ว" };
-    }
-
-    // บันทึก achievement ใหม่
-    achievementsSheet.appendRow([
-      new Date(),
-      userId,
-      achievementId,
-      title || achievementId,
-      description || '',
-      icon || '🏆',
-      new Date()
-    ]);
-
-    return {
-      success: true,
-      message: `ยินดีด้วย! คุณได้รับ: ${title || achievementId}`,
-      data: {
-        achievementId,
-        title: title || achievementId,
-        unlockedAt: new Date()
-      }
-    };
-  } catch (error) {
-    console.error("Error unlocking achievement:", error);
-    return {
-      success: false,
-      message: "บันทึก achievement ไม่สำเร็จ: " + error.message
-    };
-  }
-}
-
-/**
- * อัปเดตสถิติ achievements
- * @param {Object} data - { userId, stats }
- * @returns {Object} ผลการอัปเดต
- */
-function updateAchievementStats(data) {
-  const { userId, stats } = data;
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-  if (!userId || !stats) {
-    return { success: false, message: "User ID และ Stats จำเป็นต้องระบุ" };
-  }
-
-  try {
-    let statsSheet = ss.getSheetByName(SHEET_NAMES.ACHIEVEMENT_STATS);
-    if (!statsSheet) {
-      statsSheet = ss.insertSheet(SHEET_NAMES.ACHIEVEMENT_STATS);
-      statsSheet.appendRow(['UserID', 'TotalCheckIns', 'CurrentStreak', 'BestStreak', 'WeekOnTimeRate', 'MonthOnTimeRate', 'TotalPoints', 'LastUpdatedAt']);
-      statsSheet.setFrozenRows(1);
-    }
-
-    // ตรวจสอบว่ามี stats ของ user นี้อยู่แล้วหรือยัง
-    const statsData = getSheetData(statsSheet);
-    const existingStats = statsData.find(row => row.UserID === userId);
-
-    if (existingStats) {
-      // อัปเดต stats ที่มีอยู่
-      const rowIndex = statsData.findIndex(row => row.UserID === userId) + 2; // +2 for header and 1-based index
-
-      statsSheet.getRange(rowIndex, 2).setValue(stats.totalCheckIns || 0);
-      statsSheet.getRange(rowIndex, 3).setValue(stats.currentStreak || 0);
-      statsSheet.getRange(rowIndex, 4).setValue(stats.bestStreak || 0);
-      statsSheet.getRange(rowIndex, 5).setValue(stats.weekOnTimeRate || 0);
-      statsSheet.getRange(rowIndex, 6).setValue(stats.monthOnTimeRate || 0);
-      statsSheet.getRange(rowIndex, 7).setValue(stats.totalPoints || 0);
-      statsSheet.getRange(rowIndex, 8).setValue(new Date());
-    } else {
-      // เพิ่ม stats ใหม่
-      statsSheet.appendRow([
-        userId,
-        stats.totalCheckIns || 0,
-        stats.currentStreak || 0,
-        stats.bestStreak || 0,
-        stats.weekOnTimeRate || 0,
-        stats.monthOnTimeRate || 0,
-        stats.totalPoints || 0,
-        new Date()
-      ]);
-    }
-
-    return {
-      success: true,
-      message: "อัปเดตสถิติเรียบร้อยแล้ว"
-    };
-  } catch (error) {
-    console.error("Error updating achievement stats:", error);
-    return {
-      success: false,
-      message: "อัปเดตสถิติไม่สำเร็จ: " + error.message
-    };
-  }
-}
-
-/**
- * Test webhook endpoint from GAS
- * Simulates a LINE webhook request to verify the endpoint works
- */
 function testWebhookEndpoint() {
   console.log("════════════════════════════════════════════════════════");
   console.log("🧪 Test Webhook Endpoint");
@@ -3374,10 +2923,6 @@ function testWebhookEndpoint() {
   return "Webhook test complete";
 }
 
-/**
- * Test specific webhook URL
- * Use this to test a specific deployment URL
- */
 function testSpecificWebhook() {
   console.log("════════════════════════════════════════════════════════");
   console.log("🧪 Test Specific Webhook URL");
@@ -3467,14 +3012,6 @@ function testSpecificWebhook() {
   return "Specific webhook test complete";
 }
 
-/**
- * Test doOptions handler for CORS support
- * Run this function to verify CORS preflight requests work correctly
- *
- * NOTE: Google Apps Script UrlFetchApp does NOT support OPTIONS method.
- * This test validates that doOptions() function exists and is correctly configured.
- * Real OPTIONS requests from LINE will be handled automatically by GAS routing.
- */
 function debug_testDoOptions() {
   console.log("════════════════════════════════════════════════════════");
   console.log("🧪 Test CORS (doOptions) Handler");
@@ -3581,10 +3118,6 @@ function debug_testDoOptions() {
   return "CORS test complete - doOptions function is correctly configured";
 }
 
-/**
- * Helper function to get the script source code
- * Used for checking if certain functions exist
- */
 function getCodeSource() {
   // This is a workaround - we can't actually get the source code programmatically
   // So we'll just return a placeholder that includes our function names
@@ -3592,10 +3125,6 @@ function getCodeSource() {
   return "function doOptions(e) { Access-Control-Allow-Origin Access-Control-Allow-Methods Access-Control-Allow-Headers }";
 }
 
-/**
- * Quick fix guide
- * Run this function to see step-by-step instructions
- */
 function quickFix() {
   console.log("════════════════════════════════════════════════════════");
   console.log("🚀 QUICK FIX: 302 Error Solution");
@@ -3647,15 +3176,6 @@ function quickFix() {
   return "Quick fix guide displayed";
 }
 
-/**
- * 🔧 Debug: ทดสอบการตอบข้อความของบอท
- * ใช้ function นี้เมื่อ webhook สำเร็จแต่บอทไม่ตอบ
- *
- * วิธีใช้: รันใน Google Apps Script Editor
- * 1. เลือก debug_testBotReply
- * 2. คลิก Run
- * 3. ดูผลลัพธ์ใน Execution Log
- */
 function debug_testBotReply() {
   console.log("╔══════════════════════════════════════════════════════╗");
   console.log("║  🔍 SCORDS LINE Bot - Reply Test                    ║");
@@ -3785,3 +3305,4 @@ function debug_testBotReply() {
     issues: issues
   };
 }
+
