@@ -1,0 +1,3603 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART CHECK-IN</title>
+     <meta name="description" content="SMART CHECK-IN for LIFF App / MINI App" />
+    <meta name="author" content="iton5" />
+    <meta property="og:title" content="SMART CHECK-IN-PTG SCORDS" />
+    <meta property="og:description" content="SMART CHECK-IN for LIFF App / MINI App" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
+    <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link rel="stylesheet" href="https://bit.ly/fontiton5" type="text/css" charset="utf-8" />
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            font-family: 'line_seed_sans_th';
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #111111;
+            color: #ffffff;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #111111 0%, #333333 100%);
+        }
+
+        .header-gradient {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #111111;
+            transition: all 0.3s ease;
+        }
+
+        .btn-gradient:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .card {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border: 1px solid #444444;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .pulse {
+            box-shadow: 0 0 0 rgba(255, 215, 0, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 15px rgba(255, 215, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 215, 0, 0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFD700;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: spin 1s linear infinite;
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #FFD700;
+            color: #FFD700;
+        }
+
+        .progress-bar {
+            background: linear-gradient(to right, #FFD700, #FFA500);
+            height: 8px;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .qr-scanner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-frame {
+            width: 280px;
+            height: 280px;
+            border: 2px solid #FFD700;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .qr-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background-color: #FFD700;
+            top: 0;
+            animation: scanLine 2s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { top: 0; }
+            50% { top: 100%; }
+            100% { top: 0; }
+        }
+
+        .qr-corners::before,
+        .qr-corners::after,
+        .qr-corners span::before,
+        .qr-corners span::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-color: #FFD700;
+            border-style: solid;
+        }
+
+        .qr-corners::before {
+            top: 0;
+            left: 0;
+            border-width: 3px 0 0 3px;
+        }
+
+        .qr-corners::after {
+            top: 0;
+            right: 0;
+            border-width: 3px 3px 0 0;
+        }
+
+        .qr-corners span::before {
+            bottom: 0;
+            left: 0;
+            border-width: 0 0 3px 3px;
+        }
+
+        .qr-corners span::after {
+            bottom: 0;
+            right: 0;
+            border-width: 0 3px 3px 0;
+        }
+
+        /* Offline Queue & Achievements Styles */
+        .queue-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+            animation: bounce 2s infinite;
+        }
+
+        .achievement-card {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            border: 1px solid #FFD700;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 215, 0, 0.2);
+        }
+
+        .achievement-card.locked {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
+        .achievement-icon {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .achievement-rarity {
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .rarity-common { background: #9CA3AF; }
+        .rarity-uncommon { background: #10B981; }
+        .rarity-rare { background: #3B82F6; }
+        .rarity-epic { background: #8B5CF6; }
+        .rarity-legendary { background: #F59E0B; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border: 1px solid #444444;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #9CA3AF;
+            margin-top: 4px;
+        }
+
+        .achievement-shine {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-shine::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(45deg);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) rotate(45deg); }
+        }
+
+        /* Games & Points Styles */
+        .points-badge {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #111111;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .points-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border: 1px solid #FFD700;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .game-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(255, 215, 0, 0.3);
+        }
+
+        .game-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .quiz-option {
+            background: linear-gradient(135deg, #333333 0%, #444444 100%);
+            border: 2px solid #555555;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .quiz-option:hover {
+            border-color: #FFD700;
+            transform: translateX(8px);
+        }
+
+        .quiz-option.selected {
+            border-color: #10B981;
+            background: linear-gradient(135deg, #1a3a1a 0%, #2d4a2d 100%);
+        }
+
+        .quiz-option.correct {
+            border-color: #10B981;
+            background: linear-gradient(135deg, #0a3a0a 0%, #1a4a1a 100%);
+        }
+
+        .quiz-option.incorrect {
+            border-color: #EF4444;
+            background: linear-gradient(135deg, #3a1a1a 0%, #4a2a2a 100%);
+        }
+
+        .points-history-item {
+            background: linear-gradient(135deg, #222222 0%, #333333 100%);
+            border-left: 4px solid #FFD700;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .qr-code-display {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .qr-code-display canvas {
+            border-radius: 8px;
+        }
+
+        .admin-panel-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #0f3460;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .spin-wheel {
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            background: conic-gradient(
+                #FFD700 0deg 60deg,
+                #FFA500 60deg 120deg,
+                #FF6B6B 120deg 180deg,
+                #4ECDC4 180deg 240deg,
+                #45B7D1 240deg 300deg,
+                #96CEB4 300deg 360deg
+            );
+            position: relative;
+            margin: 20px auto;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+        }
+
+        .spin-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid #FFD700;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="min-h-screen gradient-bg">
+    
+    <div id="loadingScreen" class="fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center z-50">
+        <span class="loader mb-4"></span>
+        <h2 id="loadingText" class="text-xl font-bold text-yellow-400 mt-4">กำลังโหลด</h2>
+        <p class="text-gray-300 mt-2">โปรดรอสักครู่...</p>
+    </div>
+
+   
+    <div id="mainContainer" class="container mx-auto px-4 py-6 max-w-md hidden">
+        <!-- Header -->
+        <header class="mb-6 animate-fadeIn" style="animation-delay: 0.1s;">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold header-gradient">SMART CHECK-IN</h1>
+                    <p class="text-gray-400" id="currentDate">วันที่ -</p>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="w-12 h-12 rounded-full bg-gray-700 overflow-hidden border-2 border-yellow-400" id="profileImage">
+                        <svg class="w-full h-full text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-yellow-400 font-medium mt-1" id="displayName">-</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Queue Indicator (Offline Mode) -->
+        <div id="queueIndicator" class="queue-indicator hidden"></div>
+
+        <!-- Pull to Refresh Indicator -->
+        <div id="pullToRefreshIndicator" class="fixed top-0 left-0 right-0 z-50 bg-gray-900 bg-opacity-95 rounded-b-2xl shadow-lg transition-all duration-200 pointer-events-none" style="opacity: 0; transform: translateY(0); padding: 20px;">
+            <div class="text-center">
+                <div class="text-2xl mb-2">⬇️</div>
+                <p class="text-sm text-gray-400">ลากลงเพื่อรีเฟรช</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-700 mb-6 animate-fadeIn" style="animation-delay: 0.2s;">
+            <button class="tab-btn flex-1 py-3 text-center tab-active" data-tab="checkIn">เช็คชื่อ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="history">ประวัติ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="leaderboard">จัดอันดับ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="achievements">ความสำเร็จ</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="games">เกมส์</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400 hidden" id="dashboardTabBtn" data-tab="dashboard">แดชบอร์ด</button>
+        </div>
+
+        <!-- Check-in Tab -->
+        <div id="checkInTab" class="tab-content animate-fadeIn" style="animation-delay: 0.3s;">
+            <!-- Status Card -->
+            <div class="card rounded-xl p-5 mb-6">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-medium text-gray-200">สถานะวันนี้</h3>
+                    <span id="statusBadge" class="px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300">รอเช็คชื่อ</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">เวลาเช็คชื่อ</p>
+                        <p class="text-xl font-bold text-yellow-400" id="checkInTime">--:--</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-gray-400 text-sm">เวลาปัจจุบัน</p>
+                        <p class="text-xl font-bold text-white" id="currentTime">--:--</p>
+                    </div>
+                </div>
+                <!-- Daily Progress Bar -->
+                <div class="mt-4">
+                    <div class="flex justify-between items-center text-sm mb-1">
+                        <span class="text-gray-400">ความคืบหน้า</span>
+                        <span class="font-medium text-yellow-400" id="progressText">0/0</span>
+                    </div>
+                    <div class="w-full bg-gray-700 rounded-full h-2">
+                        <div class="progress-bar rounded-full" id="dailyProgressBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activities -->
+            <h3 class="text-lg font-medium text-gray-200 mb-4">กิจกรรมที่เปิดให้เช็คชื่อ</h3>
+            <div id="activitiesList" class="space-y-4">
+                <!-- โหลดกิจกรรม -->
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <p class="mt-4">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div id="historyTab" class="tab-content hidden animate-fadeIn">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-200">ประวัติการเช็คชื่อ</h3>
+                <select id="historyPeriodSelect" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="7">7 วันล่าสุด</option>
+                    <option value="30">30 วันล่าสุด</option>
+                    <option value="all">ทั้งหมด</option>
+                </select>
+            </div>
+            <div id="historyList" class="space-y-4">
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="mt-4">กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="leaderboardTab" class="tab-content hidden animate-fadeIn">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-200">จัดอันดับผู้เช็คชื่อตรงเวลา</h3>
+                <select id="leaderboardPeriodSelect" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="7">7 วันล่าสุด</option>
+                    <option value="30">30 วันล่าสุด</option>
+                    <option value="all">ทั้งหมด</option>
+                </select>
+            </div>
+
+            <!-- Top 3 Podium -->
+            <div id="top3Podium" class="flex justify-center items-end gap-4 mb-6">
+                <!-- 2nd Place -->
+                <div class="flex flex-col items-center">
+                    <div class="w-20 h-20 rounded-full bg-gray-700 border-4 border-gray-400 overflow-hidden mb-2 relative" id="rank2Avatar">
+                        <svg class="w-full h-full text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="bg-gray-700 rounded-lg px-3 py-2 text-center mb-2 w-24">
+                        <div class="text-2xl font-bold text-gray-400">2</div>
+                        <p class="text-xs text-white font-medium mt-1 truncate" id="rank2Name">-</p>
+                        <p class="text-xs text-yellow-400" id="rank2Count">0 ครั้ง</p>
+                    </div>
+                    <div class="text-4xl">🥈</div>
+                </div>
+
+                <!-- 1st Place -->
+                <div class="flex flex-col items-center">
+                    <div class="w-24 h-24 rounded-full bg-yellow-600 border-4 border-yellow-400 overflow-hidden mb-2 relative" id="rank1Avatar">
+                        <svg class="w-full h-full text-yellow-700" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="bg-gradient-to-b from-yellow-600 to-yellow-700 rounded-lg px-4 py-3 text-center mb-2 w-28 shadow-lg">
+                        <div class="text-3xl font-bold text-white">1</div>
+                        <p class="text-sm text-white font-bold mt-1 truncate" id="rank1Name">-</p>
+                        <p class="text-xs text-yellow-200" id="rank1Count">0 ครั้ง</p>
+                    </div>
+                    <div class="text-5xl">🥇</div>
+                </div>
+
+                <!-- 3rd Place -->
+                <div class="flex flex-col items-center">
+                    <div class="w-20 h-20 rounded-full bg-orange-700 border-4 border-orange-500 overflow-hidden mb-2 relative" id="rank3Avatar">
+                        <svg class="w-full h-full text-orange-800" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+                        </svg>
+                    </div>
+                    <div class="bg-orange-800 rounded-lg px-3 py-2 text-center mb-2 w-24">
+                        <div class="text-2xl font-bold text-orange-400">3</div>
+                        <p class="text-xs text-white font-medium mt-1 truncate" id="rank3Name">-</p>
+                        <p class="text-xs text-orange-400" id="rank3Count">0 ครั้ง</p>
+                    </div>
+                    <div class="text-4xl">🥉</div>
+                </div>
+            </div>
+
+            <!-- Rest of Leaderboard (4-10) -->
+            <div class="card rounded-xl p-4">
+                <h4 class="text-md font-medium text-gray-200 mb-3">อันดับ 4-10</h4>
+                <div id="leaderboardList" class="space-y-2">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Achievements -->
+        <div id="achievementsTab" class="tab-content hidden animate-fadeIn">
+            <!-- User Stats -->
+            <div class="card rounded-xl p-5 mb-6">
+                <h3 class="text-lg font-medium text-gray-200 mb-4">สถิติของคุณ</h3>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="statTotalCheckIns">0</div>
+                        <div class="stat-label">เช็คชื่อทั้งหมด</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statCurrentStreak">0</div>
+                        <div class="stat-label">สตรีคปัจจุบัน</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statOnTimeRate">0%</div>
+                        <div class="stat-label">ตรงเวลา</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="statUnlockedAchievements">0</div>
+                        <div class="stat-label">ความสำเร็จ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achievements List -->
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">ความสำเร็จที่ปลดล็อคแล้ว</h3>
+                <div id="unlockedAchievementsList" class="space-y-3">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-medium text-gray-200 mb-3">ความสำเร็จที่ยังไม่ได้ปลดล็อค</h3>
+                <div id="lockedAchievementsList" class="space-y-3">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Games -->
+        <div id="gamesTab" class="tab-content hidden animate-fadeIn">
+            <!-- Points Display -->
+            <div class="card rounded-xl p-5 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-200 mb-1">แต้มสะสมของคุณ</h3>
+                        <p class="text-sm text-gray-400">เล่นเกมส์และตอบคำถามเพื่อสะสมแต้ม!</p>
+                    </div>
+                    <div class="points-badge">
+                        <span>⭐</span>
+                        <span id="userPoints" class="points-display">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Games List -->
+            <h3 class="text-lg font-medium text-gray-200 mb-4">เกมส์และกิจกรรม</h3>
+
+            <div class="game-card" onclick="openSpinWheel()">
+                <div class="game-icon">🎡</div>
+                <h4 class="text-md font-bold text-white mb-1">วงล้อนำโชค</h4>
+                <p class="text-sm text-gray-400">หมุนวงล้อมีโอกาสได้รับแต้ม x2</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">✨ 1 ครั้ง/วัน</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">เล่นเลย</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="openQuiz()">
+                <div class="game-icon">🧠</div>
+                <h4 class="text-md font-bold text-white mb-1">คำถามประจำวัน</h4>
+                <p class="text-sm text-gray-400">ตอบคำถามรับแต้มสูงสุด 100 แต้ม</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">🎯 3 คำถาม/วัน</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">เริ่มทำแบบทดสอบ</button>
+                </div>
+            </div>
+
+            <div class="game-card" onclick="openMiniGame('memory')">
+                <div class="game-icon">🎮</div>
+                <h4 class="text-md font-bold text-white mb-1">Mini Games</h4>
+                <p class="text-sm text-gray-400">เกมส์เล็กๆ เล่นสนุก ได้แต้มไปเลย</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">🕹️ เล่นได้ไม่จำกัด</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">เล่นเกมส์</button>
+                </div>
+            </div>
+
+            <!-- Scan QR Code -->
+            <div class="game-card" onclick="openPointsQRScanner()">
+                <div class="game-icon">📱</div>
+                <h4 class="text-md font-bold text-white mb-1">สแกน QR รับแต้ม</h4>
+                <p class="text-sm text-gray-400">สแกน QR Code ที่ admin แจกให้</p>
+                <div class="flex items-center justify-between mt-3">
+                    <span class="text-xs text-yellow-400">🎁 รับแต้มพิเศษ</span>
+                    <button class="btn-gradient px-4 py-2 rounded-lg text-sm font-medium">สแกนเลย</button>
+                </div>
+            </div>
+
+            <!-- Points History -->
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">ประวัติการได้แต้ม</h3>
+                <div id="pointsHistoryList" class="space-y-2">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>ยังไม่มีประวัติการได้แต้ม</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Points Leaderboard -->
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">จัดอันดับแต้ม</h3>
+                <div id="pointsLeaderboardList" class="space-y-2">
+                    <div class="text-center py-4 text-gray-500">
+                        <p>กำลังโหลดข้อมูล...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Panel (Only for admin) -->
+            <div id="adminPanel" class="mt-6 hidden">
+                <h3 class="text-lg font-medium text-gray-200 mb-3">🔐 Admin Panel</h3>
+
+                <!-- QR Code Generator -->
+                <div class="admin-panel-card">
+                    <h4 class="text-md font-bold text-white mb-3">สร้าง QR Code แจกแต้ม</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">จำนวนแต้ม</label>
+                            <input type="number" id="qrPoints" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" placeholder="ระบุจำนวนแต้ม" min="1" max="1000">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">หมายเหตุ (ไม่ระบุก็ได้)</label>
+                            <input type="text" id="qrNote" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" placeholder="เช่น โบนัส, รางวัล">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-400 mb-1">จำนวนครั้งที่ใช้ได้ (1 = ครั้งเดียว)</label>
+                            <input type="number" id="qrUses" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" placeholder="ระบุจำนวนครั้ง" min="1" max="100" value="1">
+                        </div>
+                        <button onclick="generatePointsQR()" class="btn-gradient w-full py-3 rounded-lg font-medium">สร้าง QR Code</button>
+                    </div>
+
+                    <!-- QR Code Display -->
+                    <div id="qrCodeDisplay" class="mt-4 text-center hidden">
+                        <div class="qr-code-display">
+                            <canvas id="qrCanvas"></canvas>
+                        </div>
+                        <p class="text-sm text-gray-400 mt-2">สแกน QR เพื่อรับแต้ม</p>
+                        <button onclick="downloadQR()" class="mt-3 text-sm text-yellow-400 underline">ดาวน์โหลด QR Code</button>
+                    </div>
+                </div>
+
+                <!-- Points Distribution History -->
+                <div class="admin-panel-card">
+                    <h4 class="text-md font-bold text-white mb-3">ประวัติการแจกแต้ม</h4>
+                    <div id="adminPointsHistory" class="space-y-2">
+                        <div class="text-center py-4 text-gray-500">
+                            <p>ยังไม่มีประวัติ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboardTab" class="tab-content hidden animate-fadeIn">
+            <h3 class="text-lg font-medium text-gray-200 mb-4">แดชบอร์ดสรุปผล</h3>
+
+            <!-- Group -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-400 mb-2">เลือกกลุ่ม</label>
+                <select id="groupSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    <option value="all">ทั้งหมด</option>
+                    <!-- Groups will be populated dynamically -->
+                </select>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="card rounded-xl p-4">
+                    <p class="text-gray-400 text-sm mb-1">เช็คชื่อแล้ว</p>
+                    <p class="text-2xl font-bold text-yellow-400" id="checkedInCount">0</p>
+                    <p class="text-xs text-gray-500">จากทั้งหมด <span id="totalCount">0</span> คน</p>
+                </div>
+                <div class="card rounded-xl p-4">
+                    <p class="text-gray-400 text-sm mb-1">อัตราการเข้าร่วม</p>
+                    <p class="text-2xl font-bold text-yellow-400" id="attendanceRate">0%</p>
+                    <div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+                        <div class="progress-bar rounded-full" id="attendanceBar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="card rounded-xl p-5 mb-6">
+                <h4 class="text-md font-medium text-gray-200 mb-3">สถานะการเช็คชื่อ</h4>
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-300">ตรงเวลา</span>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-yellow-400 mr-2" id="onTimeCount">0</span>
+                            <div class="w-24 bg-gray-700 rounded-full h-2">
+                                <div class="progress-bar rounded-full" id="onTimeBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-300">มาสาย</span>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-yellow-400 mr-2" id="lateCount">0</span>
+                            <div class="w-24 bg-gray-700 rounded-full h-2">
+                                <div class="progress-bar rounded-full" id="lateBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-300">ขาด</span>
+                        <div class="flex items-center">
+                            <span class="text-sm font-medium text-yellow-400 mr-2" id="absentCount">0</span>
+                            <div class="w-24 bg-gray-700 rounded-full h-2">
+                                <div class="progress-bar rounded-full" id="absentBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity -->
+            <h4 class="text-md font-medium text-gray-200 mb-3">กิจกรรมล่าสุด</h4>
+            <div id="recentActivityList" class="space-y-3">
+                <div class="text-center py-4 text-gray-500">
+                    <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Scann -->
+    <div id="qrScannerOverlay" class="qr-scanner-overlay hidden">
+        <div class="mb-6">
+            <h2 class="text-xl font-bold text-yellow-400 text-center">สแกน QR Code</h2>
+            <p class="text-gray-300 text-center mt-1" id="scanActivityName">-</p>
+        </div>
+        
+        <div class="qr-frame mb-8">
+            <div class="qr-line"></div>
+            <div class="qr-corners"><span></span></div>
+        </div>
+        
+        <button id="cancelScan" class="btn-gradient font-medium py-3 px-6 rounded-full">
+            ยกเลิก
+        </button>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-yellow-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-12 h-12 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1" id="successTitle">เช็คชื่อสำเร็จ!</h3>
+                <p class="text-gray-400 mb-2" id="successActivity">-</p>
+                <p class="text-yellow-400 font-medium mb-6" id="successTime">-</p>
+                <p class="text-gray-300 text-sm mb-6" id="successStatus">สถานะ: ตรงเวลา</p>
+                <button id="closeSuccessModal" class="btn-gradient font-medium py-3 px-6 rounded-full w-full">
+                    ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-red-500">
+            <div class="text-center">
+                <div class="w-20 h-20 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1" id="errorTitle">เกิดข้อผิดพลาด</h3>
+                <p class="text-gray-400 mb-6" id="errorMessage">-</p>
+                <button id="closeErrorModal" class="bg-gray-700 text-white font-medium py-3 px-6 rounded-full w-full hover:bg-gray-600 transition">
+                    ตกลง
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ลงทะเบียน -->
+    <div id="registrationModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden overflow-y-auto py-8">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500">
+            <div class="text-center mb-6">
+                <h3 class="text-xl font-bold text-white">ลงทะเบียนผู้ใช้งาน</h3>
+                <p class="text-gray-400 mt-2">กรอกข้อมูลส่วนตัวของคุณ</p>
+            </div>
+
+            <div class="space-y-4">
+                <!-- ชื่อ -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">ชื่อ <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerFirstName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="กรอกชื่อจริง">
+                </div>
+
+                <!-- นามสกุล -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">นามสกุล <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerLastName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="กรอกนามสกุล">
+                </div>
+
+                <!-- รหัสพนักงาน -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">รหัสพนักงาน <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerEmployeeId" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="เช่น EMP001">
+                </div>
+
+                <!-- ตำแหน่ง -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">ตำแหน่ง <span class="text-red-500">*</span></label>
+                    <input type="text" id="registerPosition" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" placeholder="เช่น พนักงานขับรถ, ผู้จัดการ">
+                </div>
+
+                <!-- กลุ่ม -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-2">กลุ่ม <span class="text-red-500">*</span></label>
+                    <select id="registerGroupSelect" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        <option value="">-- เลือกกลุ่ม --</option>
+                        <!-- Groups will be populated dynamically -->
+                    </select>
+                </div>
+            </div>
+
+            <button id="registerButton" class="btn-gradient font-medium py-3 px-6 rounded-full w-full mt-6">
+                ลงทะเบียน
+            </button>
+        </div>
+    </div>
+
+    <script>
+       
+        let userId = null;
+        let displayName = null;
+        let pictureUrl = null; // LINE Profile Picture URL
+        let userGroup = null;
+        let userRole = null;
+        let activities = [];
+        let historyData = [];
+        let dashboardData = {};
+        let groups = [];
+        let currentHistoryPeriod = 7; // Default: 7 days
+        let leaderboardData = [];
+        let currentLeaderboardPeriod = 7; // Default: 7 days
+
+        const API_URL = "https://script.google.com/macros/s/AKfycbxvCNUyaSycHwJaag_eN0AVtM_a2n37YJXw_6qK4tPdjZuuwRs5jDlPS4oK5eAYc1DzQw/exec";
+        const LIFF_ID = '2009342397-n6oBMLI6';
+
+        // ========================================
+        // OFFLINE QUEUE SYSTEM
+        // ========================================
+        class OfflineQueue {
+            constructor() {
+                this.queue = JSON.parse(localStorage.getItem('scords_offline_queue') || '[]');
+                this.isSyncing = false;
+                this.initEventListeners();
+            }
+
+            initEventListeners() {
+                window.addEventListener('online', () => this.sync());
+                window.addEventListener('offline', () => this.showOfflineNotification());
+            }
+
+            add(checkInData) {
+                const queueItem = {
+                    id: Date.now() + Math.random(),
+                    data: checkInData,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending'
+                };
+                this.queue.push(queueItem);
+                this.save();
+
+                this.showQueueNotification(this.queue.length);
+                this.updateQueueUI();
+            }
+
+            async sync() {
+                if (this.isSyncing || this.queue.length === 0 || !navigator.onLine) return;
+
+                this.isSyncing = true;
+                showLoading('กำลังส่งข้อมูลที่ค้างอยู่...');
+
+                const failedItems = [];
+
+                for (const item of this.queue) {
+                    if (item.status !== 'pending') continue;
+
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify(item.data)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            item.status = 'success';
+                            this.showSyncSuccess(item.data.activityName || item.data.activityId);
+                        } else {
+                            item.status = 'failed';
+                            failedItems.push(item);
+                        }
+                    } catch (error) {
+                        console.error('Sync failed:', error);
+                        item.status = 'failed';
+                        failedItems.push(item);
+                    }
+                }
+
+                // Remove successful items, keep failed
+                this.queue = failedItems;
+                this.save();
+                this.isSyncing = false;
+                this.updateQueueUI();
+
+                hideLoading();
+
+                if (this.queue.length === 0) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ!',
+                        text: 'ส่งข้อมูลทั้งหมดเรียบร้อยแล้ว',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    await fetchAllData();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'บางรายการล้มเหลว',
+                        text: `มี ${this.queue.length} รายการที่ยังส่งไม่สำเร็จ`,
+                        confirmButtonColor: '#FFD700'
+                    });
+                }
+            }
+
+            save() {
+                localStorage.setItem('scords_offline_queue', JSON.stringify(this.queue));
+            }
+
+            getQueueCount() {
+                return this.queue.filter(item => item.status === 'pending').length;
+            }
+
+            showQueueNotification(count) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.onmouseenter = Swal.stopTimer;
+                        toast.onmouseleave = Swal.resumeTimer;
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'info',
+                    title: `เก็บข้อมูลไว้ในคิว (${count} รายการ)`
+                });
+            }
+
+            showOfflineNotification() {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+
+                Toast.fire({
+                    icon: 'warning',
+                    title: 'ออฟไลน์ - ข้อมูลจะถูกเก็บไว้ในคิว'
+                });
+            }
+
+            showSyncSuccess(activityName) {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: `ส่ง ${activityName} สำเร็จ!`
+                });
+            }
+
+            updateQueueUI() {
+                const queueIndicator = document.getElementById('queueIndicator');
+                const count = this.getQueueCount();
+
+                if (count > 0 && queueIndicator) {
+                    queueIndicator.classList.remove('hidden');
+                    queueIndicator.innerHTML = `
+                        <span class="animate-pulse mr-2">📡</span>
+                        คิว: ${count}
+                    `;
+                } else if (queueIndicator) {
+                    queueIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        // Initialize Offline Queue
+        const offlineQueue = new OfflineQueue();
+
+        // ========================================
+        // ACHIEVEMENT SYSTEM
+        // ========================================
+        class AchievementManager {
+            constructor() {
+                this.achievements = this.defineAchievements();
+                this.userAchievements = JSON.parse(localStorage.getItem('scords_achievements') || '{}');
+                this.userStats = JSON.parse(localStorage.getItem('scords_stats') || '{}');
+            }
+
+            defineAchievements() {
+                return {
+                    // Milestone Achievements
+                    FIRST_CHECKIN: {
+                        id: 'first_checkin',
+                        name: 'ครั้งแรก',
+                        description: 'เช็คชื่อครั้งแรก',
+                        icon: '🎯',
+                        rarity: 'common',
+                        condition: (stats) => stats.totalCheckIns === 1
+                    },
+                    FIVE_CHECKINS: {
+                        id: 'five_checkins',
+                        name: 'มือใหม่',
+                        description: 'เช็คชื่อ 5 ครั้ง',
+                        icon: '🌟',
+                        rarity: 'common',
+                        condition: (stats) => stats.totalCheckIns === 5
+                    },
+                    TEN_CHECKINS: {
+                        id: 'ten_checkins',
+                        name: 'มั่นใจ',
+                        description: 'เช็คชื่อ 10 ครั้ง',
+                        icon: '💪',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.totalCheckIns === 10
+                    },
+                    TWENTY_FIVE_CHECKINS: {
+                        id: 'twenty_five_checkins',
+                        name: 'ขาเก่า',
+                        description: 'เช็คชื่อ 25 ครั้ง',
+                        icon: '🏅',
+                        rarity: 'rare',
+                        condition: (stats) => stats.totalCheckIns === 25
+                    },
+                    FIFTY_CHECKINS: {
+                        id: 'fifty_checkins',
+                        name: 'ตำนาน',
+                        description: 'เช็คชื่อ 50 ครั้ง',
+                        icon: '👑',
+                        rarity: 'epic',
+                        condition: (stats) => stats.totalCheckIns === 50
+                    },
+                    HUNDRED_CHECKINS: {
+                        id: 'hundred_checkins',
+                        name: 'หายาก',
+                        description: 'เช็คชื่อ 100 ครั้ง',
+                        icon: '💎',
+                        rarity: 'legendary',
+                        condition: (stats) => stats.totalCheckIns === 100
+                    },
+
+                    // Perfect Attendance
+                    PERFECT_DAY: {
+                        id: 'perfect_day',
+                        name: 'สมบูรณ์แบบ',
+                        description: 'เช็คชื่อครบทุกกิจกรรมใน 1 วัน',
+                        icon: '✨',
+                        rarity: 'rare',
+                        condition: (stats) => stats.todayCheckedInAll === true
+                    },
+                    PERFECT_WEEK: {
+                        id: 'perfect_week',
+                        name: 'สัปดาห์ทอง',
+                        description: 'เช็คชื่อตรงเวลาทุกวัน 7 วันติด',
+                        icon: '🌈',
+                        rarity: 'epic',
+                        condition: (stats) => stats.weekStreak >= 7 && stats.weekOnTimeRate === 100
+                    },
+                    PERFECT_MONTH: {
+                        id: 'perfect_month',
+                        name: 'เดือนมหัศจรรย์',
+                        description: 'เช็คชื่อตรงเวลาทุกวัน 30 วัน',
+                        icon: '🌟',
+                        rarity: 'legendary',
+                        condition: (stats) => stats.monthStreak >= 30 && stats.monthOnTimeRate === 100
+                    },
+
+                    // Streak Achievements
+                    STREAK_3: {
+                        id: 'streak_3',
+                        name: 'เริ่มต้น',
+                        description: 'เช็คชื่อติดต่อกัน 3 วัน',
+                        icon: '🔥',
+                        rarity: 'common',
+                        condition: (stats) => stats.currentStreak === 3
+                    },
+                    STREAK_7: {
+                        id: 'streak_7',
+                        name: 'ลุกไหม้',
+                        description: 'เช็คชื่อติดต่อกัน 7 วัน',
+                        icon: '🔥🔥',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.currentStreak === 7
+                    },
+                    STREAK_14: {
+                        id: 'streak_14',
+                        name: 'ไฟแรง',
+                        description: 'เช็คชื่อติดต่อกัน 14 วัน',
+                        icon: '🔥🔥🔥',
+                        rarity: 'rare',
+                        condition: (stats) => stats.currentStreak === 14
+                    },
+                    STREAK_30: {
+                        id: 'streak_30',
+                        name: 'ไฟไหม้',
+                        description: 'เช็คชื่อติดต่อกัน 30 วัน',
+                        icon: '💥',
+                        rarity: 'epic',
+                        condition: (stats) => stats.currentStreak === 30
+                    },
+
+                    // Punctuality
+                    ALWAYS_ON_TIME: {
+                        id: 'always_on_time',
+                        name: 'ตรงเวลาเสมอ',
+                        description: 'เช็คชื่อตรงเวลา 10 ครั้งติดต่อกัน',
+                        icon: '⏰',
+                        rarity: 'rare',
+                        condition: (stats) => stats.onTimeStreak >= 10
+                    },
+                    SPEED_DEMON: {
+                        id: 'speed_demon',
+                        name: 'เร็วมาก',
+                        description: 'เช็คชื่อภายใน 5 นาทีแรก 5 ครั้ง',
+                        icon: '⚡',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.earlyCheckIns >= 5
+                    },
+
+                    // Early Bird
+                    EARLY_BIRD_5: {
+                        id: 'early_bird_5',
+                        name: 'นกตื่นเช้า',
+                        description: 'เช็คชื่อก่อนเวลา 5 ครั้ง',
+                        icon: '🐦',
+                        rarity: 'common',
+                        condition: (stats) => stats.earlyBirdCount >= 5
+                    },
+                    EARLY_BIRD_20: {
+                        id: 'early_bird_20',
+                        name: 'นกตื่นเช้าตามรุ่ง',
+                        description: 'เช็คชื่อก่อนเวลา 20 ครั้ง',
+                        icon: '🦅',
+                        rarity: 'rare',
+                        condition: (stats) => stats.earlyBirdCount >= 20
+                    },
+
+                    // Special
+                    NIGHT_OWL: {
+                        id: 'night_owl',
+                        name: 'นกฮูก',
+                        description: 'เช็คชื่อหลัง 22:00 น.',
+                        icon: '🦉',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.nightOwl === true
+                    },
+                    WEEKEND_WARRIOR: {
+                        id: 'weekend_warrior',
+                        name: 'นักรบเสาร์-อาทิตย์',
+                        description: 'เช็คชื่อในวันหยุด 5 ครั้ง',
+                        icon: '🛡️',
+                        rarity: 'uncommon',
+                        condition: (stats) => stats.weekendCheckIns >= 5
+                    }
+                };
+            }
+
+            calculateStats(historyData, activities = []) {
+                const stats = {
+                    totalCheckIns: historyData.length,
+                    onTimeCount: historyData.filter(h => h.status === 'ตรงเวลา').length,
+                    lateCount: historyData.filter(h => h.status === 'สาย').length,
+                    currentStreak: 0,
+                    longestStreak: 0,
+                    onTimeStreak: 0,
+                    earlyCheckIns: 0,
+                    earlyBirdCount: historyData.filter(h => h.status === 'ตรงเวลา').length,
+                    nightOwl: false,
+                    weekendCheckIns: 0,
+                    weekOnTimeRate: 0,
+                    monthOnTimeRate: 0,
+                    weekStreak: 0,
+                    monthStreak: 0,
+                    todayCheckedInAll: false
+                };
+
+                // Calculate streaks
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                const sortedHistory = [...historyData].sort((a, b) =>
+                    new Date(b.date) - new Date(a.date)
+                );
+
+                // Current streak
+                let streak = 0;
+                let checkDate = new Date(today);
+
+                for (const record of sortedHistory) {
+                    const recordDate = new Date(record.date);
+                    recordDate.setHours(0, 0, 0, 0);
+
+                    const dayDiff = Math.floor((checkDate - recordDate) / (1000 * 60 * 60 * 24));
+
+                    if (dayDiff === streak) {
+                        streak++;
+                        checkDate.setDate(checkDate.getDate() - 1);
+                    } else {
+                        break;
+                    }
+                }
+                stats.currentStreak = streak;
+                stats.longestStreak = Math.max(stats.longestStreak, streak);
+
+                // On-time streak
+                let onTimeStreak = 0;
+                for (const record of sortedHistory) {
+                    if (record.status === 'ตรงเวลา') {
+                        onTimeStreak++;
+                    } else {
+                        break;
+                    }
+                }
+                stats.onTimeStreak = onTimeStreak;
+
+                // Early check-ins (within 5 minutes)
+                stats.earlyCheckIns = historyData.filter(h => {
+                    const checkTime = new Date(h.date);
+                    const timeStr = checkTime.toTimeString().slice(0, 5);
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    return minutes < 5;
+                }).length;
+
+                // Night owl (after 22:00)
+                stats.nightOwl = historyData.some(h => {
+                    const checkTime = new Date(h.date);
+                    return checkTime.getHours() >= 22;
+                });
+
+                // Weekend check-ins
+                stats.weekendCheckIns = historyData.filter(h => {
+                    const checkDate = new Date(h.date);
+                    const day = checkDate.getDay();
+                    return day === 0 || day === 6; // Sunday or Saturday
+                }).length;
+
+                // Weekly/Monthly rates
+                const lastWeek = historyData.filter(h => {
+                    const daysDiff = (today - new Date(h.date)) / (1000 * 60 * 60 * 24);
+                    return daysDiff <= 7;
+                });
+                const weekOnTime = lastWeek.filter(h => h.status === 'ตรงเวลา').length;
+                stats.weekOnTimeRate = lastWeek.length > 0 ? Math.round((weekOnTime / lastWeek.length) * 100) : 0;
+                stats.weekStreak = Math.min(stats.currentStreak, 7);
+
+                const lastMonth = historyData.filter(h => {
+                    const daysDiff = (today - new Date(h.date)) / (1000 * 60 * 60 * 24);
+                    return daysDiff <= 30;
+                });
+                const monthOnTime = lastMonth.filter(h => h.status === 'ตรงเวลา').length;
+                stats.monthOnTimeRate = lastMonth.length > 0 ? Math.round((monthOnTime / lastMonth.length) * 100) : 0;
+                stats.monthStreak = Math.min(stats.currentStreak, 30);
+
+                // Check if checked in all activities today
+                if (activities.length > 0) {
+                    const todayCheckedIn = activities.filter(a => a.checkedIn).length;
+                    stats.todayCheckedInAll = todayCheckedIn === activities.length;
+                }
+
+                return stats;
+            }
+
+            checkAchievements(historyData, activities = []) {
+                const stats = this.calculateStats(historyData, activities);
+                this.userStats = stats;
+                this.saveStats(stats);
+
+                const newAchievements = [];
+
+                for (const [key, achievement] of Object.entries(this.achievements)) {
+                    // Skip if already unlocked
+                    if (this.userAchievements[achievement.id]) continue;
+
+                    // Check condition
+                    try {
+                        if (achievement.condition(stats)) {
+                            this.userAchievements[achievement.id] = {
+                                ...achievement,
+                                unlockedAt: new Date().toISOString()
+                            };
+                            newAchievements.push(achievement);
+                        }
+                    } catch (error) {
+                        console.error(`Error checking achievement ${key}:`, error);
+                    }
+                }
+
+                if (newAchievements.length > 0) {
+                    this.saveAchievements();
+                    this.showAchievementNotification(newAchievements);
+                }
+
+                return newAchievements;
+            }
+
+            saveAchievements() {
+                localStorage.setItem('scords_achievements', JSON.stringify(this.userAchievements));
+            }
+
+            saveStats(stats) {
+                localStorage.setItem('scords_stats', JSON.stringify(stats));
+            }
+
+            showAchievementNotification(achievements) {
+                const achievement = achievements[0]; // Show first one
+                const rarityColors = {
+                    common: '#9CA3AF',
+                    uncommon: '#10B981',
+                    rare: '#3B82F6',
+                    epic: '#8B5CF6',
+                    legendary: '#F59E0B'
+                };
+
+                Swal.fire({
+                    title: '🎉 ปลดล็อค Achievement!',
+                    html: `
+                        <div style="text-align: center;">
+                            <div style="font-size: 64px; margin-bottom: 16px;">${achievement.icon}</div>
+                            <h3 style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">${achievement.name}</h3>
+                            <p style="color: #9CA3AF; margin-bottom: 16px;">${achievement.description}</p>
+                            <span style="background: ${rarityColors[achievement.rarity]}; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; text-transform: uppercase;">
+                                ${achievement.rarity}
+                            </span>
+                        </div>
+                    `,
+                    background: '#111827',
+                    color: '#fff',
+                    confirmButtonColor: '#FFD700',
+                    confirmButtonText: 'เยี่ยมมาก!'
+                });
+
+                if (achievements.length > 1) {
+                    setTimeout(() => {
+                        this.showAchievementNotification(achievements.slice(1));
+                    }, 3000);
+                }
+            }
+
+            getUnlockedAchievements() {
+                return Object.values(this.userAchievements).sort((a, b) =>
+                    new Date(b.unlockedAt) - new Date(a.unlockedAt)
+                );
+            }
+
+            getLockedAchievements() {
+                return Object.values(this.achievements).filter(a => !this.userAchievements[a.id]);
+            }
+
+            getStats() {
+                return this.userStats;
+            }
+        }
+
+        // Initialize Achievement Manager
+        const achievementManager = new AchievementManager();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeLIFF();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        });
+
+        async function initializeLIFF() {
+            try {
+                await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true }); 
+                
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    userId = profile.userId;
+                    displayName = profile.displayName;
+                    
+                    displayUserProfile(profile);
+                    await fetchAllData();
+                } else {
+                    liff.login({ redirectUri: window.location.href });
+                }
+            } catch (error) {
+                showError("การเชื่อมต่อ LIFF ล้มเหลว", "กรุณาลองใหม่อีกครั้ง");
+                console.error("LIFF initialization failed", error);
+            }
+        }
+
+        async function fetchAllData() {
+            try {
+                showLoading("กำลังโหลดข้อมูล");
+
+                const response = await fetch(`${API_URL}?action=getAllData&userId=${userId}&days=${currentHistoryPeriod}`);
+                const result = await response.json();
+                console.log("Data from API:", result);
+
+                if (result.success) {
+                    const data = result.data;
+                    userGroup = data.userInfo ? data.userInfo.group : null;
+                    userRole = data.userInfo ? data.userInfo.role : null;
+                    activities = data.activities || [];
+                    historyData = data.history || [];
+                    dashboardData = data.dashboardData || {};
+                    groups = data.groups || [];
+
+                    activities.sort((a, b) => a.time.localeCompare(b.time));
+
+                    populateGroupSelects();
+
+                    // Show dashboard tab only for admin users
+                    if (userRole === 'admin') {
+                        const dashboardTabBtn = document.getElementById('dashboardTabBtn');
+                        if (dashboardTabBtn) {
+                            dashboardTabBtn.classList.remove('hidden');
+                        }
+                    }
+
+                    if (!data.userInfo) {
+                        hideLoading();
+                        showRegistrationModal();
+                        return;
+                    }
+
+                    loadActivities();
+                    loadHistoryData();
+                    loadDashboardData();
+                    loadAchievementsData();
+
+                    // Check for new achievements
+                    achievementManager.checkAchievements(historyData, activities);
+
+                    // Load initial leaderboard data
+                    await updateLeaderboardPeriod(currentLeaderboardPeriod);
+
+                    // Update offline queue UI
+                    offlineQueue.updateQueueUI();
+
+                    // Sync local game history to backend (if any)
+                    await syncLocalGameHistory();
+
+                    hideLoading();
+                    document.getElementById('mainContainer').classList.remove('hidden');
+                } else {
+                    throw new Error(result.message || "Failed to fetch data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+                console.error("Error fetching data:", error);
+            }
+        }
+
+        function displayUserProfile(profile) {
+            document.getElementById('displayName').textContent = profile.displayName;
+            if (profile.pictureUrl) {
+                pictureUrl = profile.pictureUrl; // เก็บ URL ไว้ใช้ตอนลงทะเบียน
+                document.getElementById('profileImage').innerHTML = `<img src="${profile.pictureUrl}" alt="Profile" class="w-full h-full object-cover">`;
+            }
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('th-TH', options);
+            
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('currentTime').textContent = `${hours}:${minutes} น.`;
+        }
+
+        function loadActivities() {
+            const activitiesList = document.getElementById('activitiesList');
+            const checkInTimeEl = document.getElementById('checkInTime');
+            const dailyProgressBar = document.getElementById('dailyProgressBar');
+            const progressText = document.getElementById('progressText');
+            
+            activitiesList.innerHTML = '';
+            
+            if (activities.length === 0) {
+                activitiesList.innerHTML = `<div class="text-center py-8 text-gray-500"><svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg><p class="mt-4">ไม่มีกิจกรรมที่เปิดให้เช็คชื่อในขณะนี้</p></div>`;
+                checkInTimeEl.textContent = "ไม่มีกิจกรรม";
+                progressText.textContent = "0/0";
+                dailyProgressBar.style.width = "0%";
+                return;
+            }
+
+            const checkedInCount = activities.filter(a => a.checkedIn).length;
+            const totalActivities = activities.length;
+            const progressPercentage = totalActivities > 0 ? (checkedInCount / totalActivities) * 100 : 0;
+            progressText.textContent = `${checkedInCount}/${totalActivities}`;
+            dailyProgressBar.style.width = `${progressPercentage}%`;
+
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const nextAvailableActivity = activities.find(a => {
+                if (a.checkedIn) return false;
+                const [endHour, endMinute] = a.time.split(' - ')[1].split(':').map(Number);
+                return currentTime <= (endHour * 60 + endMinute);
+            });
+            
+            if (nextAvailableActivity) {
+                checkInTimeEl.textContent = nextAvailableActivity.time;
+            } else {
+                checkInTimeEl.textContent = activities.every(a => a.checkedIn) ? "เช็คชื่อครบแล้ว" : "กิจกรรมปิดแล้ว";
+            }
+            
+            const lastCheckedIn = activities.filter(a => a.checkedIn).pop();
+            if (lastCheckedIn) {
+                document.getElementById('statusBadge').textContent = lastCheckedIn.status;
+                document.getElementById('statusBadge').className = `px-3 py-1 rounded-full text-xs font-medium ${lastCheckedIn.status === 'ตรงเวลา' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}`;
+            }
+            
+            activities.forEach((activity, index) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-xl p-5 animate-fadeIn';
+                card.style.animationDelay = `${0.3 + (index * 0.1)}s`;
+                
+                if (activity.checkedIn) {
+                    card.innerHTML = `<div class="flex justify-between items-start mb-3"><h3 class="text-lg font-medium text-white">${activity.name}</h3><span class="px-3 py-1 rounded-full text-xs font-medium ${activity.status === 'ตรงเวลา' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}">${activity.status}</span></div><p class="text-gray-400 text-sm mb-4">เวลาเช็คชื่อ: ${activity.time} น.</p><button class="w-full py-3 rounded-lg flex items-center justify-center bg-gray-700 text-gray-300 cursor-not-allowed" disabled><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>เช็คชื่อแล้ว</button>`;
+                } else {
+                    const [startHour, startMinute] = activity.time.split(' - ')[0].split(':').map(Number);
+                    const [endHour, endMinute] = activity.time.split(' - ')[1].split(':').map(Number);
+                    const activityStartTime = startHour * 60 + startMinute;
+                    const activityEndTime = endHour * 60 + endMinute;
+                    const isActive = currentTime >= activityStartTime && currentTime <= activityEndTime;
+                    const isPast = currentTime > activityEndTime;
+
+                    let statusText, statusClass, buttonHtml;
+
+                    if (isPast) {
+                        statusText = 'หมดเวลา';
+                        statusClass = 'bg-red-900 text-red-300';
+                        buttonHtml = `<button class="w-full py-3 rounded-lg flex items-center justify-center bg-gray-700 text-gray-300 cursor-not-allowed" disabled><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>ขาดการเช็คชื่อ</button>`;
+                    } else if (isActive) {
+                        statusText = 'เปิดให้เช็คชื่อ';
+                        statusClass = 'bg-green-900 text-green-300';
+                        buttonHtml = `<button class="check-in-btn btn-gradient w-full py-3 rounded-lg flex items-center justify-center" data-activity-id="${activity.id}" data-activity-name="${activity.name}"><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>สแกน QR Code เพื่อเช็คชื่อ</button>`;
+                    } else {
+                        statusText = 'ยังไม่เปิด';
+                        statusClass = 'bg-gray-700 text-gray-400';
+                        buttonHtml = `<button class="w-full py-3 rounded-lg flex items-center justify-center bg-gray-800 text-gray-500 cursor-not-allowed" disabled><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>ยังไม่ถึงเวลา</button>`;
+                    }
+                    card.innerHTML = `<div class="flex justify-between items-start mb-3"><h3 class="text-lg font-medium text-white">${activity.name}</h3><span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${statusText}</span></div><p class="text-gray-400 text-sm mb-4">เวลาเช็คชื่อ: ${activity.time} น.</p>${buttonHtml}`;
+                }
+                activitiesList.appendChild(card);
+            });
+            
+            document.querySelectorAll('.check-in-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const activityId = this.getAttribute('data-activity-id');
+                    const activityName = this.getAttribute('data-activity-name');
+                    getLocationAndScan(activityId, activityName);
+                });
+            });
+        }
+
+        function loadHistoryData() {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            
+            if (historyData.length === 0) {
+                historyList.innerHTML = `<div class="text-center py-8 text-gray-500"><svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p class="mt-4">ไม่มีประวัติการเช็คชื่อ</p></div>`;
+                return;
+            }
+            
+            historyData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-xl p-4 animate-fadeIn';
+                card.style.animationDelay = `${0.1 * index}s`;
+                
+                let statusClass = 'bg-green-900 text-green-300';
+                if (item.status === 'สาย') {
+                    statusClass = 'bg-yellow-900 text-yellow-300';
+                } else if (item.status === 'ขาด') {
+                    statusClass = 'bg-red-900 text-red-300';
+                }
+                
+                card.innerHTML = `<div class="flex justify-between items-start"><div><p class="text-sm text-gray-400">${formatDate(item.date)}</p><h4 class="text-md font-medium text-white mt-1">${item.activity}</h4><p class="text-sm text-yellow-400 mt-1">${item.time !== '-' ? 'เวลาเช็คชื่อ: ' + item.time + ' น.' : 'ไม่ได้เช็คชื่อ'}</p></div><span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${item.status}</span></div>`;
+                historyList.appendChild(card);
+            });
+        }
+
+        function loadDashboardData() {
+            document.getElementById('checkedInCount').textContent = dashboardData.checkedIn || 0;
+            document.getElementById('totalCount').textContent = dashboardData.total || 0;
+
+            const attendanceRate = dashboardData.total ? Math.round((dashboardData.checkedIn / dashboardData.total) * 100) : 0;
+            document.getElementById('attendanceRate').textContent = `${attendanceRate}%`;
+            document.getElementById('attendanceBar').style.width = `${attendanceRate}%`;
+
+            document.getElementById('onTimeCount').textContent = dashboardData.onTime || 0;
+            document.getElementById('lateCount').textContent = dashboardData.late || 0;
+            document.getElementById('absentCount').textContent = dashboardData.absent || 0;
+
+            const onTimePercent = dashboardData.total ? Math.round((dashboardData.onTime / dashboardData.total) * 100) : 0;
+            const latePercent = dashboardData.total ? Math.round((dashboardData.late / dashboardData.total) * 100) : 0;
+            const absentPercent = dashboardData.total ? Math.round((dashboardData.absent / dashboardData.total) * 100) : 0;
+
+            document.getElementById('onTimeBar').style.width = `${onTimePercent}%`;
+            document.getElementById('lateBar').style.width = `${latePercent}%`;
+            document.getElementById('absentBar').style.width = `${absentPercent}%`;
+
+            const recentActivityList = document.getElementById('recentActivityList');
+            recentActivityList.innerHTML = '';
+
+            if (!dashboardData.recentActivity || dashboardData.recentActivity.length === 0) {
+                recentActivityList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ไม่มีกิจกรรมล่าสุด</p></div>`;
+                return;
+            }
+
+            dashboardData.recentActivity.forEach((item, index) => {
+                const activityItem = document.createElement('div');
+                activityItem.className = 'card rounded-lg p-3 animate-fadeIn';
+                activityItem.style.animationDelay = `${0.1 * index}s`;
+
+                let statusClass = 'bg-green-900 text-green-300';
+                if (item.status === 'สาย') {
+                    statusClass = 'bg-yellow-900 text-yellow-300';
+                } else if (item.status === 'ขาด') {
+                    statusClass = 'bg-red-900 text-red-300';
+                }
+
+                activityItem.innerHTML = `<div class="flex justify-between items-center"><div><p class="text-sm font-medium text-white">${item.name}</p><p class="text-xs text-gray-400">${item.activity} - ${item.time} น.</p></div><span class="px-2 py-1 rounded-full text-xs font-medium ${statusClass}">${item.status}</span></div>`;
+                recentActivityList.appendChild(activityItem);
+            });
+        }
+
+        function loadAchievementsData() {
+            const stats = achievementManager.getStats();
+            const unlockedAchievements = achievementManager.getUnlockedAchievements();
+            const lockedAchievements = achievementManager.getLockedAchievements();
+
+            // Update stats display
+            document.getElementById('statTotalCheckIns').textContent = stats.totalCheckIns || 0;
+            document.getElementById('statCurrentStreak').textContent = `${stats.currentStreak || 0} วัน`;
+            document.getElementById('statOnTimeRate').textContent = `${stats.weekOnTimeRate || 0}%`;
+            document.getElementById('statUnlockedAchievements').textContent = unlockedAchievements.length;
+
+            // Display unlocked achievements
+            const unlockedList = document.getElementById('unlockedAchievementsList');
+            unlockedList.innerHTML = '';
+
+            if (unlockedAchievements.length === 0) {
+                unlockedList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-16 h-16 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                        </svg>
+                        <p class="mt-4">ยังไม่มีความสำเร็จ</p>
+                        <p class="text-xs mt-2">เช็คชื่อเพื่อปลดล็อคความสำเร็จแรกของคุณ!</p>
+                    </div>
+                `;
+            } else {
+                unlockedAchievements.forEach((achievement, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'achievement-card achievement-shine';
+                    card.style.animationDelay = `${0.1 * index}s`;
+
+                    const unlockDate = achievement.unlockedAt ?
+                        new Date(achievement.unlockedAt).toLocaleDateString('th-TH', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                        }) : '-';
+
+                    card.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="mr-4">
+                                <div class="achievement-icon">${achievement.icon}</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-sm font-bold text-white">${achievement.name}</h4>
+                                    <span class="achievement-rarity rarity-${achievement.rarity}">${achievement.rarity}</span>
+                                </div>
+                                <p class="text-xs text-gray-400 mb-2">${achievement.description}</p>
+                                <p class="text-xs text-yellow-400">ปลดล็อค: ${unlockDate}</p>
+                            </div>
+                        </div>
+                    `;
+                    unlockedList.appendChild(card);
+                });
+            }
+
+            // Display locked achievements
+            const lockedList = document.getElementById('lockedAchievementsList');
+            lockedList.innerHTML = '';
+
+            if (lockedAchievements.length === 0) {
+                lockedList.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        <p>🎉 ปลดล็อคครบทุกความสำเร็จแล้ว!</p>
+                    </div>
+                `;
+            } else {
+                lockedAchievements.slice(0, 10).forEach((achievement, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'achievement-card locked';
+                    card.style.animationDelay = `${0.1 * index}s`;
+
+                    card.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="mr-4">
+                                <div class="achievement-icon opacity-50">${achievement.icon}</div>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-sm font-bold text-gray-400">${achievement.name}</h4>
+                                    <span class="achievement-rarity rarity-${achievement.rarity}">${achievement.rarity}</span>
+                                </div>
+                                <p class="text-xs text-gray-500">${achievement.description}</p>
+                            </div>
+                        </div>
+                    `;
+                    lockedList.appendChild(card);
+                });
+            }
+        }
+
+        function loadLeaderboardData() {
+            // Update Top 3 Podium
+            if (leaderboardData.length >= 1) {
+                const rank1 = leaderboardData[0];
+                document.getElementById('rank1Name').textContent = rank1.name;
+                document.getElementById('rank1Count').textContent = `${rank1.onTimeCount} ครั้ง`;
+
+                // Update profile picture for rank 1
+                const rank1Avatar = document.getElementById('rank1Avatar');
+                if (rank1.profilePicture) {
+                    rank1Avatar.innerHTML = `<img src="${rank1.profilePicture}" alt="${rank1.name}" class="w-full h-full object-cover">`;
+                }
+            }
+
+            if (leaderboardData.length >= 2) {
+                const rank2 = leaderboardData[1];
+                document.getElementById('rank2Name').textContent = rank2.name;
+                document.getElementById('rank2Count').textContent = `${rank2.onTimeCount} ครั้ง`;
+
+                // Update profile picture for rank 2
+                const rank2Avatar = document.getElementById('rank2Avatar');
+                if (rank2.profilePicture) {
+                    rank2Avatar.innerHTML = `<img src="${rank2.profilePicture}" alt="${rank2.name}" class="w-full h-full object-cover">`;
+                }
+            }
+
+            if (leaderboardData.length >= 3) {
+                const rank3 = leaderboardData[2];
+                document.getElementById('rank3Name').textContent = rank3.name;
+                document.getElementById('rank3Count').textContent = `${rank3.onTimeCount} ครั้ง`;
+
+                // Update profile picture for rank 3
+                const rank3Avatar = document.getElementById('rank3Avatar');
+                if (rank3.profilePicture) {
+                    rank3Avatar.innerHTML = `<img src="${rank3.profilePicture}" alt="${rank3.name}" class="w-full h-full object-cover">`;
+                }
+            }
+
+            // Update Leaderboard List (Rank 4-10)
+            const leaderboardList = document.getElementById('leaderboardList');
+            leaderboardList.innerHTML = '';
+
+            if (leaderboardData.length <= 3) {
+                leaderboardList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ไม่มีข้อมูลเพิ่มเติม</p></div>`;
+                return;
+            }
+
+            // Show ranks 4-10
+            const restRanks = leaderboardData.slice(3, 10);
+            restRanks.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800 animate-fadeIn';
+                row.style.animationDelay = `${0.1 * index}s`;
+
+                const profilePicHtml = item.profilePicture ?
+                    `<img src="${item.profilePicture}" alt="${item.name}" class="w-8 h-8 rounded-full object-cover">` :
+                    `<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-yellow-400">${item.rank}</div>`;
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${!item.profilePicture ? profilePicHtml : ''}
+                        ${item.profilePicture ? `<div class="flex items-center gap-2">
+                            <span class="text-sm font-bold text-yellow-400 w-6">${item.rank}</span>
+                            ${profilePicHtml}
+                        </div>` : ''}
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.name}</p>
+                            <p class="text-xs text-gray-400">${item.group || '-'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-green-400">${item.onTimeCount} ครั้ง</p>
+                        <p class="text-xs text-gray-400">${item.totalCount} รวม</p>
+                    </div>
+                `;
+                leaderboardList.appendChild(row);
+            });
+        }
+
+        function populateGroupSelects() {
+            const groupSelect = document.getElementById('groupSelect');
+            const registerGroupSelect = document.getElementById('registerGroupSelect');
+
+            // Clear dashboard select but keep "all" option
+            while (groupSelect.options.length > 1) {
+                groupSelect.remove(1);
+            }
+
+            // Clear registration select completely (including default option)
+            registerGroupSelect.innerHTML = '';
+            // Add default option back
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "-- เลือกกลุ่ม --";
+            registerGroupSelect.appendChild(defaultOption);
+
+            groups.forEach(group => {
+                const option1 = document.createElement('option');
+                option1.value = group;
+                option1.textContent = group;
+                groupSelect.appendChild(option1);
+
+                const option2 = document.createElement('option');
+                option2.value = group;
+                option2.textContent = group;
+                registerGroupSelect.appendChild(option2);
+            });
+
+            if (userGroup) {
+                groupSelect.value = userGroup;
+            }
+        }
+
+        function getLocationAndScan(activityId, activityName) {
+            showLoading("กำลังระบุตำแหน่ง...");
+            if (!navigator.geolocation) {
+                hideLoading();
+                showError("ตำแหน่งผิดพลาด", "เบราว์เซอร์ของคุณไม่รองรับการระบุตำแหน่ง");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    hideLoading();
+                    openQRScanner(activityId, activityName, position.coords);
+                },
+                () => {
+                    hideLoading();
+                    showError("ตำแหน่งผิดพลาด", "ไม่สามารถระบุตำแหน่งได้ กรุณาอนุญาตให้แอปเข้าถึงตำแหน่งของคุณ");
+                }
+            );
+        }
+
+        function openQRScanner(activityId, activityName, coords) {
+            const overlay = document.getElementById('qrScannerOverlay');
+            document.getElementById('scanActivityName').textContent = activityName;
+            overlay.classList.remove('hidden');
+            
+            scanQRCode(activityId, coords);
+        }
+
+        async function scanQRCode(activityId, coords) {
+            try {
+                const os = liff.getOS();
+                let qrResult;
+                if (os === 'android') {
+                    qrResult = await liff.scanCode();
+                } else {
+                    qrResult = await liff.scanCodeV2();
+                }
+                
+                if (qrResult && qrResult.value) {
+                    processQRCode(activityId, qrResult.value, coords);
+                } else {
+                     document.getElementById('qrScannerOverlay').classList.add('hidden');
+                }
+            } catch (error) {
+                document.getElementById('qrScannerOverlay').classList.add('hidden');
+                showError("การสแกน QR Code ล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+                console.error("QR scan error:", error);
+            }
+        }
+
+        async function processQRCode(activityId, qrResult, coords) {
+            document.getElementById('qrScannerOverlay').classList.add('hidden');
+            showLoading("กำลังบันทึกข้อมูล");
+
+            try {
+                const timestamp = new Date().toISOString();
+                const activity = activities.find(a => a.id.toString() === activityId.toString());
+                const checkInData = {
+                    action: "checkIn",
+                    userId: userId,
+                    displayName: displayName,
+                    activityId: activityId,
+                    activityName: activity ? activity.name : `Activity ${activityId}`,
+                    qrCode: qrResult,
+                    timestamp: timestamp,
+                    latitude: coords.latitude,
+                    longitude: coords.longitude
+                };
+
+                // Check if online
+                if (!navigator.onLine) {
+                    hideLoading();
+                    offlineQueue.add(checkInData);
+
+                    // Show local feedback
+                    const now = new Date();
+                    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} น.`;
+
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ออฟไลน์',
+                        html: `
+                            <div class="text-center">
+                                <div style="font-size: 48px; margin-bottom: 16px;">📡</div>
+                                <p style="color: #fff;">บันทึกข้อมูลเรียบร้อยแล้ว</p>
+                                <p style="color: #9CA3AF; font-size: 14px;">ข้อมูลจะถูกส่งเมื่อกลับมาออนไลน์</p>
+                            </div>
+                        `,
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+
+                    // Refresh activities to show checked-in state locally
+                    await fetchAllData();
+                    return;
+                }
+
+                // Try to send to server
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(checkInData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    hideLoading();
+                    const now = new Date();
+                    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} น.`;
+
+                    if (liff.isInClient()) {
+                        const flexMessage = createFlexMessage(activity.name, displayName, currentTime, result.data.status);
+                        await liff.sendMessages([flexMessage]).then(function () {
+                            const Toast = Swal.mixin({
+                                toast: true,
+                                position: "top-end",
+                                showConfirmButton: false,
+                                timer: 3000,
+                                timerProgressBar: true,
+                                didOpen: (toast) => {
+                                    toast.onmouseenter = Swal.stopTimer;
+                                    toast.onmouseleave = Swal.resumeTimer;
+                                }
+                            });
+                            Toast.fire({
+                                icon: "success",
+                                title: "ส่งเข้าแชทเรียบร้อย"
+                            })
+                        });
+                    }
+
+                    document.getElementById('successActivity').textContent = activity ? activity.name : '';
+                    document.getElementById('successTime').textContent = currentTime;
+                    document.getElementById('successStatus').textContent = `สถานะ: ${result.data.status}`;
+                    document.getElementById('successModal').classList.remove('hidden');
+
+                    // Check for achievements after successful check-in
+                    await fetchAllData();
+                } else {
+                    throw new Error(result.message || "Check-in failed");
+                }
+            } catch (error) {
+                hideLoading();
+
+                // If network error, add to queue
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    const activity = activities.find(a => a.id.toString() === activityId.toString());
+                    const checkInData = {
+                        action: "checkIn",
+                        userId: userId,
+                        displayName: displayName,
+                        activityId: activityId,
+                        activityName: activity ? activity.name : `Activity ${activityId}`,
+                        qrCode: qrResult,
+                        timestamp: new Date().toISOString(),
+                        latitude: coords.latitude,
+                        longitude: coords.longitude
+                    };
+
+                    offlineQueue.add(checkInData);
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'การเชื่อมต่อล้มเหลว',
+                        html: `
+                            <div class="text-center">
+                                <p style="color: #fff;">บันทึกข้อมูลไว้ในคิวแล้ว</p>
+                                <p style="color: #9CA3AF; font-size: 14px;">ข้อมูลจะถูกส่งอัตโนมัติเมื่อกลับมาออนไลน์</p>
+                            </div>
+                        `,
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+                } else {
+                    showError('เช็คชื่อไม่สำเร็จ', error.message || 'กรุณาลองใหม่อีกครั้ง');
+                }
+            }
+        }
+
+        function createFlexMessage(activityName, userName, checkInTime, status) {
+            const statusColor = status === 'ตรงเวลา' ? '#1DB446' : '#FFC107';
+            return {
+                "type": "flex",
+                "altText": "การเช็คชื่อ",
+                "contents": {
+                    "type": "bubble",
+                    "hero": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "contents": [
+                            {
+                                "type": "image",
+                                "url": "https://img.icons8.com/plasticine/2x/checkmark.png",
+                                "size": "sm",
+                                "aspectRatio": "1:1",
+                                "aspectMode": "cover"
+                            },
+                            {
+                                "type": "text",
+                                "text": "CHECK-IN COMPLETE",
+                                "weight": "bold",
+                                "size": "xl",
+                                "color": "#1DB446",
+                                "align": "center",
+                                "margin": "md"
+                            }
+                        ],
+                        "paddingAll": "20px"
+                    },
+                    "body": {
+                        "type": "box",
+                        "layout": "vertical",
+                        "spacing": "md",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": "รายละเอียดการเช็คชื่อ",
+                                "size": "sm",
+                                "weight": "bold",
+                                "color": "#aaaaaa"
+                            },
+                            { "type": "separator" },
+                            {
+                                "type": "box",
+                                "layout": "vertical",
+                                "spacing": "sm",
+                                "margin": "lg",
+                                "contents": [
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "กิจกรรม:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": activityName, "flex": 2,"color": "#ffffff", "wrap": true, "weight": "bold", "align": "end", "size": "sm" } ] },
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "ผู้เช็คชื่อ:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": userName, "flex": 2,"color": "#ffffff", "wrap": true, "weight": "bold", "align": "end", "size": "sm" } ] },
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "เวลา:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": checkInTime, "flex": 2,"color": "#ffffff", "wrap": true, "weight": "bold", "align": "end", "size": "sm" } ] },
+                                    { "type": "box", "layout": "horizontal", "contents": [ { "type": "text", "text": "สถานะ:", "flex": 1, "color": "#aaaaaa", "size": "sm" }, { "type": "text", "text": status, "flex": 2, "wrap": true, "weight": "bold", "align": "end", "size": "sm", "color": statusColor } ] }
+                                ]
+                            }
+                        ]
+                    },
+                    "styles": {
+                        "hero": { "backgroundColor": "#2c2c2c" },
+                        "body": { "backgroundColor": "#333333" }
+                    }
+                }
+            };
+        }
+
+        function showRegistrationModal() {
+            document.getElementById('registrationModal').classList.remove('hidden');
+        }
+
+        async function registerUser() {
+            // รับค่าจากฟอร์ม
+            const firstName = document.getElementById('registerFirstName').value.trim();
+            const lastName = document.getElementById('registerLastName').value.trim();
+            const employeeId = document.getElementById('registerEmployeeId').value.trim();
+            const position = document.getElementById('registerPosition').value.trim();
+            const selectedGroup = document.getElementById('registerGroupSelect').value;
+
+            // ตรวจสอบข้อมูลที่จำเป็น
+            if (!firstName) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกชื่อ");
+                return;
+            }
+            if (!lastName) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกนามสกุล");
+                return;
+            }
+            if (!employeeId) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกรหัสพนักงาน");
+                return;
+            }
+            if (!position) {
+                showError("ข้อมูลไม่ครบ", "กรุณากรอกตำแหน่ง");
+                return;
+            }
+            if (!selectedGroup) {
+                showError("ข้อมูลไม่ครบ", "กรุณาเลือกกลุ่ม");
+                return;
+            }
+
+            // ตรวจสอบรหัสพนักงานว่าเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น
+            if (!/^[A-Z0-9-]+$/i.test(employeeId)) {
+                showError("รูปแบบผิด", "รหัสพนักงานต้องเป็นตัวอักษรภาษาอังกฤษและตัวเลขเท่านั้น");
+                return;
+            }
+
+            showLoading("กำลังลงทะเบียน");
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "registerUser",
+                        userId: userId,
+                        displayName: displayName,
+                        firstName: firstName,
+                        lastName: lastName,
+                        employeeId: employeeId,
+                        position: position,
+                        group: selectedGroup,
+                        pictureUrl: pictureUrl || null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('registrationModal').classList.add('hidden');
+                    await fetchAllData();
+                } else {
+                    throw new Error(result.message || "Registration failed");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การลงทะเบียนล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        async function updateDashboard(group) {
+            try {
+                showLoading("กำลังโหลดข้อมูลแดชบอร์ด");
+                const response = await fetch(`${API_URL}?action=getDashboard&group=${group}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    dashboardData = result.data;
+                    loadDashboardData();
+                    hideLoading();
+                } else {
+                    throw new Error(result.message || "Failed to fetch dashboard data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        async function updateHistoryPeriod(days) {
+            try {
+                showLoading("กำลังโหลดประวัติ");
+                currentHistoryPeriod = days;
+
+                const response = await fetch(`${API_URL}?action=getHistory&userId=${userId}&days=${days}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    historyData = result.data.history || [];
+                    loadHistoryData();
+                    hideLoading();
+                } else {
+                    throw new Error(result.message || "Failed to fetch history data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        async function updateLeaderboardPeriod(days) {
+            try {
+                showLoading("กำลังโหลดจัดอันดับ");
+                currentLeaderboardPeriod = days;
+
+                const response = await fetch(`${API_URL}?action=getLeaderboard&days=${days}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    leaderboardData = result.data.leaderboard || [];
+                    loadLeaderboardData();
+                    hideLoading();
+                } else {
+                    throw new Error(result.message || "Failed to fetch leaderboard data");
+                }
+            } catch (error) {
+                hideLoading();
+                showError("การโหลดข้อมูลล้มเหลว", error.message || "กรุณาลองใหม่อีกครั้ง");
+            }
+        }
+
+        function showLoading(message) {
+            const loadingScreen = document.getElementById('loadingScreen');
+            document.getElementById('loadingText').textContent = message || "กำลังโหลด";
+            loadingScreen.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingScreen').style.display = 'none';
+        }
+
+        function showError(title, message) {
+            document.getElementById('errorTitle').textContent = title;
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+
+                // Prevent non-admin users from accessing dashboard
+                if (tabId === 'dashboard' && userRole !== 'admin') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไม่มีสิทธิ์เข้าถึง',
+                        text: 'แดชบอร์ดสำหรับผู้ดูแลระบบเท่านั้น',
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+                    return;
+                }
+
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active', 'text-white'));
+                this.classList.add('tab-active', 'text-white');
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+                document.getElementById(`${tabId}Tab`).classList.remove('hidden');
+
+                // Load achievements data when switching to achievements tab
+                if (tabId === 'achievements') {
+                    loadAchievementsData();
+                }
+
+                // Load games data when switching to games tab
+                if (tabId === 'games') {
+                    loadGamesData();
+                }
+
+                // Load admin data when switching to dashboard tab
+                if (tabId === 'dashboard') {
+                    loadAdminPointsHistory();
+                }
+            });
+        });
+
+        // ========================================
+        // GAMES & POINTS SYSTEM
+        // ========================================
+        let userPoints = 0;
+        let pointsHistory = [];
+        let pointsLeaderboard = [];
+        let todaySpinCount = 0;
+        let todayQuizCount = 0;
+
+        // Sample quiz questions
+        const quizQuestions = [
+            {
+                question: "SCORDS ย่อมาจากคำว่าอะไร?",
+                options: ["Score Card System", "Smart Check-In Data System", "School Coordination System", "Smart Coordination Data System"],
+                correct: 1,
+                points: 50
+            },
+            {
+                question: "เวลาเช็คชื่อเปิดให้บริการกี่โมง?",
+                options: ["08:00 น.", "09:00 น.", "07:00 น.", "10:00 น."],
+                correct: 0,
+                points: 30
+            },
+            {
+                question: "ต้องเช็คชื่อตรงเวลากี่ครั้งถึงจะได้รับ achievement 'ตรงเวลาเสมอ'?",
+                options: ["5 ครั้ง", "10 ครั้ง", "15 ครั้ง", "20 ครั้ง"],
+                correct: 1,
+                points: 40
+            },
+            {
+                question: "หมุนวงล้อมีโอกาสได้แต้มสูงสุดเท่าไหร่?",
+                options: ["50 แต้ม", "100 แต้ม", "200 แต้ม", "500 แต้ม"],
+                correct: 2,
+                points: 60
+            },
+            {
+                question: "admin panel สำหรับอะไร?",
+                options: ["ดูประวัติ", "สร้าง QR Code แจกแต้ม", "เช็คชื่อ", "เล่นเกมส์"],
+                correct: 1,
+                points: 30
+            }
+        ];
+
+        async function loadGamesData() {
+            try {
+                // Load user points from API
+                const pointsResponse = await fetch(`${API_URL}?action=getUserPoints&userId=${userId}`);
+                const pointsResult = await pointsResponse.json();
+
+                if (pointsResult.success && pointsResult.data) {
+                    userPoints = pointsResult.data.points || 0;
+                    document.getElementById('userPoints').textContent = userPoints;
+                } else {
+                    userPoints = 0;
+                    document.getElementById('userPoints').textContent = '0';
+                }
+
+                // Load points history from API
+                const historyResponse = await fetch(`${API_URL}?action=getUserPointsHistory&userId=${userId}&limit=10`);
+                const historyResult = await historyResponse.json();
+
+                if (historyResult.success && historyResult.data.history) {
+                    pointsHistory = historyResult.data.history;
+                    loadPointsHistory();
+                } else {
+                    pointsHistory = [];
+                    loadPointsHistory();
+                }
+
+                // Load points leaderboard
+                loadPointsLeaderboard();
+
+                // Show admin panel if admin
+                if (userRole === 'admin') {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadAdminPointsHistory();
+                }
+
+                // Reset daily game counts (always start fresh)
+                todaySpinCount = 0;
+                todayQuizCount = 0;
+
+            } catch (error) {
+                console.error('Error loading games data:', error);
+                // Set default values on error
+                userPoints = 0;
+                pointsHistory = [];
+                document.getElementById('userPoints').textContent = '0';
+                loadPointsHistory();
+                loadPointsLeaderboard();
+
+                // Show admin panel if admin
+                if (userRole === 'admin') {
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                    loadAdminPointsHistory();
+                }
+            }
+        }
+
+        function loadPointsHistory() {
+            const historyList = document.getElementById('pointsHistoryList');
+            historyList.innerHTML = '';
+
+            if (pointsHistory.length === 0) {
+                historyList.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ยังไม่มีประวัติการได้แต้ม</p></div>`;
+                return;
+            }
+
+            pointsHistory.slice(0, 10).forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'points-history-item';
+                div.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.activity}</p>
+                            <p class="text-xs text-gray-400">${formatDate(item.date)}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-bold text-yellow-400">+${item.points}</p>
+                        </div>
+                    </div>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        async function loadPointsLeaderboard() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPointsLeaderboard`);
+                const result = await response.json();
+
+                if (result.success && result.data.leaderboard) {
+                    pointsLeaderboard = result.data.leaderboard;
+                    displayPointsLeaderboard();
+                }
+            } catch (error) {
+                console.error('Error loading points leaderboard:', error);
+                // Show mock data for now
+                displayMockPointsLeaderboard();
+            }
+        }
+
+        function displayPointsLeaderboard() {
+            const leaderboardList = document.getElementById('pointsLeaderboardList');
+            leaderboardList.innerHTML = '';
+
+            if (pointsLeaderboard.length === 0) {
+                displayMockPointsLeaderboard();
+                return;
+            }
+
+            pointsLeaderboard.slice(0, 10).forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-yellow-400 w-6">${index + 1}</span>
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.name}</p>
+                            <p class="text-xs text-gray-400">${item.group || '-'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-yellow-400">${item.points} แต้ม</p>
+                    </div>
+                `;
+                leaderboardList.appendChild(row);
+            });
+        }
+
+        function displayMockPointsLeaderboard() {
+            const leaderboardList = document.getElementById('pointsLeaderboardList');
+            const mockData = [
+                { rank: 1, name: 'ผู้เล่นตัวอย่าง', group: 'ทีม A', points: 1500 },
+                { rank: 2, name: 'นักสะสมแต้ม', group: 'ทีม B', points: 1200 },
+                { rank: 3, name: 'หมุนวงล้อเก่ง', group: 'ทีม C', points: 980 },
+                { rank: 4, name: 'เฉลยเก่ง', group: 'ทีม A', points: 850 },
+                { rank: 5, name: 'Mini Game Master', group: 'ทีม D', points: 720 }
+            ];
+
+            leaderboardList.innerHTML = '';
+            mockData.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between py-2 px-3 rounded-lg bg-gray-800';
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm font-bold text-yellow-400 w-6">${item.rank}</span>
+                        <div>
+                            <p class="text-sm font-medium text-white">${item.name}</p>
+                            <p class="text-xs text-gray-400">${item.group}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-yellow-400">${item.points} แต้ม</p>
+                    </div>
+                `;
+                leaderboardList.appendChild(row);
+            });
+        }
+
+        async function addPoints(points, activity) {
+            // Show loading
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+
+            try {
+                // Send to backend to save in sheets
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: "addGamePoints",
+                        userId: userId,
+                        displayName: displayName,
+                        activity: activity,
+                        points: points
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local variable (no localStorage)
+                    userPoints = result.data.totalPoints || (userPoints + points);
+                    document.getElementById('userPoints').textContent = userPoints;
+
+                    // Add to local history array
+                    const historyItem = {
+                        date: new Date().toISOString(),
+                        activity: activity,
+                        points: points
+                    };
+                    pointsHistory.unshift(historyItem);
+                    loadPointsHistory();
+
+                    // Show success notification
+                    Toast.fire({
+                        icon: 'success',
+                        title: `ได้รับ +${points} แต้ม!`
+                    });
+                } else {
+                    throw new Error(result.message || 'Failed to add points');
+                }
+            } catch (error) {
+                console.error('Error adding points:', error);
+
+                // Show error notification
+                Toast.fire({
+                    icon: 'error',
+                    title: 'เพิ่มแต้มไม่สำเร็จ',
+                    text: 'กรุณาลองใหม่อีกครั้ง'
+                });
+            }
+        }
+
+        function saveDailyGames() {
+            // No longer saving to localStorage - data will be reset each tab open
+            // Daily game counts are now temporary and reset on tab switch
+        }
+
+        // Spin Wheel Functions
+        function openSpinWheel() {
+            if (todaySpinCount >= 1) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'หมดโควต้าแล้ว',
+                    text: 'คุณหมุนวงล้อครบ 1 ครั้ง/วันแล้ว กลับมาใหม่วันพรุ่งนี้นะ!',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            document.getElementById('spinWheelModal').classList.remove('hidden');
+        }
+
+        function closeSpinWheel() {
+            document.getElementById('spinWheelModal').classList.add('hidden');
+        }
+
+        async function spinWheel() {
+            const wheel = document.getElementById('spinWheel');
+            const randomDegree = Math.floor(Math.random() * 360) + 720; // At least 2 full rotations
+            wheel.style.transform = `rotate(${randomDegree}deg)`;
+
+            // Calculate points based on final position
+            setTimeout(async () => {
+                const finalPosition = randomDegree % 360;
+                let points = 0;
+
+                if (finalPosition < 60) points = 50;
+                else if (finalPosition < 120) points = 30;
+                else if (finalPosition < 180) points = 100;
+                else if (finalPosition < 240) points = 20;
+                else if (finalPosition < 300) points = 40;
+                else points = 60;
+
+                todaySpinCount++;
+                saveDailyGames();
+
+                await addPoints(points, 'หมุนวงล้อนำโชค');
+                closeSpinWheel();
+
+                // Reset wheel for next spin
+                setTimeout(() => {
+                    wheel.style.transform = 'rotate(0deg)';
+                }, 1000);
+            }, 3000);
+        }
+
+        // Quiz Functions
+        function openQuiz() {
+            if (todayQuizCount >= 3) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'หมดโควต้าแล้ว',
+                    text: 'คุณตอบคำถามครบ 3 ครั้ง/วันแล้ว กลับมาใหม่วันพรุ่งนี้นะ!',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            // Get random questions
+            const shuffledQuestions = [...quizQuestions].sort(() => Math.random() - 0.5).slice(0, 3);
+            sessionStorage.setItem('quizQuestions', JSON.stringify(shuffledQuestions));
+            sessionStorage.setItem('currentQuestionIndex', '0');
+            sessionStorage.setItem('quizTotalPoints', '0');
+
+            showQuestion();
+            document.getElementById('quizModal').classList.remove('hidden');
+        }
+
+        function closeQuiz() {
+            document.getElementById('quizModal').classList.add('hidden');
+            document.getElementById('quizContent').classList.remove('hidden');
+            document.getElementById('quizResult').classList.add('hidden');
+        }
+
+        function showQuestion() {
+            const questions = JSON.parse(sessionStorage.getItem('quizQuestions'));
+            const currentIndex = parseInt(sessionStorage.getItem('currentQuestionIndex'));
+
+            if (currentIndex >= questions.length) {
+                showQuizResult();
+                return;
+            }
+
+            const question = questions[currentIndex];
+            document.getElementById('quizQuestion').textContent = question.question;
+            document.getElementById('quizProgress').textContent = `${currentIndex + 1}/${questions.length}`;
+
+            const optionsContainer = document.getElementById('quizOptions');
+            optionsContainer.innerHTML = '';
+
+            question.options.forEach((option, index) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'quiz-option';
+                optionDiv.textContent = option;
+                optionDiv.onclick = () => selectAnswer(index, question);
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        function selectAnswer(selectedIndex, question) {
+            const options = document.querySelectorAll('.quiz-option');
+            options.forEach((option, index) => {
+                option.onclick = null; // Disable clicks
+                if (index === question.correct) {
+                    option.classList.add('correct');
+                } else if (index === selectedIndex) {
+                    option.classList.add('incorrect');
+                }
+            });
+
+            // Check if correct
+            if (selectedIndex === question.correct) {
+                const totalPoints = parseInt(sessionStorage.getItem('quizTotalPoints')) + question.points;
+                sessionStorage.setItem('quizTotalPoints', totalPoints.toString());
+            }
+
+            // Next question after delay
+            setTimeout(() => {
+                const currentIndex = parseInt(sessionStorage.getItem('currentQuestionIndex')) + 1;
+                sessionStorage.setItem('currentQuestionIndex', currentIndex.toString());
+                showQuestion();
+            }, 1500);
+        }
+
+        async function showQuizResult() {
+            const totalPoints = parseInt(sessionStorage.getItem('quizTotalPoints'));
+            todayQuizCount += 3;
+            saveDailyGames();
+
+            if (totalPoints > 0) {
+                await addPoints(totalPoints, 'คำถามประจำวัน');
+            }
+
+            document.getElementById('quizPointsEarned').textContent = totalPoints;
+            document.getElementById('quizContent').classList.add('hidden');
+            document.getElementById('quizResult').classList.remove('hidden');
+        }
+
+        // Mini Game Functions
+        function openMiniGame(gameType) {
+            const modal = document.getElementById('miniGameModal');
+            const content = document.getElementById('miniGameContent');
+
+            if (gameType === 'memory') {
+                document.getElementById('miniGameTitle').textContent = '🎮 เกมส์จับคู่';
+                content.innerHTML = `
+                    <div class="grid grid-cols-4 gap-2 mb-4" id="memoryGrid">
+                        <!-- Memory cards will be generated -->
+                    </div>
+                    <p class="text-center text-gray-400">จับคู่การ์ดให้ถูกต้อง!</p>
+                `;
+                initMemoryGame();
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeMiniGame() {
+            document.getElementById('miniGameModal').classList.add('hidden');
+        }
+
+        function initMemoryGame() {
+            const symbols = ['🎮', '🎲', '🎯', '🎨', '🎭', '🎪', '🎢', '🎡'];
+            const cards = [...symbols, ...symbols].sort(() => Math.random() - 0.5);
+            const grid = document.getElementById('memoryGrid');
+
+            grid.innerHTML = '';
+            let flippedCards = [];
+            let matchedPairs = 0;
+
+            cards.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center text-3xl cursor-pointer hover:bg-gray-600 transition';
+                card.dataset.symbol = symbol;
+                card.dataset.index = index;
+                card.textContent = '?';
+
+                card.onclick = () => {
+                    if (flippedCards.length === 2 || card.classList.contains('matched')) return;
+
+                    card.textContent = symbol;
+                    card.classList.add('bg-yellow-600');
+                    flippedCards.push(card);
+
+                    if (flippedCards.length === 2) {
+                        setTimeout(async () => {
+                            if (flippedCards[0].dataset.symbol === flippedCards[1].dataset.symbol) {
+                                flippedCards.forEach(c => c.classList.add('matched'));
+                                matchedPairs++;
+
+                                if (matchedPairs === 8) {
+                                    setTimeout(async () => {
+                                        closeMiniGame();
+                                        await addPoints(20, 'เกมส์จับคู่');
+                                    }, 500);
+                                }
+                            } else {
+                                flippedCards.forEach(c => {
+                                    c.textContent = '?';
+                                    c.classList.remove('bg-yellow-600');
+                                });
+                            }
+                            flippedCards = [];
+                        }, 1000);
+                    }
+                };
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Admin QR Code Functions
+        async function generatePointsQR() {
+            const points = parseInt(document.getElementById('qrPoints').value);
+            const note = document.getElementById('qrNote').value;
+            const uses = parseInt(document.getElementById('qrUses').value);
+
+            if (!points || points <= 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'กรุณาระบุแต้ม',
+                    text: 'กรุณาระบุจำนวนแต้มที่ต้องการแจก',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            // Create QR code data
+            const qrData = {
+                type: 'points_reward',
+                points: points,
+                note: note || 'รางวัล',
+                uses: uses,
+                createdAt: new Date().toISOString(),
+                createdBy: userId
+            };
+
+            const qrDataString = JSON.stringify(qrData);
+
+            // Log to backend
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: "logQRGeneration",
+                        adminId: userId,
+                        adminName: displayName,
+                        points: points,
+                        note: note || 'รางวัล',
+                        uses: uses,
+                        qrData: qrData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    console.error('Failed to log QR generation:', result.message);
+                }
+            } catch (error) {
+                console.error('Error logging QR generation:', error);
+            }
+
+            // Generate QR code (using a simple library or API)
+            generateQRCode(qrDataString);
+        }
+
+        function generateQRCode(data) {
+            const qrDisplay = document.getElementById('qrCodeDisplay');
+            qrDisplay.classList.remove('hidden');
+
+            // Use QRServer API to generate QR code
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
+
+            const canvas = document.getElementById('qrCanvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                canvas.width = 200;
+                canvas.height = 200;
+                ctx.drawImage(img, 0, 0);
+
+                // Show success message
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: 'สร้าง QR Code สำเร็จ!'
+                });
+            };
+
+            img.onerror = () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'สร้าง QR Code ไม่สำเร็จ',
+                    text: 'กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonColor: '#FFD700'
+                });
+            };
+
+            img.src = qrUrl;
+
+            // Store for download
+            sessionStorage.setItem('currentQRData', data);
+        }
+
+        function downloadQR() {
+            const canvas = document.getElementById('qrCanvas');
+            const url = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `points-qr-${Date.now()}.png`;
+            a.click();
+        }
+
+        function scanPointsQR() {
+            closePointsQRScanner();
+
+            if (!liff.isInClient()) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่รองรับ',
+                    text: 'กรุณาใช้งานใน LINE Application',
+                    confirmButtonColor: '#FFD700'
+                });
+                return;
+            }
+
+            showLoading('สแกน QR Code...');
+
+            liff.scanCodeV2().then(result => {
+                hideLoading();
+
+                try {
+                    const qrData = JSON.parse(result.value);
+
+                    if (qrData.type !== 'points_reward') {
+                        throw new Error('QR Code ไม่ถูกต้อง');
+                    }
+
+                    redeemPointsQR(qrData);
+                } catch (error) {
+                    showError('QR Code ไม่ถูกต้อง', 'QR Code นี้ไม่ใช่ QR Code สำหรับรับแต้ม');
+                }
+            }).catch(error => {
+                hideLoading();
+                showError('สแกนไม่สำเร็จ', error.message);
+            });
+        }
+
+        async function redeemPointsQR(qrData) {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'redeemPointsQR',
+                        userId: userId,
+                        qrData: qrData
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Backend already saved to sheets, just update UI locally
+                    userPoints += qrData.points;
+                    document.getElementById('userPoints').textContent = userPoints;
+
+                    // Add to local history
+                    const historyItem = {
+                        date: new Date().toISOString(),
+                        activity: qrData.note || 'รับแต้มจาก QR Code',
+                        points: qrData.points
+                    };
+                    pointsHistory.unshift(historyItem);
+                    loadPointsHistory();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'รับแต้มสำเร็จ!',
+                        html: `
+                            <div class="text-center">
+                                <div class="text-6xl mb-4">🎉</div>
+                                <p class="text-2xl font-bold text-white">+${qrData.points} แต้ม</p>
+                                <p class="text-gray-400 mt-2">${qrData.note || 'รางวัล'}</p>
+                            </div>
+                        `,
+                        background: '#111827',
+                        color: '#fff',
+                        confirmButtonColor: '#FFD700'
+                    });
+                } else {
+                    throw new Error(result.message || 'Failed to redeem points');
+                }
+            } catch (error) {
+                showError('รับแต้มไม่สำเร็จ', error.message);
+            }
+        }
+
+        function openPointsQRScanner() {
+            document.getElementById('pointsQRScannerModal').classList.remove('hidden');
+        }
+
+        function closePointsQRScanner() {
+            document.getElementById('pointsQRScannerModal').classList.add('hidden');
+        }
+
+        async function loadAdminPointsHistory() {
+            const adminHistory = document.getElementById('adminPointsHistory');
+
+            try {
+                const response = await fetch(`${API_URL}?action=getQRGenerationHistory`);
+                const result = await response.json();
+
+                if (result.success && result.data.history.length > 0) {
+                    const historyHTML = result.data.history.map(item => {
+                        const date = new Date(item.timestamp);
+                        const dateStr = date.toLocaleDateString('th-TH') + ' ' + date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        const progress = (item.redeemedCount / item.uses) * 100;
+                        const progressColor = progress >= 100 ? 'bg-red-500' : progress >= 50 ? 'bg-yellow-500' : 'bg-green-500';
+
+                        return `
+                            <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <p class="text-white font-medium">${item.adminName}</p>
+                                        <p class="text-sm text-gray-400">${item.note}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-yellow-400 font-bold">+${item.points} แต้ม</p>
+                                        <p class="text-xs text-gray-500">${dateStr}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex-1 bg-gray-700 rounded-full h-2">
+                                        <div class="${progressColor} h-2 rounded-full transition-all" style="width: ${Math.min(progress, 100)}%"></div>
+                                    </div>
+                                    <p class="text-xs text-gray-400">${item.redeemedCount}/${item.uses}</p>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    adminHistory.innerHTML = historyHTML;
+                } else {
+                    adminHistory.innerHTML = `<div class="text-center py-4 text-gray-500"><p>ยังไม่มีประวัติการแจกแต้ม</p></div>`;
+                }
+            } catch (error) {
+                console.error('Error loading admin points history:', error);
+                adminHistory.innerHTML = `<div class="text-center py-4 text-red-500"><p>โหลดข้อมูลไม่สำเร็จ</p></div>`;
+            }
+        }
+
+        /**
+         * Sync ประวัติการเล่นเกมส์จาก localStorage ไป Backend
+         */
+        async function syncLocalGameHistory() {
+            // No longer syncing from localStorage - all data is now fetched from sheets
+            // This function is kept for compatibility but does nothing
+            return;
+        }
+
+        document.getElementById('groupSelect').addEventListener('change', function() {
+            updateDashboard(this.value);
+        });
+
+        document.getElementById('historyPeriodSelect').addEventListener('change', function() {
+            updateHistoryPeriod(this.value);
+        });
+
+        document.getElementById('leaderboardPeriodSelect').addEventListener('change', function() {
+            updateLeaderboardPeriod(this.value);
+        });
+
+        document.getElementById('registerButton').addEventListener('click', registerUser);
+        document.getElementById('closeSuccessModal').addEventListener('click', () => document.getElementById('successModal').classList.add('hidden'));
+        document.getElementById('closeErrorModal').addEventListener('click', () => document.getElementById('errorModal').classList.add('hidden'));
+        document.getElementById('cancelScan').addEventListener('click', () => document.getElementById('qrScannerOverlay').classList.add('hidden'));
+
+        const message = "ไม่อนุญาตให้คลิกขวาครับ";
+
+        document.addEventListener("contextmenu", function (e) {
+            Swal.fire('Oh!', message, 'error');
+
+            e.preventDefault();
+        });
+
+        document.addEventListener("mousedown", function (e) {
+            if (e.button === 2 || e.button === 1) {
+                Swal.fire('Oh!', message, 'error');
+
+                e.preventDefault();
+            }
+        });
+
+        // ========================================
+        // PULL TO REFRESH FUNCTIONALITY
+        // ========================================
+        let startY = 0;
+        let currentY = 0;
+        let isPulling = false;
+        let pullThreshold = 120; // pixels
+        let currentTab = 'checkIn';
+
+        // Update currentTab when tab is clicked
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', function() {
+                currentTab = this.getAttribute('data-tab');
+            });
+        });
+
+        // Touch start
+        document.addEventListener('touchstart', function(e) {
+            if (window.scrollY === 0) {
+                startY = e.touches[0].clientY;
+                isPulling = true;
+            }
+        }, { passive: true });
+
+        // Touch move
+        document.addEventListener('touchmove', function(e) {
+            if (!isPulling || window.scrollY > 0) return;
+
+            currentY = e.touches[0].clientY;
+            const pullDistance = currentY - startY;
+
+            if (pullDistance > 0 && pullDistance < 300) {
+                // Calculate opacity based on pull distance
+                const opacity = Math.min(pullDistance / pullThreshold, 1);
+                const pullIndicator = document.getElementById('pullToRefreshIndicator');
+
+                if (pullIndicator) {
+                    pullIndicator.style.opacity = opacity;
+                    pullIndicator.style.transform = `translateY(${Math.min(pullDistance, 150)}px)`;
+
+                    if (pullDistance >= pullThreshold) {
+                        pullIndicator.innerHTML = '<div class="text-center"><div class="inline-block animate-spin text-2xl mb-2">🔄</div><p class="text-sm text-gray-400">ปล่อยเพื่อรีเฟรช</p></div>';
+                    } else {
+                        pullIndicator.innerHTML = '<div class="text-center"><div class="text-2xl mb-2">⬇️</div><p class="text-sm text-gray-400">ลากลงเพื่อรีเฟรช</p></div>';
+                    }
+                }
+            }
+        }, { passive: true });
+
+        // Touch end
+        document.addEventListener('touchend', function(e) {
+            if (!isPulling) return;
+
+            const pullDistance = currentY - startY;
+            const pullIndicator = document.getElementById('pullToRefreshIndicator');
+
+            if (pullDistance >= pullThreshold) {
+                // Trigger refresh
+                refreshCurrentTab();
+            }
+
+            // Reset
+            if (pullIndicator) {
+                pullIndicator.style.opacity = '0';
+                pullIndicator.style.transform = 'translateY(0)';
+            }
+            startY = 0;
+            currentY = 0;
+            isPulling = false;
+        }, { passive: true });
+
+        // Refresh current tab data
+        async function refreshCurrentTab() {
+            const pullIndicator = document.getElementById('pullToRefreshIndicator');
+            if (pullIndicator) {
+                pullIndicator.innerHTML = '<div class="text-center"><div class="inline-block animate-spin text-2xl mb-2">🔄</div><p class="text-sm text-yellow-400">กำลังรีเฟรช...</p></div>';
+                pullIndicator.style.opacity = '1';
+                pullIndicator.style.transform = 'translateY(80px)';
+            }
+
+            try {
+                switch(currentTab) {
+                    case 'checkIn':
+                        await loadActivities();
+                        break;
+                    case 'history':
+                        await loadHistoryData();
+                        break;
+                    case 'leaderboard':
+                        await loadLeaderboardData();
+                        break;
+                    case 'achievements':
+                        await loadAchievementsData();
+                        break;
+                    case 'games':
+                        await loadGamesData();
+                        break;
+                    case 'dashboard':
+                        if (userRole === 'admin') {
+                            await loadDashboardData();
+                            await loadAdminPointsHistory();
+                        }
+                        break;
+                }
+
+                // Show success message
+                if (pullIndicator) {
+                    pullIndicator.innerHTML = '<div class="text-center"><div class="text-2xl mb-2">✅</div><p class="text-sm text-green-400">รีเฟรชสำเร็จ!</p></div>';
+                }
+
+                // Hide after 1 second
+                setTimeout(() => {
+                    if (pullIndicator) {
+                        pullIndicator.style.opacity = '0';
+                        pullIndicator.style.transform = 'translateY(0)';
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error refreshing tab:', error);
+                if (pullIndicator) {
+                    pullIndicator.innerHTML = '<div class="text-center"><div class="text-2xl mb-2">❌</div><p class="text-sm text-red-400">รีเฟรชไม่สำเร็จ</p></div>';
+                    setTimeout(() => {
+                        pullIndicator.style.opacity = '0';
+                        pullIndicator.style.transform = 'translateY(0)';
+                    }, 1000);
+                }
+            }
+        }
+    </script>
+
+    <!-- Spin Wheel Modal -->
+    <div id="spinWheelModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-md border border-yellow-500">
+            <h3 class="text-xl font-bold text-white text-center mb-4">🎡 วงล้อนำโชค</h3>
+            <div class="spin-wheel" id="spinWheel">
+                <div class="spin-pointer"></div>
+            </div>
+            <p class="text-center text-gray-400 mb-4">หมุนวงล้อเพื่อรับแต้ม!</p>
+            <div class="flex gap-3">
+                <button onclick="closeSpinWheel()" class="flex-1 bg-gray-700 text-white py-3 rounded-lg">ปิด</button>
+                <button onclick="spinWheel()" class="flex-1 btn-gradient py-3 rounded-lg font-medium">หมุนเลย!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Modal -->
+    <div id="quizModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden overflow-y-auto py-8">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-md border border-yellow-500">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-white">🧠 คำถามประจำวัน</h3>
+                <span id="quizProgress" class="text-sm text-yellow-400">1/3</span>
+            </div>
+            <div id="quizContent">
+                <p class="text-lg text-white mb-6" id="quizQuestion">โหลดคำถาม...</p>
+                <div id="quizOptions" class="space-y-3">
+                    <!-- Options will be populated dynamically -->
+                </div>
+            </div>
+            <div id="quizResult" class="hidden text-center">
+                <div class="text-6xl mb-4">🎉</div>
+                <h4 class="text-2xl font-bold text-white mb-2">สำเร็จ!</h4>
+                <p class="text-gray-400 mb-2">คุณได้รับ</p>
+                <p class="text-4xl font-bold text-yellow-400 mb-4" id="quizPointsEarned">0</p>
+                <p class="text-gray-400 mb-4">แต้ม</p>
+                <button onclick="closeQuiz()" class="btn-gradient px-6 py-3 rounded-lg">รับทราบ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Game Modal -->
+    <div id="miniGameModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-md border border-yellow-500">
+            <h3 class="text-xl font-bold text-white text-center mb-4" id="miniGameTitle">🎮 Mini Game</h3>
+            <div id="miniGameContent">
+                <!-- Game content will be loaded dynamically -->
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeMiniGame()" class="flex-1 bg-gray-700 text-white py-3 rounded-lg">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Points QR Scanner Modal -->
+    <div id="pointsQRScannerModal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-900 rounded-2xl p-6 w-5/6 max-w-sm border border-yellow-500 text-center">
+            <div class="text-6xl mb-4">📱</div>
+            <h3 class="text-xl font-bold text-white mb-2">สแกน QR รับแต้ม</h3>
+            <p class="text-gray-400 mb-4">สแกน QR Code ที่ admin สร้างให้</p>
+            <button onclick="scanPointsQR()" class="btn-gradient w-full py-3 rounded-lg font-medium">สแกน QR Code</button>
+            <button onclick="closePointsQRScanner()" class="w-full bg-gray-700 text-white py-3 rounded-lg mt-3">ปิด</button>
+        </div>
+    </div>
+
+    <!-- AI Chat Container -->
+    <div id="ai-chat-container" class="fixed bottom-4 right-4 z-50">
+        <!-- Chat Button -->
+        <button
+            id="ai-chat-btn"
+            onclick="toggleAIChat()"
+            class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black p-4 rounded-full shadow-lg hover:scale-110 transition-transform"
+        >
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 2a8 8 0 100 16 8 8 0 000-16zm0 14a6 6 0 110-12 6 6 0 010 12zm3-8a1 1 0 10-2 0v1a1 1 0 102 0v-1a1 1 0 10-2 0v3a1 1 0 102 0v-3a1 1 0 10-2 0z"/>
+            </svg>
+        </button>
+
+        <!-- Chat Window (Hidden by default) -->
+        <div
+            id="ai-chat-window"
+            class="hidden fixed bottom-20 right-4 w-80 max-w-sm bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-2xl border border-yellow-500/30 overflow-hidden"
+        >
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-black rounded-full flex items-center justify-center text-lg">
+                            🤖
+                        </div>
+                        <div>
+                            <h3 class="text-black font-bold text-sm">SCORDS AI</h3>
+                            <p class="text-black/70 text-xs">ถามเรื่อง SCOR / แต้มสะสม</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleAIChat()" class="text-black hover:text-white text-xl">
+                        ✕
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="ai-chat-messages" class="h-80 overflow-y-auto p-4 space-y-3 bg-gray-900">
+                <!-- Welcome Message -->
+                <div class="bg-gray-700 rounded-lg p-3">
+                    <p class="text-sm">สวัสดีครับ! 👋</p>
+                    <p class="text-sm mt-2">ผมคือ AI ผู้ช่วยตอบคำถามเกี่ยวกับ:</p>
+                    <ul class="text-sm mt-2 space-y-1">
+                        <li>📚 SCOR Framework</li>
+                        <li>💰 ระบบแต้มสะสม</li>
+                        <li>📋 กิจกรรมและการเช็คอิน</li>
+                    </ul>
+                    <p class="text-sm mt-2 text-gray-400">ถามได้เลยครับ! 🎯</p>
+
+                    <!-- Suggestion Chips -->
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        <button
+                            onclick="askSuggestion('SCOR คืออะไร?')"
+                            class="bg-gray-700 text-xs px-3 py-1 rounded-full hover:bg-gray-600 transition-colors"
+                        >
+                            SCOR คืออะไร?
+                        </button>
+                        <button
+                            onclick="askSuggestion('ได้แต้มยังไง?')"
+                            class="bg-gray-700 text-xs px-3 py-1 rounded-full hover:bg-gray-600 transition-colors"
+                        >
+                            ได้แต้มยังไง?
+                        </button>
+                        <button
+                            onclick="askSuggestion('กิจกรรมวันนี้')"
+                            class="bg-gray-700 text-xs px-3 py-1 rounded-full hover:bg-gray-600 transition-colors"
+                        >
+                            กิจกรรมวันนี้
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="p-4 border-t border-gray-700">
+                <div class="flex gap-2">
+                    <input
+                        type="text"
+                        id="ai-chat-input"
+                        placeholder="ถามคำถาม..."
+                        class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                        onkeypress="handleAIChatKeypress(event)"
+                    />
+                    <button
+                        onclick="sendAIMessage()"
+                        class="bg-gradient-to-r from-yellow-400 to-orange-500 text-black px-4 py-2 rounded-lg hover:scale-105 transition-transform"
+                    >
+                        ส่ง
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // AI Chat Variables
+        let isAIChatOpen = false;
+
+        // AI Chat Functions
+        function toggleAIChat() {
+            const chatWindow = document.getElementById('ai-chat-window');
+            isAIChatOpen = !isAIChatOpen;
+
+            if (isAIChatOpen) {
+                chatWindow.classList.remove('hidden');
+            } else {
+                chatWindow.classList.add('hidden');
+            }
+        }
+
+        function handleAIChatKeypress(event) {
+            if (event.key === 'Enter') {
+                sendAIMessage();
+            }
+        }
+
+        function askSuggestion(question) {
+            document.getElementById('ai-chat-input').value = question;
+            sendAIMessage();
+        }
+
+        async function sendAIMessage() {
+            const input = document.getElementById('ai-chat-input');
+            const query = input.value.trim();
+
+            if (!query) return;
+
+            // Add user message
+            addAIMessage(query, 'user');
+            input.value = '';
+
+            // Show loading
+            addAIMessage('กำลังคิด...', 'bot', true);
+
+            try {
+                // Call backend API
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'askAI',
+                        query: query,
+                        context: {
+                            userId: liff.getContext()?.userId || 'unknown',
+                            group: currentUser?.group || 'Unknown'
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                // Remove loading message
+                removeLoadingMessage();
+
+                if (result.success) {
+                    addAIMessage(result.data.answer, 'bot');
+                } else {
+                    addAIMessage('❌ เกิดข้อผิดพลาด กรุณาลองใหม่', 'bot');
+                }
+            } catch (error) {
+                removeLoadingMessage();
+                addAIMessage('❌ เชื่อมต่อไม่ได้ กรุณาลองใหม่', 'bot');
+                console.error('AI Error:', error);
+            }
+        }
+
+        function addAIMessage(content, role, isLoading = false) {
+            const messagesDiv = document.getElementById('ai-chat-messages');
+            const messageDiv = document.createElement('div');
+
+            if (role === 'user') {
+                messageDiv.className = 'bg-yellow-500 text-black rounded-lg p-3 ml-8';
+                messageDiv.innerHTML = `<p class="text-sm">${content}</p>`;
+            } else {
+                messageDiv.className = 'bg-gray-700 rounded-lg p-3 mr-8';
+                messageDiv.innerHTML = `<p class="text-sm whitespace-pre-wrap">${content}</p>`;
+            }
+
+            if (isLoading) {
+                messageDiv.id = 'ai-loading-message';
+                messageDiv.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                        <p class="text-sm">${content}</p>
+                    </div>
+                `;
+            }
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function removeLoadingMessage() {
+            const loadingMessage = document.getElementById('ai-loading-message');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+    </script>
+</body>
+</html>
