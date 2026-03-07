@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test LINE Webhook - New URL</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #667eea;
+            margin-top: 0;
+        }
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px 0;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .test-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            border-left: 4px solid #667eea;
+        }
+        .url-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .checklist {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .checklist-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+        .status-icon {
+            display: inline-block;
+            width: 20px;
+            text-align: center;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 LINE Webhook URL Tester</h1>
+        <p>Test your new Google Apps Script webhook URL</p>
+
+        <div class="url-display">
+            <strong>Current URL:</strong><br>
+            https://script.google.com/macros/s/AKfycbxx6yROVSBjJjz8Qz_lEYFUmtMHo-3SZV2uewjhDqVVncHrgsJxCoh0Xsclp3BWCOF93w/exec
+        </div>
+
+        <button class="test-button" onclick="testWebhook()">
+            📡 Test Webhook URL (POST)
+        </button>
+
+        <button class="test-button" onclick="testWebhookGET()" style="background: #28a745;">
+            🔗 Test Direct Link (GET)
+        </button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxx6yROVSBjJjz8Qz_lEYFUmtMHo-3SZV2uewjhDqVVncHrgsJxCoh0Xsclp3BWCOF93w/exec';
+
+        async function testWebhook() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="result">🔄 Testing webhook URL with POST request...</div>';
+
+            try {
+                // Test with a mock LINE webhook event
+                const mockEvent = {
+                    destination: "U1234567890",
+                    events: [{
+                        type: "message",
+                        replyToken: "test-reply-token",
+                        timestamp: Date.now(),
+                        mode: "active",
+                        source: {
+                            type: "user",
+                            userId: "U1234567890"
+                        },
+                        message: {
+                            type: "text",
+                            id: "1234567890",
+                            text: "test"
+                        },
+                        webhookEventId: "test-event-id",
+                        deliveryContext: {
+                            isRedelivery: false
+                        }
+                    }]
+                };
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(mockEvent)
+                });
+
+                const statusClass = response.ok ? 'success' : 'error';
+                const redirectInfo = response.redirected ? `<div class="warning">⚠️ Redirect detected!</div>` : '';
+
+                resultsDiv.innerHTML = `
+                    <div class="result">
+                        <div class="${statusClass}">
+                            ${response.ok ? '✅' : '❌'} Status: ${response.status} ${response.statusText}
+                        </div>
+                        ${redirectInfo}
+                        <div>📡 Redirected: ${response.redirected ? 'YES ⚠️' : 'NO ✅'}</div>
+                        <div>🔗 Final URL: ${response.url}</div>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="result">
+                        <div class="error">❌ Error: ${error.message}</div>
+                        <div class="warning">ℹ️ This might be a CORS issue - try the Direct Link test below</div>
+                    </div>
+                `;
+            }
+        }
+
+        function testWebhookGET() {
+            const resultsDiv = document.getElementById('results');
+            const testUrl = WEBHOOK_URL + '?action=test';
+
+            resultsDiv.innerHTML = `
+                <div class="checklist">
+                    <h3>📋 Manual Test Instructions:</h3>
+                    <div class="checklist-item">
+                        <span class="status-icon">1️⃣</span>
+                        Click the link below to open in a new tab:
+                    </div>
+                    <div class="checklist-item">
+                        <a href="${testUrl}" target="_blank" style="color: #667eea; font-weight: bold;">${testUrl}</a>
+                    </div>
+                    <div class="checklist-item">
+                        <span class="status-icon">2️⃣</span>
+                        Expected result: JSON response with <code>{"success": true, "message": "Check-in API is running."}</code>
+                    </div>
+                    <div class="checklist-item">
+                        <span class="status-icon">3️⃣</span>
+                        <span class="success">✅ If you see JSON = Webhook URL is working!</span>
+                    </div>
+                    <div class="checklist-item">
+                        <span class="status-icon">4️⃣</span>
+                        <span class="error">❌ If you see redirect/login page = "Who has access" is NOT set to "Anyone"</span>
+                    </div>
+                </div>
+                <div class="result">
+                    <a href="${testUrl}" target="_blank" class="test-button" style="display: block; text-align: center; text-decoration: none;">
+                        🔗 Open Test URL in New Tab
+                    </a>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

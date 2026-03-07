@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test LINE Webhook</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .test-button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .test-button:hover {
+            background: #005a9e;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+        .error {
+            color: #f48771;
+        }
+        .warning {
+            color: #dcdcaa;
+        }
+        .result {
+            background: #252526;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            border-left: 4px solid #007acc;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 LINE Webhook URL Tester</h1>
+    <p>Test your Google Apps Script webhook URL to ensure it returns 200 OK</p>
+
+    <button class="test-button" onclick="testWebhook()">
+        📡 Test Webhook URL
+    </button>
+
+    <div id="results"></div>
+
+    <script>
+        const WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbweFWM76maKTcJZ5mH7FtXwsYCOR5Dhpba8vNd5DKt_U8oUMnKG_PvK2QD5gz1A3OPQOA/exec';
+
+        async function testWebhook() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="result">Testing webhook URL...</div>';
+
+            try {
+                // Test with a mock LINE webhook event
+                const mockEvent = {
+                    destination: "U1234567890",
+                    events: [{
+                        type: "message",
+                        replyToken: "test-reply-token",
+                        timestamp: Date.now(),
+                        mode: "active",
+                        source: {
+                            type: "user",
+                            userId: "U1234567890"
+                        },
+                        message: {
+                            type: "text",
+                            id: "1234567890",
+                            text: "test",
+                            quoteToken: "test-quote-token"
+                        },
+                        webhookEventId: "test-event-id",
+                        deliveryContext: {
+                            isRedelivery: false
+                        }
+                    }]
+                };
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(mockEvent)
+                });
+
+                const statusClass = response.ok ? 'success' : 'error';
+                const redirectInfo = response.redirected ? `<div class="warning">⚠️ Redirect detected! Final URL: ${response.url}</div>` : '';
+
+                resultsDiv.innerHTML = `
+                    <div class="result">
+                        <div class="${statusClass}">
+                            ${response.ok ? '✅' : '❌'} Status: ${response.status} ${response.statusText}
+                        </div>
+                        ${redirectInfo}
+                        <div>📡 Redirected: ${response.redirected ? 'YES ⚠️' : 'NO ✅'}</div>
+                        <div>🔗 Final URL: ${response.url}</div>
+                    </div>
+                    <div class="warning">
+                        ℹ️ Note: Due to CORS, you may see opaque response.
+                        Check Google Apps Script logs for actual processing.
+                    </div>
+                `;
+
+                // Also provide a direct link test
+                resultsDiv.innerHTML += `
+                    <div class="result">
+                        <div class="warning">📋 Manual Test Instructions:</div>
+                        <div>1. Open this link in a new tab:</div>
+                        <div><a href="${WEBHOOK_URL}?action=test" target="_blank" style="color: #007acc;">${WEBHOOK_URL}?action=test</a></div>
+                        <div>2. If you see JSON output or redirect → Issue found!</div>
+                        <div>3. If you see 404 or blank page with 200 status → Good!</div>
+                    </div>
+                `;
+
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <div class="result">
+                        <div class="error">❌ Error: ${error.message}</div>
+                        <div class="warning">This might be a CORS issue - check manual test below</div>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
