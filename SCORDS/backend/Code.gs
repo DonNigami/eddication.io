@@ -1453,3 +1453,157 @@ function getUserPointsHistory(userId, limit) {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, limitNum);
 }
+
+// ============================================================
+// SETUP FUNCTIONS
+// ============================================================
+
+/**
+ * ตั้งค่า ScriptProperties - รันครั้งเดียวเพื่อ setup
+ * Run this function ONCE to configure all API keys and IDs
+ */
+function setupScriptProperties() {
+  // Z.AI API Key (หลัก - ถูกกว่า OpenAI)
+  // รับจาก: https://z.ai/
+  ScriptProperties.setProperty("ZAI_API_KEY", "your-zai-api-key-here");
+
+  // OpenAI API Key (สำรอง)
+  // รับจาก: https://platform.openai.com/api-keys
+  ScriptProperties.setProperty("OPENAI_API_KEY", "your-openai-api-key-here");
+
+  // Google Drive Folder ID สำหรับเก็บ PDF documents
+  // Folder URL: https://drive.google.com/drive/folders/1qvA0sMG024kezPynLHidvpCFUtkj-TjS
+  ScriptProperties.setProperty("PDF_FOLDER_ID", "1qvA0sMG024kezPynLHidvpCFUtkj-TjS");
+
+  console.log("✅ Script Properties setup complete!");
+  console.log("PDF Folder ID: " + ScriptProperties.getProperty("PDF_FOLDER_ID"));
+  console.log("ZAI API Key: " + (ScriptProperties.getProperty("ZAI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("OpenAI API Key: " + (ScriptProperties.getProperty("OPENAI_API_KEY") ? "✅ Set" : "❌ Not set"));
+}
+
+// ============================================================
+// TEST FUNCTIONS
+// ============================================================
+
+/**
+ * ทดสอบการเชื่อมต่อ Google Sheets
+ */
+function test_sheetsConnection() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const users = getSheetData(ss.getSheetByName(SHEET_NAMES.USERS));
+    const activities = getSheetData(ss.getSheetByName(SHEET_NAMES.ACTIVITIES));
+
+    console.log("✅ Sheets Connection Test Passed!");
+    console.log("Users: " + users.length);
+    console.log("Activities: " + activities.length);
+
+    if (users.length > 0) {
+      console.log("First user: " + JSON.stringify(users[0]));
+    }
+
+    return { success: true, users: users.length, activities: activities.length };
+  } catch (error) {
+    console.error("❌ Sheets Connection Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ทดสอบ Dashboard
+ */
+function test_dashboard() {
+  try {
+    const result = getDashboardData("all", null, true);
+    console.log("✅ Dashboard Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ Dashboard Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ทดสอบ Leaderboard
+ */
+function test_leaderboard() {
+  try {
+    const result = getLeaderboard("7");
+    console.log("✅ Leaderboard Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ Leaderboard Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ทดสอบ Points Leaderboard
+ */
+function test_pointsLeaderboard() {
+  try {
+    const result = getPointsLeaderboard();
+    console.log("✅ Points Leaderboard Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ Points Leaderboard Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ทดสอบ AI Assistant (ต้อง setup API Keys ก่อน)
+ */
+function test_askAI() {
+  try {
+    const testQuery = "SCOR คืออะไร";
+
+    // ตรวจสอบ API Keys
+    const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
+    const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
+
+    if (!zaiKey && !openaiKey) {
+      console.log("❌ No API keys found. Please run setupScriptProperties() first.");
+      return { success: false, error: "No API keys found" };
+    }
+
+    // ทดสอบ askAI function
+    const result = askAI({
+      query: testQuery,
+      context: { userId: "test_user", group: "IT" },
+      provider: zaiKey ? "zai" : "openai"
+    });
+
+    console.log("✅ AI Assistant Test Passed!");
+    console.log(JSON.stringify(result, null, 2));
+    return result;
+  } catch (error) {
+    console.error("❌ AI Assistant Test Failed: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * ทดสอบทั้งหมด (Run All Tests)
+ */
+function test_runAll() {
+  console.log("=== 🧪 SCORDS Backend Test Suite ===\n");
+
+  const results = {
+    sheetsConnection: test_sheetsConnection(),
+    dashboard: test_dashboard(),
+    leaderboard: test_leaderboard(),
+    pointsLeaderboard: test_pointsLeaderboard(),
+    aiAssistant: test_askAI()
+  };
+
+  console.log("\n=== 📊 Test Summary ===");
+  const passed = Object.values(results).filter(r => r.success).length;
+  const total = Object.keys(results).length;
+  console.log(`Passed: ${passed}/${total}`);
+
+  return results;
+}
