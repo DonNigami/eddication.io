@@ -1187,25 +1187,39 @@ app.post('/api/link-rich-menu', async (req, res) => {
 
 /**
  * POST /api/line-webhook - Handle LINE Bot webhook (both messages and rich menu linking)
+ * NOTE: Handles both with and without trailing slash to prevent 302 redirects
  */
 app.post('/api/line-webhook', async (req, res) => {
   try {
+    // Log incoming request for debugging
+    console.log(`📥 LINE Webhook received from ${req.ip}`);
+    console.log(`   URL: ${req.originalUrl}`);
+    console.log(`   Method: ${req.method}`);
+    console.log(`   Headers: ${JSON.stringify(req.headers, null, 2).substring(0, 200)}...`);
+
     // Basic rate limiting
     if (isRateLimited(req.ip)) {
+      console.log('⚠️ Rate limited');
       return res.status(429).json({ success: false, message: 'Too Many Requests' });
     }
 
     // Verify LINE signature
     const ok = verifyLineSignature(req);
     if (!ok) {
+      console.log('❌ Invalid LINE signature');
       return res.status(401).json({ success: false, message: 'Invalid signature' });
     }
+
+    console.log('✅ LINE signature verified');
 
     const body = req.body || {};
     const events = body.events || [];
 
+    console.log(`   Events: ${events.length}`);
+
     // Handle LINE events (follow, message)
     for (const event of events) {
+      console.log(`   Event type: ${event.type}`);
       if (event.type === 'follow') {
         await handleFollowEvent(event, sheetActions);
       } else if (event.type === 'message') {
@@ -1213,10 +1227,224 @@ app.post('/api/line-webhook', async (req, res) => {
       }
     }
 
+    console.log('✅ Webhook processed successfully');
     return res.json({ success: true });
   } catch (err) {
     console.error('❌ POST /api/line-webhook error:', err);
     return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Handle trailing slash variant to prevent 302 redirects
+app.post('/api/line-webhook/', async (req, res) => {
+  // Redirect to non-trailing slash version internally
+  req.url = '/api/line-webhook';
+  return app._router.handle(req, res);
+});
+
+// ============================================================================
+// SCORDS LINE Webhook Endpoints
+// ============================================================================
+
+// Load SCORDS LINE webhook handler
+const ScordsLineWebhook = require('./lib/scords-line-webhook');
+
+/**
+ * POST /api/scords/webhook - SCORDS LINE Bot webhook endpoint
+ * Handles: follow, message, postback, unfollow events
+ */
+app.post('/api/scords/webhook', async (req, res) => {
+  try {
+    console.log(`📥 SCORDS Webhook received from ${req.ip}`);
+    console.log(`   URL: ${req.originalUrl}`);
+    console.log(`   Method: ${req.method}`);
+
+    // Get SCORDS LINE credentials
+    const scordsChannelToken = process.env.SCORDS_CHANNEL_ACCESS_TOKEN || process.env.CHANNEL_ACCESS_TOKEN;
+    const scordsChannelSecret = process.env.SCORDS_CHANNEL_SECRET || process.env.CHANNEL_SECRET;
+
+    if (!scordsChannelToken || !scordsChannelSecret) {
+      console.error('❌ SCORDS LINE credentials not configured');
+      return res.status(500).json({
+        success: false,
+        message: 'SCORDS LINE credentials not configured'
+      });
+    }
+
+    // Basic rate limiting
+    if (isRateLimited(req.ip)) {
+      console.log('⚠️ Rate limited');
+      return res.status(429).json({ success: false, message: 'Too Many Requests' });
+    }
+
+    // Verify LINE signature
+    const ok = verifyLineSignature(req);
+    if (!ok) {
+      console.log('❌ Invalid LINE signature');
+      return res.status(401).json({ success: false, message: 'Invalid signature' });
+    }
+
+    console.log('✅ SCORDS LINE signature verified');
+
+    const body = req.body || {};
+    const events = body.events || [];
+
+    console.log(`   Events: ${events.length}`);
+
+    if (events.length === 0) {
+      console.log('ℹ️ No events in webhook payload');
+      return res.json({ success: true, message: 'No events to process' });
+    }
+
+    // Initialize SCORDS webhook handler
+    const scordsWebhook = new ScordsLineWebhook(db, notificationService);
+
+    // Process all events
+    const result = await scordsWebhook.handleWebhook(events, scordsChannelToken);
+
+    console.log(`✅ SCORDS webhook processed: ${result.processed} events`);
+    return res.json({ success: true, processed: result.processed });
+
+  } catch (err) {
+    console.error('❌ POST /api/scords/webhook error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/scords/health - SCORDS health check
+ */
+app.get('/api/scords/health', (req, res) => {
+  res.json({
+    success: true,
+    service: 'SCORDS LINE Bot',
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    environment: NODE_ENV
+  });
+});
+
+/**
+ * POST /api/scords/test-message - Send test message to user
+ * Body: { userId: string, message: string }
+ */
+app.post('/api/scords/test-message', async (req, res) => {
+  try {
+    const { userId, message } = req.body || {};
+
+    if (!userId || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing userId or message'
+      });
+    }
+
+    const scordsChannelToken = process.env.SCORDS_CHANNEL_ACCESS_TOKEN || process.env.CHANNEL_ACCESS_TOKEN;
+
+    if (!scordsChannelToken) {
+      return res.status(500).json({
+        success: false,
+        message: 'LINE channel access token not configured'
+      });
+    }
+
+    // Use LINE Messaging API to push message
+    const response = await fetch('https://api.line.biz/v2/bot/message/push', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${scordsChannelToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        to: userId,
+        messages: [{
+          type: 'text',
+          text: message
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('❌ Failed to send test message:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send message',
+        error
+      });
+    }
+
+    console.log(`✅ Test message sent to ${userId}`);
+    return res.json({
+      success: true,
+      message: 'Test message sent successfully'
+    });
+
+  } catch (err) {
+    console.error('❌ POST /api/scords/test-message error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/scords/user/:userId - Get user status
+ */
+app.get('/api/scords/user/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing userId'
+      });
+    }
+
+    // Read Users sheet
+    const users = await db.readRange('Users', 'A:E');
+
+    if (!users || users.length <= 1) {
+      return res.json({
+        success: false,
+        message: 'No users found'
+      });
+    }
+
+    // Find user
+    for (let i = 1; i < users.length; i++) {
+      const row = users[i];
+      if (row[0] === userId) {
+        return res.json({
+          success: true,
+          user: {
+            userId: row[0],
+            displayName: row[1],
+            pictureUrl: row[2],
+            status: row[3],
+            createdAt: row[4],
+            updatedAt: row[5]
+          }
+        });
+      }
+    }
+
+    return res.status(404).json({
+      success: false,
+      message: 'User not found'
+    });
+
+  } catch (err) {
+    console.error('❌ GET /api/scords/user error:', err);
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
