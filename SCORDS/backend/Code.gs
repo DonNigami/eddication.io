@@ -75,29 +75,65 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    const requestData = JSON.parse(e.postData.contents);
-    const action = requestData.action;
+    // Debug: Log all incoming requests
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📥 [doPost] Request received");
+    console.log("📥 [doPost] postData exists: " + (e.postData ? "YES" : "NO"));
 
-    switch (action) {
-      case "registerUser":
-        return createJsonResponse(registerUser(requestData));
-      case "checkIn":
-        return createJsonResponse(processCheckIn(requestData));
-      case "redeemPointsQR":
-        return createJsonResponse(redeemPointsQR(requestData));
-      case "addGamePoints":
-        return createJsonResponse(addGamePoints(requestData));
-      case "syncLocalHistory":
-        return createJsonResponse(syncLocalHistory(requestData));
-      case "logQRGeneration":
-        return createJsonResponse(logQRGeneration(requestData));
-      case "askAI":
-        return createJsonResponse(askAI(requestData));
-      default:
-        throw new Error("Invalid action specified.");
+    if (e.postData && e.postData.contents) {
+      const requestData = JSON.parse(e.postData.contents);
+
+      // Detect LINE Webhook (LINE sends request directly with 'events' or 'destination')
+      // LINE webhook format: { destination: "Uxxx", events: [...] }
+      const isLineWebhook = requestData.events || requestData.destination;
+
+      if (isLineWebhook) {
+        console.log("📱 [WEBHOOK] LINE Webhook detected!");
+        console.log("📱 [WEBHOOK] Number of events: " + (requestData.events ? requestData.events.length : 0));
+
+        // LINE Webhook Processing
+        return createJsonResponse(handleLineWebhook(requestData));
+      }
+
+      // Handle other requests with 'action' parameter
+      const action = requestData.action;
+      console.log("🔧 [ACTION] Action: " + (action || "none"));
+
+      switch (action) {
+        case "registerUser":
+          return createJsonResponse(registerUser(requestData));
+        case "checkIn":
+          return createJsonResponse(processCheckIn(requestData));
+        case "redeemPointsQR":
+          return createJsonResponse(redeemPointsQR(requestData));
+        case "addGamePoints":
+          return createJsonResponse(addGamePoints(requestData));
+        case "syncLocalHistory":
+          return createJsonResponse(syncLocalHistory(requestData));
+        case "logQRGeneration":
+          return createJsonResponse(logQRGeneration(requestData));
+        case "askAI":
+          return createJsonResponse(askAI(requestData));
+        case "lineAIChat":
+          return createJsonResponse(handleLineAIChat(requestData));
+        default:
+          console.log("⚠️ [ACTION] Unknown or no action specified");
+          throw new Error("Invalid action specified: " + action);
+      }
+    } else {
+      console.log("⚠️ [doPost] No postData contents found");
+      console.log("⚠️ [doPost] Full event object: " + JSON.stringify(e));
     }
+
+    return createJsonResponse({
+      success: true,
+      message: "Check-in API is running."
+    });
+
   } catch (error) {
-    console.error("doPost Error: " + error.toString());
+    console.error("❌ [doPost] Error: " + error.toString());
+    console.error("❌ [doPost] Stack: " + error.stack);
+    console.error("❌ [doPost] Event: " + JSON.stringify(e));
     return createJsonResponse({
       success: false,
       message: "Server Error: " + error.message
@@ -572,7 +608,8 @@ function getSheetData(sheet) {
 function askAI(requestData) {
   const query = requestData.query;
   const context = requestData.context || {}; // { userId, group, role }
-  const useProvider = requestData.provider || "zai"; // "zai" or "openai"
+  const maxTokens = requestData.maxTokens || 2000; // Default: 2000 tokens (increased from 500)
+  const detailed = requestData.detailed !== undefined ? requestData.detailed : true; // Default: detailed answer
 
   try {
     // 1. Search knowledge base (keyword matching)
@@ -587,19 +624,8 @@ function askAI(requestData) {
     // 4. Build context for AI
     const contextText = buildContext(knowledge, pointsInfo, pdfInfo, context);
 
-    // 5. Call AI API (Z.AI as primary, OpenAI as fallback)
-    let aiResponse;
-    try {
-      if (useProvider === "zai") {
-        aiResponse = callGLM(query, contextText);
-      } else {
-        aiResponse = callOpenAI(query, contextText);
-      }
-    } catch (glmError) {
-      console.warn("Z.AI API failed, trying OpenAI fallback: " + glmError.toString());
-      aiResponse = callOpenAI(query, contextText);
-      aiResponse.fallback = "Used OpenAI after Z.AI failure";
-    }
+    // 5. Call AI API with configurable parameters
+    const aiResponse = callGLM(query, contextText, maxTokens, detailed);
 
     // Collect all sources
     const allSources = [
@@ -616,7 +642,7 @@ function askAI(requestData) {
         cost: aiResponse.cost,
         costTHB: aiResponse.costTHB,
         model: aiResponse.model,
-        fallback: aiResponse.fallback || null
+        tokens: aiResponse.tokens
       }
     };
   } catch (error) {
@@ -716,14 +742,16 @@ function searchPointsRules(query) {
 /**
  * ค้นหาเอกสาร PDF (จาก Google Drive)
  * สำหรับเอกสาร PDF ที่อัปโหลดไว้ใน Google Drive
+ *
+ * OPTIONAL FEATURE: Requires PDF_FOLDER_ID to be set
  */
 function searchPDFDocuments(query) {
   try {
     // รับ PDF folder ID จาก ScriptProperties
     const pdfFolderId = ScriptProperties.getProperty("PDF_FOLDER_ID");
 
-    if (!pdfFolderId) {
-      console.log("PDF_FOLDER_ID not found, skipping PDF search");
+    if (!pdfFolderId || pdfFolderId === "your-pdf-folder-id-here") {
+      // PDF search not configured - this is optional
       return [];
     }
 
@@ -774,17 +802,23 @@ function searchPDFDocuments(query) {
 
   } catch (error) {
     console.warn("PDF search error: " + error.toString());
+    console.warn("To enable PDF search, set PDF_FOLDER_ID in setupScriptProperties()");
     return [];
   }
 }
 
 /**
  * ดึงข้อความจาก PDF (ใช้ Google Drive OCR)
+ * NOTE: Advanced Drive Service must be enabled in Google Apps Script
+ * Resources > Advanced Google Services > Drive API
  */
 function extractTextFromPDF(blob) {
   try {
-    // แปลง PDF เป็นรูปภาพแล้ว OCR
-    // หรือใช้วิธีอ่าน PDF โดยตรง (Google Apps Script อาจไม่รองรับโดยตรง)
+    // Check if Drive API is available
+    if (typeof Drive === 'undefined' || !Drive.Files) {
+      console.warn("Drive API not enabled. Enable it from: Resources > Advanced Google Services > Drive API");
+      return null;
+    }
 
     // วิธีที่ 1: ใช้ Google Docs viewer
     const resource = {
@@ -806,6 +840,7 @@ function extractTextFromPDF(blob) {
 
   } catch (error) {
     console.warn("PDF extraction error: " + error.toString());
+    console.warn("To enable PDF search, enable Drive API from: Resources > Advanced Google Services > Drive API");
     return null;
   }
 }
@@ -864,94 +899,65 @@ function buildContext(knowledge, pointsInfo, pdfInfo, context) {
 }
 
 /**
- * เรียก Z.AI API (z.ai - รุ่น glm-5)
- * Z.AI API เป็น OpenAI-compatible API ที่รองรับภาษาไทยได้ดี และราคาถูก
+ * เรียก AI API - รองรับหลาย provider
+ * Priority: Gemini (primary) -> Z.AI (fallback 1) -> OpenAI (fallback 2)
+ *
+ * Gemini Models: https://ai.google.dev/models
+ * Z.AI Models: https://open.bigmodel.cn/dev/api#glm-4
+ * OpenAI Models: https://platform.openai.com/docs/models
  */
-function callGLM(query, context) {
-  const apiKey = ScriptProperties.getProperty("ZAI_API_KEY");
-
-  if (!apiKey) {
-    throw new Error("ZAI_API_KEY not found in ScriptProperties");
+function callGLM(query, context, maxTokens = 2000, detailed = true) {
+  // Try Gemini first (Primary - has free tier!)
+  const geminiResult = tryGemini(query, context, maxTokens, detailed);
+  if (geminiResult) {
+    return geminiResult;
   }
 
-  const apiUrl = "https://api.z.ai/api/paas/v4/chat/completions";
-
-  const prompt = `
-คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN)
-ตอบคำถามเกี่ยวกับ SCOR framework, ระบบแต้มสะสม, และกิจกรรมต่างๆ
-
-ความรู้ที่เกี่ยวข้อง:
-${context}
-
-คำถาม: ${query}
-
-ตอบเป็นภาษาไทย เป็นกันเอง ใช้ emojis เพื่อความน่าสนใจ
-หากไม่พบความรู้ที่เกี่ยวข้อง ให้ตอบว่า "ขอโทษครับ ไม่พบข้อมูลเกี่ยวกับเรื่องนี้ กรุณาติดต่อ admin"
-`;
-
-  const response = UrlFetchApp.fetch(apiUrl, {
-    method: "post",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    payload: JSON.stringify({
-      model: "glm-5",
-      messages: [
-        {
-          role: "system",
-          content: "คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN) ตอบเป็นภาษาไทย เป็นมิตรที่มีประสบการกับ SCOR framework และระบบแต้มสะสม"
-        },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    }),
-    muteHttpExceptions: true
-  });
-
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
-
-  if (responseCode !== 200) {
-    console.error("Z.AI API Error: " + responseBody);
-    throw new Error("Z.AI API request failed with code " + responseCode);
+  // Fallback to Z.AI
+  const zaiResult = tryZAI(query, context, maxTokens, detailed);
+  if (zaiResult) {
+    return zaiResult;
   }
 
-  const result = JSON.parse(responseBody);
-  const answer = result.choices[0].message.content;
+  // Fallback to OpenAI
+  const openaiResult = tryOpenAI(query, context, maxTokens, detailed);
+  if (openaiResult) {
+    return openaiResult;
+  }
 
-  // Z.AI GLM-5 pricing: ~0.5 THB/M input tokens, ~2 THB/M output tokens
-  const inputTokens = result.usage.prompt_tokens;
-  const outputTokens = result.usage.completion_tokens;
-  const costTHB = (inputTokens * 0.0000005) + (outputTokens * 0.000002);
-  const costUSD = costTHB * 0.028; // Convert to USD (1 THB ≈ 0.028 USD)
-
-  return {
-    answer,
-    cost: costUSD,
-    costTHB: costTHB,
-    tokens: { input: inputTokens, output: outputTokens },
-    model: "glm-5 (z.ai)"
-  };
+  // All failed
+  throw new Error("All AI providers failed. Please check API keys and account balance.");
 }
 
 /**
- * เรียก OpenAI API (GPT-4o mini) - Fallback option
+ * Try Z.AI API
  */
-function callOpenAI(query, context) {
-  const apiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
-
+function tryZAI(query, context, maxTokens = 2000, detailed = true) {
+  const apiKey = ScriptProperties.getProperty("ZAI_API_KEY");
   if (!apiKey) {
-    throw new Error("OPENAI_API_KEY not found in ScriptProperties");
+    console.log("Z.AI API Key not configured");
+    return null;
   }
 
-  const apiUrl = "https://api.openai.com/v1/chat/completions";
+  // Updated GLM model names for Zhipu AI (2024)
+  const models = [
+    "glm-4-flash",
+    "glm-4",
+    "glm-4-plus",
+    "glm-4-air",
+    "glm-3-turbo"
+  ];
 
-  const prompt = `
+  for (const model of models) {
+    try {
+      const apiUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+
+      // Adjust prompt based on detailed mode
+      const detailInstruction = detailed ?
+        "ตอบอย่างละเอียด เป็นขั้นตอน พร้อมตัวอย่าง และคำอธิบายที่ชัดเจน" :
+        "ตอบอย่างกระชับ สั้น และตรงประเด็น";
+
+      const prompt = `
 คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN)
 ตอบคำถามเกี่ยวกับ SCOR framework, ระบบแต้มสะสม, และกิจกรรมต่างๆ
 
@@ -960,55 +966,277 @@ ${context}
 
 คำถาม: ${query}
 
+${detailInstruction}
 ตอบเป็นภาษาไทย เป็นกันเอง ใช้ emojis เพื่อความน่าสนใจ
 หากไม่พบความรู้ที่เกี่ยวข้อง ให้ตอบว่า "ขอโทษครับ ไม่พบข้อมูลเกี่ยวกับเรื่องนี้ กรุณาติดต่อ admin"
 `;
 
-  const response = UrlFetchApp.fetch(apiUrl, {
-    method: "post",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    payload: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN) ตอบเป็นภาษาไทย เป็นมิตรที่มีประสบการกับ SCOR framework และระบบแต้มสะสม"
+      const response = UrlFetchApp.fetch(apiUrl, {
+        method: "post",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
         },
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    }),
-    muteHttpExceptions: true
-  });
+        payload: JSON.stringify({
+          model: model,
+          messages: [
+            {
+              role: "system",
+              content: "คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN) ตอบเป็นภาษาไทย เป็นมิตรที่มีประสบการกับ SCOR framework และระบบแต้มสะสม"
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.7
+        }),
+        muteHttpExceptions: true
+      });
 
-  const responseCode = response.getResponseCode();
-  const responseBody = response.getContentText();
+      const responseCode = response.getResponseCode();
+      const responseBody = response.getContentText();
 
-  if (responseCode !== 200) {
-    console.error("OpenAI API Error: " + responseBody);
-    throw new Error("OpenAI API request failed with code " + responseCode);
+      if (responseCode === 200) {
+        const result = JSON.parse(responseBody);
+        const answer = result.choices[0].message.content;
+
+        const inputTokens = result.usage.prompt_tokens;
+        const outputTokens = result.usage.completion_tokens;
+        const costTHB = (inputTokens * 0.0000005) + (outputTokens * 0.000002);
+        const costUSD = costTHB * 0.028;
+
+        console.log(`✅ Z.AI API Success using model: ${model}`);
+
+        return {
+          answer,
+          cost: costUSD,
+          costTHB: costTHB,
+          tokens: { input: inputTokens, output: outputTokens },
+          model: `${model} (z.ai)`
+        };
+      }
+
+      const errorData = JSON.parse(responseBody);
+
+      // Check for insufficient balance error
+      if (errorData.error?.code === "1113") {
+        console.error(`❌ Z.AI Account Error: Insufficient balance. Please add credits at https://open.bigmodel.cn/`);
+        return null;
+      }
+
+      console.warn(`Z.AI API Error with model "${model}": ${responseBody}`);
+
+    } catch (error) {
+      console.warn(`Z.AI API Exception with model "${model}": ${error.toString()}`);
+    }
   }
 
-  const result = JSON.parse(responseBody);
-  const answer = result.choices[0].message.content;
+  return null;
+}
 
-  // Calculate cost
-  const inputTokens = result.usage.prompt_tokens;
-  const outputTokens = result.usage.completion_tokens;
-  const cost = (inputTokens * 0.00000015) + (outputTokens * 0.00000060);
+/**
+ * Try Gemini API (fallback 1)
+ * Google Gemini API - Cost-effective with good Thai support
+ */
+function tryGemini(query, context, maxTokens = 2000, detailed = true) {
+  const apiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
+  if (!apiKey) {
+    console.log("Gemini API Key not configured");
+    return null;
+  }
 
-  return {
-    answer,
-    cost,
-    tokens: { input: inputTokens, output: outputTokens }
-  };
+  // Try different Gemini models based on official docs
+  // https://ai.google.dev/gemini-api/docs/models
+  const models = [
+    "gemini-2.5-flash",           // Latest 2.5 Flash (Ultra fast!)
+    "gemini-2.0-flash-exp",       // 2.0 Flash Experimental
+    "gemini-1.5-flash",           // Stable 1.5 Flash (Free tier available)
+    "gemini-1.5-flash-8b",        // Lightweight 1.5 Flash
+    "gemini-1.5-pro",             // High quality 1.5 Pro
+    "gemini-1.0-pro"              // Legacy stable model
+  ];
+
+  for (const model of models) {
+    try {
+      // Gemini API uses different format than OpenAI-compatible APIs
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+      // Adjust prompt based on detailed mode
+      const detailInstruction = detailed ?
+        "ตอบอย่างละเอียด เป็นขั้นตอน พร้อมตัวอย่าง และคำอธิบายที่ชัดเจน" :
+        "ตอบอย่างกระชับ สั้น และตรงประเด็น";
+
+      const prompt = `
+คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN)
+ตอบคำถามเกี่ยวกับ SCOR framework, ระบบแต้มสะสม, และกิจกรรมต่างๆ
+
+ความรู้ที่เกี่ยวข้อง:
+${context}
+
+คำถาม: ${query}
+
+${detailInstruction}
+ตอบเป็นภาษาไทย เป็นกันเอง ใช้ emojis เพื่อความน่าสนใจ
+หากไม่พบความรู้ที่เกี่ยวข้อง ให้ตอบว่า "ขอโทษครับ ไม่พบข้อมูลเกี่ยวกับเรื่องนี้ กรุณาติดต่อ admin"
+`;
+
+      const response = UrlFetchApp.fetch(apiUrl, {
+        method: "post",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        payload: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: maxTokens
+          }
+        }),
+        muteHttpExceptions: true
+      });
+
+      const responseCode = response.getResponseCode();
+      const responseBody = response.getContentText();
+
+      if (responseCode === 200) {
+        const result = JSON.parse(responseBody);
+
+        // Gemini API response format is different
+        const answer = result.candidates[0].content.parts[0].text;
+
+        // Estimate token usage (Gemini doesn't return exact counts)
+        const inputTokens = prompt.length / 4; // Rough estimate
+        const outputTokens = answer.length / 4; // Rough estimate
+
+        // Gemini 1.5 Flash pricing: Free tier (1,000 requests/day) or pay-as-you-go
+        // Pay-as-you-go: ~$0.075 per million input tokens, ~$0.30 per million output tokens
+        const costUSD = (inputTokens * 0.000000075) + (outputTokens * 0.00000030);
+        const costTHB = costUSD * 35.7; // Convert to THB
+
+        console.log(`✅ Gemini API Success using model: ${model}`);
+
+        return {
+          answer,
+          cost: costUSD,
+          costTHB: costTHB,
+          tokens: { input: inputTokens, output: outputTokens },
+          model: `${model} (google)`
+        };
+      }
+
+      const errorData = JSON.parse(responseBody);
+
+      // Check for quota exceeded error
+      if (errorData.error?.status === "RESOURCE_EXHAUSTED") {
+        console.error(`❌ Gemini API Error: Quota exceeded. Check your quota at https://aistudio.google.com/app/apikey`);
+        return null;
+      }
+
+      console.warn(`Gemini API Error with model "${model}": ${responseBody}`);
+
+    } catch (error) {
+      console.warn(`Gemini API Exception with model "${model}": ${error.toString()}`);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Try OpenAI API (fallback 2)
+ */
+function tryOpenAI(query, context, maxTokens = 2000, detailed = true) {
+  const apiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
+  if (!apiKey) {
+    console.log("OpenAI API Key not configured");
+    return null;
+  }
+
+  try {
+    const apiUrl = "https://api.openai.com/v1/chat/completions";
+
+    // Adjust prompt based on detailed mode
+    const detailInstruction = detailed ?
+      "ตอบอย่างละเอียด เป็นขั้นตอน พร้อมตัวอย่าง และคำอธิบายที่ชัดเจน" :
+      "ตอบอย่างกระชับ สั้น และตรงประเด็น";
+
+    const prompt = `
+คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN)
+ตอบคำถามเกี่ยวกับ SCOR framework, ระบบแต้มสะสม, และกิจกรรมต่างๆ
+
+ความรู้ที่เกี่ยวข้อง:
+${context}
+
+คำถาม: ${query}
+
+${detailInstruction}
+ตอบเป็นภาษาไทย เป็นกันเอง ใช้ emojis เพื่อความน่าสนใจ
+หากไม่พบความรู้ที่เกี่ยวข้อง ให้ตอบว่า "ขอโทษครับ ไม่พบข้อมูลเกี่ยวกับเรื่องนี้ กรุณาติดต่อ admin"
+`;
+
+    const response = UrlFetchApp.fetch(apiUrl, {
+      method: "post",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      payload: JSON.stringify({
+        model: "gpt-4o-mini", // Cost-effective model
+        messages: [
+          {
+            role: "system",
+            content: "คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN) ตอบเป็นภาษาไทย เป็นมิตรที่มีประสบการกับ SCOR framework และระบบแต้มสะสม"
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7
+      }),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    if (responseCode === 200) {
+      const result = JSON.parse(responseBody);
+      const answer = result.choices[0].message.content;
+
+      const inputTokens = result.usage.prompt_tokens;
+      const outputTokens = result.usage.completion_tokens;
+      const costUSD = (inputTokens * 0.00000015) + (outputTokens * 0.0000006); // GPT-4o-mini pricing
+
+      console.log(`✅ OpenAI API Success using model: gpt-4o-mini`);
+
+      return {
+        answer,
+        cost: costUSD,
+        costTHB: costUSD * 35.7, // Convert to THB
+        tokens: { input: inputTokens, output: outputTokens },
+        model: "gpt-4o-mini (openai)"
+      };
+    }
+
+    console.warn(`OpenAI API Error: ${responseBody}`);
+    return null;
+
+  } catch (error) {
+    console.warn(`OpenAI API Exception: ${error.toString()}`);
+    return null;
+  }
 }
 
 /**
@@ -1461,24 +1689,68 @@ function getUserPointsHistory(userId, limit) {
 /**
  * ตั้งค่า ScriptProperties - รันครั้งเดียวเพื่อ setup
  * Run this function ONCE to configure all API keys and IDs
+ *
+ * Setup Instructions:
+ * 1. Get Z.AI API Key from https://z.ai/ (requires account)
+ * 2. (Optional) Create Google Drive folder for PDF documents
+ * 3. Enable Drive API for PDF search (if needed):
+ *    - Go to: Resources > Advanced Google Services
+ *    - Enable "Drive API"
  */
 function setupScriptProperties() {
-  // Z.AI API Key (หลัก - ถูกกว่า OpenAI)
-  // รับจาก: https://z.ai/
+  // LINE Channel Access Token (Required for LINE Bot & AI Chat)
+  // Get from: https://developers.line.biz/console/
+  // Go to: Your LINE Channel > Messaging API > Channel access token (long-lived)
+  // Required for: LINE webhook handling, AI chat replies
+  ScriptProperties.setProperty("LINE_CHANNEL_ACCESS_TOKEN", "your-line-channel-access-token-here");
+
+  // Google Gemini API Key (Primary AI Provider) ⭐
+  // Get from: https://aistudio.google.com/app/apikey
+  // Models: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro
+  // Note: Free tier available (1,500 requests/day for gemini-1.5-flash)
+  // Docs: https://ai.google.dev/gemini-api/docs/models
+  // Pricing: Very cost-effective with excellent Thai support
+  ScriptProperties.setProperty("GEMINI_API_KEY", "your-gemini-api-key-here");
+
+  // Z.AI API Key (Fallback AI Provider 1)
+  // Get from: https://open.bigmodel.cn/ (Zhipu AI)
+  // Models: glm-4-flash, glm-4, glm-4-plus
+  // Note: Requires account balance/credits to work
+  // Pricing: Very cost-effective for Thai language support
   ScriptProperties.setProperty("ZAI_API_KEY", "your-zai-api-key-here");
 
-  // OpenAI API Key (สำรอง)
-  // รับจาก: https://platform.openai.com/api-keys
+  // OpenAI API Key (Fallback AI Provider 2)
+  // Get from: https://platform.openai.com/api-keys
+  // Note: Used as backup if Gemini and Z.AI fail
+  // Pricing: GPT-4o-mini is very cost-effective
   ScriptProperties.setProperty("OPENAI_API_KEY", "your-openai-api-key-here");
 
-  // Google Drive Folder ID สำหรับเก็บ PDF documents
-  // Folder URL: https://drive.google.com/drive/folders/1qvA0sMG024kezPynLHidvpCFUtkj-TjS
-  ScriptProperties.setProperty("PDF_FOLDER_ID", "1qvA0sMG024kezPynLHidvpCFUtkj-TjS");
+  // Google Drive Folder ID สำหรับเก็บ PDF documents (OPTIONAL)
+  // Only needed if you want PDF search functionality
+  // Folder URL example: https://drive.google.com/drive/folders/1qvA0sMG024kezPynLHidvpCFUtkj-TjS
+  // The folder ID is the last part of the URL
+  ScriptProperties.setProperty("PDF_FOLDER_ID", "your-pdf-folder-id-here");
 
   console.log("✅ Script Properties setup complete!");
-  console.log("PDF Folder ID: " + ScriptProperties.getProperty("PDF_FOLDER_ID"));
+  console.log("LINE Channel Access Token: " + (ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN") ? "✅ Set" : "❌ Not set"));
+  console.log("PDF Folder ID: " + (ScriptProperties.getProperty("PDF_FOLDER_ID") || "Not set"));
   console.log("ZAI API Key: " + (ScriptProperties.getProperty("ZAI_API_KEY") ? "✅ Set" : "❌ Not set"));
-  console.log("OpenAI API Key: " + (ScriptProperties.getProperty("OPENAI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("GEMINI API Key: " + (ScriptProperties.getProperty("GEMINI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("OPENAI API Key: " + (ScriptProperties.getProperty("OPENAI_API_KEY") ? "✅ Set" : "❌ Not set"));
+  console.log("\n📝 Note: PDF search requires Drive API to be enabled:");
+  console.log("   Go to: Resources > Advanced Google Services > Drive API > Enable");
+  console.log("\n💡 Note: You need at least one AI provider configured:");
+  console.log("   - Gemini (Primary): https://aistudio.google.com/app/apikey - Free tier (1,500/day)! ⭐");
+  console.log("     Models: gemini-2.0-flash-exp, gemini-1.5-flash, gemini-1.5-pro");
+  console.log("   - Z.AI (Fallback 1): https://open.bigmodel.cn/ - Requires account balance");
+  console.log("     Models: glm-4-flash, glm-4, glm-4-plus");
+  console.log("   - OpenAI (Fallback 2): https://platform.openai.com/ - Pay-as-you-go");
+  console.log("     Models: gpt-4o-mini, gpt-4o");
+  console.log("\n📱 Note: LINE Bot requires LINE_CHANNEL_ACCESS_TOKEN:");
+  console.log("   Get from: https://developers.line.biz/console/");
+  console.log("   Go to: Your Channel > Messaging API > Channel access token (long-lived)");
+  console.log("\n🎯 Recommendation: Start with Gemini (has free tier, great Thai support)");
+  console.log("   Docs: https://ai.google.dev/gemini-api/docs/models");
 }
 
 // ============================================================
@@ -1561,20 +1833,26 @@ function test_askAI() {
   try {
     const testQuery = "SCOR คืออะไร";
 
-    // ตรวจสอบ API Keys
+    // ตรวจสอบว่ามีอย่างน้อย 1 API Key
     const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
+    const geminiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
     const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
 
-    if (!zaiKey && !openaiKey) {
-      console.log("❌ No API keys found. Please run setupScriptProperties() first.");
-      return { success: false, error: "No API keys found" };
+    if (!zaiKey && !geminiKey && !openaiKey) {
+      console.log("❌ No AI API keys found. Please run setupScriptProperties() first.");
+      console.log("   At least one of these is required: ZAI_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY");
+      return { success: false, error: "No AI API keys configured" };
     }
+
+    console.log("🔍 Testing AI with providers:");
+    if (geminiKey) console.log("   ⭐ Gemini (Primary) - Free tier!");
+    if (zaiKey) console.log("   ✅ Z.AI (Fallback 1)");
+    if (openaiKey) console.log("   ✅ OpenAI (Fallback 2)");
 
     // ทดสอบ askAI function
     const result = askAI({
       query: testQuery,
-      context: { userId: "test_user", group: "IT" },
-      provider: zaiKey ? "zai" : "openai"
+      context: { userId: "test_user", group: "IT" }
     });
 
     console.log("✅ AI Assistant Test Passed!");
@@ -1606,4 +1884,998 @@ function test_runAll() {
   console.log(`Passed: ${passed}/${total}`);
 
   return results;
+}
+
+/**
+ * ทดสอบ LINE Webhook (Mock data)
+ */
+function test_lineWebhook() {
+  console.log("=== 📱 Testing LINE Webhook (Mock) ===\n");
+
+  try {
+    // Mock LINE webhook event
+    const mockEvent = {
+      destination: "U1234567890abcdef1234567890abcdef",
+      events: [
+        {
+          type: "message",
+          message: {
+            type: "text",
+            text: "test message",
+            id: "1234567890",
+            quoteToken: null
+          },
+          replyToken: "test-reply-token-abc123",
+          source: {
+            userId: "U9876543210fedcba9876543210fedcba",
+            type: "user"
+          },
+          timestamp: 1678901234567,
+          mode: "active",
+          webhookEventId: "01HXXXXX",
+          deliveryContext: {
+            isRedelivery: false
+          }
+        }
+      ]
+    };
+
+    console.log("📤 Mock Event Created:");
+    console.log("  - Type: " + mockEvent.events[0].type);
+    console.log("  - Message: " + mockEvent.events[0].message.text);
+    console.log("  - Source Type: " + mockEvent.events[0].source.type);
+
+    // Test handleLineWebhook
+    const result = handleLineWebhook(mockEvent);
+
+    console.log("\n✅ LINE Webhook Test Result:");
+    console.log(JSON.stringify(result, null, 2));
+
+    return {
+      success: true,
+      result: result
+    };
+
+  } catch (error) {
+    console.error("❌ LINE Webhook Test Failed:");
+    console.error("  Error: " + error.toString());
+    console.error("  Stack: " + error.stack);
+
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * ทดสอบการตั้งค่า LINE Bot
+ */
+function test_lineBotSetup() {
+  console.log("=== 🔧 Testing LINE Bot Setup ===\n");
+
+  const results = {};
+
+  // Test 1: Spreadsheet connection
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    results.spreadsheet = { success: true, message: "Connected" };
+    console.log("✅ Spreadsheet: Connected");
+  } catch (error) {
+    results.spreadsheet = { success: false, error: error.message };
+    console.log("❌ Spreadsheet: " + error.message);
+  }
+
+  // Test 2: LINE Channel Access Token
+  const lineToken = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+  if (lineToken) {
+    results.lineToken = {
+      success: true,
+      message: "Token exists",
+      length: lineToken.length,
+      preview: lineToken.substring(0, 20) + "..."
+    };
+    console.log("✅ LINE Token: Set (" + lineToken.length + " chars)");
+  } else {
+    results.lineToken = {
+      success: false,
+      error: "LINE_CHANNEL_ACCESS_TOKEN not set"
+    };
+    console.log("❌ LINE Token: NOT SET - Run setupScriptProperties()");
+  }
+
+  // Test 3: AI API Keys
+  const geminiKey = ScriptProperties.getProperty("GEMINI_API_KEY");
+  const zaiKey = ScriptProperties.getProperty("ZAI_API_KEY");
+  const openaiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
+
+  results.aiKeys = {
+    gemini: !!geminiKey,
+    zai: !!zaiKey,
+    openai: !!openaiKey,
+    atLeastOne: !!(geminiKey || zaiKey || openaiKey)
+  };
+
+  console.log("\n🤖 AI API Keys:");
+  console.log("  - Gemini: " + (geminiKey ? "✅" : "❌"));
+  console.log("  - Z.AI: " + (zaiKey ? "✅" : "❌"));
+  console.log("  - OpenAI: " + (openaiKey ? "✅" : "❌"));
+  console.log("  - At least one: " + (results.aiKeys.atLeastOne ? "✅" : "❌"));
+
+  // Test 4: Sheet existence
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+    const activitiesSheet = ss.getSheetByName(SHEET_NAMES.ACTIVITIES);
+    const logSheet = ss.getSheetByName(SHEET_NAMES.LOG);
+
+    results.sheets = {
+      users: !!usersSheet,
+      activities: !!activitiesSheet,
+      log: !!logSheet
+    };
+
+    console.log("\n📊 Sheets Status:");
+    console.log("  - Users: " + (usersSheet ? "✅" : "❌"));
+    console.log("  - Activities: " + (activitiesSheet ? "✅" : "❌"));
+    console.log("  - Log: " + (logSheet ? "✅" : "❌"));
+  } catch (error) {
+    results.sheets = { error: error.message };
+  }
+
+  // Summary
+  console.log("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  console.log("📋 Setup Summary:");
+  console.log("  Spreadsheet: " + (results.spreadsheet.success ? "✅" : "❌"));
+  console.log("  LINE Token: " + (results.lineToken.success ? "✅" : "❌"));
+  console.log("  AI Keys: " + (results.aiKeys.atLeastOne ? "✅" : "❌"));
+
+  const allGood = results.spreadsheet.success &&
+                  results.lineToken.success &&
+                  results.aiKeys.atLeastOne;
+
+  if (allGood) {
+    console.log("\n🎉 Setup looks good! Ready for testing.");
+  } else {
+    console.log("\n⚠️ Setup incomplete. Check the items marked with ❌");
+  }
+
+  return results;
+}
+
+/**
+ * ทดสอบ LINE Message Handler (Direct)
+ */
+function test_lineMessageHandler() {
+  console.log("=== 💬 Testing LINE Message Handler ===\n");
+
+  const mockEvent = {
+    type: "message",
+    message: {
+      type: "text",
+      text: "help",
+      id: "12345",
+      quoteToken: null
+    },
+    replyToken: "test-reply-token",
+    source: {
+      userId: "test-user-id",
+      type: "user"
+    },
+    timestamp: Date.now()
+  };
+
+  console.log("📤 Testing with command: " + mockEvent.message.text);
+
+  try {
+    const result = handleLineMessage(mockEvent);
+
+    console.log("\n✅ Message Handler Result:");
+    console.log("  Action: " + result.action);
+    console.log("  Success: " + result.success);
+
+    return result;
+  } catch (error) {
+    console.error("❌ Message Handler Error: " + error.toString());
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// LINE WEBHOOK & AI CHAT FUNCTIONS
+// ============================================================
+
+/**
+ * Handle LINE Webhook events
+ * @param {Object} requestData - Webhook request data
+ * @returns {Object} Response
+ */
+function handleLineWebhook(requestData) {
+  const { events } = requestData;
+
+  if (!events || events.length === 0) {
+    return { success: true, message: "No events to process" };
+  }
+
+  const results = [];
+
+  for (const event of events) {
+    try {
+      // Handle message event
+      if (event.type === "message" && event.message.type === "text") {
+        const result = handleLineMessage(event);
+        results.push(result);
+      }
+      // Handle follow event
+      else if (event.type === "follow") {
+        const result = handleLineFollow(event);
+        results.push(result);
+      }
+      // Handle other event types
+      else {
+        results.push({
+          success: true,
+          message: `Event type "${event.type}" received but not processed`
+        });
+      }
+    } catch (error) {
+      console.error("Error processing LINE event: " + error.toString());
+      results.push({
+        success: false,
+        error: error.message,
+        eventType: event.type
+      });
+    }
+  }
+
+  return {
+    success: true,
+    processed: results.length
+  };
+}
+
+/**
+ * Handle LINE message event with AI chat capability
+ * @param {Object} event - LINE webhook event
+ * @returns {Object} Response
+ */
+function handleLineMessage(event) {
+  const { replyToken, source, message } = event;
+  const userId = source?.userId;
+  const text = message?.text || "";
+  const quoteToken = message?.quoteToken || null;
+
+  // Determine chat ID for loading animation
+  const chatId = source?.groupId || source?.roomId || source?.userId;
+
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  console.log(`📱 [WEBHOOK] LINE Message Received`);
+  console.log(`📱 [WEBHOOK] User ID: ${userId}`);
+  console.log(`📱 [WEBHOOK] Message: "${text}"`);
+  console.log(`📱 [WEBHOOK] Quote Token: ${quoteToken ? 'YES - ' + quoteToken.substring(0, 20) + '...' : 'NO'}`);
+  console.log(`📱 [WEBHOOK] Chat ID: ${chatId}`);
+  console.log(`📱 [WEBHOOK] Source Type: ${source?.groupId ? 'GROUP' : source?.roomId ? 'ROOM' : 'USER'}`);
+  console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+
+  try {
+    console.log(`🔍 [PROCESS] Starting message processing...`);
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const userInfo = getUserInfo(ss, userId);
+
+    console.log(`👤 [USER INFO]:`, userInfo ? {
+      name: userInfo.name,
+      group: userInfo.group,
+      role: userInfo.role
+    } : 'Not registered');
+
+    // Check for special commands
+    const lowerText = text.toLowerCase().trim();
+    console.log(`🔍 [COMMAND] Checking for special commands: "${lowerText}"`);
+
+    // Status command
+    if (lowerText === "status" || lowerText === "สถานะ") {
+      console.log(`✅ [COMMAND] Status command detected`);
+
+      if (!userInfo) {
+        console.log(`⚠️ [COMMAND] User not registered`);
+        sendLineReplyDirect(replyToken, "❌ คุณยังไม่ได้ลงทะเบียนในระบบ\n\nกรุณาลงทะเบียนผ่านแอป SCORDS ก่อนใช้งานครับ 🙏", quoteToken);
+        return { success: true, action: "status_check", registered: false };
+      }
+
+      const points = getUserTotalPoints(ss, userId);
+      console.log(`📊 [STATUS] User points: ${points}`);
+
+      const replyText = `👤 สถานะของคุณ:
+━━━━━━━━━━━━━━━
+ชื่อ: ${userInfo.name}
+กลุ่ม: ${userInfo.group || '-'}
+ตำแหน่ง: ${userInfo.position || '-'}
+รหัสพนักงาน: ${userInfo.employeeId || '-'}
+แต้มสะสม: ${points} แต้ม
+
+✅ ลงทะเบียนแล้ว`;
+
+      sendLineReplyDirect(replyToken, replyText, quoteToken);
+      return { success: true, action: "status_check", registered: true };
+    }
+
+    // Help command
+    if (lowerText === "help" || lowerText === "ช่วยเหลือ" || lowerText === "menu" || lowerText === "เมนู") {
+      console.log(`✅ [COMMAND] Help command detected`);
+
+      const replyText = `🤖 SCORDS AI Bot - คำสั่งที่ใช้ได้
+
+━━━━━━━━━━━━━━━
+📊 **คำสั่งหลัก:**
+• "status" หรือ "สถานะ" - เช็คสถานะของคุณ
+• "help" หรือ "ช่วยเหลือ" - ดูคำสั่งทั้งหมด
+
+━━━━━━━━━━━━━━━
+🤖 **พูดคุยกับ AI:**
+พิมพ์คำถามหรือข้อความใดๆ เกี่ยวกับ:
+• SCOR framework
+• ระบบแต้มสะสม
+• กิจกรรมต่างๆ
+• วิธีการใช้งาน
+
+ตัวอย่างคำถาม:
+• "SCOR คืออะไร?"
+• "จะได้แต้มอย่างไร?"
+• "กติกาแต้มสะสม?"
+• "มีกิจกรรมอะไรบ้าง?"
+• "ขอตัวอย่างการประยุกต์ใช้ SCOR"
+
+━━━━━━━━━━━━━━━
+หรือเข้าใช้งานผ่านแอป SCORDS ได้เลยครับ 🙏`;
+
+      sendLineReplyDirect(replyToken, replyText, quoteToken);
+      return { success: true, action: "help_menu" };
+    }
+
+    // For all other messages, use AI to respond
+    // This makes the bot more conversational and helpful
+    console.log(`🤖 [AI] AI chat requested`);
+    console.log(`🤖 [AI] User: ${userId}`);
+    console.log(`🤖 [AI] Query: "${text}"`);
+
+    // Start loading animation before calling AI
+    console.log(`⏳ [AI] Starting loading animation...`);
+    const loadingResult = sendLineLoadingStart(chatId);
+    console.log(`⏳ [AI] Loading animation result: ${loadingResult ? 'SUCCESS' : 'FAILED'}`);
+
+    const aiRequest = {
+      query: text,
+      context: {
+        userId: userId,
+        group: userInfo?.group,
+        role: userInfo?.role
+      },
+      maxTokens: 2000,
+      detailed: true
+    };
+
+    console.log(`🤖 [AI] Sending request to AI API...`);
+    const aiResponse = askAI(aiRequest);
+    console.log(`🤖 [AI] AI API response:`, aiResponse.success ? 'SUCCESS' : 'FAILED');
+
+    if (aiResponse.success) {
+      console.log(`✅ [AI] AI response received`);
+      console.log(`💰 [AI] Cost: $${(aiResponse.data.cost || 0).toFixed(4)} USD`);
+      console.log(`📊 [AI] Model: ${aiResponse.data.model || 'unknown'}`);
+
+      const replyText = `🤖 *SCORDS AI Assistant*
+
+${aiResponse.data.answer}
+
+━━━━━━━━━━━━━━━
+💰 Cost: $${(aiResponse.data.cost || 0).toFixed(4)} USD
+📊 Model: ${aiResponse.data.model || 'unknown'}`;
+
+      console.log(`💬 [AI] Sending reply with quote...`);
+      sendLineReplyDirect(replyToken, replyText, quoteToken);
+
+      console.log(`✅ [AI] AI chat completed successfully`);
+      return {
+        success: true,
+        action: "ai_chat",
+        cost: aiResponse.data.cost,
+        model: aiResponse.data.model
+      };
+    } else {
+      console.log(`❌ [AI] AI response failed`);
+      console.log(`❌ [AI] Error: ${aiResponse.message}`);
+
+      const replyText = `❌ ขอโทษครับ ระบบ AI ขัดข้องชั่วคราว กรุณาลองใหม่ภายหลัง
+
+Error: ${aiResponse.message}
+
+💡 พิมพ์ "help" หรือ "ช่วยเหลือ" เพื่อดูคำสั่งที่ใช้ได้`;
+
+      console.log(`💬 [AI] Sending error reply...`);
+      sendLineReplyDirect(replyToken, replyText, quoteToken);
+
+      console.log(`❌ [AI] AI chat failed`);
+      return { success: false, action: "ai_chat_failed", error: aiResponse.message };
+    }
+
+  } catch (error) {
+    console.error(`❌ [ERROR] Error handling LINE message`);
+    console.error(`❌ [ERROR] Message: ${error.message}`);
+    console.error(`❌ [ERROR] Stack: ${error.stack}`);
+    return {
+      success: false,
+      error: error.message,
+      action: "message_failed"
+    };
+  }
+}
+
+/**
+ * Handle LINE follow event
+ * @param {Object} event - LINE webhook event
+ * @returns {Object} Response
+ */
+function handleLineFollow(event) {
+  const { replyToken, source } = event;
+  const userId = source?.userId;
+
+  console.log(`👋 LINE Follow from ${userId}`);
+
+  try {
+    const welcomeMessage = `🎉 ยินดีต้อนรับสู่ SCORDS AI Bot!
+
+ระบบเช็คชื่ออัจฉริยะ พร้อมระบบแต้มสะสม และ AI Assistant พร้อมตอบทุกคำถาม!
+
+━━━━━━━━━━━━━━━
+📱 **คำสั่งที่ใช้ได้:**
+
+• "status" หรือ "สถานะ" - เช็คสถานะและแต้มสะสม
+• "help" หรือ "ช่วยเหลือ" - ดูคำสั่งทั้งหมด
+
+━━━━━━━━━━━━━━━
+🤖 **พูดคุยกับ AI ได้ทันที:**
+
+พิมพ์คำถามเกี่ยวกับ:
+• SCOR framework & แนวคิด
+• ระบบแต้มสะสม & กติกา
+• กิจกรรมต่างๆ
+• วิธีการใช้งาน
+
+ตัวอย่างคำถาม:
+• "SCOR คืออะไร?"
+• "จะได้แต้มอย่างไร?"
+• "อธิบาย Process คืออะไร?"
+• "ขอตัวอย่างการประยุกต์ใช้"
+
+━━━━━━━━━━━━━━━
+📲 กรุณาลงทะเบียนผ่านแอป SCORDS เพื่อเริ่มใช้งานครับ 🙏`;
+
+    sendLineReplyDirect(replyToken, welcomeMessage);
+
+    return { success: true, action: "follow_handled" };
+  } catch (error) {
+    console.error("Error handling LINE follow: " + error.toString());
+    return {
+      success: false,
+      error: error.message,
+      action: "follow_failed"
+    };
+  }
+}
+
+/**
+ * Handle LINE AI Chat (dedicated endpoint for LINE Bot)
+ * @param {Object} requestData - Request data
+ * @returns {Object} Response
+ */
+function handleLineAIChat(requestData) {
+  const { userId, message, replyToken } = requestData;
+
+  if (!userId || !message) {
+    return {
+      success: false,
+      message: "userId and message are required"
+    };
+  }
+
+  console.log(`🤖 LINE AI Chat from ${userId}: "${message}"`);
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const userInfo = getUserInfo(ss, userId);
+
+    const aiRequest = {
+      query: message,
+      context: {
+        userId: userId,
+        group: userInfo?.group,
+        role: userInfo?.role
+      },
+      maxTokens: 2000,
+      detailed: true
+    };
+
+    const aiResponse = askAI(aiRequest);
+
+    if (aiResponse.success) {
+      const replyText = `🤖 *SCORDS AI*
+
+${aiResponse.data.answer}`;
+
+      // Send reply to LINE if replyToken is provided
+      if (replyToken) {
+        sendLineReplyDirect(replyToken, replyText);
+      }
+
+      return {
+        success: true,
+        data: {
+          reply: replyText,
+          cost: aiResponse.data.cost,
+          model: aiResponse.data.model
+        }
+      };
+    } else {
+      return {
+        success: false,
+        message: aiResponse.message
+      };
+    }
+  } catch (error) {
+    console.error("Error handling LINE AI chat: " + error.toString());
+    return {
+      success: false,
+      message: "AI Error: " + error.message
+    };
+  }
+}
+
+/**
+ * Send chat loading animation to LINE
+ * @param {string} chatId - LINE chat ID
+ * @returns {boolean} Success status
+ */
+function sendLineLoadingStart(chatId) {
+  try {
+    console.log(`🔄 [LOADING] Starting loading animation for chat: ${chatId}`);
+
+    const channelAccessToken = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+
+    if (!channelAccessToken) {
+      console.error("❌ [LOADING] LINE_CHANNEL_ACCESS_TOKEN not configured");
+      return false;
+    }
+
+    console.log("✅ [LOADING] Token found, preparing request...");
+
+    const url = "https://api.line.me/v2/bot/chat/loading/start";
+    const payload = {
+      chatId: chatId,
+      loadingSeconds: 20 // Maximum: 20 seconds
+    };
+
+    console.log(`📤 [LOADING] Request URL: ${url}`);
+    console.log(`📤 [LOADING] Payload: ${JSON.stringify(payload)}`);
+
+    const response = UrlFetchApp.fetch(url, {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${channelAccessToken.substring(0, 20)}...` // Log partial token for security
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    console.log(`📥 [LOADING] Response Code: ${responseCode}`);
+    console.log(`📥 [LOADING] Response Body: ${responseBody}`);
+
+    if (responseCode === 200 || responseCode === 202) {
+      console.log("✅ [LOADING] Loading animation started successfully");
+      return true;
+    } else {
+      console.error(`❌ [LOADING] Failed with code ${responseCode}: ${responseBody}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ [LOADING] Exception: ${error.toString()}`);
+    console.error(`❌ [LOADING] Stack: ${error.stack}`);
+    return false;
+  }
+}
+
+/**
+ * Send reply message to LINE (Direct function)
+ * @param {string} replyToken - LINE reply token
+ * @param {string} messageText - Message text to send
+ * @param {string} quoteToken - Optional quote token for quoting user message
+ * @returns {boolean} Success status
+ */
+function sendLineReplyDirect(replyToken, messageText, quoteToken = null) {
+  try {
+    console.log(`💬 [REPLY] Sending reply...`);
+    console.log(`💬 [REPLY] Message length: ${messageText?.length || 0} chars`);
+    console.log(`💬 [REPLY] Quote token: ${quoteToken ? 'YES' : 'NO'}`);
+    console.log(`💬 [REPLY] Reply token: ${replyToken?.substring(0, 20)}...`);
+
+    const channelAccessToken = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+
+    if (!channelAccessToken) {
+      console.error("❌ [REPLY] LINE_CHANNEL_ACCESS_TOKEN not configured");
+      return false;
+    }
+
+    console.log("✅ [REPLY] Token found, preparing request...");
+
+    const url = "https://api.line.me/v2/bot/message/reply";
+    const message = {
+      type: "text",
+      text: messageText
+    };
+
+    // Add quote token if provided
+    if (quoteToken) {
+      message.quoteToken = quoteToken;
+      console.log(`✅ [REPLY] Quote token added: ${quoteToken.substring(0, 20)}...`);
+    } else {
+      console.log("⚠️ [REPLY] No quote token provided (this is OK for follow events)");
+    }
+
+    const payload = {
+      replyToken: replyToken,
+      messages: [message]
+    };
+
+    console.log(`📤 [REPLY] Request URL: ${url}`);
+    console.log(`📤 [REPLY] Payload: ${JSON.stringify({
+      replyToken: replyToken.substring(0, 20) + '...',
+      messages: [{
+        type: message.type,
+        text: messageText.substring(0, 50) + '...',
+        quoteToken: quoteToken ? quoteToken.substring(0, 20) + '...' : null
+      }]
+    })}`);
+
+    const response = UrlFetchApp.fetch(url, {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${channelAccessToken.substring(0, 20)}...`
+      },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    console.log(`📥 [REPLY] Response Code: ${responseCode}`);
+    console.log(`📥 [REPLY] Response Body: ${responseBody}`);
+
+    if (responseCode === 200) {
+      console.log("✅ [REPLY] Reply sent successfully!");
+      return true;
+    } else {
+      console.error(`❌ [REPLY] Failed with code ${responseCode}: ${responseBody}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ [REPLY] Exception: ${error.toString()}`);
+    console.error(`❌ [REPLY] Stack: ${error.stack}`);
+    return false;
+  }
+}
+
+// ============================================================
+// 🔧 DEBUG FUNCTIONS - Comprehensive Diagnostics
+// ============================================================
+
+/**
+ * 🔍 Run Full Diagnostic
+ * รันฟังก์ชันนี้เพื่อตรวจสอบทุกอย่าง
+ *
+ * วิธีใช้: รันใน Google Apps Script Editor
+ * 1. เลือก debug_runFullDiagnostic
+ * 2. คลิก Run
+ * 3. ดูผลลัพธ์ใน Execution Log
+ */
+function debug_runFullDiagnostic() {
+  console.log("╔══════════════════════════════════════════════════════╗");
+  console.log("║  🔍 SCORDS LINE Bot - Full Diagnostic              ║");
+  console.log("╚══════════════════════════════════════════════════════╝");
+  console.log("");
+
+  const results = {
+    step1_basic: _debug_basicChecks(),
+    step2_deployment: _debug_checkDeployment(),
+    step3_lineToken: _debug_checkLineToken(),
+    step4_webhookTest: _debug_testWebhookEndpoint()
+  };
+
+  console.log("");
+  console.log("════════════════════════════════════════════════════════");
+  console.log("📊 DIAGNOSTIC SUMMARY");
+  console.log("════════════════════════════════════════════════════════");
+
+  let passCount = 0;
+  let failCount = 0;
+
+  for (const [step, result] of Object.entries(results)) {
+    const status = result.success ? "✅ PASS" : "❌ FAIL";
+    console.log(`${step}: ${status}`);
+
+    if (result.success) {
+      passCount++;
+    } else {
+      failCount++;
+      console.log(`  └─ Error: ${result.error}`);
+    }
+  }
+
+  console.log("");
+  console.log(`Total: ${passCount} passed, ${failCount} failed`);
+  console.log("════════════════════════════════════════════════════════");
+
+  return results;
+}
+
+function _debug_basicChecks() {
+  console.log("📍 STEP 1: Basic Checks");
+  console.log("──────────────────────────────────────────────────────");
+
+  const issues = [];
+
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    console.log("✅ Spreadsheet: Connected");
+
+    const requiredSheets = ["Users", "Activities", "Checkin_Log"];
+    for (const sheetName of requiredSheets) {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet) {
+        issues.push(`Missing sheet: ${sheetName}`);
+        console.log(`❌ Sheet "${sheetName}": NOT FOUND`);
+      } else {
+        console.log(`✅ Sheet "${sheetName}": OK`);
+      }
+    }
+  } catch (error) {
+    issues.push(`Spreadsheet error: ${error.message}`);
+    console.log(`❌ Spreadsheet: ${error.message}`);
+  }
+
+  return {
+    success: issues.length === 0,
+    error: issues.join("; ")
+  };
+}
+
+function _debug_checkDeployment() {
+  console.log("");
+  console.log("📍 STEP 2: Deployment Check");
+  console.log("──────────────────────────────────────────────────────");
+
+  const issues = [];
+
+  try {
+    const scriptId = ScriptApp.getScriptId();
+    const scriptUrl = `https://script.google.com/macros/s/${scriptId}/exec`;
+
+    console.log(`📝 Script ID: ${scriptId}`);
+    console.log(`🔗 Web App URL: ${scriptUrl}`);
+
+    // Check if we can access the service
+    const service = ScriptApp.getService();
+    if (!service) {
+      issues.push("No web app deployment found - MUST deploy as Web App!");
+      console.log("❌ No web app deployment found!");
+      console.log("   → Deploy > New deployment > Web app > Anyone");
+    } else {
+      console.log(`✅ Web app deployment exists`);
+      console.log(`   Service URL: ${service.getUrl() || scriptUrl}`);
+      console.log("   → Webhook accessibility will be tested in Step 4");
+    }
+  } catch (error) {
+    issues.push(`Deployment error: ${error.message}`);
+    console.log(`❌ Error: ${error.message}`);
+  }
+
+  return {
+    success: issues.length === 0,
+    error: issues.join("; ")
+  };
+}
+
+function _debug_checkLineToken() {
+  console.log("");
+  console.log("📍 STEP 3: LINE Token Check");
+  console.log("──────────────────────────────────────────────────────");
+
+  const token = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+
+  if (!token) {
+    console.log("❌ LINE_CHANNEL_ACCESS_TOKEN: NOT SET");
+    console.log("   Fix: Run setupScriptProperties()");
+    return {
+      success: false,
+      error: "LINE_CHANNEL_ACCESS_TOKEN not set"
+    };
+  }
+
+  console.log("✅ LINE_CHANNEL_ACCESS_TOKEN: SET");
+  console.log(`   Length: ${token.length} chars`);
+
+  // Test token by calling LINE API
+  try {
+    const testUrl = "https://api.line.me/v2/bot/info";
+    const response = UrlFetchApp.fetch(testUrl, {
+      method: "get",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      },
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+
+    if (responseCode === 200) {
+      console.log("✅ Token validation: VALID");
+      const botInfo = JSON.parse(response.getContentText());
+      console.log(`   Bot Name: ${botInfo.displayName}`);
+      return { success: true };
+    } else {
+      console.log(`❌ Token validation: FAILED (${responseCode})`);
+      return {
+        success: false,
+        error: `Token validation failed: ${responseCode}`
+      };
+    }
+  } catch (error) {
+    console.log(`❌ Token error: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+function _debug_testWebhookEndpoint() {
+  console.log("");
+  console.log("📍 STEP 4: Webhook Endpoint Test");
+  console.log("──────────────────────────────────────────────────────");
+
+  // Get the actual web app URL from the service
+  const service = ScriptApp.getService();
+  const webhookUrl = service ? service.getUrl() : null;
+
+  if (!webhookUrl) {
+    console.log("❌ Error: Web app URL not found");
+    console.log("   → Make sure you've deployed as Web App");
+    return {
+      success: false,
+      error: "Web app URL not found - deploy as Web App first"
+    };
+  }
+
+  console.log(`🔗 Testing: ${webhookUrl}`);
+  console.log("   (Calling our own webhook endpoint...)");
+
+  const mockWebhook = {
+    destination: "U1234567890",
+    events: [{
+      type: "message",
+      message: {
+        type: "text",
+        text: "debug_test",
+        id: "12345"
+      },
+      replyToken: "test-token",
+      source: {
+        userId: "test-user",
+        type: "user"
+      },
+      timestamp: Date.now()
+    }]
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(webhookUrl, {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      payload: JSON.stringify(mockWebhook),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    console.log(`📥 Response: ${responseCode}`);
+
+    if (responseCode === 200) {
+      console.log("✅ Webhook endpoint: WORKING");
+      console.log(`   Response: ${responseBody.substring(0, 100)}...`);
+      return { success: true };
+    } else {
+      console.log("❌ Webhook endpoint: FAILED");
+      console.log(`   Response: ${responseBody}`);
+      return {
+        success: false,
+        error: `Webhook returned ${responseCode}`
+      };
+    }
+  } catch (error) {
+    console.log(`❌ Webhook test error: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * สร้าง Debug Log Sheet
+ * ใช้สำหรับบันทึก log ลง Spreadsheet เพื่อ debugging
+ */
+function debug_enableSheetLogging() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let debugSheet = ss.getSheetByName("Debug_Log");
+
+  if (!debugSheet) {
+    debugSheet = ss.insertSheet("Debug_Log");
+    debugSheet.appendRow([
+      "Timestamp",
+      "Level",
+      "Component",
+      "Message",
+      "Data"
+    ]);
+    debugSheet.setFrozenRows(1);
+
+    // Format header
+    debugSheet.getRange(1, 1, 1, 5).setBackground("#4285F4");
+    debugSheet.getRange(1, 1, 1, 5).setFontColor("#FFFFFF");
+    debugSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
+  }
+
+  console.log("✅ Debug logging enabled to 'Debug_Log' sheet");
+  console.log("   → Logs will be saved to: " + debugSheet.getUrl());
+  return "Debug_Log sheet created";
+}
+
+/**
+ * แสดง Verification Checklist
+ */
+function debug_showChecklist() {
+  console.log("════════════════════════════════════════════════════════");
+  console.log("✅ VERIFICATION CHECKLIST");
+  console.log("════════════════════════════════════════════════════════");
+  console.log("");
+  console.log("📱 LINE DEVELOPERS CONSOLE:");
+  console.log("  [ ] Use webhook: Enabled");
+  console.log("  [ ] Webhook URL: https://script.google.com/macros/s/XXX/exec");
+  console.log("  [ ] Verify button: 200 OK ✅");
+  console.log("");
+  console.log("🔧 GOOGLE APPS SCRIPT:");
+  console.log("  [ ] Deploy type: Web app");
+  console.log("  [ ] Execute as: Me");
+  console.log("  [ ] Who has access: Anyone");
+  console.log("  [ ] Version: Latest");
+  console.log("");
+  console.log("🔑 SCRIPT PROPERTIES:");
+  console.log("  [ ] LINE_CHANNEL_ACCESS_TOKEN: Set");
+  console.log("  [ ] Token validation: Success");
+  console.log("");
+  console.log("🧪 TESTING:");
+  console.log("  [ ] debug_runFullDiagnostic(): All PASS");
+  console.log("  [ ] Send 'help' in LINE: Bot responds");
+  console.log("  [ ] Check Executions log: Shows webhooks");
+  console.log("════════════════════════════════════════════════════════");
+
+  return "Checklist printed to console";
 }
