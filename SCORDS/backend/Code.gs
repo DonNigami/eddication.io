@@ -91,6 +91,8 @@ function doPost(e) {
         return createJsonResponse(syncLocalHistory(requestData));
       case "logQRGeneration":
         return createJsonResponse(logQRGeneration(requestData));
+      case "askAI":
+        return createJsonResponse(askAI(requestData));
       default:
         throw new Error("Invalid action specified.");
     }
@@ -545,13 +547,468 @@ function getSheetData(sheet) {
   if (!sheet) return [];
   const dataRange = sheet.getDataRange();
   const values = dataRange.getValues();
-  const headers = values.shift() || [];
-  return values.map(row => {
-    return headers.reduce((obj, header, index) => {
+
+  if (!values || values.length === 0) return [];
+
+  const headers = values[0];
+  return values.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
       obj[header] = row[index];
-      return obj;
-    }, {});
+    });
+    return obj;
   });
+}
+
+// ============================================================
+// AI ASSISTANT FUNCTIONS
+// ============================================================
+
+/**
+ * AI Assistant - ฟังก์ชันหลักสำหรับ RAG
+ * รองรับทั้ง GLM API (หลัก) และ OpenAI API (สำรอง)
+ * รองรับการค้นหาจาก CSV และ PDF
+ */
+function askAI(requestData) {
+  const query = requestData.query;
+  const context = requestData.context || {}; // { userId, group, role }
+  const useProvider = requestData.provider || "zai"; // "zai" or "openai"
+
+  try {
+    // 1. Search knowledge base (keyword matching)
+    const knowledge = searchKnowledgeBase(query);
+
+    // 2. Search points rules
+    const pointsInfo = searchPointsRules(query);
+
+    // 3. Search PDF documents (if available)
+    const pdfInfo = searchPDFDocuments(query);
+
+    // 4. Build context for AI
+    const contextText = buildContext(knowledge, pointsInfo, pdfInfo, context);
+
+    // 5. Call AI API (Z.AI as primary, OpenAI as fallback)
+    let aiResponse;
+    try {
+      if (useProvider === "zai") {
+        aiResponse = callGLM(query, contextText);
+      } else {
+        aiResponse = callOpenAI(query, contextText);
+      }
+    } catch (glmError) {
+      console.warn("Z.AI API failed, trying OpenAI fallback: " + glmError.toString());
+      aiResponse = callOpenAI(query, contextText);
+      aiResponse.fallback = "Used OpenAI after Z.AI failure";
+    }
+
+    // Collect all sources
+    const allSources = [
+      ...knowledge.map(k => k.source),
+      ...pointsInfo.map(p => p.source),
+      ...pdfInfo.map(p => p.source)
+    ];
+
+    return {
+      success: true,
+      data: {
+        answer: aiResponse.answer,
+        sources: allSources,
+        cost: aiResponse.cost,
+        costTHB: aiResponse.costTHB,
+        model: aiResponse.model,
+        fallback: aiResponse.fallback || null
+      }
+    };
+  } catch (error) {
+    console.error("askAI Error: " + error.toString());
+    return {
+      success: false,
+      message: "AI Error: " + error.message
+    };
+  }
+}
+
+/**
+ * ค้นหาความรู้จาก SCOR_Knowledge Sheet
+ */
+function searchKnowledgeBase(query) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("SCOR_Knowledge");
+
+  if (!sheet) {
+    console.log("SCOR_Knowledge sheet not found");
+    return [];
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length < 2) return [];
+
+  // Skip header row
+  const results = [];
+  const keywords = query.toLowerCase().split(/\s+/);
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const [category, topic, question, answer, kw, priority] = row;
+
+    let matchScore = 0;
+    const searchText = (question + " " + (kw || "")).toLowerCase();
+
+    keywords.forEach(kw => {
+      if (kw && searchText.includes(kw)) matchScore++;
+    });
+
+    if (matchScore > 0) {
+      results.push({
+        category, topic, question, answer,
+        source: `SCOR_Knowledge: ${topic}`,
+        score: matchScore,
+        priority: priority || "Medium"
+      });
+    }
+  }
+
+  return results.sort((a, b) => b.score - a.score).slice(0, 5);
+}
+
+/**
+ * ค้นหากติกาแต้มสะสมจาก Points_Rules Sheet
+ */
+function searchPointsRules(query) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const sheet = ss.getSheetByName("Points_Rules");
+
+  if (!sheet) {
+    console.log("Points_Rules sheet not found");
+    return [];
+  }
+
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length < 2) return [];
+
+  const results = [];
+  const keywords = query.toLowerCase().split(/\s+/);
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const [ruleType, description, points, maxDaily, conditions] = row;
+
+    let matchScore = 0;
+    const searchText = (ruleType + " " + description + " " + (conditions || "")).toLowerCase();
+
+    keywords.forEach(kw => {
+      if (kw && searchText.includes(kw)) matchScore++;
+    });
+
+    if (matchScore > 0) {
+      results.push({
+        ruleType, description, points, maxDaily, conditions,
+        source: `Points_Rules: ${ruleType}`
+      });
+    }
+  }
+
+  return results.slice(0, 3);
+}
+
+/**
+ * ค้นหาเอกสาร PDF (จาก Google Drive)
+ * สำหรับเอกสาร PDF ที่อัปโหลดไว้ใน Google Drive
+ */
+function searchPDFDocuments(query) {
+  try {
+    // รับ PDF folder ID จาก ScriptProperties
+    const pdfFolderId = ScriptProperties.getProperty("PDF_FOLDER_ID");
+
+    if (!pdfFolderId) {
+      console.log("PDF_FOLDER_ID not found, skipping PDF search");
+      return [];
+    }
+
+    const folder = DriveApp.getFolderById(pdfFolderId);
+    const files = folder.getFilesByType(MimeType.PDF);
+
+    const results = [];
+    const keywords = query.toLowerCase().split(/\s+/);
+    let fileCount = 0;
+
+    // ค้นหาใน PDF files (จำกัด 10 ไฟล์ล่าสุดเพื่อประสิทธิภาพ)
+    while (files.hasNext() && fileCount < 10) {
+      const file = files.next();
+      fileCount++;
+
+      try {
+        // ดึงข้อความจาก PDF
+        const blob = file.getBlob();
+        const text = extractTextFromPDF(blob);
+
+        if (!text) continue;
+
+        // ค้นหาคำสำคัญในเนื้อหา PDF
+        let matchScore = 0;
+        const searchText = text.toLowerCase();
+
+        keywords.forEach(kw => {
+          if (kw && searchText.includes(kw)) matchScore++;
+        });
+
+        if (matchScore > 0) {
+          // ดึงบริบทรอบๆ คำที่ค้นหา (200 ตัวอักษร)
+          const snippet = extractSnippet(text, query, 200);
+
+          results.push({
+            fileName: file.getName(),
+            snippet: snippet,
+            source: `PDF: ${file.getName()}`,
+            score: matchScore
+          });
+        }
+      } catch (pdfError) {
+        console.warn("Error processing PDF file " + file.getName() + ": " + pdfError.toString());
+      }
+    }
+
+    return results.sort((a, b) => b.score - a.score).slice(0, 2);
+
+  } catch (error) {
+    console.warn("PDF search error: " + error.toString());
+    return [];
+  }
+}
+
+/**
+ * ดึงข้อความจาก PDF (ใช้ Google Drive OCR)
+ */
+function extractTextFromPDF(blob) {
+  try {
+    // แปลง PDF เป็นรูปภาพแล้ว OCR
+    // หรือใช้วิธีอ่าน PDF โดยตรง (Google Apps Script อาจไม่รองรับโดยตรง)
+
+    // วิธีที่ 1: ใช้ Google Docs viewer
+    const resource = {
+      title: blob.getName(),
+      mimeType: blob.getContentType()
+    };
+
+    // แปลง PDF เป็น Google Docs
+    const docsFile = Drive.Files.insert(resource, blob);
+
+    // อ่านเนื้อหาจาก Google Docs
+    const docs = DocumentApp.openById(docsFile.id);
+    const text = docs.getBody().getText();
+
+    // ลบไฟล์ temporary
+    Drive.Files.remove(docsFile.id);
+
+    return text;
+
+  } catch (error) {
+    console.warn("PDF extraction error: " + error.toString());
+    return null;
+  }
+}
+
+/**
+ * ดึงส่วนของข้อความที่มีคำค้นหา (สำหรับ PDF snippet)
+ */
+function extractSnippet(fullText, query, maxLength) {
+  const lowerText = fullText.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+
+  const index = lowerText.indexOf(lowerQuery);
+  if (index === -1) return fullText.substring(0, maxLength) + "...";
+
+  const start = Math.max(0, index - 50);
+  const end = Math.min(fullText.length, index + query.length + maxLength);
+
+  let snippet = fullText.substring(start, end);
+  if (start > 0) snippet = "..." + snippet;
+  if (end < fullText.length) snippet = snippet + "...";
+
+  return snippet;
+}
+
+/**
+ * สร้าง context text สำหรับ AI
+ * รองรับ Knowledge, Points, และ PDF
+ */
+function buildContext(knowledge, pointsInfo, pdfInfo, context) {
+  let contextText = "ความรู้ที่เกี่ยวข้อง:\n\n";
+
+  knowledge.forEach(k => {
+    contextText += `Q: ${k.question}\nA: ${k.answer}\n\n`;
+  });
+
+  if (pointsInfo.length > 0) {
+    contextText += "\nกติกาแต้มสะสม:\n";
+    pointsInfo.forEach(p => {
+      contextText += `- ${p.ruleType}: ${p.description} (${p.points} แต้ม)\n`;
+    });
+  }
+
+  if (pdfInfo.length > 0) {
+    contextText += "\nเอกสารอ้างอิง:\n";
+    pdfInfo.forEach(p => {
+      contextText += `- จาก ${p.fileName}:\n  ${p.snippet}\n\n`;
+    });
+  }
+
+  // Add user context if available
+  if (context.group) {
+    contextText += `\n(ผู้ถามอยู่กลุ่ม: ${context.group})`;
+  }
+
+  return contextText;
+}
+
+/**
+ * เรียก Z.AI API (z.ai - รุ่น glm-5)
+ * Z.AI API เป็น OpenAI-compatible API ที่รองรับภาษาไทยได้ดี และราคาถูก
+ */
+function callGLM(query, context) {
+  const apiKey = ScriptProperties.getProperty("ZAI_API_KEY");
+
+  if (!apiKey) {
+    throw new Error("ZAI_API_KEY not found in ScriptProperties");
+  }
+
+  const apiUrl = "https://api.z.ai/api/paas/v4/chat/completions";
+
+  const prompt = `
+คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN)
+ตอบคำถามเกี่ยวกับ SCOR framework, ระบบแต้มสะสม, และกิจกรรมต่างๆ
+
+ความรู้ที่เกี่ยวข้อง:
+${context}
+
+คำถาม: ${query}
+
+ตอบเป็นภาษาไทย เป็นกันเอง ใช้ emojis เพื่อความน่าสนใจ
+หากไม่พบความรู้ที่เกี่ยวข้อง ให้ตอบว่า "ขอโทษครับ ไม่พบข้อมูลเกี่ยวกับเรื่องนี้ กรุณาติดต่อ admin"
+`;
+
+  const response = UrlFetchApp.fetch(apiUrl, {
+    method: "post",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    payload: JSON.stringify({
+      model: "glm-5",
+      messages: [
+        {
+          role: "system",
+          content: "คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN) ตอบเป็นภาษาไทย เป็นมิตรที่มีประสบการกับ SCOR framework และระบบแต้มสะสม"
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    }),
+    muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  if (responseCode !== 200) {
+    console.error("Z.AI API Error: " + responseBody);
+    throw new Error("Z.AI API request failed with code " + responseCode);
+  }
+
+  const result = JSON.parse(responseBody);
+  const answer = result.choices[0].message.content;
+
+  // Z.AI GLM-5 pricing: ~0.5 THB/M input tokens, ~2 THB/M output tokens
+  const inputTokens = result.usage.prompt_tokens;
+  const outputTokens = result.usage.completion_tokens;
+  const costTHB = (inputTokens * 0.0000005) + (outputTokens * 0.000002);
+  const costUSD = costTHB * 0.028; // Convert to USD (1 THB ≈ 0.028 USD)
+
+  return {
+    answer,
+    cost: costUSD,
+    costTHB: costTHB,
+    tokens: { input: inputTokens, output: outputTokens },
+    model: "glm-5 (z.ai)"
+  };
+}
+
+/**
+ * เรียก OpenAI API (GPT-4o mini) - Fallback option
+ */
+function callOpenAI(query, context) {
+  const apiKey = ScriptProperties.getProperty("OPENAI_API_KEY");
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY not found in ScriptProperties");
+  }
+
+  const apiUrl = "https://api.openai.com/v1/chat/completions";
+
+  const prompt = `
+คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN)
+ตอบคำถามเกี่ยวกับ SCOR framework, ระบบแต้มสะสม, และกิจกรรมต่างๆ
+
+ความรู้ที่เกี่ยวข้อง:
+${context}
+
+คำถาม: ${query}
+
+ตอบเป็นภาษาไทย เป็นกันเอง ใช้ emojis เพื่อความน่าสนใจ
+หากไม่พบความรู้ที่เกี่ยวข้อง ให้ตอบว่า "ขอโทษครับ ไม่พบข้อมูลเกี่ยวกับเรื่องนี้ กรุณาติดต่อ admin"
+`;
+
+  const response = UrlFetchApp.fetch(apiUrl, {
+    method: "post",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    payload: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "คุณคือผู้ช่วย AI สำหรับระบบ SCORDS (SMART CHECK-IN) ตอบเป็นภาษาไทย เป็นมิตรที่มีประสบการกับ SCOR framework และระบบแต้มสะสม"
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.7
+    }),
+    muteHttpExceptions: true
+  });
+
+  const responseCode = response.getResponseCode();
+  const responseBody = response.getContentText();
+
+  if (responseCode !== 200) {
+    console.error("OpenAI API Error: " + responseBody);
+    throw new Error("OpenAI API request failed with code " + responseCode);
+  }
+
+  const result = JSON.parse(responseBody);
+  const answer = result.choices[0].message.content;
+
+  // Calculate cost
+  const inputTokens = result.usage.prompt_tokens;
+  const outputTokens = result.usage.completion_tokens;
+  const cost = (inputTokens * 0.00000015) + (outputTokens * 0.00000060);
+
+  return {
+    answer,
+    cost,
+    tokens: { input: inputTokens, output: outputTokens }
+  };
 }
 
 /**
