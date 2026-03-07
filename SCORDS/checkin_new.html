@@ -3532,37 +3532,66 @@
             // Show loading
             addAIMessage('กำลังคิด...', 'bot', true);
 
+            // Log: Start sending
+            console.log('🤖 [AI Chat] Sending message...');
+            console.log('📝 [AI Chat] Query:', query);
+            console.log('👤 [AI Chat] User:', { userId: liff.getContext()?.userId || 'unknown', group: userGroup || 'Unknown' });
+
             try {
+                const requestBody = {
+                    action: 'askAI',
+                    query: query,
+                    context: {
+                        userId: liff.getContext()?.userId || 'unknown',
+                        group: userGroup || 'Unknown'
+                    }
+                };
+
+                console.log('📤 [AI Chat] Request body:', requestBody);
+
                 // Call backend API
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'text/plain;charset=utf-8'
                     },
-                    body: JSON.stringify({
-                        action: 'askAI',
-                        query: query,
-                        context: {
-                            userId: liff.getContext()?.userId || 'unknown',
-                            group: userGroup || 'Unknown'
-                        }
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
+                console.log('📥 [AI Chat] Response status:', response.status, response.statusText);
+                console.log('📥 [AI Chat] Response headers:', Object.fromEntries(response.headers.entries()));
+
                 const result = await response.json();
+                console.log('✅ [AI Chat] Response data:', result);
 
                 // Remove loading message
                 removeLoadingMessage();
 
                 if (result.success) {
+                    console.log('💬 [AI Chat] AI Answer:', result.data.answer);
                     addAIMessage(result.data.answer, 'bot');
                 } else {
-                    addAIMessage('❌ เกิดข้อผิดพลาด กรุณาลองใหม่', 'bot');
+                    console.error('❌ [AI Chat] API returned error:', result);
+                    addAIMessage(`❌ เกิดข้อผิดพลาด: ${result.message || 'กรุณาลองใหม่'}`, 'bot');
                 }
             } catch (error) {
+                console.error('💥 [AI Chat] Fetch error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+
                 removeLoadingMessage();
-                addAIMessage('❌ เชื่อมต่อไม่ได้ กรุณาลองใหม่', 'bot');
-                console.error('AI Error:', error);
+
+                // Show detailed error to user
+                let errorMessage = '❌ เชื่อมต่อไม่ได้ กรุณาลองใหม่';
+                if (error.message.includes('CORS')) {
+                    errorMessage = '❌ ปัญหาการเชื่อมต่อ CORS (ติดต่อแอดมิน)';
+                } else if (error.message.includes('fetch')) {
+                    errorMessage = '❌ ไม่สามารถเชื่อมต่อ API ได้ (ติดต่อแอดมิน)';
+                }
+
+                addAIMessage(errorMessage, 'bot');
             }
         }
 
