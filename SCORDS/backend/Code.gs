@@ -12,6 +12,9 @@ const SHEET_NAMES = {
 /**
  * Handle OPTIONS request for CORS preflight
  * CRITICAL: Prevents 302 redirect during LINE webhook verification
+ *
+ * NOTE: Google Apps Script handles CORS headers automatically when deployed
+ * with "Who has access: Anyone". We just need to return a valid JSON response.
  */
 function doOptions(e) {
   const output = ContentService.createTextOutput(JSON.stringify({
@@ -20,12 +23,6 @@ function doOptions(e) {
   }));
 
   output.setMimeType(ContentService.MimeType.JSON);
-
-  // CRITICAL: Set CORS headers to prevent 302 redirect
-  // Must match createJsonResponse() headers for consistent CORS handling
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Line-Signature');
 
   return output;
 }
@@ -95,62 +92,110 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // 🔴 CRITICAL: Log EVERYTHING from the start
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  // Log BEFORE try-catch (this will ALWAYS show if doPost is called)
+  console.log("╔══════════════════════════════════════════════════════╗");
+  console.log("║ 🔴 doPost() CALLED - WEBHOOK RECEIVED              ║");
+  console.log("╚══════════════════════════════════════════════════════╝");
+  console.log("Timestamp: " + new Date().toISOString());
+  console.log("");
+
   try {
     // Debug: Log all incoming requests
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("📥 [doPost] Request received");
     console.log("📥 [doPost] postData exists: " + (e.postData ? "YES" : "NO"));
+    console.log("📥 [doPost] e parameter: " + JSON.stringify(e));
+    console.log("");
 
-    if (e.postData && e.postData.contents) {
-      const requestData = JSON.parse(e.postData.contents);
-
-      // Detect LINE Webhook (LINE sends request directly with 'events' or 'destination')
-      // LINE webhook format: { destination: "Uxxx", events: [...] }
-      const isLineWebhook = requestData.events || requestData.destination;
-
-      if (isLineWebhook) {
-        console.log("📱 [WEBHOOK] LINE Webhook detected!");
-        console.log("📱 [WEBHOOK] Number of events: " + (requestData.events ? requestData.events.length : 0));
-
-        // LINE Webhook Processing
-        return createJsonResponse(handleLineWebhook(requestData));
-      }
-
-      // Handle other requests with 'action' parameter
-      const action = requestData.action;
-      console.log("🔧 [ACTION] Action: " + (action || "none"));
-
-      switch (action) {
-        case "registerUser":
-          return createJsonResponse(registerUser(requestData));
-        case "checkIn":
-          return createJsonResponse(processCheckIn(requestData));
-        case "redeemPointsQR":
-          return createJsonResponse(redeemPointsQR(requestData));
-        case "addGamePoints":
-          return createJsonResponse(addGamePoints(requestData));
-        case "syncLocalHistory":
-          return createJsonResponse(syncLocalHistory(requestData));
-        case "logQRGeneration":
-          return createJsonResponse(logQRGeneration(requestData));
-        case "askAI":
-          return createJsonResponse(askAI(requestData));
-        case "lineAIChat":
-          return createJsonResponse(handleLineAIChat(requestData));
-        default:
-          console.log("⚠️ [ACTION] Unknown or no action specified");
-          throw new Error("Invalid action specified: " + action);
-      }
-    } else {
-      console.log("⚠️ [doPost] No postData contents found");
-      console.log("⚠️ [doPost] Full event object: " + JSON.stringify(e));
+    if (!e.postData) {
+      console.error("❌ [doPost] NO postData found!");
+      console.error("❌ This means webhook payload is empty");
+      console.error("❌ Check LINE Developers Console webhook settings");
+      return createJsonResponse({
+        success: false,
+        error: "No postData received"
+      });
     }
 
-    return createJsonResponse({
-      success: true,
-      message: "Check-in API is running."
-    });
+    if (!e.postData.contents) {
+      console.error("❌ [doPost] postData exists but NO contents!");
+      console.error("❌ postData: " + JSON.stringify(e.postData));
+      return createJsonResponse({
+        success: false,
+        error: "postData has no contents"
+      });
+    }
 
+    console.log("✅ [doPost] postData.contents found, parsing...");
+    const requestData = JSON.parse(e.postData.contents);
+    console.log("✅ [doPost] Parsed successfully: " + JSON.stringify(requestData));
+    console.log("");
+
+    // Detect LINE Webhook (LINE sends request directly with 'events' or 'destination')
+    // LINE webhook format: { destination: "Uxxx", events: [...] }
+    const isLineWebhook = requestData.events || requestData.destination;
+
+    if (isLineWebhook) {
+      console.log("📱 [WEBHOOK] LINE Webhook detected!");
+      console.log("📱 [WEBHOOK] Number of events: " + (requestData.events ? requestData.events.length : 0));
+      console.log("📱 [WEBHOOK] Destination: " + (requestData.destination || "N/A"));
+
+      if (requestData.events && requestData.events.length > 0) {
+        requestData.events.forEach((event, index) => {
+          console.log("📱 [WEBHOOK] Event " + index + ":");
+          console.log("   Type: " + event.type);
+          console.log("   Source: " + JSON.stringify(event.source));
+          if (event.message) {
+            console.log("   Message Type: " + event.message.type);
+            console.log("   Message: " + (event.message.text || "(no text)"));
+          }
+        });
+      }
+
+      console.log("");
+      console.log("🔧 [WEBHOOK] Calling handleLineWebhook()...");
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+      // LINE Webhook Processing
+      const result = handleLineWebhook(requestData);
+
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log("✅ [WEBHOOK] handleLineWebhook() completed");
+      console.log("✅ [WEBHOOK] Result: " + JSON.stringify(result));
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+      return createJsonResponse(result);
+    }
+
+    // Handle other requests with 'action' parameter
+    const action = requestData.action;
+    console.log("🔧 [ACTION] Action: " + (action || "none"));
+
+    switch (action) {
+      case "registerUser":
+        return createJsonResponse(registerUser(requestData));
+      case "checkIn":
+        return createJsonResponse(processCheckIn(requestData));
+      case "redeemPointsQR":
+        return createJsonResponse(redeemPointsQR(requestData));
+      case "addGamePoints":
+        return createJsonResponse(addGamePoints(requestData));
+      case "syncLocalHistory":
+        return createJsonResponse(syncLocalHistory(requestData));
+      case "logQRGeneration":
+        return createJsonResponse(logQRGeneration(requestData));
+      case "askAI":
+        return createJsonResponse(askAI(requestData));
+      case "lineAIChat":
+        return createJsonResponse(handleLineAIChat(requestData));
+      default:
+        console.log("⚠️ [ACTION] Unknown or no action specified");
+        throw new Error("Invalid action specified: " + action);
+    }
   } catch (error) {
     console.error("❌ [doPost] Error: " + error.toString());
     console.error("❌ [doPost] Stack: " + error.stack);
@@ -594,20 +639,16 @@ function findCheckInRecord(ss, userId, activityId) {
  */
 /**
  * Create JSON response with proper headers
- * CRITICAL: Returns 200 OK instead of 302 redirect by setting CORS headers
+ * CRITICAL: Returns 200 OK instead of 302 redirect
+ *
+ * NOTE: Google Apps Script handles CORS headers automatically when deployed
+ * with "Who has access: Anyone". We just need to return a valid JSON response.
  */
 function createJsonResponse(data) {
   const jsonString = JSON.stringify(data);
   const output = ContentService.createTextOutput(jsonString);
 
   output.setMimeType(ContentService.MimeType.JSON);
-  output.setContentString(jsonString);
-
-  // CRITICAL: Set CORS headers on ALL responses to prevent 302 redirect
-  // This must match the headers in doOptions() for consistent CORS handling
-  output.setHeader('Access-Control-Allow-Origin', '*');
-  output.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  output.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Line-Signature');
 
   return output;
 }
@@ -2784,21 +2825,13 @@ function _debug_testWebhookEndpoint() {
   console.log("📍 STEP 4: Webhook Endpoint Test");
   console.log("──────────────────────────────────────────────────────");
 
-  // Get the actual web app URL from the service
-  const service = ScriptApp.getService();
-  const webhookUrl = service ? service.getUrl() : null;
+  // Use the production Web App URL (/exec), NOT the dev URL (/dev)
+  // The service.getUrl() returns the dev URL which requires authentication
+  const scriptId = ScriptApp.getScriptId();
+  const webhookUrl = `https://script.google.com/macros/s/${scriptId}/exec`;
 
-  if (!webhookUrl) {
-    console.log("❌ Error: Web app URL not found");
-    console.log("   → Make sure you've deployed as Web App");
-    return {
-      success: false,
-      error: "Web app URL not found - deploy as Web App first"
-    };
-  }
-
-  console.log(`🔗 Testing: ${webhookUrl}`);
-  console.log("   (Calling our own webhook endpoint...)");
+  console.log(`🔗 Testing Production URL: ${webhookUrl}`);
+  console.log("   (This is the URL LINE should use)");
 
   const mockWebhook = {
     destination: "U1234567890",
@@ -2840,6 +2873,14 @@ function _debug_testWebhookEndpoint() {
     } else {
       console.log("❌ Webhook endpoint: FAILED");
       console.log(`   Response: ${responseBody}`);
+
+      // Special handling for 401 (authentication required)
+      if (responseCode === 401) {
+        console.log("   ⚠️  401 error may mean:");
+        console.log("      - Using /dev URL instead of /exec URL");
+        console.log("      - Or 'Who has access' not set to 'Anyone'");
+      }
+
       return {
         success: false,
         error: `Webhook returned ${responseCode}`
@@ -3070,6 +3111,99 @@ function testWebhookEndpoint() {
 }
 
 /**
+ * Test specific webhook URL
+ * Use this to test a specific deployment URL
+ */
+function testSpecificWebhook() {
+  console.log("════════════════════════════════════════════════════════");
+  console.log("🧪 Test Specific Webhook URL");
+  console.log("════════════════════════════════════════════════════════");
+  console.log("");
+
+  // CHANGE THIS to your webhook URL
+  const webhookUrl = "https://script.google.com/macros/s/AKfycbyKIjyR5SmweHqZzVANUJfmX_ssF03YatbQuQBkZ1ijOtA0KGYD3M1yxVSivnCn3X5zIA/exec";
+
+  console.log("🔗 Testing URL: " + webhookUrl);
+  console.log("");
+
+  // Create test payload
+  const testPayload = {
+    destination: "U1234567890abcdef1234567890abcdef",
+    events: [
+      {
+        type: "message",
+        message: {
+          type: "text",
+          text: "test",
+          id: "12345"
+        },
+        replyToken: "test-reply-token",
+        source: {
+          userId: "test-user-id",
+          type: "user"
+        },
+        timestamp: Date.now(),
+        mode: "active",
+        webhookEventId: "01HTEST"
+      }
+    ]
+  };
+
+  console.log("📤 Test Payload:");
+  console.log(JSON.stringify(testPayload, null, 2));
+  console.log("");
+
+  // Send test request
+  try {
+    const response = UrlFetchApp.fetch(webhookUrl, {
+      method: "post",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      payload: JSON.stringify(testPayload),
+      muteHttpExceptions: true
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseBody = response.getContentText();
+
+    console.log("📥 Response Code: " + responseCode);
+    console.log("📥 Response Body:");
+    console.log(responseBody || "(empty)");
+    console.log("");
+
+    if (responseCode === 200) {
+      console.log("✅ SUCCESS: Webhook returns 200 OK");
+      console.log("   Your webhook is working!");
+      console.log("   Use this URL in LINE Developers Console:");
+      console.log("   " + webhookUrl);
+    } else if (responseCode === 401) {
+      console.log("❌ FAIL: 401 Unauthorized");
+      console.log("   This means the deployment requires authentication");
+      console.log("");
+      console.log("🔧 FIX: Redeploy with 'Who has access: Anyone'");
+    } else if (responseCode >= 300 && responseCode < 400) {
+      console.log("❌ FAIL: Webhook returns redirect (" + responseCode + ")");
+      console.log("   GAS is redirecting the request");
+      console.log("");
+      console.log("🔧 FIX: Redeploy as Web App with correct settings");
+    } else {
+      console.log("❌ FAIL: Webhook returns " + responseCode);
+      console.log("   Check the deployment settings");
+    }
+
+  } catch (error) {
+    console.log("❌ Error testing webhook:");
+    console.log(error.toString());
+  }
+
+  console.log("");
+  console.log("════════════════════════════════════════════════════════");
+
+  return "Specific webhook test complete";
+}
+
+/**
  * Test doOptions handler for CORS support
  * Run this function to verify CORS preflight requests work correctly
  *
@@ -3247,4 +3381,143 @@ function quickFix() {
   console.log("");
 
   return "Quick fix guide displayed";
+}
+
+/**
+ * 🔧 Debug: ทดสอบการตอบข้อความของบอท
+ * ใช้ function นี้เมื่อ webhook สำเร็จแต่บอทไม่ตอบ
+ *
+ * วิธีใช้: รันใน Google Apps Script Editor
+ * 1. เลือก debug_testBotReply
+ * 2. คลิก Run
+ * 3. ดูผลลัพธ์ใน Execution Log
+ */
+function debug_testBotReply() {
+  console.log("╔══════════════════════════════════════════════════════╗");
+  console.log("║  🔍 SCORDS LINE Bot - Reply Test                    ║");
+  console.log("╚══════════════════════════════════════════════════════╝");
+  console.log("");
+
+  const issues = [];
+
+  // 1. ตรวจสอบ LINE Token
+  console.log("📍 STEP 1: ตรวจสอบ LINE Channel Access Token");
+  console.log("──────────────────────────────────────────────────────");
+
+  const lineToken = ScriptProperties.getProperty("LINE_CHANNEL_ACCESS_TOKEN");
+
+  if (!lineToken) {
+    console.log("❌ LINE_CHANNEL_ACCESS_TOKEN: ไม่ได้ตั้งค่า");
+    console.log("   → แก้ไข: รัน setupScriptProperties() แล้วใส่ token จริง");
+    issues.push("LINE_CHANNEL_ACCESS_TOKEN ไม่ได้ตั้งค่า");
+  } else {
+    console.log("✅ LINE_CHANNEL_ACCESS_TOKEN: ตั้งค่าแล้ว");
+    console.log("   Token length: " + lineToken.length + " chars");
+
+    // ทดสอบ token ว่าใช้งานได้หรือไม่
+    try {
+      const testUrl = "https://api.line.me/v2/bot/info";
+      const response = UrlFetchApp.fetch(testUrl, {
+        method: "get",
+        headers: {
+          "Authorization": `Bearer ${lineToken}`
+        },
+        muteHttpExceptions: true
+      });
+
+      const responseCode = response.getResponseCode();
+
+      if (responseCode === 200) {
+        console.log("✅ Token validation: ใช้งานได้ ✨");
+        const botInfo = JSON.parse(response.getContentText());
+        console.log("   Bot Name: " + botInfo.displayName);
+        console.log("   Bot User ID: " + botInfo.userId);
+        console.log("   Basic ID: " + botInfo.basicId);
+      } else if (responseCode === 401) {
+        console.log("❌ Token validation: ผิดหรือหมดอายุ (401)");
+        console.log("   → แก้ไข: ขอ token ใหม่จาก LINE Developers Console");
+        issues.push("Token ผิดหรือหมดอายุ (401)");
+      } else {
+        console.log("❌ Token validation: ผิดพลาด (" + responseCode + ")");
+        issues.push("Token API error: " + responseCode);
+      }
+    } catch (error) {
+      console.log("❌ Token error: " + error.message);
+      issues.push("Token exception: " + error.message);
+    }
+  }
+
+  console.log("");
+
+  // 2. ตรวจสอบ Webhook URL
+  console.log("📍 STEP 2: ตรวจสอบ Webhook URL");
+  console.log("──────────────────────────────────────────────────────");
+
+  const service = ScriptApp.getService();
+  if (service && service.getUrl()) {
+    const webhookUrl = service.getUrl();
+    console.log("✅ Webhook URL: " + webhookUrl);
+    console.log("");
+    console.log("⚠️  สิ่งที่ต้องตรวจสอบ:");
+    console.log("   1. URL ใน LINE Developers Console ต้องตรงกับนี้");
+    console.log("   2. Webhook Status: Enabled");
+    console.log("   3. Use webhook: เลือก 'Enabled'");
+  } else {
+    console.log("❌ ไม่พบ Web App deployment");
+    issues.push("ไม่พบ Web App deployment");
+  }
+
+  console.log("");
+
+  // 3. ตรวจสอบ Webhook Execution Log
+  console.log("📍 STEP 3: ตรวจสอบ Execution Log");
+  console.log("──────────────────────────────────────────────────────");
+  console.log("ไปที่: Apps Script Editor → Executions (ทางซ้าย)");
+  console.log("");
+  console.log("หากเห็น error ประเภทนี้:");
+  console.log("  • 'LINE_CHANNEL_ACCESS_TOKEN not configured'");
+  console.log("    → แก้ไข: ตั้งค่า token ด้วย setupScriptProperties()");
+  console.log("  • 'Failed with code 401'");
+  console.log("    → แก้ไข: Token ผิด ขอ token ใหม่");
+  console.log("  • 'Failed with code 400'");
+  console.log("    → แก้ไข: payload ผิด ตรวจสอบ sendLineReplyDirect()");
+  console.log("");
+  console.log("หาก Execution Log ว่างเปล่า:");
+  console.log("  → Webhook ไม่ได้ถูกเรียก");
+  console.log("  → แก้ไข: ตรวจสอบ Webhook URL ใน LINE Console");
+  console.log("  → แก้ไข: ตรวจสอบว่า Use webhook: Enabled");
+
+  console.log("");
+
+  // 4. สรุปผล
+  console.log("════════════════════════════════════════════════════════");
+  console.log("📊 ผลการทดสอบ");
+  console.log("════════════════════════════════════════════════════════");
+
+  if (issues.length === 0) {
+    console.log("✅ ทุกอย่างดูดี! บอทควรจะตอบข้อความแล้ว");
+    console.log("");
+    console.log("💡 ถ้ายังไม่ตอบ:");
+    console.log("   1. ลองส่งข้อความ 'help' หรือ 'status'");
+    console.log("   2. รอ 5-10 วินาที (บางทีอาจช้า)");
+    console.log("   3. ตรวจสอบว่า LINE Bot อยู่ในรายชื่อเพื่อน");
+    console.log("   4. ลอง unfriend แล้ว add ใหม่");
+  } else {
+    console.log("❌ พบปัญหา " + issues.length + " ประการ:");
+    issues.forEach((issue, index) => {
+      console.log("   " + (index + 1) + ". " + issue);
+    });
+    console.log("");
+    console.log("🔧 วิธีแก้ไข:");
+    console.log("   1. รัน setupScriptProperties()");
+    console.log("   2. ใส่ LINE_CHANNEL_ACCESS_TOKEN ที่ถูกต้อง");
+    console.log("   3. รัน debug_testBotReply() อีกครั้ง");
+  }
+
+  console.log("════════════════════════════════════════════════════════");
+
+  return {
+    success: issues.length === 0,
+    issues: issues
+  };
 }
