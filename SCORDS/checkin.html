@@ -1467,8 +1467,8 @@
                 <p class="text-white/60 text-xs mt-2">คน</p>
             </div>
 
-            <!-- Control Panel -->
-            <div class="pd-control-panel">
+            <!-- Control Panel (Admin Only) -->
+            <div class="pd-control-panel" id="pd-control-panel">
                 <button class="pd-control-btn secondary" id="pd-btn-select-activity" data-icon="📋">
                     📋 เลือกกิจกรรม
                 </button>
@@ -4351,10 +4351,21 @@
         const PD_SPEED_SLIDER = document.getElementById('pd-speed-slider');
         const PD_SPEED_VALUE = document.getElementById('pd-speed-value');
         const PD_SPEED_MULTIPLIER_DISPLAY = document.getElementById('pd-speed-multiplier');
+        const PD_CONTROL_PANEL = document.getElementById('pd-control-panel');
 
         // Initialize when tab is shown
         function initParticipantDisplay() {
             console.log('🎯 Initializing Participant Display Tab...');
+
+            // Show control panel only for admin users
+            if (userRole !== 'admin') {
+                console.log('🔒 User is not admin, hiding control panel');
+                PD_CONTROL_PANEL.classList.add('pd-hide');
+            } else {
+                console.log('👑 User is admin, showing control panel');
+                PD_CONTROL_PANEL.classList.remove('pd-hide');
+            }
+
             loadActivities();
             setupEventListeners();
         }
@@ -4403,13 +4414,34 @@
                 const data = await response.json();
 
                 if (data.success && data.activities.length > 0) {
-                    displayActivities(data.activities);
+                    // Filter activities to show only those in current time period
+                    const now = new Date();
+                    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-                    // Automatically select the first activity
-                    const firstActivity = data.activities[0];
-                    console.log(`🎯 Auto-selecting first activity: ${firstActivity.name} (${firstActivity.id})`);
-                    PD_CURRENT_ACTIVITY_ID = firstActivity.id;
-                    await selectActivity(PD_CURRENT_ACTIVITY_ID);
+                    const activeActivities = data.activities.filter(activity => {
+                        return activity.startTime <= currentTime && activity.endTime >= currentTime;
+                    });
+
+                    console.log(`🕐 Current time: ${currentTime}`);
+                    console.log(`📋 Total activities: ${data.activities.length}, Active activities: ${activeActivities.length}`);
+
+                    if (activeActivities.length > 0) {
+                        displayActivities(activeActivities);
+
+                        // Automatically select the first active activity
+                        const firstActivity = activeActivities[0];
+                        console.log(`🎯 Auto-selecting first active activity: ${firstActivity.name} (${firstActivity.id})`);
+                        PD_CURRENT_ACTIVITY_ID = firstActivity.id;
+                        await selectActivity(PD_CURRENT_ACTIVITY_ID);
+                    } else {
+                        PD_ACTIVITY_LIST.innerHTML = `
+                            <div style="text-align: center; color: #666; padding: 40px;">
+                                <p>ไม่พบกิจกรรมที่กำลังดำเนินอยู่ในขณะนี้</p>
+                                <p style="font-size: 0.875rem; margin-top: 8px;">เวลาปัจจุบัน: ${currentTime}</p>
+                            </div>
+                        `;
+                        PD_PROFILE_CONTAINER.classList.add('pd-hide');
+                    }
                 } else {
                     PD_ACTIVITY_LIST.innerHTML = `
                         <div style="text-align: center; color: #666; padding: 40px;">
