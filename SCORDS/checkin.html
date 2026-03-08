@@ -848,6 +848,143 @@
         .pd-hide {
             display: none !important;
         }
+
+        /* Responsive Styles for Mobile */
+        @media (max-width: 768px) {
+            #displayTab {
+                height: calc(100vh - 180px);
+                min-height: 400px;
+            }
+
+            /* Stats Counter - Move to top center on mobile */
+            .pd-stats-counter {
+                position: absolute;
+                top: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+                right: auto;
+                bottom: auto;
+                padding: 0.75rem 1.5rem;
+                min-width: 150px;
+            }
+
+            .pd-stats-counter .pd-text-5xl {
+                font-size: 2rem;
+            }
+
+            /* Control Panel - Smaller buttons on mobile */
+            .pd-control-panel {
+                bottom: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                justify-content: center;
+                gap: 0.25rem;
+            }
+
+            .pd-control-btn {
+                padding: 0.4rem 0.75rem;
+                font-size: 11px;
+                flex: 1 1 auto;
+                min-width: 0;
+                text-align: center;
+            }
+
+            /* Hide text, show only icon on mobile */
+            .pd-control-btn span {
+                display: none;
+            }
+
+            /* Show icon via data-icon attribute */
+            .pd-control-btn::before {
+                content: attr(data-icon);
+                font-size: 14px;
+            }
+
+            /* Refresh & Speed Selectors - Adjust position */
+            .pd-refresh-selector {
+                bottom: 3.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                min-width: auto;
+            }
+
+            .pd-speed-selector {
+                bottom: 6.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                min-width: auto;
+            }
+
+            /* Activity Selector - Full width on mobile */
+            .pd-activity-selector {
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                max-width: 95%;
+                max-height: 85vh;
+                padding: 20px;
+            }
+
+            .pd-activity-selector h2 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+
+            .pd-activity-item {
+                padding: 12px 15px;
+            }
+
+            .pd-activity-item h3 {
+                font-size: 14px;
+            }
+
+            .pd-activity-item p {
+                font-size: 12px;
+            }
+
+            /* Watermark - Smaller on mobile */
+            .pd-scords-watermark {
+                font-size: 30px;
+                letter-spacing: 5px;
+            }
+
+            .pd-oneptg-watermark {
+                font-size: 25px;
+                letter-spacing: 8px;
+            }
+
+            /* Smaller profiles on mobile */
+            .pd-size-small { width: 45px; height: 45px; }
+            .pd-size-medium { width: 65px; height: 65px; }
+            .pd-size-large { width: 85px; height: 85px; }
+            .pd-size-xlarge { width: 100px; height: 100px; }
+        }
+
+        @media (max-width: 480px) {
+            #displayTab {
+                height: calc(100vh - 160px);
+                min-height: 350px;
+            }
+
+            .pd-stats-counter {
+                padding: 0.5rem 1rem;
+                min-width: 120px;
+            }
+
+            .pd-stats-counter .pd-text-5xl {
+                font-size: 1.75rem;
+            }
+
+            .pd-control-btn {
+                padding: 0.35rem 0.5rem;
+                font-size: 10px;
+            }
+
+            .pd-activity-selector {
+                padding: 15px;
+                max-height: 90vh;
+            }
+        }
     </style>
 </head>
 <body class="min-h-screen gradient-bg">
@@ -1313,22 +1450,22 @@
 
             <!-- Control Panel -->
             <div class="pd-control-panel">
-                <button class="pd-control-btn secondary" id="pd-btn-select-activity">
+                <button class="pd-control-btn secondary" id="pd-btn-select-activity" data-icon="📋">
                     📋 เลือกกิจกรรม
                 </button>
-                <button class="pd-control-btn" id="pd-btn-refresh">
+                <button class="pd-control-btn" id="pd-btn-refresh" data-icon="🔄">
                     🔄 รีเฟรช
                 </button>
-                <button class="pd-control-btn" id="pd-btn-auto-refresh">
+                <button class="pd-control-btn" id="pd-btn-auto-refresh" data-icon="⏱️">
                     ⏱️ อัตโนมัติ: <span id="pd-auto-refresh-status">OFF</span>
                 </button>
-                <button class="pd-control-btn" id="pd-btn-set-interval">
+                <button class="pd-control-btn" id="pd-btn-set-interval" data-icon="⏰">
                     ⏰ ตั้งเวลา
                 </button>
-                <button class="pd-control-btn" id="pd-btn-speed">
+                <button class="pd-control-btn" id="pd-btn-speed" data-icon="🚀">
                     🚀 ความเร็ว
                 </button>
-                <button class="pd-control-btn" id="pd-btn-export">
+                <button class="pd-control-btn" id="pd-btn-export" data-icon="📊">
                     📊 ส่งออก
                 </button>
             </div>
