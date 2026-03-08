@@ -289,7 +289,12 @@
         }
 
         .profile-enter {
-            animation: floatUp 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation: floatUp 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+        }
+
+        /* After entrance animation, let floating take over */
+        .profile-enter.floating {
+            animation: none !important;
         }
 
         /* Header */
@@ -861,7 +866,9 @@
             const profile = document.createElement('div');
             const sizeClass = getSizeClass();
             const animationClass = getRandomAnimation();
-            profile.className = `floating-profile ${sizeClass} ${animationClass} ${isNew ? 'profile-enter new-arrival' : ''}`;
+
+            // Don't add floating animation class if it's a new profile (will add after entrance)
+            profile.className = `floating-profile ${sizeClass} ${isNew ? 'profile-enter new-arrival' : animationClass}`;
             profile.id = `profile-${participant.userId}`;
 
             // Random position (avoid edges)
@@ -870,8 +877,10 @@
             profile.style.left = `${posX}%`;
             profile.style.top = `${posY}%`;
 
-            // Random animation delay for more natural movement
-            profile.style.animationDelay = `${Math.random() * 3}s`;
+            // Random animation delay for more natural movement (only for floating)
+            if (!isNew) {
+                profile.style.animationDelay = `${Math.random() * 3}s`;
+            }
 
             // Profile image
             const img = document.createElement('img');
@@ -903,6 +912,15 @@
 
             // Click to show details
             profile.addEventListener('click', () => showParticipantDetails(participant));
+
+            // Remove entrance animation after it completes to let floating animation take over
+            if (isNew) {
+                setTimeout(() => {
+                    profile.classList.remove('profile-enter', 'new-arrival');
+                    profile.classList.add(animationClass); // Add floating animation class
+                    profile.style.animationDelay = `${Math.random() * 3}s`; // Add random delay for natural movement
+                }, 1500); // Match entrance animation duration (1.5s)
+            }
 
             // Debug log
             console.log(`✨ Created profile: ${participant.displayName} (${sizeClass}, ${animationClass}) at ${posX.toFixed(1)}%, ${posY.toFixed(1)}%`);
