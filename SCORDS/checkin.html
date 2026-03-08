@@ -1632,6 +1632,14 @@
             initializeLIFF();
             updateDateTime();
             setInterval(updateDateTime, 1000);
+
+            // Auto-sync data every 5 minutes
+            setInterval(() => {
+                if (userId) {
+                    console.log('🔄 Auto-sync triggered (5-minute interval)');
+                    syncDataFromServer(false);
+                }
+            }, CACHE_DURATION);
         });
 
         async function initializeLIFF() {
@@ -1654,10 +1662,186 @@
             }
         }
 
+        // ========================================
+        // LOCALSTORAGE CACHE SYSTEM
+        // ========================================
+        const CACHE_KEYS = {
+            ACTIVITIES: 'scords_activities',
+            HISTORY: 'scords_history',
+            DASHBOARD: 'scords_dashboard',
+            GROUPS: 'scords_groups',
+            USER_INFO: 'scords_user_info',
+            CACHE_TIMESTAMP: 'scords_cache_timestamp'
+        };
+
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+        /**
+         * Save data to localStorage cache
+         */
+        function saveToCache(data) {
+            try {
+                localStorage.setItem(CACHE_KEYS.ACTIVITIES, JSON.stringify(activities));
+                localStorage.setItem(CACHE_KEYS.HISTORY, JSON.stringify(historyData));
+                localStorage.setItem(CACHE_KEYS.DASHBOARD, JSON.stringify(dashboardData));
+                localStorage.setItem(CACHE_KEYS.GROUPS, JSON.stringify(groups));
+                localStorage.setItem(CACHE_KEYS.USER_INFO, JSON.stringify({
+                    group: userGroup,
+                    role: userRole
+                }));
+                localStorage.setItem(CACHE_KEYS.CACHE_TIMESTAMP, Date.now().toString());
+                console.log('✅ Data saved to cache');
+            } catch (error) {
+                console.error('❌ Error saving to cache:', error);
+            }
+        }
+
+        /**
+         * Load data from localStorage cache
+         */
+        function loadFromCache() {
+            try {
+                const cachedActivities = localStorage.getItem(CACHE_KEYS.ACTIVITIES);
+                const cachedHistory = localStorage.getItem(CACHE_KEYS.HISTORY);
+                const cachedDashboard = localStorage.getItem(CACHE_KEYS.DASHBOARD);
+                const cachedGroups = localStorage.getItem(CACHE_KEYS.GROUPS);
+                const cachedUserInfo = localStorage.getItem(CACHE_KEYS.USER_INFO);
+                const cacheTimestamp = localStorage.getItem(CACHE_KEYS.CACHE_TIMESTAMP);
+
+                if (!cacheTimestamp) {
+                    console.log('📦 No cache found');
+                    return null;
+                }
+
+                const cacheAge = Date.now() - parseInt(cacheTimestamp);
+                console.log(`📦 Cache age: ${Math.round(cacheAge / 1000)}s`);
+
+                return {
+                    activities: cachedActivities ? JSON.parse(cachedActivities) : [],
+                    history: cachedHistory ? JSON.parse(cachedHistory) : [],
+                    dashboard: cachedDashboard ? JSON.parse(cachedDashboard) : {},
+                    groups: cachedGroups ? JSON.parse(cachedGroups) : [],
+                    userInfo: cachedUserInfo ? JSON.parse(cachedUserInfo) : null,
+                    timestamp: parseInt(cacheTimestamp)
+                };
+            } catch (error) {
+                console.error('❌ Error loading from cache:', error);
+                return null;
+            }
+        }
+
+        /**
+         * Clear localStorage cache
+         */
+        function clearCache() {
+            try {
+                Object.values(CACHE_KEYS).forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                console.log('🗑️ Cache cleared');
+            } catch (error) {
+                console.error('❌ Error clearing cache:', error);
+            }
+        }
+
+        /**
+         * Sync data from server (force refresh)
+         */
+        async function syncDataFromServer(showNotification = false) {
+            try {
+                console.log('🔄 Syncing data from server...');
+                if (showNotification) showLoading("กำลังอัปเดตข้อมูล");
+
+                const response = await fetch(`${API_URL}?action=getAllData&userId=${userId}&days=${currentHistoryPeriod}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+                    userGroup = data.userInfo ? data.userInfo.group : null;
+                    userRole = data.userInfo ? data.userInfo.role : null;
+                    activities = data.activities || [];
+                    historyData = data.history || [];
+                    dashboardData = data.dashboardData || {};
+                    groups = data.groups || [];
+
+                    activities.sort((a, b) => a.time.localeCompare(b.time));
+
+                    // Save to cache
+                    saveToCache();
+
+                    // Refresh UI
+                    loadActivities();
+                    loadHistoryData();
+                    loadDashboardData();
+
+                    if (showNotification) {
+                        hideLoading();
+                        // Show subtle success notification
+                        const toast = document.createElement('div');
+                        toast.className = 'fixed bottom-4 right-4 bg-green-900 text-green-300 px-4 py-2 rounded-lg shadow-lg z-50 animate-fadeIn';
+                        toast.innerHTML = '✅ อัปเดตข้อมูลเรียบร้อย';
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 2000);
+                    }
+
+                    console.log('✅ Sync completed');
+                    return true;
+                } else {
+                    throw new Error(result.message || "Sync failed");
+                }
+            } catch (error) {
+                console.error('❌ Sync error:', error);
+                if (showNotification) {
+                    hideLoading();
+                    showError("การอัปเดตข้อมูลล้มเหลว", error.message);
+                }
+                return false;
+            }
+        }
+
         async function fetchAllData() {
             try {
-                showLoading("กำลังโหลดข้อมูล");
+                // Try to load from cache first for speed
+                const cachedData = loadFromCache();
 
+                if (cachedData) {
+                    console.log('⚡ Loading from cache...');
+                    userGroup = cachedData.userInfo?.group || null;
+                    userRole = cachedData.userInfo?.role || null;
+                    activities = cachedData.activities || [];
+                    historyData = cachedData.history || [];
+                    dashboardData = cachedData.dashboard || {};
+                    groups = cachedData.groups || [];
+
+                    populateGroupSelects();
+
+                    // Show dashboard tab only for admin users
+                    if (userRole === 'admin') {
+                        const dashboardTabBtn = document.getElementById('dashboardTabBtn');
+                        if (dashboardTabBtn) {
+                            dashboardTabBtn.classList.remove('hidden');
+                        }
+                    }
+
+                    loadActivities();
+                    loadHistoryData();
+                    loadDashboardData();
+
+                    document.getElementById('mainContainer').classList.remove('hidden');
+
+                    // Sync in background for fresh data
+                    syncDataFromServer(false).then(async (success) => {
+                        if (success) {
+                            await loadAchievementsData();
+                            await achievementManager.checkAchievements(historyData, activities, userId);
+                        }
+                    });
+                } else {
+                    // No cache, load from server
+                    showLoading("กำลังโหลดข้อมูล");
+                }
+
+                // Always fetch from server to ensure we have latest data
                 const response = await fetch(`${API_URL}?action=getAllData&userId=${userId}&days=${currentHistoryPeriod}`);
                 const result = await response.json();
                 console.log("Data from API:", result);
@@ -1672,6 +1856,9 @@
                     groups = data.groups || [];
 
                     activities.sort((a, b) => a.time.localeCompare(b.time));
+
+                    // Save to cache
+                    saveToCache();
 
                     populateGroupSelects();
 
@@ -2540,6 +2727,12 @@
                 if (tabId === 'dashboard') {
                     loadAdminPointsHistory();
                 }
+
+                // Sync data when switching to main tabs (check-in, history, leaderboard)
+                if (['checkIn', 'history', 'leaderboard'].includes(tabId)) {
+                    // Sync in background without blocking UI
+                    syncDataFromServer(false);
+                }
             });
         });
 
@@ -3394,25 +3587,33 @@
             }
 
             try {
+                // Sync data from server first
+                const syncSuccess = await syncDataFromServer(false);
+
+                if (!syncSuccess) {
+                    throw new Error('Failed to sync data');
+                }
+
+                // Reload current tab data after sync
                 switch(currentTab) {
                     case 'checkIn':
-                        await loadActivities();
+                        loadActivities();
                         break;
                     case 'history':
-                        await loadHistoryData();
+                        loadHistoryData();
                         break;
                     case 'leaderboard':
-                        await loadLeaderboardData();
+                        loadLeaderboardData();
                         break;
                     case 'achievements':
                         await loadAchievementsData();
                         break;
                     case 'games':
-                        await loadGamesData();
+                        loadGamesData();
                         break;
                     case 'dashboard':
                         if (userRole === 'admin') {
-                            await loadDashboardData();
+                            loadDashboardData();
                             await loadAdminPointsHistory();
                         }
                         break;
