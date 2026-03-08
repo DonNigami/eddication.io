@@ -125,7 +125,7 @@
             border: 1px solid rgba(255, 255, 255, 0.5);
         }
 
-        /* Floating profile pictures */
+        /* Floating profile pictures with 3D perspective */
         .profile-container {
             position: fixed;
             width: 100%;
@@ -134,6 +134,8 @@
             top: 0;
             left: 0;
             pointer-events: none; /* Allow clicking through empty space */
+            perspective: 1000px; /* Add 3D perspective */
+            transform-style: preserve-3d;
         }
 
         .floating-profile {
@@ -148,6 +150,7 @@
             pointer-events: auto;
             opacity: 1 !important; /* Always visible, no flickering */
             will-change: transform; /* Smooth animation */
+            transform-style: preserve-3d; /* Enable 3D transforms */
         }
 
         .floating-profile:hover {
@@ -934,26 +937,24 @@
             // Click to show details
             profile.addEventListener('click', () => showParticipantDetails(participant));
 
-            // Remove entrance animation and add pulse animation
+            // Remove entrance animation (scaling is handled by JS)
             if (isNew) {
                 setTimeout(() => {
                     profile.classList.remove('profile-enter', 'new-arrival');
-                    // Add pulse animation
-                    profile.style.animation = `pulse-breathe ${2 + Math.random() * 2}s ease-in-out infinite`;
                 }, 1500); // Match entrance animation duration (1.5s)
-            } else {
-                // Add pulse animation immediately for existing profiles
-                profile.style.animation = `pulse-breathe ${2 + Math.random() * 2}s ease-in-out infinite`;
             }
 
-            // Initialize pinball movement data
+            // Initialize 3D pinball movement data
             PROFILE_MOVEMENT[participant.userId] = {
                 x: posX,
                 y: posY,
-                vx: (Math.random() - 0.5) * 0.8, // Random velocity X (-0.4 to 0.4)
-                vy: (Math.random() - 0.5) * 0.6, // Random velocity Y (-0.3 to 0.3)
-                speed: 0.3 + Math.random() * 0.4, // Random speed (0.3 to 0.7)
-                pulsePhase: Math.random() * Math.PI * 2, // Random pulse starting phase
+                z: Math.random() * 200 - 100, // Depth: -100 to 100 (pixels)
+                vx: (Math.random() - 0.5) * 1.2, // Random velocity X (-0.6 to 0.6)
+                vy: (Math.random() - 0.5) * 1.0, // Random velocity Y (-0.5 to 0.5)
+                vz: (Math.random() - 0.5) * 0.8, // Random velocity Z (-0.4 to 0.4)
+                speed: 0.05 + Math.random() * 0.1, // Slower random speed (0.05 to 0.15)
+                minZ: -200, // Farthest depth
+                maxZ: 200, // Closest depth
                 element: profile
             };
 
@@ -980,69 +981,87 @@
                     const data = PROFILE_MOVEMENT[userId];
                     if (!data.element || !data.element.offsetParent) return; // Skip if element not in DOM
 
-                    // Update position
+                    // Update position in 3D space
                     data.x += data.vx * data.speed;
                     data.y += data.vy * data.speed;
+                    data.z += data.vz * data.speed;
 
                     // Get element size for collision detection
                     const rect = data.element.getBoundingClientRect();
                     const elemWidth = rect.width / containerRect.width * 100;
                     const elemHeight = rect.height / containerRect.height * 100;
 
-                    // Bounce off edges
+                    // Bounce off edges (X, Y, Z)
                     let bounced = false;
 
                     // Right edge
                     if (data.x + elemWidth / 2 > maxX - 5) {
                         data.x = maxX - 5 - elemWidth / 2;
-                        data.vx = -Math.abs(data.vx) + (Math.random() - 0.5) * 0.2; // Bounce left with random variation
+                        data.vx = -Math.abs(data.vx) + (Math.random() - 0.5) * 0.3; // Bounce left with more random
                         bounced = true;
                     }
                     // Left edge
                     else if (data.x - elemWidth / 2 < 5) {
                         data.x = 5 + elemWidth / 2;
-                        data.vx = Math.abs(data.vx) + (Math.random() - 0.5) * 0.2; // Bounce right with random variation
+                        data.vx = Math.abs(data.vx) + (Math.random() - 0.5) * 0.3; // Bounce right with more random
                         bounced = true;
                     }
 
                     // Bottom edge
                     if (data.y + elemHeight / 2 > maxY - 10) {
                         data.y = maxY - 10 - elemHeight / 2;
-                        data.vy = -Math.abs(data.vy) + (Math.random() - 0.5) * 0.2; // Bounce up with random variation
+                        data.vy = -Math.abs(data.vy) + (Math.random() - 0.5) * 0.3; // Bounce up with more random
                         bounced = true;
                     }
                     // Top edge
                     else if (data.y - elemHeight / 2 < 5) {
                         data.y = 5 + elemHeight / 2;
-                        data.vy = Math.abs(data.vy) + (Math.random() - 0.5) * 0.2; // Bounce down with random variation
+                        data.vy = Math.abs(data.vy) + (Math.random() - 0.5) * 0.3; // Bounce down with more random
                         bounced = true;
                     }
 
-                    // Randomize direction slightly when bouncing
+                    // Z-depth bounds (far and near)
+                    if (data.z < data.minZ) {
+                        data.z = data.minZ;
+                        data.vz = Math.abs(data.vz) + (Math.random() - 0.5) * 0.2; // Bounce forward
+                        bounced = true;
+                    } else if (data.z > data.maxZ) {
+                        data.z = data.maxZ;
+                        data.vz = -Math.abs(data.vz) + (Math.random() - 0.5) * 0.2; // Bounce backward
+                        bounced = true;
+                    }
+
+                    // Randomize direction more when bouncing
                     if (bounced) {
-                        data.vx += (Math.random() - 0.5) * 0.1;
-                        data.vy += (Math.random() - 0.5) * 0.1;
+                        data.vx += (Math.random() - 0.5) * 0.2;
+                        data.vy += (Math.random() - 0.5) * 0.2;
+                        data.vz += (Math.random() - 0.5) * 0.15;
 
                         // Normalize velocity to maintain consistent speed
-                        const currentSpeed = Math.sqrt(data.vx * data.vx + data.vy * data.vy);
+                        const currentSpeed = Math.sqrt(data.vx * data.vx + data.vy * data.vy + data.vz * data.vz);
                         if (currentSpeed > 0) {
-                            data.vx = (data.vx / currentSpeed) * 0.5;
-                            data.vy = (data.vy / currentSpeed) * 0.4;
+                            data.vx = (data.vx / currentSpeed) * 0.7;
+                            data.vy = (data.vy / currentSpeed) * 0.6;
+                            data.vz = (data.vz / currentSpeed) * 0.4;
                         }
                     }
 
                     // Keep velocity within bounds
-                    data.vx = Math.max(-0.6, Math.min(0.6, data.vx));
-                    data.vy = Math.max(-0.5, Math.min(0.5, data.vy));
+                    data.vx = Math.max(-0.8, Math.min(0.8, data.vx));
+                    data.vy = Math.max(-0.7, Math.min(0.7, data.vy));
+                    data.vz = Math.max(-0.5, Math.min(0.5, data.vz));
 
-                    // Update position
+                    // Update position (X, Y)
                     data.element.style.left = `${data.x}%`;
                     data.element.style.top = `${data.y}%`;
 
-                    // Pulse effect - scale up and down
-                    data.pulsePhase += 0.02;
-                    const scale = 1 + Math.sin(data.pulsePhase) * 0.08;
-                    data.element.style.transform = `scale(${scale})`;
+                    // Calculate scale based on depth (Z)
+                    // Far (negative Z) = smaller, Close (positive Z) = larger
+                    const depthScale = 1 + (data.z / 500); // Range: 0.6 to 1.4
+                    const scale = Math.max(0.5, Math.min(1.5, depthScale));
+
+                    // Apply 3D transform with depth
+                    data.element.style.transform = `translateZ(${data.z}px) scale(${scale})`;
                 });
 
                 animationFrameId = requestAnimationFrame(animate);
