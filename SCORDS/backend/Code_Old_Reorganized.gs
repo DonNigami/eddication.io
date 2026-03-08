@@ -92,6 +92,10 @@ function doGet(e) {
       return createJsonResponse(getParticipantsForDisplay(activityId));
     }
 
+    if (action === "getActivitiesForDisplay") {
+      return createJsonResponse(getActivitiesForDisplay());
+    }
+
     return createJsonResponse({
       success: true,
       message: "Check-in API is running."
@@ -421,6 +425,55 @@ function getDistance(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
   return R * c;
+}
+
+/**
+ * Get all active activities for display
+ * @returns {Object} List of active activities for today
+ */
+function getActivitiesForDisplay() {
+  try {
+    console.log(`📋 [DISPLAY] Getting activities for display`);
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const activities = getSheetData(ss.getSheetByName(SHEET_NAMES.ACTIVITIES));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Filter active activities for today
+    const activeActivities = activities.filter(activity => {
+      const activityDate = new Date(activity.Date);
+      activityDate.setHours(0, 0, 0, 0);
+      return activity.Status === 'Active' && activityDate.getTime() === today.getTime();
+    }).map(activity => ({
+      id: activity.ID,
+      name: activity.Name,
+      date: activity.Date,
+      startTime: activity.StartTime,
+      endTime: activity.EndTime,
+      location: activity.Location || '-',
+      qrCode: activity.QRCode,
+      status: activity.Status
+    }));
+
+    console.log(`📋 [DISPLAY] Found ${activeActivities.length} active activities`);
+
+    return {
+      success: true,
+      activities: activeActivities,
+      count: activeActivities.length
+    };
+
+  } catch (error) {
+    console.error(`❌ [DISPLAY] Error getting activities: ${error.toString()}`);
+    return {
+      success: false,
+      message: `Error: ${error.message}`,
+      activities: [],
+      count: 0
+    };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

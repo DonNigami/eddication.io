@@ -49,6 +49,82 @@
             100% { transform: translate(-50px, -50px); }
         }
 
+        /* Activity Selector */
+        .activity-selector {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .activity-selector h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .activity-list {
+            margin: 20px 0;
+        }
+
+        .activity-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .activity-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .activity-item.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .activity-item h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .activity-item p {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 2px 0;
+        }
+
+        .activity-item .meta {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .activity-item .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
         /* Floating profile pictures */
         .profile-container {
             position: fixed;
@@ -144,6 +220,38 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
+        /* Control panel */
+        .control-panel {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            z-index: 50;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .control-btn.secondary {
+            background: rgba(255, 87, 34, 0.8);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
         /* Loading overlay */
         .loading-overlay {
             position: fixed;
@@ -224,29 +332,24 @@
             animation: pulse-ring 1.5s ease-out infinite;
         }
 
-        /* Control panel */
-        .control-panel {
+        /* Back button */
+        .back-btn {
             position: fixed;
-            bottom: 2rem;
+            top: 2rem;
             left: 2rem;
-            z-index: 50;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .control-btn {
+            z-index: 101;
             background: rgba(255, 255, 255, 0.2);
             backdrop-filter: blur(10px);
             border: 2px solid rgba(255, 255, 255, 0.3);
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
             cursor: pointer;
+            font-size: 14px;
             transition: all 0.3s ease;
-            font-weight: 500;
         }
 
-        .control-btn:hover {
+        .back-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
         }
@@ -270,6 +373,15 @@
             .size-large { width: 85px; height: 85px; }
             .size-xlarge { width: 100px; height: 100px; }
         }
+
+        /* Hide selector when showing display */
+        .hide {
+            display: none !important;
+        }
+
+        .show {
+            display: block !important;
+        }
     </style>
 </head>
 <body>
@@ -289,18 +401,30 @@
                     <h1 class="text-3xl font-bold text-white drop-shadow-lg">
                         🎉 ผู้เข้าร่วมกิจกรรม
                     </h1>
-                    <p class="text-white/80 text-sm mt-1" id="activityName">กำลังโหลด...</p>
-                </div>
-                <div class="text-right">
-                    <p class="text-white/60 text-sm">อัปเดตล่าสุด</p>
-                    <p class="text-white font-semibold" id="lastUpdate">--:--</p>
+                    <p class="text-white/80 text-sm mt-1" id="currentActivityName">เลือกกิจกรรม...</p>
                 </div>
             </div>
         </div>
     </header>
 
+    <!-- Activity Selector -->
+    <div id="activitySelector" class="activity-selector">
+        <h2>📋 เลือกกิจกรรม</h2>
+        <div id="activityList" class="activity-list">
+            <div style="text-align: center; color: #666; padding: 40px;">
+                <div class="loading-spinner" style="border-color: #667eea; border-top-color: transparent;"></div>
+                <p style="margin-top: 15px;">กำลังโหลดกิจกรรม...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <button id="backBtn" class="back-btn hide" onclick="showActivitySelector()">
+        ← กลับเลือกกิจกรรม
+    </button>
+
     <!-- Profile Container -->
-    <div id="profileContainer" class="profile-container">
+    <div id="profileContainer" class="profile-container hide">
         <!-- Profiles will be dynamically added here -->
     </div>
 
@@ -315,6 +439,9 @@
 
     <!-- Control Panel -->
     <div class="control-panel">
+        <button class="control-btn secondary" onclick="showActivitySelector()">
+            📋 เลือกกิจกรรม
+        </button>
         <button class="control-btn" onclick="refreshData()">
             🔄 รีเฟรช
         </button>
@@ -339,32 +466,35 @@
 
         // ═══════════════════════════════════════════════════════════════
 
-        let ACTIVITY_ID = null;
+        let CURRENT_ACTIVITY_ID = null;
         let AUTO_REFRESH_INTERVAL = null;
         let IS_AUTO_REFRESH = false;
         let PARTICIPANTS = [];
         let LAST_KNOWN_COUNT = 0;
+        let ACTIVITIES = [];
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                // Get activity ID from URL parameter
+                // Check if activityId is provided in URL
                 const urlParams = new URLSearchParams(window.location.search);
-                ACTIVITY_ID = urlParams.get('activityId') || 'demo';
+                const providedActivityId = urlParams.get('activityId');
 
-                // Check if API URL is configured and not using demo mode
                 const isApiConfigured = SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
-                const isDemoMode = ACTIVITY_ID === 'demo' || !isApiConfigured;
 
-                if (isDemoMode) {
-                    // Demo mode with mock data
-                    console.log('🎮 Demo Mode: Using mock data (activityId:', ACTIVITY_ID, ')');
-                    await loadMockData();
+                if (providedActivityId) {
+                    // Direct link to activity
+                    console.log('🔗 Direct activity link provided:', providedActivityId);
+                    CURRENT_ACTIVITY_ID = providedActivityId;
+                    await loadActivityAndParticipants();
+                } else if (isApiConfigured) {
+                    // Production mode - show activity selector
+                    console.log('🔗 Production Mode: Loading activities...');
+                    await loadActivities();
                 } else {
-                    // Production mode with real API
-                    console.log('🔗 Production Mode: Using SCORDS API');
-                    await loadActivityInfo();
-                    await loadParticipants();
+                    // Demo mode - load activities or show demo
+                    console.log('🎮 Demo Mode: Loading activities...');
+                    await loadActivities();
                 }
 
                 // Hide loading overlay
@@ -380,39 +510,125 @@
 
             } catch (error) {
                 console.error('Initialization error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่',
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#667eea'
-                });
+                showError('เกิดข้อผิดพลาดในการเริ่มต้นระบบ', error.message);
             }
         });
 
+        // Load activities list
+        async function loadActivities() {
+            try {
+                let activities;
+
+                if (SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE') {
+                    // Production mode
+                    console.log('📡 Fetching activities from API...');
+                    const response = await fetch(`${SCORDS_API_URL}?action=getActivitiesForDisplay`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        activities = data.activities;
+                    } else {
+                        throw new Error(data.message);
+                    }
+                } else {
+                    // Demo mode - use mock activities
+                    console.log('🎮 Demo Mode: Using mock activities');
+                    await new Promise(r => setTimeout(r, 1000)); // Simulate loading
+                    activities = generateMockActivities();
+                }
+
+                ACTIVITIES = activities;
+                displayActivities(activities);
+
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                showError('ไม่สามารถโหลดรายการกิจกรรมได้', error.message);
+                ACTIVITIES = [];
+                displayActivities([]);
+            }
+        }
+
+        // Display activities in selector
+        function displayActivities(activities) {
+            const listContainer = document.getElementById('activityList');
+
+            if (activities.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p style="font-size: 48px; margin-bottom: 10px;">📅</p>
+                        <p>ไม่พบกิจกรรมที่เปิดให้วันนี้</p>
+                        <p style="font-size: 12px; margin-top: 10px;">หรือติดต่อ admin เพื่อเปิดกิจกรรม</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = activities.map(activity => `
+                <div class="activity-item" onclick="selectActivity('${activity.id}')">
+                    <h3>${activity.name}</h3>
+                    <p>📅 ${formatDate(activity.date)}</p>
+                    <p>⏰ ${activity.startTime} - ${activity.endTime}</p>
+                    <p>📍 ${activity.location}</p>
+                    <div class="meta">
+                        <span class="badge">🎯 ID: ${activity.id}</span>
+                        <span class="badge">✅ ${activity.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Select activity
+        async function selectActivity(activityId) {
+            console.log(`📋 Selected activity: ${activityId}`);
+            CURRENT_ACTIVITY_ID = activityId;
+
+            // Hide selector
+            document.getElementById('activitySelector').classList.add('hide');
+            document.getElementById('profileContainer').classList.remove('hide');
+            document.getElementById('backBtn').classList.remove('hide');
+
+            // Load participants
+            await loadActivityAndParticipants();
+        }
+
+        // Load activity info and participants
+        async function loadActivityAndParticipants() {
+            try {
+                document.getElementById('currentActivityName').textContent = 'กำลังโหลดข้อม...';
+
+                if (SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE') {
+                    // Production mode
+                    await loadActivityInfo();
+                    await loadParticipants();
+                } else {
+                    // Demo mode
+                    console.log(`🎮 Demo Mode: Loading mock data for activity: ${CURRENT_ACTIVITY_ID}`);
+                    await loadMockData();
+                }
+
+            } catch (error) {
+                console.error('Error loading activity data:', error);
+                showError('ไม่สามารถโหลดข้อมได้', error.message);
+                showActivitySelector();
+            }
+        }
+
         // Load activity information
         async function loadActivityInfo() {
-            try {
-                const response = await fetch(`${SCORDS_API_URL}?action=getParticipantsForDisplay&activityId=${ACTIVITY_ID}`);
-                const data = await response.json();
+            const response = await fetch(`${SCORDS_API_URL}?action=getParticipantsForDisplay&activityId=${CURRENT_ACTIVITY_ID}`);
+            const data = await response.json();
 
-                if (data.success && data.activity) {
-                    document.getElementById('activityName').textContent = data.activity.name;
-                } else {
-                    document.getElementById('activityName').textContent = `กิจกรรม ID: ${ACTIVITY_ID}`;
-                }
-            } catch (error) {
-                console.error('Error loading activity info:', error);
-                document.getElementById('activityName').textContent = `กิจกรรม ID: ${ACTIVITY_ID}`;
+            if (data.success && data.activity) {
+                document.getElementById('currentActivityName').textContent = data.activity.name;
             }
         }
 
         // Load participants from SCORDS API
         async function loadParticipants() {
             try {
-                console.log(`📡 Fetching participants for activity: ${ACTIVITY_ID}`);
+                console.log(`📡 Fetching participants for activity: ${CURRENT_ACTIVITY_ID}`);
 
-                const response = await fetch(`${SCORDS_API_URL}?action=getParticipantsForDisplay&activityId=${ACTIVITY_ID}`);
+                const response = await fetch(`${SCORDS_API_URL}?action=getParticipantsForDisplay&activityId=${CURRENT_ACTIVITY_ID}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -426,16 +642,11 @@
 
                 console.log(`✅ Received ${data.participants.length} participants`);
 
-                // Check for new arrivals
-                const newParticipants = data.participants.filter(p =>
-                    !PARTICIPANTS.find(existing => existing.userId === p.userId)
-                );
-
                 // Update participants list
                 PARTICIPANTS = data.participants;
 
                 // Render profiles
-                renderProfiles(newParticipants);
+                renderProfiles(PARTICIPANTS);
 
                 // Update stats
                 updateStats();
@@ -443,28 +654,14 @@
                 // Update timestamp
                 updateTimestamp();
 
-                // Trigger confetti for new arrivals
-                if (newParticipants.length > 0) {
-                    newParticipants.forEach(p => triggerConfetti());
-                }
-
-                // Update activity name if available
-                if (data.activity) {
-                    document.getElementById('activityName').textContent = data.activity.name;
+                // Trigger confetti if there are participants
+                if (PARTICIPANTS.length > 0 && LAST_KNOWN_COUNT === 0) {
+                    PARTICIPANTS.forEach(() => triggerConfetti());
                 }
 
             } catch (error) {
                 console.error('Error loading participants:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'โหลดข้อมูลไม่สำเร็จ',
-                    text: error.message,
-                    confirmButtonText: 'ตกลง',
-                    confirmButtonColor: '#667eea'
-                });
-
-                // Fallback to demo data
-                await loadMockData();
+                showError('โหลดข้อมผู้เข้าร่วมไม่สำเร็จ', error.message);
             }
         }
 
@@ -472,24 +669,65 @@
         async function loadMockData() {
             const mockData = generateMockParticipants();
             PARTICIPANTS = mockData;
+
             renderProfiles(mockData);
             updateStats();
-            document.getElementById('activityName').textContent = 'Demo Activity';
             updateTimestamp();
+
+            document.getElementById('currentActivityName').textContent = `Demo Activity (${mockData.length} คน)`;
+        }
+
+        // Generate mock activities
+        function generateMockActivities() {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+
+            return [
+                {
+                    id: 'DEMO001',
+                    name: 'กิจกรรมประชุมที่ 1',
+                    date: dateStr,
+                    startTime: '09:00',
+                    endTime: '17:00',
+                    location: 'ห้องประชุม A',
+                    qrCode: '123456',
+                    status: 'Active'
+                },
+                {
+                    id: 'DEMO002',
+                    name: 'กิจกรรมอบรรมพนักงาน',
+                    date: dateStr,
+                    startTime: '13:00',
+                    endTime: '17:00',
+                    location: 'ห้องอบรม',
+                    qrCode: '234567',
+                    status: 'Active'
+                },
+                {
+                    id: 'DEMO003',
+                    name: 'Workshop เทคนิคสมัยใหม่',
+                    date: dateStr,
+                    startTime: '10:00',
+                    endTime: '12:00',
+                    location: 'ห้อง Workshop',
+                    qrCode: '345678',
+                    status: 'Active'
+                }
+            ];
         }
 
         // Generate mock participants (for development/demo)
         function generateMockParticipants() {
             const names = ['สมชาย ใจดี', 'สมหญิง รักเรียน', 'วีระ กล้าหาญ', 'สุดา เมตตา',
                           'นภา สินธุ', 'กิตติ เก่งกาจ', 'มินตรา รัตนา', 'อานนท์ ยิ่งยง',
-                          'พิชญา แก้วสุวรรณ', 'สมศักดิ์ จริงใจ'];
+                          'พิชญา แก้วสุวรรณ', 'สมศักดิ์ จริงใจ', 'รุจนา แสงสุขี'];
 
             const positions = ['ผู้จัดการ', 'หัวหน้างาน', 'พนักงาน', 'เจ้าหน้าที่'];
             const departments = ['IT', 'HR', 'บัญชี', 'การตลาด', 'ขาย'];
 
             const mockData = [];
 
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 15; i++) {
                 mockData.push({
                     userId: `U${1000 + i}`,
                     displayName: names[i] || `ผู้ใช้ ${i + 1}`,
@@ -497,7 +735,7 @@
                     employeeId: `EMP${1000 + i}`,
                     position: positions[Math.floor(Math.random() * positions.length)],
                     department: departments[Math.floor(Math.random() * departments.length)],
-                    checkInTime: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+                    checkInTime: new Date(Date.now() - Math.random() * 7200000).toISOString(),
                     status: Math.random() > 0.3 ? 'ตรงเวลา' : 'สาย',
                     checkInMethod: 'QR Code'
                 });
@@ -507,21 +745,16 @@
         }
 
         // Render floating profiles
-        function renderProfiles(newArrivals = []) {
+        function renderProfiles(participants) {
             const container = document.getElementById('profileContainer');
+            container.innerHTML = '';
 
-            // Clear existing profiles if not adding new arrivals
-            if (newArrivals.length === 0) {
-                container.innerHTML = '';
-                PARTICIPANTS.forEach(participant => {
-                    createProfileElement(participant, container);
-                });
-            } else {
-                // Add only new arrivals
-                newArrivals.forEach(participant => {
+            participants.forEach((participant, index) => {
+                // Add staggered delay for entrance animation
+                setTimeout(() => {
                     createProfileElement(participant, container, true);
-                });
-            }
+                }, index * 100);
+            });
         }
 
         // Create single profile element
@@ -592,6 +825,17 @@
             });
         }
 
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('th-TH', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
         // Update stats
         function updateStats() {
             const counter = document.getElementById('participantCount');
@@ -624,11 +868,14 @@
         // Update timestamp
         function updateTimestamp() {
             const now = new Date();
-            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('th-TH', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            // Could add timestamp display if needed
+        }
+
+        // Show activity selector
+        function showActivitySelector() {
+            document.getElementById('activitySelector').classList.remove('hide');
+            document.getElementById('profileContainer').classList.add('hide');
+            document.getElementById('backBtn').classList.add('hide');
         }
 
         // Show participant details
@@ -675,7 +922,7 @@
         function setupRealtimeUpdates() {
             // Polling for updates (every 30 seconds)
             setInterval(async () => {
-                if (IS_AUTO_REFRESH) {
+                if (IS_AUTO_REFRESH && CURRENT_ACTIVITY_ID) {
                     await loadParticipants();
                 }
             }, 30000);
@@ -689,12 +936,11 @@
             btn.textContent = '⏳ กำลังโหลด...';
 
             const isApiConfigured = SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
-            const isDemoMode = ACTIVITY_ID === 'demo' || !isApiConfigured;
 
-            if (isDemoMode) {
-                await loadMockData();
-            } else {
+            if (isApiConfigured && CURRENT_ACTIVITY_ID) {
                 await loadParticipants();
+            } else {
+                await loadMockData();
             }
 
             setTimeout(() => {
@@ -738,8 +984,19 @@
             const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `participants_${ACTIVITY_ID}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.download = `participants_${CURRENT_ACTIVITY_ID || 'demo'}_${new Date().toISOString().split('T')[0]}.csv`;
             link.click();
+        }
+
+        // Show error
+        function showError(title, message) {
+            Swal.fire({
+                icon: 'error',
+                title: title,
+                text: message,
+                confirmButtonColor: '#667eea',
+                confirmButtonText: 'ตกลง'
+            });
         }
 
         // Keyboard shortcuts
@@ -748,6 +1005,8 @@
                 refreshData();
             } else if (e.key === 'a' || e.key === 'A') {
                 toggleAutoRefresh();
+            } else if (e.key === 'b' || e.key === 'B') {
+                showActivitySelector();
             }
         });
     </script>
