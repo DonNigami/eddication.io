@@ -332,6 +332,91 @@
             padding: 1rem 2rem;
         }
 
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+        }
+
+        .header-left {
+            flex: 1;
+        }
+
+        .header-center {
+            flex: 2;
+            text-align: center;
+        }
+
+        .header-right {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .activity-info {
+            color: white;
+        }
+
+        .activity-info h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .activity-details {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .activity-details span {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .realtime-clock {
+            text-align: right;
+            color: white;
+        }
+
+        .realtime-clock .time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .realtime-clock .date {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .header-back-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .header-back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
         /* Stats counter */
         .stats-counter {
             position: fixed;
@@ -482,6 +567,39 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .header-left, .header-center, .header-right {
+                width: 100%;
+                text-align: center;
+            }
+
+            .activity-info h1 {
+                font-size: 1.1rem;
+            }
+
+            .activity-details {
+                flex-wrap: wrap;
+                justify-content: center;
+                font-size: 0.75rem;
+            }
+
+            .realtime-clock .time {
+                font-size: 1.2rem;
+            }
+
+            .realtime-clock .date {
+                font-size: 0.7rem;
+            }
+
+            .header-back-btn {
+                font-size: 12px;
+                padding: 0.4rem 0.8rem;
+            }
+
             .stats-counter {
                 bottom: 1rem;
                 right: 1rem;
@@ -508,6 +626,83 @@
         .show {
             display: block !important;
         }
+
+        /* Refresh interval selector */
+        .refresh-selector {
+            position: fixed;
+            bottom: 6rem;
+            left: 2rem;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+
+        .refresh-selector h4 {
+            color: #667eea;
+            margin-bottom: 0.75rem;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .refresh-selector select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-selector select:hover {
+            border-color: #667eea;
+        }
+
+        .refresh-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Speed selector */
+        .speed-selector {
+            position: fixed;
+            bottom: 10rem;
+            left: 2rem;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+        }
+
+        .speed-selector h4 {
+            color: #667eea;
+            margin-bottom: 0.75rem;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .speed-selector input[type="range"] {
+            width: 100%;
+            margin: 0.5rem 0;
+            cursor: pointer;
+        }
+
+        .speed-value {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -521,14 +716,32 @@
 
     <!-- Header -->
     <header class="header">
-        <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-3xl font-bold text-white drop-shadow-lg">
-                        🎉 ผู้เข้าร่วมกิจกรรม
-                    </h1>
-                    <p class="text-white/80 text-sm mt-1" id="currentActivityName">เลือกกิจกรรม...</p>
+        <div class="header-content">
+            <!-- Left: Activity Info -->
+            <div class="header-left">
+                <div class="activity-info" id="activityInfoSection" style="display: none;">
+                    <h1 id="headerActivityName">กิจกรรม...</h1>
+                    <div class="activity-details">
+                        <span>📅 <span id="headerActivityDate">-</span></span>
+                        <span>⏰ <span id="headerActivityTime">-</span></span>
+                        <span>📍 <span id="headerActivityLocation">-</span></span>
+                    </div>
                 </div>
+            </div>
+
+            <!-- Center: Real-time Clock -->
+            <div class="header-center">
+                <div class="realtime-clock">
+                    <div class="time" id="realtimeTime">00:00:00</div>
+                    <div class="date" id="realtimeDate">-</div>
+                </div>
+            </div>
+
+            <!-- Right: Back Button -->
+            <div class="header-right">
+                <button id="headerBackBtn" class="header-back-btn hide" onclick="showActivitySelector()">
+                    ← กลับเลือกกิจกรรม
+                </button>
             </div>
         </div>
     </header>
@@ -543,11 +756,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Back Button -->
-    <button id="backBtn" class="back-btn hide" onclick="showActivitySelector()">
-        ← กลับเลือกกิจกรรม
-    </button>
 
     <!-- Profile Container -->
     <div id="profileContainer" class="profile-container hide">
@@ -574,9 +782,37 @@
         <button class="control-btn" onclick="toggleAutoRefresh()">
             ⏱️ อัตโนมัติ: <span id="autoRefreshStatus">OFF</span>
         </button>
+        <button class="control-btn" onclick="showRefreshSelector()">
+            ⏰ ตั้งเวลา
+        </button>
+        <button class="control-btn" onclick="showSpeedSelector()">
+            🚀 ความเร็ว
+        </button>
         <button class="control-btn" onclick="exportData()">
             📊 ส่งออก
         </button>
+    </div>
+
+    <!-- Refresh Interval Selector -->
+    <div id="refreshSelector" class="refresh-selector hide">
+        <h4>⏰ เลือกระยะเวลาอัตโนมัติ</h4>
+        <select id="refreshInterval" onchange="updateRefreshInterval(this.value)">
+            <option value="30000">30 วินาที</option>
+            <option value="60000">1 นาที</option>
+            <option value="120000">2 นาที</option>
+            <option value="300000" selected>5 นาที</option>
+            <option value="600000">10 นาที</option>
+            <option value="900000">15 นาที</option>
+        </select>
+    </div>
+
+    <!-- Speed Selector -->
+    <div id="speedSelector" class="speed-selector hide">
+        <h4>🚀 ความเร็วการลอย</h4>
+        <input type="range" id="speedSlider" min="1" max="10" value="5" oninput="updateSpeed(this.value)">
+        <div class="speed-value">
+            ความเร็ว: <span id="speedValue">5</span>/10
+        </div>
     </div>
 
     <script>
@@ -593,11 +829,35 @@
         // ═══════════════════════════════════════════════════════════════
 
         let CURRENT_ACTIVITY_ID = null;
+        let CURRENT_ACTIVITY = null; // Store current activity data
         let AUTO_REFRESH_INTERVAL = null;
+        let REFRESH_INTERVAL_MS = 300000; // Default: 5 minutes (300,000ms)
         let IS_AUTO_REFRESH = false;
         let PARTICIPANTS = [];
         let LAST_KNOWN_COUNT = 0;
         let ACTIVITIES = [];
+        let SPEED_MULTIPLIER = 1.0; // Speed multiplier (1.0 = normal)
+
+        // Start real-time clock
+        function startRealtimeClock() {
+            function updateTime() {
+                const now = new Date();
+
+                // Time
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                document.getElementById('realtimeTime').textContent = `${hours}:${minutes}:${seconds}`;
+
+                // Date
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const dateStr = now.toLocaleDateString('th-TH', options);
+                document.getElementById('realtimeDate').textContent = dateStr;
+            }
+
+            updateTime();
+            setInterval(updateTime, 1000);
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
@@ -633,6 +893,9 @@
 
                 // Setup real-time updates
                 setupRealtimeUpdates();
+
+                // Start real-time clock
+                startRealtimeClock();
 
             } catch (error) {
                 console.error('Initialization error:', error);
@@ -711,10 +974,18 @@
             // Hide selector
             document.getElementById('activitySelector').classList.add('hide');
             document.getElementById('profileContainer').classList.remove('hide');
-            document.getElementById('backBtn').classList.remove('hide');
+            document.getElementById('headerBackBtn').classList.remove('hide');
 
             // Load participants
             await loadActivityAndParticipants();
+        }
+
+        // Show activity selector
+        function showActivitySelector() {
+            document.getElementById('activitySelector').classList.remove('hide');
+            document.getElementById('profileContainer').classList.add('hide');
+            document.getElementById('headerBackBtn').classList.add('hide');
+            document.getElementById('activityInfoSection').style.display = 'none';
         }
 
         // Load activity info and participants
@@ -745,8 +1016,34 @@
             const data = await response.json();
 
             if (data.success && data.activity) {
-                document.getElementById('currentActivityName').textContent = data.activity.name;
+                CURRENT_ACTIVITY = data.activity;
+                updateHeaderActivityInfo(data.activity);
             }
+        }
+
+        // Update header with activity information
+        function updateHeaderActivityInfo(activity) {
+            // Show activity section
+            document.getElementById('activityInfoSection').style.display = 'block';
+
+            // Update activity details
+            document.getElementById('headerActivityName').textContent = activity.name;
+
+            // Format date
+            const activityDate = new Date(activity.date);
+            const dateStr = activityDate.toLocaleDateString('th-TH', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+            document.getElementById('headerActivityDate').textContent = dateStr;
+
+            // Time
+            document.getElementById('headerActivityTime').textContent = `${activity.startTime} - ${activity.endTime}`;
+
+            // Location
+            document.getElementById('headerActivityLocation').textContent = activity.location;
         }
 
         // Load participants from SCORDS API
@@ -768,22 +1065,21 @@
 
                 console.log(`✅ Received ${data.participants.length} participants`);
 
-                // Update participants list
+                // Update participants list and render (only new profiles will be added)
                 PARTICIPANTS = data.participants;
-
-                // Render profiles
                 renderProfiles(PARTICIPANTS);
 
-                // Update stats
-                updateStats();
+                // Trigger confetti for new arrivals
+                const existingCount = LAST_KNOWN_COUNT;
+                if (PARTICIPANTS.length > existingCount) {
+                    const newCount = PARTICIPANTS.length - existingCount;
+                    for (let i = 0; i < newCount; i++) {
+                        triggerConfetti();
+                    }
+                }
 
                 // Update timestamp
                 updateTimestamp();
-
-                // Trigger confetti if there are participants
-                if (PARTICIPANTS.length > 0 && LAST_KNOWN_COUNT === 0) {
-                    PARTICIPANTS.forEach(() => triggerConfetti());
-                }
 
             } catch (error) {
                 console.error('Error loading participants:', error);
@@ -800,7 +1096,15 @@
             updateStats();
             updateTimestamp();
 
-            document.getElementById('currentActivityName').textContent = `Demo Activity (${mockData.length} คน)`;
+            // Create mock activity info for header
+            const mockActivity = {
+                name: `Demo Activity (${mockData.length} คน)`,
+                date: new Date().toISOString().split('T')[0],
+                startTime: '09:00',
+                endTime: '17:00',
+                location: 'Demo Location'
+            };
+            updateHeaderActivityInfo(mockActivity);
         }
 
         // Generate mock activities
@@ -870,22 +1174,35 @@
             return mockData;
         }
 
-        // Render floating profiles
+        // Render floating profiles (add only new ones)
         function renderProfiles(participants) {
             const container = document.getElementById('profileContainer');
-            container.innerHTML = '';
+            const existingParticipants = Object.keys(PROFILE_MOVEMENT);
 
-            participants.forEach((participant, index) => {
-                // Add staggered delay for entrance animation
-                setTimeout(() => {
-                    createProfileElement(participant, container, true);
-                }, index * 100);
-            });
+            // Find new participants
+            const newParticipants = participants.filter(p => !existingParticipants.includes(p.userId));
 
-            // Start pinball movement after all profiles are created
-            setTimeout(() => {
-                startPinballMovement();
-            }, participants.length * 100 + 1500);
+            if (newParticipants.length > 0) {
+                console.log(`🆕 Adding ${newParticipants.length} new participants`);
+
+                newParticipants.forEach((participant, index) => {
+                    // Add staggered delay for entrance animation
+                    setTimeout(() => {
+                        createProfileElement(participant, container, true);
+                    }, index * 100);
+                });
+
+                // Update PARTICIPANTS array with all participants
+                PARTICIPANTS = participants;
+                updateStats();
+
+                // Note: Don't restart pinball movement as it would reset existing profiles
+            } else {
+                console.log('✅ No new participants to add');
+                // Still update PARTICIPANTS array
+                PARTICIPANTS = participants;
+                updateStats();
+            }
         }
 
         // Store profile movement data
@@ -981,10 +1298,10 @@
                     const data = PROFILE_MOVEMENT[userId];
                     if (!data.element || !data.element.offsetParent) return; // Skip if element not in DOM
 
-                    // Update position in 3D space
-                    data.x += data.vx * data.speed;
-                    data.y += data.vy * data.speed;
-                    data.z += data.vz * data.speed;
+                    // Update position in 3D space with speed multiplier
+                    data.x += data.vx * data.speed * SPEED_MULTIPLIER;
+                    data.y += data.vy * data.speed * SPEED_MULTIPLIER;
+                    data.z += data.vz * data.speed * SPEED_MULTIPLIER;
 
                     // Get element size for collision detection
                     const rect = data.element.getBoundingClientRect();
@@ -1156,13 +1473,6 @@
             // Could add timestamp display if needed
         }
 
-        // Show activity selector
-        function showActivitySelector() {
-            document.getElementById('activitySelector').classList.remove('hide');
-            document.getElementById('profileContainer').classList.add('hide');
-            document.getElementById('backBtn').classList.add('hide');
-        }
-
         // Show participant details
         function showParticipantDetails(participant) {
             Swal.fire({
@@ -1205,12 +1515,71 @@
 
         // Setup real-time updates
         function setupRealtimeUpdates() {
-            // Polling for updates (every 30 seconds)
+            // Polling for updates (interval configurable by user)
             setInterval(async () => {
                 if (IS_AUTO_REFRESH && CURRENT_ACTIVITY_ID) {
                     await loadParticipants();
                 }
-            }, 30000);
+            }, REFRESH_INTERVAL_MS);
+        }
+
+        // Show refresh interval selector
+        function showRefreshSelector() {
+            const selector = document.getElementById('refreshSelector');
+            selector.classList.toggle('hide');
+        }
+
+        // Update refresh interval
+        function updateRefreshInterval(intervalMs) {
+            REFRESH_INTERVAL_MS = parseInt(intervalMs);
+
+            // Update interval display
+            const minutes = Math.floor(REFRESH_INTERVAL_MS / 60000);
+            const seconds = Math.floor((REFRESH_INTERVAL_MS % 60000) / 1000);
+
+            let timeText = '';
+            if (minutes > 0) {
+                timeText = `${minutes} นาที`;
+                if (seconds > 0) timeText += ` ${seconds} วินาที`;
+            } else {
+                timeText = `${seconds} วินาที`;
+            }
+
+            // Show notification
+            Swal.fire({
+                icon: 'success',
+                title: 'ตั้งค่าระยะเวลาเรียบร้อย',
+                text: `อัตโนมัติ: ทุก${timeText}`,
+                timer: 1500,
+                showConfirmButton: false
+            });
+
+            // Restart auto-refresh if it's already running
+            if (IS_AUTO_REFRESH) {
+                IS_AUTO_REFRESH = false;
+                toggleAutoRefresh();
+            }
+
+            // Hide selector
+            document.getElementById('refreshSelector').classList.add('hide');
+        }
+
+        // Show speed selector
+        function showSpeedSelector() {
+            const selector = document.getElementById('speedSelector');
+            selector.classList.toggle('hide');
+        }
+
+        // Update speed multiplier
+        function updateSpeed(value) {
+            const speedLevel = parseInt(value);
+            document.getElementById('speedValue').textContent = speedLevel;
+
+            // Calculate multiplier: 1 = 0.5x, 5 = 1.0x, 10 = 2.0x
+            SPEED_MULTIPLIER = 0.5 + (speedLevel / 10) * 1.5;
+
+            // Log for debugging
+            console.log(`🚀 Speed updated: Level ${speedLevel}, Multiplier: ${SPEED_MULTIPLIER.toFixed(2)}x`);
         }
 
         // Refresh data
@@ -1240,10 +1609,21 @@
             document.getElementById('autoRefreshStatus').textContent = IS_AUTO_REFRESH ? 'ON' : 'OFF';
 
             if (IS_AUTO_REFRESH) {
+                const minutes = Math.floor(REFRESH_INTERVAL_MS / 60000);
+                const seconds = Math.floor((REFRESH_INTERVAL_MS % 60000) / 1000);
+
+                let timeText = '';
+                if (minutes > 0) {
+                    timeText = `${minutes} นาที`;
+                    if (seconds > 0) timeText += ` ${seconds} วินาที`;
+                } else {
+                    timeText = `${seconds} วินาที`;
+                }
+
                 Swal.fire({
                     icon: 'success',
                     title: 'เปิดรีเฟรชอัตโนมัติ',
-                    text: 'ข้อมูลจะอัปเดตทุก 30 วินาที',
+                    text: `ข้อมูลจะอัปเดตทุก${timeText}`,
                     timer: 2000,
                     showConfirmButton: false
                 });
