@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ผู้เข้าร่วมกิจกรรม - Participant Display (SCORDS Backend)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        * {
+            font-family: 'Prompt', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: moveBackground 20s linear infinite;
+        }
+
+        @keyframes moveBackground {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-50px, -50px); }
+        }
+
+        /* Floating profile pictures */
+        .profile-container {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .floating-profile {
+            position: absolute;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+            background: white;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-profile:hover {
+            transform: scale(1.2) !important;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+        }
+
+        .floating-profile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Different floating animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-20px) rotate(2deg); }
+            50% { transform: translateY(-10px) rotate(-2deg); }
+            75% { transform: translateY(-25px) rotate(1deg); }
+        }
+
+        @keyframes float-alt {
+            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+            33% { transform: translateY(-15px) translateX(10px) rotate(3deg); }
+            66% { transform: translateY(-20px) translateX(-10px) rotate(-3deg); }
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+        }
+
+        /* Size variations */
+        .size-small { width: 60px; height: 60px; animation: float 5s ease-in-out infinite; }
+        .size-medium { width: 90px; height: 90px; animation: float-alt 7s ease-in-out infinite; }
+        .size-large { width: 120px; height: 120px; animation: float-slow 8s ease-in-out infinite; }
+        .size-xlarge { width: 150px; height: 150px; animation: float 9s ease-in-out infinite; }
+
+        /* Entrance animation */
+        @keyframes popIn {
+            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+            60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .profile-enter {
+            animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+        }
+
+        /* Stats counter */
+        .stats-counter {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1.5rem 2.5rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Tooltip */
+        .profile-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+            z-index: 101;
+        }
+
+        .floating-profile:hover .profile-tooltip {
+            opacity: 1;
+        }
+
+        /* Confetti effect */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #f0f;
+            position: absolute;
+            animation: confetti-fall 3s linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* Pulse effect for new arrivals */
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .new-arrival::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            border: 3px solid #FFD700;
+            animation: pulse-ring 1.5s ease-out infinite;
+        }
+
+        /* Control panel */
+        .control-panel {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            z-index: 50;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .stats-counter {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 1rem 1.5rem;
+                font-size: 0.875rem;
+            }
+
+            .control-panel {
+                bottom: 1rem;
+                left: 1rem;
+            }
+
+            .size-small { width: 45px; height: 45px; }
+            .size-medium { width: 65px; height: 65px; }
+            .size-large { width: 85px; height: 85px; }
+            .size-xlarge { width: 100px; height: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Background Animation -->
+    <div class="bg-animation"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-white drop-shadow-lg">
+                        🎉 ผู้เข้าร่วมกิจกรรม
+                    </h1>
+                    <p class="text-white/80 text-sm mt-1" id="activityName">กำลังโหลด...</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-white/60 text-sm">อัปเดตล่าสุด</p>
+                    <p class="text-white font-semibold" id="lastUpdate">--:--</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Profile Container -->
+    <div id="profileContainer" class="profile-container">
+        <!-- Profiles will be dynamically added here -->
+    </div>
+
+    <!-- Stats Counter -->
+    <div class="stats-counter">
+        <div class="text-center">
+            <p class="text-white/80 text-sm mb-1">ผู้เข้าร่วมทั้งหมด</p>
+            <p class="text-5xl font-bold text-white" id="participantCount">0</p>
+            <p class="text-white/60 text-xs mt-2">คน</p>
+        </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+        <button class="control-btn" onclick="refreshData()">
+            🔄 รีเฟรช
+        </button>
+        <button class="control-btn" onclick="toggleAutoRefresh()">
+            ⏱️ อัตโนมัติ: <span id="autoRefreshStatus">OFF</span>
+        </button>
+        <button class="control-btn" onclick="exportData()">
+            📊 ส่งออก
+        </button>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // CONFIGURATION - แก้ไข URL ตรงนี้
+        // ═══════════════════════════════════════════════════════════════
+
+        // URL ของ Google Apps Script Web App (Deploy แล้วแทนที่ด้วย)
+        const SCORDS_API_URL = 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
+
+        // ═══════════════════════════════════════════════════════════════
+
+        let ACTIVITY_ID = null;
+        let AUTO_REFRESH_INTERVAL = null;
+        let IS_AUTO_REFRESH = false;
+        let PARTICIPANTS = [];
+        let LAST_KNOWN_COUNT = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Get activity ID from URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                ACTIVITY_ID = urlParams.get('activityId') || 'demo';
+
+                // Check if API URL is configured
+                if (SCORDS_API_URL === 'YOUR_DEPLOYED_WEB_APP_URL_HERE') {
+                    // Demo mode with mock data
+                    console.log('🎮 Demo Mode: Using mock data');
+                    await loadMockData();
+                } else {
+                    // Production mode with real API
+                    console.log('🔗 Production Mode: Using SCORDS API');
+                    await loadActivityInfo();
+                    await loadParticipants();
+                }
+
+                // Hide loading overlay
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('loadingOverlay').style.display = 'none';
+                    }, 500);
+                }, 1000);
+
+                // Setup real-time updates
+                setupRealtimeUpdates();
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่',
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#667eea'
+                });
+            }
+        });
+
+        // Load activity information
+        async function loadActivityInfo() {
+            try {
+                const response = await fetch(`${SCORDS_API_URL}?action=getParticipantsForDisplay&activityId=${ACTIVITY_ID}`);
+                const data = await response.json();
+
+                if (data.success && data.activity) {
+                    document.getElementById('activityName').textContent = data.activity.name;
+                } else {
+                    document.getElementById('activityName').textContent = `กิจกรรม ID: ${ACTIVITY_ID}`;
+                }
+            } catch (error) {
+                console.error('Error loading activity info:', error);
+                document.getElementById('activityName').textContent = `กิจกรรม ID: ${ACTIVITY_ID}`;
+            }
+        }
+
+        // Load participants from SCORDS API
+        async function loadParticipants() {
+            try {
+                console.log(`📡 Fetching participants for activity: ${ACTIVITY_ID}`);
+
+                const response = await fetch(`${SCORDS_API_URL}?action=getParticipantsForDisplay&activityId=${ACTIVITY_ID}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load participants');
+                }
+
+                console.log(`✅ Received ${data.participants.length} participants`);
+
+                // Check for new arrivals
+                const newParticipants = data.participants.filter(p =>
+                    !PARTICIPANTS.find(existing => existing.userId === p.userId)
+                );
+
+                // Update participants list
+                PARTICIPANTS = data.participants;
+
+                // Render profiles
+                renderProfiles(newParticipants);
+
+                // Update stats
+                updateStats();
+
+                // Update timestamp
+                updateTimestamp();
+
+                // Trigger confetti for new arrivals
+                if (newParticipants.length > 0) {
+                    newParticipants.forEach(p => triggerConfetti());
+                }
+
+                // Update activity name if available
+                if (data.activity) {
+                    document.getElementById('activityName').textContent = data.activity.name;
+                }
+
+            } catch (error) {
+                console.error('Error loading participants:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'โหลดข้อมูลไม่สำเร็จ',
+                    text: error.message,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#667eea'
+                });
+
+                // Fallback to demo data
+                await loadMockData();
+            }
+        }
+
+        // Load mock data for demo/testing
+        async function loadMockData() {
+            const mockData = generateMockParticipants();
+            PARTICIPANTS = mockData;
+            renderProfiles(mockData);
+            updateStats();
+            document.getElementById('activityName').textContent = 'Demo Activity';
+            updateTimestamp();
+        }
+
+        // Generate mock participants (for development/demo)
+        function generateMockParticipants() {
+            const names = ['สมชาย ใจดี', 'สมหญิง รักเรียน', 'วีระ กล้าหาญ', 'สุดา เมตตา',
+                          'นภา สินธุ', 'กิตติ เก่งกาจ', 'มินตรา รัตนา', 'อานนท์ ยิ่งยง',
+                          'พิชญา แก้วสุวรรณ', 'สมศักดิ์ จริงใจ'];
+
+            const positions = ['ผู้จัดการ', 'หัวหน้างาน', 'พนักงาน', 'เจ้าหน้าที่'];
+            const departments = ['IT', 'HR', 'บัญชี', 'การตลาด', 'ขาย'];
+
+            const mockData = [];
+
+            for (let i = 0; i < 10; i++) {
+                mockData.push({
+                    userId: `U${1000 + i}`,
+                    displayName: names[i] || `ผู้ใช้ ${i + 1}`,
+                    pictureUrl: `https://i.pravatar.cc/150?img=${i + 1}`,
+                    employeeId: `EMP${1000 + i}`,
+                    position: positions[Math.floor(Math.random() * positions.length)],
+                    department: departments[Math.floor(Math.random() * departments.length)],
+                    checkInTime: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+                    status: Math.random() > 0.3 ? 'ตรงเวลา' : 'สาย',
+                    checkInMethod: 'QR Code'
+                });
+            }
+
+            return mockData;
+        }
+
+        // Render floating profiles
+        function renderProfiles(newArrivals = []) {
+            const container = document.getElementById('profileContainer');
+
+            // Clear existing profiles if not adding new arrivals
+            if (newArrivals.length === 0) {
+                container.innerHTML = '';
+                PARTICIPANTS.forEach(participant => {
+                    createProfileElement(participant, container);
+                });
+            } else {
+                // Add only new arrivals
+                newArrivals.forEach(participant => {
+                    createProfileElement(participant, container, true);
+                });
+            }
+        }
+
+        // Create single profile element
+        function createProfileElement(participant, container, isNew = false) {
+            const profile = document.createElement('div');
+            profile.className = `floating-profile ${getSizeClass()} ${isNew ? 'profile-enter new-arrival' : ''}`;
+            profile.id = `profile-${participant.userId}`;
+
+            // Random position (avoid edges)
+            const posX = Math.random() * 70 + 15; // 15% - 85%
+            const posY = Math.random() * 60 + 20; // 20% - 80%
+            profile.style.left = `${posX}%`;
+            profile.style.top = `${posY}%`;
+
+            // Random animation delay
+            profile.style.animationDelay = `${Math.random() * 2}s`;
+
+            // Profile image
+            const img = document.createElement('img');
+            img.src = participant.pictureUrl || 'https://via.placeholder.com/150';
+            img.alt = participant.displayName;
+            img.onerror = () => {
+                // Fallback: create initial from name
+                const initial = participant.displayName ? participant.displayName.charAt(0) : '?';
+                img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.displayName)}&background=random`;
+            };
+
+            // Tooltip
+            const tooltip = document.createElement('div');
+            tooltip.className = 'profile-tooltip';
+            tooltip.innerHTML = `
+                <div class="font-semibold">${participant.displayName}</div>
+                <div class="text-xs opacity-75">${participant.position || participant.department || ''}</div>
+                <div class="text-xs opacity-75 mt-1">เช็คอิน: ${formatCheckInTime(participant.checkInTime)}</div>
+                ${participant.status ? `<div class="text-xs mt-1 ${participant.status === 'ตรงเวลา' ? 'text-green-400' : 'text-yellow-400'}">${participant.status}</div>` : ''}
+            `;
+
+            profile.appendChild(img);
+            profile.appendChild(tooltip);
+            container.appendChild(profile);
+
+            // Click to show details
+            profile.addEventListener('click', () => showParticipantDetails(participant));
+        }
+
+        // Get random size class
+        function getSizeClass() {
+            const sizes = ['size-small', 'size-medium', 'size-large', 'size-xlarge'];
+            const weights = [0.4, 0.3, 0.2, 0.1]; // More small than large
+            const random = Math.random();
+            let sum = 0;
+
+            for (let i = 0; i < weights.length; i++) {
+                sum += weights[i];
+                if (random <= sum) return sizes[i];
+            }
+
+            return 'size-medium';
+        }
+
+        // Format check-in time
+        function formatCheckInTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Update stats
+        function updateStats() {
+            const counter = document.getElementById('participantCount');
+            const newCount = PARTICIPANTS.length;
+
+            // Only animate if count changed
+            if (newCount !== LAST_KNOWN_COUNT) {
+                animateCounter(counter, newCount);
+                LAST_KNOWN_COUNT = newCount;
+            }
+        }
+
+        // Animate counter
+        function animateCounter(element, target) {
+            const current = parseInt(element.textContent) || 0;
+            const increment = (target - current) / 20;
+            let value = current;
+
+            const timer = setInterval(() => {
+                value += increment;
+                if ((increment > 0 && value >= target) || (increment < 0 && value <= target)) {
+                    element.textContent = target;
+                    clearInterval(timer);
+                } else {
+                    element.textContent = Math.round(value);
+                }
+            }, 50);
+        }
+
+        // Update timestamp
+        function updateTimestamp() {
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // Show participant details
+        function showParticipantDetails(participant) {
+            Swal.fire({
+                title: participant.displayName,
+                html: `
+                    <div class="text-center">
+                        <img src="${participant.pictureUrl}"
+                             class="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-yellow-400"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(participant.displayName)}&background=random&size=128'">
+                        <div class="space-y-2 text-left">
+                            ${participant.employeeId ? `<p class="text-gray-600"><strong>รหัสพนักงาน:</strong> ${participant.employeeId}</p>` : ''}
+                            ${participant.position ? `<p class="text-gray-600"><strong>ตำแหน่ง:</strong> ${participant.position}</p>` : ''}
+                            ${participant.department ? `<p class="text-gray-600"><strong>แผนก:</strong> ${participant.department}</p>` : ''}
+                            <p class="text-gray-600"><strong>เวลาเช็คอิน:</strong> ${formatCheckInTime(participant.checkInTime)}</p>
+                            ${participant.status ? `<p class="text-gray-600"><strong>สถานะ:</strong> <span class="${participant.status === 'ตรงเวลา' ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'}">${participant.status}</span></p>` : ''}
+                        </div>
+                    </div>
+                `,
+                confirmButtonColor: '#667eea',
+                confirmButtonText: 'ตกลง'
+            });
+        }
+
+        // Trigger confetti effect
+        function triggerConfetti() {
+            const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+
+            for (let i = 0; i < 15; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                document.body.appendChild(confetti);
+
+                // Remove after animation
+                setTimeout(() => confetti.remove(), 3000);
+            }
+        }
+
+        // Setup real-time updates
+        function setupRealtimeUpdates() {
+            // Polling for updates (every 30 seconds)
+            setInterval(async () => {
+                if (IS_AUTO_REFRESH) {
+                    await loadParticipants();
+                }
+            }, 30000);
+        }
+
+        // Refresh data
+        async function refreshData() {
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ กำลังโหลด...';
+
+            if (SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE') {
+                await loadParticipants();
+            } else {
+                await loadMockData();
+            }
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }, 1000);
+        }
+
+        // Toggle auto refresh
+        function toggleAutoRefresh() {
+            IS_AUTO_REFRESH = !IS_AUTO_REFRESH;
+            document.getElementById('autoRefreshStatus').textContent = IS_AUTO_REFRESH ? 'ON' : 'OFF';
+
+            if (IS_AUTO_REFRESH) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'เปิดรีเฟรชอัตโนมัติ',
+                    text: 'ข้อมูลจะอัปเดตทุก 30 วินาที',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        // Export data
+        function exportData() {
+            const csv = [
+                ['ชื่อ', 'รหัสพนักงาน', 'ตำแหน่ง', 'แผนก', 'เวลาเช็คอิน', 'สถานะ'],
+                ...PARTICIPANTS.map(p => [
+                    p.displayName,
+                    p.employeeId || '-',
+                    p.position || '-',
+                    p.department || '-',
+                    formatCheckInTime(p.checkInTime),
+                    p.status || '-'
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            // Add BOM for Excel Thai language support
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `participants_${ACTIVITY_ID}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'r' || e.key === 'R') {
+                refreshData();
+            } else if (e.key === 'a' || e.key === 'A') {
+                toggleAutoRefresh();
+            }
+        });
+    </script>
+</body>
+</html>

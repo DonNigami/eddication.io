@@ -86,6 +86,12 @@ function doGet(e) {
       return createJsonResponse({ success: true, data: getUserAchievements(userId) });
     }
 
+    if (action === "getParticipantsForDisplay") {
+      const activityId = e.parameter.activityId;
+      if (!activityId) throw new Error("Activity ID is required.");
+      return createJsonResponse(getParticipantsForDisplay(activityId));
+    }
+
     return createJsonResponse({
       success: true,
       message: "Check-in API is running."
@@ -415,6 +421,121 @@ function getDistance(lat1, lon1, lat2, lon2) {
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
   return R * c;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARTICIPANT DISPLAY FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get participants for display page
+ * @param {string} activityId - Activity ID to get participants for
+ * @returns {Object} Participants data with profile information
+ */
+function getParticipantsForDisplay(activityId) {
+  try {
+    console.log(`👥 [DISPLAY] Getting participants for activity: ${activityId}`);
+
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // Get activity information
+    const activity = findRow(ss.getSheetByName(SHEET_NAMES.ACTIVITIES), 'ID', activityId);
+    if (!activity) {
+      return {
+        success: false,
+        message: "ไม่พบกิจกรรมนี้ในระบบ"
+      };
+    }
+
+    // Get all check-in records for this activity from LOG sheet
+    const logSheet = ss.getSheetByName(SHEET_NAMES.LOG);
+    const logData = getSheetData(logSheet);
+
+    // Filter check-ins for this activity (today only)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activityCheckIns = logData.filter(row => {
+      const recordDate = new Date(row.Timestamp);
+      recordDate.setHours(0, 0, 0, 0);
+      return row.ActivityID.toString() === activityId.toString() &&
+             recordDate.getTime() === today.getTime();
+    });
+
+    console.log(`👥 [DISPLAY] Found ${activityCheckIns.length} check-ins for this activity`);
+
+    // Get unique user IDs
+    const userIds = [...new Set(activityCheckIns.map(row => row.UserID))];
+
+    // Get all users for profile information
+    const usersSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+    const allUsers = getSheetData(usersSheet);
+
+    // Build participants array with profile pictures
+    const participants = userIds.map(userId => {
+      const user = allUsers.find(u => u.UserID === userId);
+      const userCheckIns = activityCheckIns.filter(row => row.UserID === userId);
+
+      // Get the latest check-in
+      const latestCheckIn = userCheckIns.sort((a, b) =>
+        new Date(b.Timestamp) - new Date(a.Timestamp)
+      )[0];
+
+      return {
+        userId: userId,
+        displayName: user ? (user.DisplayName || user.FirstName + ' ' + user.LastName) : (latestCheckIn.DisplayName || 'Unknown'),
+        pictureUrl: user ? user.ProfilePicture : null,
+        employeeId: user ? user.EmployeeID : null,
+        position: user ? user.Position : null,
+        department: user ? user.Group : null,
+        checkInTime: latestCheckIn ? latestCheckIn.Timestamp : null,
+        status: latestCheckIn ? latestCheckIn.Status : null,
+        checkInMethod: latestCheckIn.Method || null
+      };
+    });
+
+    // Sort by check-in time (most recent first)
+    participants.sort((a, b) => new Date(b.checkInTime) - new Date(a.checkInTime));
+
+    console.log(`👥 [DISPLAY] Returning ${participants.length} participants`);
+
+    return {
+      success: true,
+      activity: {
+        id: activity.ID,
+        name: activity.Name,
+        date: activity.Date,
+        startTime: activity.StartTime,
+        endTime: activity.EndTime,
+        location: activity.Location || '-',
+        qrCode: activity.QRCode
+      },
+      participants: participants,
+      stats: {
+        total: participants.length,
+        byDepartment: participants.reduce((acc, p) => {
+          if (p.department) {
+            acc[p.department] = (acc[p.department] || 0) + 1;
+          }
+          return acc;
+        }, {}),
+        byStatus: participants.reduce((acc, p) => {
+          if (p.status) {
+            acc[p.status] = (acc[p.status] || 0) + 1;
+          }
+          return acc;
+        }, {})
+      },
+      timestamp: new Date().toISOString()
+    };
+
+  } catch (error) {
+    console.error(`❌ [DISPLAY] Error: ${error.toString()}`);
+    return {
+      success: false,
+      message: `Error: ${error.message}`
+    };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

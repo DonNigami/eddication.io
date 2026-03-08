@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Start - SCORDS Participant Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-purple-600 to-blue-600 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">⚡ SCORDS Participant Display</h1>
+            <p class="text-gray-600 text-lg">หน้าแสดงผลรูปโปรไฟล์ลอยไปลอยมา - ใช้ backend Code_Old_Reorganized.gs</p>
+        </div>
+
+        <!-- Status Cards -->
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-green-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mr-4">✅</div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Backend พร้อมใช้งาน</h2>
+                        <p class="text-gray-600">Code_Old_Reorganized.gs</p>
+                    </div>
+                </div>
+                <ul class="text-sm text-gray-700 space-y-1">
+                    <li>✓ ฟังก์ชัน <code>getParticipantsForDisplay()</code> เพิ่มแล้ว</li>
+                    <li>✓ Action handler <code>doGet</code> เพิ่มแล้ว</li>
+                    <li>✓ ดึงข้อมูลจาก Checkin_Log + Users sheets</li>
+                </ul>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mr-4">🎨</div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">Frontend พร้อมใช้งาน</h2>
+                        <p class="text-gray-600">participant-display.html</p>
+                    </div>
+                </div>
+                <ul class="text-sm text-gray-700 space-y-1">
+                    <li>✓ เชื่อมต่อกับ SCORDS backend โดยตรง</li>
+                    <li>✓ รองรับ Demo mode (mock data)</li>
+                    <li>✓ Auto-refresh ทุก 30 วินาที</li>
+                    <li>✓ Export to CSV</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Deploy Steps -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">🚀 3 ขั้นตอนเริ่มใช้งาน</h2>
+
+            <!-- Step 1 -->
+            <div class="mb-8">
+                <div class="flex items-start">
+                    <div class="bg-purple-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">1</div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">Deploy Google Apps Script</h3>
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                                <li>เปิด <code class="bg-purple-100 px-2 py-1 rounded">backend/Code_Old_Reorganized.gs</code></li>
+                                <li>ไปที่ <strong>Deploy</strong> → <strong>New deployment</strong></li>
+                                <li>เลือก <strong>Web app</strong></li>
+                                <li class="bg-yellow-100 p-3 rounded border-l-4 border-yellow-400">
+                                    <strong class="text-yellow-800">⚠️ สำคัญ:</strong>
+                                    <ul class="mt-2 ml-4 space-y-1">
+                                        <li>• Execute as: <strong>Me (your email)</strong></li>
+                                        <li>• Who has access: <strong>Anyone</strong></li>
+                                    </ul>
+                                </li>
+                                <li>คลิก <strong>Deploy</strong></li>
+                                <li>คัดลอก Web App URL เช่น: <code class="bg-gray-100 px-2 py-1 rounded text-xs">https://script.google.com/macros/s/XXXXX/exec</code></li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="mb-8">
+                <div class="flex items-start">
+                    <div class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">2</div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">อัปเดต participant-display.html</h3>
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <p class="text-gray-700 mb-3">เปิดไฟล์ <code class="bg-blue-100 px-2 py-1 rounded">participant-display.html</code> และแก้ไขบรรทัดที่ 423:</p>
+                            <pre class="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto"><code>// แทนที่ YOUR_DEPLOYED_WEB_APP_URL_HERE ด้วย URL จาก Step 1
+const SCORDS_API_URL = 'https://script.google.com/macros/s/XXXXX/exec';</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="mb-8">
+                <div class="flex items-start">
+                    <div class="bg-green-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4 flex-shrink-0">3</div>
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-3">เปิดหน้าแสดงผล</h3>
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <p class="text-gray-700 mb-3">ใช้ URL นี้ (แทนที่ YOUR_ACTIVITY_ID):</p>
+                            <pre class="bg-gray-900 text-green-400 p-4 rounded text-sm overflow-x-auto"><code>participant-display.html?activityId=YOUR_ACTIVITY_ID</code></pre>
+                            <p class="text-gray-600 text-sm mt-3">
+                                💡 <strong>หมายเหตุ:</strong> Activity ID อยู่ใน Google Sheets → Activities sheet → คอลัมน์ ID
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Buttons -->
+        <div class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl shadow-2xl p-8 mb-8">
+            <h3 class="text-2xl font-bold text-white mb-6">🎮 ทดลองใช้งานทันที</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <a href="participant-display.html?activityId=demo"
+                   class="bg-white text-orange-600 text-center py-4 rounded-xl font-bold text-lg hover:bg-orange-50 transition shadow-lg">
+                    📺 เปิด Demo Mode (ไม่ต้อง Deploy)
+                </a>
+                <a href="checkin.html"
+                   class="bg-transparent border-2 border-white text-white text-center py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-orange-600 transition">
+                    ✅ ไปหน้า Check-in
+                </a>
+            </div>
+        </div>
+
+        <!-- Features Preview -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">✨ ฟีเจอร์เด่น</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="text-5xl mb-3">🎨</div>
+                    <h4 class="font-semibold mb-2">4 ขนาดรูป</h4>
+                    <p class="text-sm text-gray-600">Small, Medium, Large, X-Large</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl mb-3">✨</div>
+                    <h4 class="font-semibold mb-2">Animation หลากหลาย</h4>
+                    <p class="text-sm text-gray-600">ลอยไปลอยมา 3 แบบ</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl mb-3">🎉</div>
+                    <h4 class="font-semibold mb-2">Confetti</h4>
+                    <p class="text-sm text-gray-600">เฉลิมเมื่อมีคนใหม่</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl mb-3">🔄</div>
+                    <h4 class="font-semibold mb-2">Auto-refresh</h4>
+                    <p class="text-sm text-gray-600">ทุก 30 วินาที</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl mb-3">📊</div>
+                    <h4 class="font-semibold mb-2">Statistics</h4>
+                    <p class="text-sm text-gray-600">นับ participant แบบ real-time</p>
+                </div>
+                <div class="text-center">
+                    <div class="text-5xl mb-3">📥</div>
+                    <h4 class="font-semibold mb-2">Export CSV</h4>
+                    <p class="text-sm text-gray-600">ส่งออกรายชื่อ</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">🔧 ปัญหาที่อาจเจอ</h3>
+            <div class="space-y-4">
+                <div class="bg-red-50 border-l-4 border-red-400 p-4">
+                    <h4 class="font-semibold text-red-900 mb-2">❌ "Failed to load participants"</h4>
+                    <ul class="text-sm text-red-800 space-y-1">
+                        <li>• ตรวจสอบว่า Deploy เรียบร้อย (Execute as: Me, Access: Anyone)</li>
+                        <li>• ตรวจสอบว่าอัปเดต SCORDS_API_URL แล้ว</li>
+                        <li>• รอ 1-2 นาทีหลัง Deploy แล้วลองใหม่</li>
+                    </ul>
+                </div>
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <h4 class="font-semibold text-yellow-900 mb-2">⚠️ รูปโปรไฟล์ไม่แสดง</h4>
+                    <ul class="text-sm text-yellow-800 space-y-1">
+                        <li>• ระบบมี fallback เป็น UI Avatar อัตโนมัติ</li>
+                        <li>• ตรวจสอบ Users sheet คอลัมน์ ProfilePicture</li>
+                        <li>• รูปอาจหมดอายุหรือ URL ไม่ถูกต้อง</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation Links -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">📚 เอกสารเพิ่มเติม</h3>
+            <div class="grid md:grid-cols-2 gap-4">
+                <a href="DEPLOY-GUIDE.md"
+                   class="block bg-blue-600 text-white text-center py-4 rounded-xl font-semibold hover:bg-blue-700 transition">
+                    📖 ดูคู่มือแบบเต็ม (DEPLOY-GUIDE.md)
+                </a>
+                <a href="README-PARTICIPANT-DISPLAY.md"
+                   class="block bg-purple-600 text-white text-center py-4 rounded-xl font-semibold hover:bg-purple-700 transition">
+                    📄 README และ Technical Details
+                </a>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="mt-8 text-center">
+            <div class="bg-white/20 backdrop-blur-sm rounded-xl p-6 inline-block">
+                <h3 class="text-xl font-bold text-white mb-2">✅ สิ่งที่ทำเสร็จแล้ว</h3>
+                <ul class="text-white/90 text-left space-y-1">
+                    <li>✅ เพิ่มฟังก์ชัน <code>getParticipantsForDisplay()</code> ใน Code_Old_Reorganized.gs</li>
+                    <li>✅ เพิ่ม action handler ใน <code>doGet()</code></li>
+                    <li>✅ อัปเดต participant-display.html ให้เชื่อมต่อกับ backend</li>
+                    <li>✅ สร้างเอกสาร DEPLOY-GUIDE.md และ README</li>
+                    <li>✅ รองรับ Demo mode สำหรับทดสอบ</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="text-center text-white/80 text-sm mt-8">
+            <p>SCORDS Participant Display System | ใช้ backend Code_Old_Reorganized.gs</p>
+            <p>อัปเดตล่าสุด: มีนาคม 2026</p>
+        </div>
+    </div>
+</body>
+</html>
