@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✅ Demo Ready - Participant Display</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        .status {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .demo-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        .demo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .info li {
+            margin: 8px 0;
+            color: #555;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✅ พร้อมใช้งาน Demo Mode!</h1>
+
+        <div class="status">
+            <strong>🎉 สถานะ:</strong> ไฟล์ได้รับการอัปเดตแล้ว!
+        </div>
+
+        <div class="info">
+            <h3>📋 วิธีใช้งาน Demo Mode:</h3>
+            <ul>
+                <li>✅ เปิดไฟล์ <code>participant-display.html</code> ได้เลย (ไม่ต้อง deploy)</li>
+                <li>✅ ระบบจะใช้ข้อมูลจำลอง (mock data) อัตโนมัติ</li>
+                <li>✅ มีรูปโปรไฟล์ลอยไปลอยมาพร้อม animation</li>
+                <li>✅ สามารถทดสอบทุกฟีเจอร์ได้ทันที</li>
+            </ul>
+        </div>
+
+        <div class="warning">
+            ⚠️ <strong>หมายเหตุ:</strong> ถ้า URL ยังเป็น <code>YOUR_DEPLOYED_WEB_APP_URL_HERE</code>
+            <br>ระบบจะใช้ Demo Mode อัตโนมัติ
+        </div>
+
+        <a href="participant-display.html?activityId=demo" class="demo-btn">
+            🚀 เปิด Demo Mode
+        </a>
+
+        <div class="info" style="margin-top: 30px;">
+            <h3>🚀 วิธีใช้งานจริง (Production):</h3>
+            <ol style="margin: 10px 0; padding-left: 20px;">
+                <li>Deploy Google Apps Script (ดูใน DEPLOY-GUIDE.md)</li>
+                <li>แก้ไข <code>SCORDS_API_URL</code> ใน participant-display.html (บรรทัด 423)</li>
+                <li>เปิด: <code>participant-display.html?activityId=YOUR_ACTIVITY_ID</code></li>
+            </ol>
+        </div>
+
+        <div style="margin-top: 30px;">
+            <a href="quick-start.html" style="color: #667eea; text-decoration: none;">
+                📖 ดู Quick Start Guide →
+            </a>
+            <br><br>
+            <a href="DEPLOY-GUIDE.md" style="color: #667eea; text-decoration: none;">
+                📚 ดูคู่มือแบบเต็ม →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect to demo after 3 seconds if user doesn't click
+        setTimeout(() => {
+            // Uncomment to auto-redirect:
+            // window.location.href = 'participant-display.html?activityId=demo';
+        }, 5000);
+    </script>
+</body>
+</html>

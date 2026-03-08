@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ผู้เข้าร่วมกิจกรรม - Participant Display (SCORDS Backend)</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Note: Tailwind CSS CDN is used for standalone HTML file. For production, consider using Tailwind CLI or PostCSS plugin. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -331,6 +332,9 @@
         // ═══════════════════════════════════════════════════════════════
 
         // URL ของ Google Apps Script Web App (Deploy แล้วแทนที่ด้วย)
+        // ⚠️ ถ้ายังไม่ได้ deploy ให้ใช้ Demo mode อัตโนมัติ:
+        // - เปิดไฟล์พร้อม ?activityId=demo
+        // - หรือปล่อยทิ้งไว้ว่าง่ายเป็น 'YOUR_DEPLOYED_WEB_APP_URL_HERE'
         const SCORDS_API_URL = 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
 
         // ═══════════════════════════════════════════════════════════════
@@ -348,10 +352,13 @@
                 const urlParams = new URLSearchParams(window.location.search);
                 ACTIVITY_ID = urlParams.get('activityId') || 'demo';
 
-                // Check if API URL is configured
-                if (SCORDS_API_URL === 'YOUR_DEPLOYED_WEB_APP_URL_HERE') {
+                // Check if API URL is configured and not using demo mode
+                const isApiConfigured = SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
+                const isDemoMode = ACTIVITY_ID === 'demo' || !isApiConfigured;
+
+                if (isDemoMode) {
                     // Demo mode with mock data
-                    console.log('🎮 Demo Mode: Using mock data');
+                    console.log('🎮 Demo Mode: Using mock data (activityId:', ACTIVITY_ID, ')');
                     await loadMockData();
                 } else {
                     // Production mode with real API
@@ -681,10 +688,13 @@
             btn.disabled = true;
             btn.textContent = '⏳ กำลังโหลด...';
 
-            if (SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE') {
-                await loadParticipants();
-            } else {
+            const isApiConfigured = SCORDS_API_URL !== 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
+            const isDemoMode = ACTIVITY_ID === 'demo' || !isApiConfigured;
+
+            if (isDemoMode) {
                 await loadMockData();
+            } else {
+                await loadParticipants();
             }
 
             setTimeout(() => {
