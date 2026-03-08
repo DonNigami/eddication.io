@@ -145,7 +145,9 @@
             transition: box-shadow 0.3s ease, border-color 0.3s ease;
             overflow: hidden;
             background: white;
-            pointer-events: auto; /* Re-enable clicks on profiles */
+            pointer-events: auto;
+            opacity: 1 !important; /* Always visible, no flickering */
+            will-change: transform; /* Smooth animation */
         }
 
         .floating-profile:hover {
@@ -160,82 +162,82 @@
             object-fit: cover;
         }
 
-        /* Smooth random directional floating animations - no rotation, no flicker */
+        /* Smooth water-like floating animations - continuous motion, no rotation */
 
-        /* Horizontal movements */
+        /* Gentle horizontal drift */
         @keyframes float-horizontal {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(60px); }
+            0%, 100% { transform: translateX(-40px); }
+            50% { transform: translateX(40px); }
         }
 
         @keyframes float-horizontal-reverse {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(-60px); }
+            0%, 100% { transform: translateX(40px); }
+            50% { transform: translateX(-40px); }
         }
 
-        /* Vertical movements */
+        /* Gentle vertical bobbing */
         @keyframes float-vertical {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-50px); }
+            0%, 100% { transform: translateY(-30px); }
+            50% { transform: translateY(30px); }
         }
 
         @keyframes float-vertical-reverse {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(50px); }
+            0%, 100% { transform: translateY(30px); }
+            50% { transform: translateY(-30px); }
         }
 
-        /* Diagonal movements */
+        /* Smooth diagonal movements */
         @keyframes float-diagonal-1 {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(50px, -40px); }
+            0%, 100% { transform: translate(-30px, -20px); }
+            50% { transform: translate(30px, 20px); }
         }
 
         @keyframes float-diagonal-2 {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-50px, -40px); }
+            0%, 100% { transform: translate(30px, -20px); }
+            50% { transform: translate(-30px, 20px); }
         }
 
         @keyframes float-diagonal-3 {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(50px, 40px); }
+            0%, 100% { transform: translate(-30px, 20px); }
+            50% { transform: translate(30px, -20px); }
         }
 
         @keyframes float-diagonal-4 {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-50px, 40px); }
+            0%, 100% { transform: translate(30px, 20px); }
+            50% { transform: translate(-30px, -20px); }
         }
 
-        /* Circular motion */
+        /* Gentle circular drift */
         @keyframes float-circular {
             0% { transform: translate(0, 0); }
-            25% { transform: translate(40px, 0); }
-            50% { transform: translate(40px, 40px); }
-            75% { transform: translate(0, 40px); }
+            25% { transform: translate(35px, 0); }
+            50% { transform: translate(35px, 35px); }
+            75% { transform: translate(0, 35px); }
             100% { transform: translate(0, 0); }
         }
 
         @keyframes float-circular-reverse {
             0% { transform: translate(0, 0); }
-            25% { transform: translate(0, 40px); }
-            50% { transform: translate(-40px, 40px); }
-            75% { transform: translate(-40px, 0); }
+            25% { transform: translate(0, 35px); }
+            50% { transform: translate(-35px, 35px); }
+            75% { transform: translate(-35px, 0); }
             100% { transform: translate(0, 0); }
         }
 
-        /* Figure-8 motion */
+        /* Gentle figure-8 motion */
         @keyframes float-figure8 {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(25px, -15px); }
+            50% { transform: translate(0, 0); }
+            75% { transform: translate(-25px, 15px); }
+        }
+
+        /* Wandering motion */
+        @keyframes float-wander {
             0% { transform: translate(0, 0); }
             25% { transform: translate(30px, -20px); }
-            50% { transform: translate(0, 0); }
-            75% { transform: translate(-30px, 20px); }
-            100% { transform: translate(0, 0); }
-        }
-
-        /* L-shape motion */
-        @keyframes float-lshape {
-            0% { transform: translate(0, 0); }
-            33% { transform: translate(50px, 0); }
-            66% { transform: translate(50px, -40px); }
+            50% { transform: translate(20px, 30px); }
+            75% { transform: translate(-30px, 10px); }
             100% { transform: translate(0, 0); }
         }
 
@@ -260,29 +262,34 @@
             height: 150px;
         }
 
-        /* Animation classes with durations */
-        .anim-horizontal { animation: float-horizontal 6s ease-in-out infinite; }
-        .anim-horizontal-reverse { animation: float-horizontal-reverse 7s ease-in-out infinite; }
-        .anim-vertical { animation: float-vertical 6s ease-in-out infinite; }
-        .anim-vertical-reverse { animation: float-vertical-reverse 7s ease-in-out infinite; }
-        .anim-diagonal-1 { animation: float-diagonal-1 8s ease-in-out infinite; }
-        .anim-diagonal-2 { animation: float-diagonal-2 9s ease-in-out infinite; }
-        .anim-diagonal-3 { animation: float-diagonal-3 8s ease-in-out infinite; }
-        .anim-diagonal-4 { animation: float-diagonal-4 9s ease-in-out infinite; }
-        .anim-circular { animation: float-circular 10s linear infinite; }
-        .anim-circular-reverse { animation: float-circular-reverse 10s linear infinite; }
-        .anim-figure8 { animation: float-figure8 8s ease-in-out infinite; }
-        .anim-lshape { animation: float-lshape 9s ease-in-out infinite; }
+        /* Animation classes with smooth durations */
+        .anim-horizontal { animation: float-horizontal 8s ease-in-out infinite; }
+        .anim-horizontal-reverse { animation: float-horizontal-reverse 9s ease-in-out infinite; }
+        .anim-vertical { animation: float-vertical 7s ease-in-out infinite; }
+        .anim-vertical-reverse { animation: float-vertical-reverse 8s ease-in-out infinite; }
+        .anim-diagonal-1 { animation: float-diagonal-1 9s ease-in-out infinite; }
+        .anim-diagonal-2 { animation: float-diagonal-2 10s ease-in-out infinite; }
+        .anim-diagonal-3 { animation: float-diagonal-3 9s ease-in-out infinite; }
+        .anim-diagonal-4 { animation: float-diagonal-4 10s ease-in-out infinite; }
+        .anim-circular { animation: float-circular 12s ease-in-out infinite; }
+        .anim-circular-reverse { animation: float-circular-reverse 12s ease-in-out infinite; }
+        .anim-figure8 { animation: float-figure8 10s ease-in-out infinite; }
+        .anim-wander { animation: float-wander 11s ease-in-out infinite; }
 
-        /* Entrance animation */
-        @keyframes popIn {
-            0% { transform: scale(0) rotate(-180deg); opacity: 0; }
-            60% { transform: scale(1.2) rotate(10deg); opacity: 1; }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        /* Smooth water-like entrance animation - no rotation */
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100px) scale(0.3);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
         }
 
         .profile-enter {
-            animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+            animation: floatUp 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
 
         /* Header */
@@ -915,7 +922,7 @@
                 'anim-circular',
                 'anim-circular-reverse',
                 'anim-figure8',
-                'anim-lshape'
+                'anim-wander'
             ];
             return animations[Math.floor(Math.random() * animations.length)];
         }
