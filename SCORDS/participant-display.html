@@ -162,83 +162,111 @@
             object-fit: cover;
         }
 
-        /* Smooth water-like floating animations - continuous motion, no rotation */
+        /* Bounce-off-edges animations + pulse effect */
 
-        /* Gentle horizontal drift */
-        @keyframes float-horizontal {
-            0%, 100% { transform: translateX(-40px); }
-            50% { transform: translateX(40px); }
+        /* Horizontal bounce - left to right and back */
+        @keyframes bounce-horizontal {
+            0%, 100% { transform: translateX(-40vw); }
+            50% { transform: translateX(40vw); }
         }
 
-        @keyframes float-horizontal-reverse {
-            0%, 100% { transform: translateX(40px); }
-            50% { transform: translateX(-40px); }
+        @keyframes bounce-horizontal-reverse {
+            0%, 100% { transform: translateX(40vw); }
+            50% { transform: translateX(-40vw); }
         }
 
-        /* Gentle vertical bobbing */
-        @keyframes float-vertical {
-            0%, 100% { transform: translateY(-30px); }
-            50% { transform: translateY(30px); }
+        /* Vertical bounce - top to bottom and back */
+        @keyframes bounce-vertical {
+            0%, 100% { transform: translateY(-40vh); }
+            50% { transform: translateY(40vh); }
         }
 
-        @keyframes float-vertical-reverse {
-            0%, 100% { transform: translateY(30px); }
-            50% { transform: translateY(-30px); }
+        @keyframes bounce-vertical-reverse {
+            0%, 100% { transform: translateY(40vh); }
+            50% { transform: translateY(-40vh); }
         }
 
-        /* Smooth diagonal movements */
-        @keyframes float-diagonal-1 {
-            0%, 100% { transform: translate(-30px, -20px); }
-            50% { transform: translate(30px, 20px); }
+        /* Diagonal bounces - corner to corner */
+        @keyframes bounce-diagonal-1 {
+            0%, 100% { transform: translate(-38vw, -35vh); }
+            50% { transform: translate(38vw, 35vh); }
         }
 
-        @keyframes float-diagonal-2 {
-            0%, 100% { transform: translate(30px, -20px); }
-            50% { transform: translate(-30px, 20px); }
+        @keyframes bounce-diagonal-2 {
+            0%, 100% { transform: translate(38vw, -35vh); }
+            50% { transform: translate(-38vw, 35vh); }
         }
 
-        @keyframes float-diagonal-3 {
-            0%, 100% { transform: translate(-30px, 20px); }
-            50% { transform: translate(30px, -20px); }
+        @keyframes bounce-diagonal-3 {
+            0%, 100% { transform: translate(-38vw, 35vh); }
+            50% { transform: translate(38vw, -35vh); }
         }
 
-        @keyframes float-diagonal-4 {
-            0%, 100% { transform: translate(30px, 20px); }
-            50% { transform: translate(-30px, -20px); }
+        @keyframes bounce-diagonal-4 {
+            0%, 100% { transform: translate(38vw, 35vh); }
+            50% { transform: translate(-38vw, -35vh); }
         }
 
-        /* Gentle circular drift */
-        @keyframes float-circular {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(35px, 0); }
-            50% { transform: translate(35px, 35px); }
-            75% { transform: translate(0, 35px); }
-            100% { transform: translate(0, 0); }
+        /* Multi-bounce patterns - hit multiple edges */
+        @keyframes bounce-zigzag {
+            0% { transform: translate(-35vw, -30vh); }
+            25% { transform: translate(35vw, -30vh); }
+            50% { transform: translate(35vw, 30vh); }
+            75% { transform: translate(-35vw, 30vh); }
+            100% { transform: translate(-35vw, -30vh); }
         }
 
-        @keyframes float-circular-reverse {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(0, 35px); }
-            50% { transform: translate(-35px, 35px); }
-            75% { transform: translate(-35px, 0); }
-            100% { transform: translate(0, 0); }
+        @keyframes bounce-zigzag-reverse {
+            0% { transform: translate(35vw, 30vh); }
+            25% { transform: translate(-35vw, 30vh); }
+            50% { transform: translate(-35vw, -30vh); }
+            75% { transform: translate(35vw, -30vh); }
+            100% { transform: translate(35vw, 30vh); }
         }
 
-        /* Gentle figure-8 motion */
-        @keyframes float-figure8 {
-            0%, 100% { transform: translate(0, 0); }
-            25% { transform: translate(25px, -15px); }
-            50% { transform: translate(0, 0); }
-            75% { transform: translate(-25px, 15px); }
+        @keyframes bounce-triangle {
+            0% { transform: translate(0, -35vh); }
+            33% { transform: translate(35vw, 30vh); }
+            66% { transform: translate(-35vw, 30vh); }
+            100% { transform: translate(0, -35vh); }
         }
 
-        /* Wandering motion */
-        @keyframes float-wander {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(30px, -20px); }
-            50% { transform: translate(20px, 30px); }
-            75% { transform: translate(-30px, 10px); }
-            100% { transform: translate(0, 0); }
+        @keyframes bounce-triangle-reverse {
+            0% { transform: translate(0, 35vh); }
+            33% { transform: translate(-35vw, -30vh); }
+            66% { transform: translate(35vw, -30vh); }
+            100% { transform: translate(0, 35vh); }
+        }
+
+        /* Random corner bouncing */
+        @keyframes bounce-corners {
+            0% { transform: translate(-35vw, -30vh); }
+            20% { transform: translate(35vw, -30vh); }
+            40% { transform: translate(35vw, 30vh); }
+            60% { transform: translate(-35vw, 30vh); }
+            80% { transform: translate(0, 0); }
+            100% { transform: translate(-35vw, -30vh); }
+        }
+
+        @keyframes bounce-corners-alt {
+            0% { transform: translate(35vw, 30vh); }
+            20% { transform: translate(-35vw, 30vh); }
+            40% { transform: translate(-35vw, -30vh); }
+            60% { transform: translate(35vw, -30vh); }
+            80% { transform: translate(0, 0); }
+            100% { transform: translate(35vw, 30vh); }
+        }
+
+        /* Pulse/breathe effect - scale up and down */
+        @keyframes pulse-breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        @keyframes pulse-breathe-alt {
+            0%, 100% { transform: scale(1); }
+            33% { transform: scale(1.1); }
+            66% { transform: scale(0.95); }
         }
 
         /* Size variations - animations assigned randomly via JS */
@@ -262,19 +290,21 @@
             height: 150px;
         }
 
-        /* Animation classes with smooth durations */
-        .anim-horizontal { animation: float-horizontal 8s ease-in-out infinite; }
-        .anim-horizontal-reverse { animation: float-horizontal-reverse 9s ease-in-out infinite; }
-        .anim-vertical { animation: float-vertical 7s ease-in-out infinite; }
-        .anim-vertical-reverse { animation: float-vertical-reverse 8s ease-in-out infinite; }
-        .anim-diagonal-1 { animation: float-diagonal-1 9s ease-in-out infinite; }
-        .anim-diagonal-2 { animation: float-diagonal-2 10s ease-in-out infinite; }
-        .anim-diagonal-3 { animation: float-diagonal-3 9s ease-in-out infinite; }
-        .anim-diagonal-4 { animation: float-diagonal-4 10s ease-in-out infinite; }
-        .anim-circular { animation: float-circular 12s ease-in-out infinite; }
-        .anim-circular-reverse { animation: float-circular-reverse 12s ease-in-out infinite; }
-        .anim-figure8 { animation: float-figure8 10s ease-in-out infinite; }
-        .anim-wander { animation: float-wander 11s ease-in-out infinite; }
+        /* Animation classes with bounce + pulse effects */
+        .anim-horizontal { animation: bounce-horizontal 15s ease-in-out infinite, pulse-breathe 3s ease-in-out infinite; }
+        .anim-horizontal-reverse { animation: bounce-horizontal-reverse 16s ease-in-out infinite, pulse-breathe-alt 2.5s ease-in-out infinite; }
+        .anim-vertical { animation: bounce-vertical 14s ease-in-out infinite, pulse-breathe-alt 3.5s ease-in-out infinite; }
+        .anim-vertical-reverse { animation: bounce-vertical-reverse 15s ease-in-out infinite, pulse-breathe 2.8s ease-in-out infinite; }
+        .anim-diagonal-1 { animation: bounce-diagonal-1 18s ease-in-out infinite, pulse-breathe 3.2s ease-in-out infinite; }
+        .anim-diagonal-2 { animation: bounce-diagonal-2 19s ease-in-out infinite, pulse-breathe-alt 2.7s ease-in-out infinite; }
+        .anim-diagonal-3 { animation: bounce-diagonal-3 18s ease-in-out infinite, pulse-breathe 3.3s ease-in-out infinite; }
+        .anim-diagonal-4 { animation: bounce-diagonal-4 19s ease-in-out infinite, pulse-breathe-alt 2.9s ease-in-out infinite; }
+        .anim-zigzag { animation: bounce-zigzag 22s linear infinite, pulse-breathe 3.1s ease-in-out infinite; }
+        .anim-zigzag-reverse { animation: bounce-zigzag-reverse 22s linear infinite, pulse-breathe-alt 2.6s ease-in-out infinite; }
+        .anim-triangle { animation: bounce-triangle 20s ease-in-out infinite, pulse-breathe 3.4s ease-in-out infinite; }
+        .anim-triangle-reverse { animation: bounce-triangle-reverse 20s ease-in-out infinite, pulse-breathe-alt 2.8s ease-in-out infinite; }
+        .anim-corners { animation: bounce-corners 24s linear infinite, pulse-breathe 3s ease-in-out infinite; }
+        .anim-corners-alt { animation: bounce-corners-alt 24s linear infinite, pulse-breathe-alt 2.5s ease-in-out infinite; }
 
         /* Smooth water-like entrance animation - no rotation */
         @keyframes floatUp {
@@ -926,7 +956,7 @@
             console.log(`✨ Created profile: ${participant.displayName} (${sizeClass}, ${animationClass}) at ${posX.toFixed(1)}%, ${posY.toFixed(1)}%`);
         }
 
-        // Get random animation for floating effect
+        // Get random animation for bouncing effect
         function getRandomAnimation() {
             const animations = [
                 'anim-horizontal',
@@ -937,10 +967,12 @@
                 'anim-diagonal-2',
                 'anim-diagonal-3',
                 'anim-diagonal-4',
-                'anim-circular',
-                'anim-circular-reverse',
-                'anim-figure8',
-                'anim-wander'
+                'anim-zigzag',
+                'anim-zigzag-reverse',
+                'anim-triangle',
+                'anim-triangle-reverse',
+                'anim-corners',
+                'anim-corners-alt'
             ];
             return animations[Math.floor(Math.random() * animations.length)];
         }
