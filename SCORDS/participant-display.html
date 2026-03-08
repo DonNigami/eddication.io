@@ -1196,7 +1196,11 @@
                 PARTICIPANTS = participants;
                 updateStats();
 
-                // Note: Don't restart pinball movement as it would reset existing profiles
+                // Start pinball movement if not already running
+                if (!animationFrameId) {
+                    console.log('🎯 Starting pinball movement...');
+                    startPinballMovement();
+                }
             } else {
                 console.log('✅ No new participants to add');
                 // Still update PARTICIPANTS array
