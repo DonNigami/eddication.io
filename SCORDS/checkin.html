@@ -738,6 +738,13 @@
             text-align: center;
         }
 
+        /* Top Stats Counter */
+        .pd-stats-counter-top {
+            top: 1rem;
+            right: 1rem;
+            bottom: auto;
+        }
+
         .pd-stats-counter .pd-text-white {
             color: rgba(255, 255, 255, 0.8);
         }
@@ -866,6 +873,11 @@
                 bottom: auto;
                 padding: 0.75rem 1.5rem;
                 min-width: 150px;
+            }
+
+            /* Top Stats Counter - Hide on mobile (use bottom one which moves to top) */
+            .pd-stats-counter-top {
+                display: none;
             }
 
             .pd-stats-counter .pd-text-5xl {
@@ -1436,12 +1448,19 @@
                 </div>
             </div>
 
+            <!-- Top Stats Counter -->
+            <div class="pd-stats-counter pd-stats-counter-top">
+                <p class="pd-text-white text-sm mb-1">ผู้เข้าร่วมทั้งหมด</p>
+                <p class="pd-text-5xl" id="pd-participant-count-top">0</p>
+                <p class="text-white/60 text-xs mt-2">คน</p>
+            </div>
+
             <!-- Profile Container -->
             <div id="pd-profile-container" class="pd-profile-container pd-hide">
                 <!-- Profiles will be dynamically added here -->
             </div>
 
-            <!-- Stats Counter -->
+            <!-- Stats Counter (Bottom Right) -->
             <div class="pd-stats-counter">
                 <p class="pd-text-white text-sm mb-1">ผู้เข้าร่วมทั้งหมด</p>
                 <p class="pd-text-5xl" id="pd-participant-count">0</p>
@@ -4324,6 +4343,7 @@
         const PD_ACTIVITY_LIST = document.getElementById('pd-activity-list');
         const PD_PROFILE_CONTAINER = document.getElementById('pd-profile-container');
         const PD_PARTICIPANT_COUNT = document.getElementById('pd-participant-count');
+        const PD_PARTICIPANT_COUNT_TOP = document.getElementById('pd-participant-count-top');
         const PD_AUTO_REFRESH_STATUS = document.getElementById('pd-auto-refresh-status');
         const PD_REFRESH_SELECTOR = document.getElementById('pd-refresh-selector');
         const PD_SPEED_SELECTOR = document.getElementById('pd-speed-selector');
@@ -4384,6 +4404,12 @@
 
                 if (data.success && data.activities.length > 0) {
                     displayActivities(data.activities);
+
+                    // Automatically select the first activity
+                    const firstActivity = data.activities[0];
+                    console.log(`🎯 Auto-selecting first activity: ${firstActivity.name} (${firstActivity.id})`);
+                    PD_CURRENT_ACTIVITY_ID = firstActivity.id;
+                    await selectActivity(PD_CURRENT_ACTIVITY_ID);
                 } else {
                     PD_ACTIVITY_LIST.innerHTML = `
                         <div style="text-align: center; color: #666; padding: 40px;">
@@ -4687,6 +4713,7 @@
         // Update Stats
         function updateStats() {
             PD_PARTICIPANT_COUNT.textContent = PD_PARTICIPANTS.length;
+            PD_PARTICIPANT_COUNT_TOP.textContent = PD_PARTICIPANTS.length;
         }
 
         // Format Check-in Time
