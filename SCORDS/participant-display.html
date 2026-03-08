@@ -290,21 +290,10 @@
             height: 150px;
         }
 
-        /* Animation classes with bounce + pulse effects */
-        .anim-horizontal { animation: bounce-horizontal 15s ease-in-out infinite, pulse-breathe 3s ease-in-out infinite; }
-        .anim-horizontal-reverse { animation: bounce-horizontal-reverse 16s ease-in-out infinite, pulse-breathe-alt 2.5s ease-in-out infinite; }
-        .anim-vertical { animation: bounce-vertical 14s ease-in-out infinite, pulse-breathe-alt 3.5s ease-in-out infinite; }
-        .anim-vertical-reverse { animation: bounce-vertical-reverse 15s ease-in-out infinite, pulse-breathe 2.8s ease-in-out infinite; }
-        .anim-diagonal-1 { animation: bounce-diagonal-1 18s ease-in-out infinite, pulse-breathe 3.2s ease-in-out infinite; }
-        .anim-diagonal-2 { animation: bounce-diagonal-2 19s ease-in-out infinite, pulse-breathe-alt 2.7s ease-in-out infinite; }
-        .anim-diagonal-3 { animation: bounce-diagonal-3 18s ease-in-out infinite, pulse-breathe 3.3s ease-in-out infinite; }
-        .anim-diagonal-4 { animation: bounce-diagonal-4 19s ease-in-out infinite, pulse-breathe-alt 2.9s ease-in-out infinite; }
-        .anim-zigzag { animation: bounce-zigzag 22s linear infinite, pulse-breathe 3.1s ease-in-out infinite; }
-        .anim-zigzag-reverse { animation: bounce-zigzag-reverse 22s linear infinite, pulse-breathe-alt 2.6s ease-in-out infinite; }
-        .anim-triangle { animation: bounce-triangle 20s ease-in-out infinite, pulse-breathe 3.4s ease-in-out infinite; }
-        .anim-triangle-reverse { animation: bounce-triangle-reverse 20s ease-in-out infinite, pulse-breathe-alt 2.8s ease-in-out infinite; }
-        .anim-corners { animation: bounce-corners 24s linear infinite, pulse-breathe 3s ease-in-out infinite; }
-        .anim-corners-alt { animation: bounce-corners-alt 24s linear infinite, pulse-breathe-alt 2.5s ease-in-out infinite; }
+        /* Pulse animation - applied via JS after entrance */
+        .floating-profile {
+            /* Animation will be set by JavaScript */
+        }
 
         /* Smooth water-like entrance animation - no rotation */
         @keyframes floatUp {
@@ -889,28 +878,30 @@
                     createProfileElement(participant, container, true);
                 }, index * 100);
             });
+
+            // Start pinball movement after all profiles are created
+            setTimeout(() => {
+                startPinballMovement();
+            }, participants.length * 100 + 1500);
         }
+
+        // Store profile movement data
+        const PROFILE_MOVEMENT = {};
 
         // Create single profile element
         function createProfileElement(participant, container, isNew = false) {
             const profile = document.createElement('div');
             const sizeClass = getSizeClass();
-            const animationClass = getRandomAnimation();
 
-            // Don't add floating animation class if it's a new profile (will add after entrance)
-            profile.className = `floating-profile ${sizeClass} ${isNew ? 'profile-enter new-arrival' : animationClass}`;
+            // Only add entrance animation if new
+            profile.className = `floating-profile ${sizeClass} ${isNew ? 'profile-enter new-arrival' : ''}`;
             profile.id = `profile-${participant.userId}`;
 
-            // Random position (avoid edges)
+            // Random position (avoid edges initially)
             const posX = Math.random() * 70 + 15; // 15% - 85%
             const posY = Math.random() * 60 + 20; // 20% - 80%
             profile.style.left = `${posX}%`;
             profile.style.top = `${posY}%`;
-
-            // Random animation delay for more natural movement (only for floating)
-            if (!isNew) {
-                profile.style.animationDelay = `${Math.random() * 3}s`;
-            }
 
             // Profile image
             const img = document.createElement('img');
@@ -943,38 +934,136 @@
             // Click to show details
             profile.addEventListener('click', () => showParticipantDetails(participant));
 
-            // Remove entrance animation after it completes to let floating animation take over
+            // Remove entrance animation and add pulse animation
             if (isNew) {
                 setTimeout(() => {
                     profile.classList.remove('profile-enter', 'new-arrival');
-                    profile.classList.add(animationClass); // Add floating animation class
-                    profile.style.animationDelay = `${Math.random() * 3}s`; // Add random delay for natural movement
+                    // Add pulse animation
+                    profile.style.animation = `pulse-breathe ${2 + Math.random() * 2}s ease-in-out infinite`;
                 }, 1500); // Match entrance animation duration (1.5s)
+            } else {
+                // Add pulse animation immediately for existing profiles
+                profile.style.animation = `pulse-breathe ${2 + Math.random() * 2}s ease-in-out infinite`;
             }
 
+            // Initialize pinball movement data
+            PROFILE_MOVEMENT[participant.userId] = {
+                x: posX,
+                y: posY,
+                vx: (Math.random() - 0.5) * 0.8, // Random velocity X (-0.4 to 0.4)
+                vy: (Math.random() - 0.5) * 0.6, // Random velocity Y (-0.3 to 0.3)
+                speed: 0.3 + Math.random() * 0.4, // Random speed (0.3 to 0.7)
+                pulsePhase: Math.random() * Math.PI * 2, // Random pulse starting phase
+                element: profile
+            };
+
             // Debug log
-            console.log(`✨ Created profile: ${participant.displayName} (${sizeClass}, ${animationClass}) at ${posX.toFixed(1)}%, ${posY.toFixed(1)}%`);
+            console.log(`✨ Created profile: ${participant.displayName} (${sizeClass}) at ${posX.toFixed(1)}%, ${posY.toFixed(1)}%`);
         }
 
-        // Get random animation for bouncing effect
-        function getRandomAnimation() {
-            const animations = [
-                'anim-horizontal',
-                'anim-horizontal-reverse',
-                'anim-vertical',
-                'anim-vertical-reverse',
-                'anim-diagonal-1',
-                'anim-diagonal-2',
-                'anim-diagonal-3',
-                'anim-diagonal-4',
-                'anim-zigzag',
-                'anim-zigzag-reverse',
-                'anim-triangle',
-                'anim-triangle-reverse',
-                'anim-corners',
-                'anim-corners-alt'
-            ];
-            return animations[Math.floor(Math.random() * animations.length)];
+        // Start pinball-style movement for all profiles
+        let animationFrameId = null;
+        function startPinballMovement() {
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            function animate() {
+                const container = document.getElementById('profileContainer');
+                if (!container) return;
+
+                const containerRect = container.getBoundingClientRect();
+                const maxX = 100; // Percentage
+                const maxY = 100; // Percentage
+
+                Object.keys(PROFILE_MOVEMENT).forEach(userId => {
+                    const data = PROFILE_MOVEMENT[userId];
+                    if (!data.element || !data.element.offsetParent) return; // Skip if element not in DOM
+
+                    // Update position
+                    data.x += data.vx * data.speed;
+                    data.y += data.vy * data.speed;
+
+                    // Get element size for collision detection
+                    const rect = data.element.getBoundingClientRect();
+                    const elemWidth = rect.width / containerRect.width * 100;
+                    const elemHeight = rect.height / containerRect.height * 100;
+
+                    // Bounce off edges
+                    let bounced = false;
+
+                    // Right edge
+                    if (data.x + elemWidth / 2 > maxX - 5) {
+                        data.x = maxX - 5 - elemWidth / 2;
+                        data.vx = -Math.abs(data.vx) + (Math.random() - 0.5) * 0.2; // Bounce left with random variation
+                        bounced = true;
+                    }
+                    // Left edge
+                    else if (data.x - elemWidth / 2 < 5) {
+                        data.x = 5 + elemWidth / 2;
+                        data.vx = Math.abs(data.vx) + (Math.random() - 0.5) * 0.2; // Bounce right with random variation
+                        bounced = true;
+                    }
+
+                    // Bottom edge
+                    if (data.y + elemHeight / 2 > maxY - 10) {
+                        data.y = maxY - 10 - elemHeight / 2;
+                        data.vy = -Math.abs(data.vy) + (Math.random() - 0.5) * 0.2; // Bounce up with random variation
+                        bounced = true;
+                    }
+                    // Top edge
+                    else if (data.y - elemHeight / 2 < 5) {
+                        data.y = 5 + elemHeight / 2;
+                        data.vy = Math.abs(data.vy) + (Math.random() - 0.5) * 0.2; // Bounce down with random variation
+                        bounced = true;
+                    }
+
+                    // Randomize direction slightly when bouncing
+                    if (bounced) {
+                        data.vx += (Math.random() - 0.5) * 0.1;
+                        data.vy += (Math.random() - 0.5) * 0.1;
+
+                        // Normalize velocity to maintain consistent speed
+                        const currentSpeed = Math.sqrt(data.vx * data.vx + data.vy * data.vy);
+                        if (currentSpeed > 0) {
+                            data.vx = (data.vx / currentSpeed) * 0.5;
+                            data.vy = (data.vy / currentSpeed) * 0.4;
+                        }
+                    }
+
+                    // Keep velocity within bounds
+                    data.vx = Math.max(-0.6, Math.min(0.6, data.vx));
+                    data.vy = Math.max(-0.5, Math.min(0.5, data.vy));
+
+                    // Update position
+                    data.element.style.left = `${data.x}%`;
+                    data.element.style.top = `${data.y}%`;
+
+                    // Pulse effect - scale up and down
+                    data.pulsePhase += 0.02;
+                    const scale = 1 + Math.sin(data.pulsePhase) * 0.08;
+                    data.element.style.transform = `scale(${scale})`;
+                });
+
+                animationFrameId = requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        // Get random size class
+        function getSizeClass() {
+            const sizes = ['size-small', 'size-medium', 'size-large', 'size-xlarge'];
+            const weights = [0.4, 0.3, 0.2, 0.1]; // More small than large
+            const random = Math.random();
+            let sum = 0;
+
+            for (let i = 0; i < weights.length; i++) {
+                sum += weights[i];
+                if (random <= sum) return sizes[i];
+            }
+
+            return 'size-medium';
         }
 
         // Get random size class
