@@ -435,6 +435,420 @@
             z-index: 10;
         }
     </style>
+
+    <!-- Scoped Styles for Participant Display Tab -->
+    <style>
+        /* Participant Display Tab Container */
+        #displayTab {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 200px);
+            min-height: 500px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0a1f0a 0%, #0f2920 50%, #0d1f17 100%);
+            border-radius: 12px;
+        }
+
+        /* Background Animation Container */
+        .pd-bg-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .pd-digital-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 230, 118, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 230, 118, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: pd-grid-move 20s linear infinite;
+        }
+
+        @keyframes pd-grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .pd-network-nodes {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .pd-network-nodes::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(0, 230, 118, 0.12) 0%, transparent 2%),
+                radial-gradient(circle at 45% 60%, rgba(76, 175, 80, 0.1) 0%, transparent 2%),
+                radial-gradient(circle at 70% 40%, rgba(102, 187, 106, 0.12) 0%, transparent 2%),
+                radial-gradient(circle at 85% 75%, rgba(0, 200, 83, 0.1) 0%, transparent 2%),
+                radial-gradient(circle at 35% 85%, rgba(129, 199, 132, 0.08) 0%, transparent 2%),
+                radial-gradient(circle at 60% 20%, rgba(165, 214, 167, 0.08) 0%, transparent 2%),
+                radial-gradient(circle at 15% 65%, rgba(0, 230, 118, 0.08) 0%, transparent 2%),
+                radial-gradient(circle at 90% 25%, rgba(56, 142, 60, 0.08) 0%, transparent 2%);
+        }
+
+        .pd-connection-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.3;
+        }
+
+        .pd-connection-lines::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background:
+                linear-gradient(45deg, transparent 40%, rgba(0, 230, 118, 0.06) 45%, transparent 50%),
+                linear-gradient(-45deg, transparent 40%, rgba(76, 175, 80, 0.06) 45%, transparent 50%),
+                linear-gradient(135deg, transparent 40%, rgba(102, 187, 106, 0.06) 45%, transparent 50%);
+            animation: pd-data-flow 8s linear infinite;
+        }
+
+        @keyframes pd-data-flow {
+            0% { opacity: 0.2; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.2; }
+        }
+
+        .pd-hex-pattern {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='49' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%2300e676' fill-opacity='0.4'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9zM0 15l12.98-7.5V0h-2v6.35L0 12.69v2.3zm0 18.5L12.98 41v8h-2v-6.85L0 35.81v-2.3zM15 0v7.5L27.99 15H28v-2.31h-.01L17 6.35V0h-2zm0 49v-8l12.99-7.5H28v2.31h-.01L17 42.15V49h-2z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .pd-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            user-select: none;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .pd-scords-watermark {
+            font-size: 50px;
+            font-weight: 700;
+            color: rgba(0, 230, 118, 0.05);
+            letter-spacing: 10px;
+            text-transform: uppercase;
+        }
+
+        .pd-oneptg-watermark {
+            font-size: 40px;
+            font-weight: 600;
+            color: rgba(76, 175, 80, 0.04);
+            letter-spacing: 15px;
+            text-transform: uppercase;
+        }
+
+        /* Profile Container */
+        .pd-profile-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .pd-floating-profile {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            background:
+                linear-gradient(white, white) padding-box,
+                linear-gradient(135deg, #ffd700, #ff69b4, #00bfff, #ffd700) border-box;
+            box-shadow:
+                0 0 10px rgba(255, 215, 0, 0.2),
+                0 0 20px rgba(255, 105, 180, 0.15),
+                0 0 30px rgba(0, 191, 255, 0.1),
+                inset 0 0 10px rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.4s ease;
+            overflow: hidden;
+            pointer-events: auto;
+            opacity: 1.0;
+            will-change: transform, opacity, box-shadow;
+            transform-style: preserve-3d;
+        }
+
+        .pd-floating-profile:hover {
+            box-shadow:
+                0 0 15px rgba(255, 215, 0, 0.4),
+                0 0 30px rgba(255, 105, 180, 0.3),
+                0 0 45px rgba(0, 191, 255, 0.2),
+                inset 0 0 15px rgba(255, 255, 255, 0.2);
+            z-index: 100;
+            opacity: 1 !important;
+            transform: translateZ(150px) scale(1.15) !important;
+            border-width: 3px;
+        }
+
+        .pd-floating-profile img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Size variations */
+        .pd-size-small {
+            width: 60px;
+            height: 60px;
+        }
+
+        .pd-size-medium {
+            width: 90px;
+            height: 90px;
+        }
+
+        .pd-size-large {
+            width: 120px;
+            height: 120px;
+        }
+
+        .pd-size-xlarge {
+            width: 150px;
+            height: 150px;
+        }
+
+        /* Entrance animation */
+        @keyframes pd-floatUp {
+            0% {
+                transform: translateY(100px) scale(0.3);
+                opacity: 0;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .pd-profile-enter {
+            animation: pd-floatUp 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+        }
+
+        /* Pulse effect for new arrivals */
+        @keyframes pd-pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .pd-new-arrival::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            border: 3px solid #FFD700;
+            animation: pd-pulse-ring 1.5s ease-out infinite;
+        }
+
+        /* Tooltip */
+        .pd-profile-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+            z-index: 101;
+        }
+
+        .pd-floating-profile:hover .pd-profile-tooltip {
+            opacity: 1;
+        }
+
+        /* Control Panel */
+        .pd-control-panel {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            z-index: 50;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .pd-control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .pd-control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .pd-control-btn.secondary {
+            background: rgba(255, 87, 34, 0.8);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Stats Counter */
+        .pd-stats-counter {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 1rem 2rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .pd-stats-counter .pd-text-white {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .pd-stats-counter .pd-text-5xl {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        /* Activity Selector */
+        .pd-activity-selector {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .pd-activity-selector h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .pd-activity-list {
+            margin: 20px 0;
+        }
+
+        .pd-activity-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pd-activity-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .pd-activity-item h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .pd-activity-item p {
+            font-size: 14px;
+            opacity: 0.8;
+            margin: 2px 0;
+        }
+
+        /* Refresh & Speed Selectors */
+        .pd-refresh-selector, .pd-speed-selector {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            z-index: 50;
+        }
+
+        .pd-refresh-selector {
+            bottom: 4rem;
+            left: 1rem;
+        }
+
+        .pd-speed-selector {
+            bottom: 8rem;
+            left: 1rem;
+        }
+
+        .pd-refresh-selector h4, .pd-speed-selector h4 {
+            color: #667eea;
+            margin-bottom: 0.75rem;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .pd-refresh-selector select, .pd-speed-selector input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .pd-speed-value {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+
+        .pd-hide {
+            display: none !important;
+        }
+    </style>
 </head>
 <body class="min-h-screen gradient-bg">
     
@@ -483,6 +897,7 @@
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="achievements">ความสำเร็จ</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="games">เกมส์</button>
             <button class="tab-btn flex-1 py-3 text-center text-gray-400 hidden" id="dashboardTabBtn" data-tab="dashboard">แดชบอร์ด</button>
+            <button class="tab-btn flex-1 py-3 text-center text-gray-400" data-tab="display">จอแสดงผล</button>
         </div>
 
         <!-- Check-in Tab -->
@@ -856,6 +1271,90 @@
             <div id="recentActivityList" class="space-y-3">
                 <div class="text-center py-4 text-gray-500">
                     <p>กำลังโหลดข้อมูล...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participant Display Tab -->
+        <div id="displayTab" class="tab-content hidden animate-fadeIn">
+            <!-- Background Animation -->
+            <div class="pd-bg-animation">
+                <div class="pd-digital-grid"></div>
+                <div class="pd-network-nodes"></div>
+                <div class="pd-connection-lines"></div>
+                <div class="pd-hex-pattern"></div>
+                <div class="pd-watermark">
+                    <div class="pd-scords-watermark">SCOR DS</div>
+                    <div class="pd-oneptg-watermark">ONEPTG</div>
+                </div>
+            </div>
+
+            <!-- Activity Selector -->
+            <div id="pd-activity-selector" class="pd-activity-selector pd-hide">
+                <h2>📋 เลือกกิจกรรม</h2>
+                <div id="pd-activity-list" class="pd-activity-list">
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p>กำลังโหลดกิจกรรม...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Container -->
+            <div id="pd-profile-container" class="pd-profile-container pd-hide">
+                <!-- Profiles will be dynamically added here -->
+            </div>
+
+            <!-- Stats Counter -->
+            <div class="pd-stats-counter">
+                <p class="pd-text-white text-sm mb-1">ผู้เข้าร่วมทั้งหมด</p>
+                <p class="pd-text-5xl" id="pd-participant-count">0</p>
+                <p class="text-white/60 text-xs mt-2">คน</p>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="pd-control-panel">
+                <button class="pd-control-btn secondary" id="pd-btn-select-activity">
+                    📋 เลือกกิจกรรม
+                </button>
+                <button class="pd-control-btn" id="pd-btn-refresh">
+                    🔄 รีเฟรช
+                </button>
+                <button class="pd-control-btn" id="pd-btn-auto-refresh">
+                    ⏱️ อัตโนมัติ: <span id="pd-auto-refresh-status">OFF</span>
+                </button>
+                <button class="pd-control-btn" id="pd-btn-set-interval">
+                    ⏰ ตั้งเวลา
+                </button>
+                <button class="pd-control-btn" id="pd-btn-speed">
+                    🚀 ความเร็ว
+                </button>
+                <button class="pd-control-btn" id="pd-btn-export">
+                    📊 ส่งออก
+                </button>
+            </div>
+
+            <!-- Refresh Interval Selector -->
+            <div id="pd-refresh-selector" class="pd-refresh-selector pd-hide">
+                <h4>⏰ เลือกระยะเวลาอัตโนมัติ</h4>
+                <select id="pd-refresh-interval">
+                    <option value="30000">30 วินาที</option>
+                    <option value="60000" selected>1 นาที</option>
+                    <option value="120000">2 นาที</option>
+                    <option value="300000">5 นาที</option>
+                    <option value="600000">10 นาที</option>
+                    <option value="900000">15 นาที</option>
+                </select>
+            </div>
+
+            <!-- Speed Selector -->
+            <div id="pd-speed-selector" class="pd-speed-selector pd-hide">
+                <h4>🚀 ความเร็วการลอย</h4>
+                <input type="range" id="pd-speed-slider" min="1" max="50" value="5" step="1">
+                <div class="pd-speed-value">
+                    ความเร็ว: <span id="pd-speed-value">5</span>/50
+                </div>
+                <div class="pd-speed-value" style="font-size: 11px; color: #999; margin-top: 2px;">
+                    ตัวคูณ: <span id="pd-speed-multiplier">1.00</span>x
                 </div>
             </div>
         </div>
@@ -2691,6 +3190,8 @@
             return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
         }
 
+        let previousTab = 'checkIn'; // Track previous tab for cleanup
+
         document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.addEventListener('click', async function() {
                 const tabId = this.getAttribute('data-tab');
@@ -2708,6 +3209,11 @@
                     return;
                 }
 
+                // Cleanup previous tab if needed
+                if (previousTab === 'display' && window.PARTICIPANT_DISPLAY) {
+                    window.PARTICIPANT_DISPLAY.cleanup();
+                }
+
                 document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('tab-active', 'text-white'));
                 this.classList.add('tab-active', 'text-white');
                 document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
@@ -2723,6 +3229,11 @@
                     loadGamesData();
                 }
 
+                // Initialize participant display when switching to display tab
+                if (tabId === 'display' && window.PARTICIPANT_DISPLAY) {
+                    window.PARTICIPANT_DISPLAY.init();
+                }
+
                 // Load admin data when switching to dashboard tab
                 if (tabId === 'dashboard') {
                     loadAdminPointsHistory();
@@ -2733,6 +3244,9 @@
                     // Sync in background without blocking UI
                     syncDataFromServer(false);
                 }
+
+                // Update previous tab
+                previousTab = tabId;
             });
         });
 
@@ -3643,6 +4157,569 @@
                 }
             }
         }
+    </script>
+
+    <!-- Scoped JavaScript for Participant Display Tab -->
+    <script>
+    (function() {
+        'use strict';
+
+        // Configuration
+        const PD_API_URL = 'https://script.google.com/macros/s/AKfycbyKIjyR5SmweHqZzVANUJfmX_ssF03YatbQuQBkZ1ijOtA0KGYD3M1yxVSivnCn3X5zIA/exec';
+
+        // State
+        let PD_CURRENT_ACTIVITY_ID = null;
+        let PD_CURRENT_ACTIVITY = null;
+        let PD_AUTO_REFRESH = false;
+        let PD_REFRESH_INTERVAL_MS = 60000; // Default: 1 minute
+        let PD_PARTICIPANTS = [];
+        let PD_LAST_KNOWN_COUNT = 0;
+        let PD_SPEED_MULTIPLIER = 1.0;
+        let PD_REFRESH_TIMER = null;
+        let PD_ANIMATION_FRAME = null;
+
+        // Profile movement data
+        const PD_PROFILE_MOVEMENT = {};
+
+        // DOM Elements
+        const PD_TAB = document.getElementById('displayTab');
+        const PD_ACTIVITY_SELECTOR = document.getElementById('pd-activity-selector');
+        const PD_ACTIVITY_LIST = document.getElementById('pd-activity-list');
+        const PD_PROFILE_CONTAINER = document.getElementById('pd-profile-container');
+        const PD_PARTICIPANT_COUNT = document.getElementById('pd-participant-count');
+        const PD_AUTO_REFRESH_STATUS = document.getElementById('pd-auto-refresh-status');
+        const PD_REFRESH_SELECTOR = document.getElementById('pd-refresh-selector');
+        const PD_SPEED_SELECTOR = document.getElementById('pd-speed-selector');
+        const PD_REFRESH_INTERVAL = document.getElementById('pd-refresh-interval');
+        const PD_SPEED_SLIDER = document.getElementById('pd-speed-slider');
+        const PD_SPEED_VALUE = document.getElementById('pd-speed-value');
+        const PD_SPEED_MULTIPLIER_DISPLAY = document.getElementById('pd-speed-multiplier');
+
+        // Initialize when tab is shown
+        function initParticipantDisplay() {
+            console.log('🎯 Initializing Participant Display Tab...');
+            loadActivities();
+            setupEventListeners();
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            document.getElementById('pd-btn-select-activity').addEventListener('click', showActivitySelector);
+            document.getElementById('pd-btn-refresh').addEventListener('click', refreshData);
+            document.getElementById('pd-btn-auto-refresh').addEventListener('click', toggleAutoRefresh);
+            document.getElementById('pd-btn-set-interval').addEventListener('click', () => {
+                PD_REFRESH_SELECTOR.classList.toggle('pd-hide');
+            });
+            document.getElementById('pd-btn-speed').addEventListener('click', () => {
+                PD_SPEED_SELECTOR.classList.toggle('pd-hide');
+            });
+            document.getElementById('pd-btn-export').addEventListener('click', exportData);
+
+            PD_REFRESH_INTERVAL.addEventListener('change', (e) => {
+                PD_REFRESH_INTERVAL_MS = parseInt(e.target.value);
+                if (PD_AUTO_REFRESH) {
+                    stopAutoRefresh();
+                    startAutoRefresh();
+                }
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ตั้งค่าระยะเวลาเรียบร้อย',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+                PD_REFRESH_SELECTOR.classList.add('pd-hide');
+            });
+
+            PD_SPEED_SLIDER.addEventListener('input', (e) => {
+                const speedLevel = parseInt(e.target.value);
+                PD_SPEED_VALUE.textContent = speedLevel;
+                PD_SPEED_MULTIPLIER = 0.2 + ((speedLevel - 1) / 49) * 2.8;
+                PD_SPEED_MULTIPLIER_DISPLAY.textContent = PD_SPEED_MULTIPLIER.toFixed(2);
+                console.log(`🚀 Speed updated: ${speedLevel}/50, ${PD_SPEED_MULTIPLIER.toFixed(2)}x`);
+            });
+        }
+
+        // Load Activities
+        async function loadActivities() {
+            try {
+                const response = await fetch(`${PD_API_URL}?action=getActivitiesForDisplay`);
+                const data = await response.json();
+
+                if (data.success && data.activities.length > 0) {
+                    displayActivities(data.activities);
+                } else {
+                    PD_ACTIVITY_LIST.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <p>ไม่พบกิจกรรมที่เปิดให้วันนี้</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+                PD_ACTIVITY_LIST.innerHTML = `
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <p>เกิดข้อผิดพลาดในการโหลดกิจกรรม</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display Activities
+        function displayActivities(activities) {
+            PD_ACTIVITY_LIST.innerHTML = activities.map(activity => `
+                <div class="pd-activity-item" data-activity-id="${activity.id}">
+                    <h3>${activity.name}</h3>
+                    <p>📅 ${formatDate(activity.date)}</p>
+                    <p>⏰ ${activity.startTime} - ${activity.endTime}</p>
+                    <p>📍 ${activity.location}</p>
+                </div>
+            `).join('');
+
+            // Add click listeners
+            PD_ACTIVITY_LIST.querySelectorAll('.pd-activity-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    PD_CURRENT_ACTIVITY_ID = item.dataset.activityId;
+                    selectActivity(PD_CURRENT_ACTIVITY_ID);
+                });
+            });
+        }
+
+        // Select Activity
+        async function selectActivity(activityId) {
+            console.log(`📋 Selected activity: ${activityId}`);
+            PD_CURRENT_ACTIVITY_ID = activityId;
+
+            PD_ACTIVITY_SELECTOR.classList.add('pd-hide');
+            PD_PROFILE_CONTAINER.classList.remove('pd-hide');
+
+            await loadParticipants();
+        }
+
+        // Show Activity Selector
+        function showActivitySelector() {
+            PD_ACTIVITY_SELECTOR.classList.remove('pd-hide');
+            PD_PROFILE_CONTAINER.classList.add('pd-hide');
+            stopAutoRefresh();
+        }
+
+        // Load Participants
+        async function loadParticipants() {
+            try {
+                const response = await fetch(`${PD_API_URL}?action=getParticipantsForDisplay&activityId=${PD_CURRENT_ACTIVITY_ID}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    PD_PARTICIPANTS = data.participants;
+                    renderProfiles(PD_PARTICIPANTS);
+                    updateStats();
+
+                    // Trigger confetti for new arrivals
+                    if (PD_PARTICIPANTS.length > PD_LAST_KNOWN_COUNT) {
+                        const newCount = PD_PARTICIPANTS.length - PD_LAST_KNOWN_COUNT;
+                        for (let i = 0; i < newCount; i++) {
+                            triggerConfetti();
+                        }
+                        PD_LAST_KNOWN_COUNT = PD_PARTICIPANTS.length;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading participants:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'โหลดข้อมผู้เข้าร่วมไม่สำเร็จ',
+                    text: error.message,
+                    confirmButtonColor: '#667eea'
+                });
+            }
+        }
+
+        // Render Profiles
+        function renderProfiles(participants) {
+            const container = PD_PROFILE_CONTAINER;
+            const existingParticipants = Object.keys(PD_PROFILE_MOVEMENT);
+
+            // Clear existing profiles
+            container.innerHTML = '';
+            Object.keys(PD_PROFILE_MOVEMENT).forEach(key => delete PD_PROFILE_MOVEMENT[key]);
+
+            // Stop existing animation
+            if (PD_ANIMATION_FRAME) {
+                cancelAnimationFrame(PD_ANIMATION_FRAME);
+                PD_ANIMATION_FRAME = null;
+            }
+
+            // Create new profiles
+            participants.forEach((participant, index) => {
+                setTimeout(() => {
+                    createProfileElement(participant, container);
+                }, index * 100);
+            });
+
+            // Start animation after profiles are created
+            setTimeout(() => {
+                startPinballMovement();
+            }, participants.length * 100 + 500);
+        }
+
+        // Create Profile Element
+        function createProfileElement(participant, container) {
+            const profile = document.createElement('div');
+            const sizeClass = getSizeClass();
+
+            profile.className = `pd-floating-profile ${sizeClass} pd-profile-enter pd-new-arrival`;
+            profile.id = `pd-profile-${participant.userId}`;
+
+            const posX = Math.random() * 70 + 15;
+            const posY = Math.random() * 60 + 20;
+            profile.style.left = `${posX}%`;
+            profile.style.top = `${posY}%`;
+
+            const img = document.createElement('img');
+            img.src = participant.pictureUrl || 'https://via.placeholder.com/150';
+            img.alt = participant.displayName;
+            img.onerror = () => {
+                const initial = participant.displayName ? participant.displayName.charAt(0) : '?';
+                img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(participant.displayName)}&background=random&size=128`;
+            };
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'pd-profile-tooltip';
+            tooltip.innerHTML = `
+                <div style="font-weight: 600;">${participant.displayName}</div>
+                <div style="font-size: 0.75rem; opacity: 0.75;">${participant.position || participant.department || ''}</div>
+                <div style="font-size: 0.75rem; opacity: 0.75; margin-top: 4px;">เช็คอิน: ${formatCheckInTime(participant.checkInTime)}</div>
+                ${participant.status ? `<div style="font-size: 0.75rem; margin-top: 4px; color: ${participant.status === 'ตรงเวลา' ? '#4ade80' : '#fbbf24'};">${participant.status}</div>` : ''}
+            `;
+
+            profile.appendChild(img);
+            profile.appendChild(tooltip);
+            container.appendChild(profile);
+
+            profile.addEventListener('click', () => showParticipantDetails(participant));
+
+            setTimeout(() => {
+                profile.classList.remove('pd-profile-enter', 'pd-new-arrival');
+            }, 1500);
+
+            // Initialize movement data
+            PD_PROFILE_MOVEMENT[participant.userId] = {
+                x: posX,
+                y: posY,
+                z: Math.random() * 200 - 100,
+                vx: (Math.random() - 0.5) * 2.5,
+                vy: (Math.random() - 0.5) * 2.0,
+                vz: (Math.random() - 0.5) * 1.2,
+                speed: 0.15 + Math.random() * 0.15,
+                minZ: -250,
+                maxZ: 250,
+                element: profile,
+                sizePhase: Math.random() * Math.PI * 2,
+                sizeSpeed: 0.01 + Math.random() * 0.02
+            };
+
+            console.log(`✨ Created profile: ${participant.displayName}`);
+        }
+
+        // Start Pinball Movement
+        function startPinballMovement() {
+            if (PD_ANIMATION_FRAME) {
+                cancelAnimationFrame(PD_ANIMATION_FRAME);
+            }
+
+            function animate() {
+                const container = PD_PROFILE_CONTAINER;
+                if (!container || !container.offsetParent) return;
+
+                const maxX = 100;
+                const maxY = 100;
+
+                Object.keys(PD_PROFILE_MOVEMENT).forEach(userId => {
+                    const data = PD_PROFILE_MOVEMENT[userId];
+                    if (!data.element || !data.element.offsetParent) return;
+
+                    const isHovered = data.element.matches(':hover');
+
+                    if (!isHovered) {
+                        data.x += data.vx * data.speed * PD_SPEED_MULTIPLIER;
+                        data.y += data.vy * data.speed * PD_SPEED_MULTIPLIER;
+                        data.z += data.vz * data.speed * PD_SPEED_MULTIPLIER;
+
+                        const rect = data.element.getBoundingClientRect();
+                        const containerRect = container.getBoundingClientRect();
+                        const elemWidth = rect.width / containerRect.width * 100;
+                        const elemHeight = rect.height / containerRect.height * 100;
+
+                        let bounced = false;
+
+                        if (data.x + elemWidth / 2 > maxX - 5) {
+                            data.x = maxX - 5 - elemWidth / 2;
+                            data.vx = -Math.abs(data.vx) + (Math.random() - 0.5) * 0.3;
+                            bounced = true;
+                        } else if (data.x - elemWidth / 2 < 5) {
+                            data.x = 5 + elemWidth / 2;
+                            data.vx = Math.abs(data.vx) + (Math.random() - 0.5) * 0.3;
+                            bounced = true;
+                        }
+
+                        if (data.y + elemHeight / 2 > maxY - 10) {
+                            data.y = maxY - 10 - elemHeight / 2;
+                            data.vy = -Math.abs(data.vy) + (Math.random() - 0.5) * 0.3;
+                            bounced = true;
+                        } else if (data.y - elemHeight / 2 < 5) {
+                            data.y = 5 + elemHeight / 2;
+                            data.vy = Math.abs(data.vy) + (Math.random() - 0.5) * 0.3;
+                            bounced = true;
+                        }
+
+                        if (data.z < data.minZ) {
+                            data.z = data.minZ;
+                            data.vz = Math.abs(data.vz) + (Math.random() - 0.5) * 0.2;
+                            bounced = true;
+                        } else if (data.z > data.maxZ) {
+                            data.z = data.maxZ;
+                            data.vz = -Math.abs(data.vz) + (Math.random() - 0.5) * 0.2;
+                            bounced = true;
+                        }
+
+                        if (bounced) {
+                            data.vx += (Math.random() - 0.5) * 0.2;
+                            data.vy += (Math.random() - 0.5) * 0.2;
+                            data.vz += (Math.random() - 0.5) * 0.15;
+
+                            const currentSpeed = Math.sqrt(data.vx * data.vx + data.vy * data.vy + data.vz * data.vz);
+                            if (currentSpeed > 0) {
+                                data.vx = (data.vx / currentSpeed) * 0.7;
+                                data.vy = (data.vy / currentSpeed) * 0.6;
+                                data.vz = (data.vz / currentSpeed) * 0.4;
+                            }
+                        }
+
+                        data.vx = Math.max(-1.5, Math.min(1.5, data.vx));
+                        data.vy = Math.max(-1.2, Math.min(1.2, data.vy));
+                        data.vz = Math.max(-0.8, Math.min(0.8, data.vz));
+
+                        data.element.style.left = `${data.x}%`;
+                        data.element.style.top = `${data.y}%`;
+
+                        const depthScale = 1 + (data.z / 500);
+                        data.sizePhase += data.sizeSpeed * PD_SPEED_MULTIPLIER;
+                        const sizeBreath = 0.85 + 0.3 * Math.sin(data.sizePhase);
+                        const scale = Math.max(0.3, Math.min(1.8, depthScale * sizeBreath));
+
+                        let opacity = 1.0;
+                        const depthOpacity = 1 + (data.z / 300);
+                        const depthFade = Math.max(0.3, Math.min(1.0, depthOpacity));
+                        opacity *= depthFade;
+
+                        const edgeThreshold = 10;
+                        let edgeOpacity = 1.0;
+                        if (data.x < edgeThreshold) edgeOpacity = Math.min(edgeOpacity, data.x / edgeThreshold);
+                        if (data.x > maxX - edgeThreshold - elemWidth / 2) edgeOpacity = Math.min(edgeOpacity, (maxX - data.x) / edgeThreshold);
+                        if (data.y < edgeThreshold) edgeOpacity = Math.min(edgeOpacity, data.y / edgeThreshold);
+                        if (data.y > maxY - edgeThreshold - elemHeight / 2) edgeOpacity = Math.min(edgeOpacity, (maxY - data.y) / edgeThreshold);
+                        opacity *= edgeOpacity;
+
+                        opacity = Math.max(0.3, Math.min(1.0, opacity));
+
+                        data.element.style.transform = `translateZ(${data.z}px) scale(${scale})`;
+                        data.element.style.opacity = opacity;
+                    }
+                });
+
+                PD_ANIMATION_FRAME = requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        // Get Random Size Class
+        function getSizeClass() {
+            const sizes = ['pd-size-small', 'pd-size-medium', 'pd-size-large', 'pd-size-xlarge'];
+            const weights = [0.4, 0.3, 0.2, 0.1];
+            const random = Math.random();
+            let sum = 0;
+
+            for (let i = 0; i < weights.length; i++) {
+                sum += weights[i];
+                if (random <= sum) return sizes[i];
+            }
+
+            return 'pd-size-medium';
+        }
+
+        // Update Stats
+        function updateStats() {
+            PD_PARTICIPANT_COUNT.textContent = PD_PARTICIPANTS.length;
+        }
+
+        // Format Check-in Time
+        function formatCheckInTime(isoString) {
+            if (!isoString) return '-';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('th-TH', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Format Date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('th-TH', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // Show Participant Details
+        function showParticipantDetails(participant) {
+            Swal.fire({
+                title: participant.displayName,
+                html: `
+                    <div class="text-center">
+                        <img src="${participant.pictureUrl}"
+                             style="width: 96px; height: 96px; border-radius: 50%; margin: 0 auto 16px; border: 4px solid #facc15;"
+                             onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(participant.displayName)}&background=random&size=128'">
+                        <div style="text-align: left;">
+                            ${participant.employeeId ? `<p style="color: #4b5563;"><strong>รหัสพนักงาน:</strong> ${participant.employeeId}</p>` : ''}
+                            ${participant.position ? `<p style="color: #4b5563;"><strong>ตำแหน่ง:</strong> ${participant.position}</p>` : ''}
+                            ${participant.department ? `<p style="color: #4b5563;"><strong>แผนก:</strong> ${participant.department}</p>` : ''}
+                            <p style="color: #4b5563;"><strong>เวลาเช็คอิน:</strong> ${formatCheckInTime(participant.checkInTime)}</p>
+                            ${participant.status ? `<p style="color: #4b5563;"><strong>สถานะ:</strong> <span style="color: ${participant.status === 'ตรงเวลา' ? '#16a34a' : '#ca8a04'}; font-weight: 600;">${participant.status}</span></p>` : ''}
+                        </div>
+                    </div>
+                `,
+                confirmButtonColor: '#667eea',
+                confirmButtonText: 'ตกลง'
+            });
+        }
+
+        // Trigger Confetti
+        function triggerConfetti() {
+            const colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4'];
+
+            for (let i = 0; i < 15; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.cssText = `
+                    position: fixed;
+                    width: 10px;
+                    height: 10px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    left: ${Math.random() * 100}vw;
+                    top: -100vh;
+                    z-index: 9999;
+                    animation: pd-confetti-fall 3s linear forwards;
+                `;
+                document.body.appendChild(confetti);
+
+                setTimeout(() => confetti.remove(), 3000);
+            }
+
+            // Add confetti animation if not exists
+            if (!document.getElementById('pd-confetti-style')) {
+                const style = document.createElement('style');
+                style.id = 'pd-confetti-style';
+                style.textContent = `
+                    @keyframes pd-confetti-fall {
+                        0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+                        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Refresh Data
+        async function refreshData() {
+            if (PD_CURRENT_ACTIVITY_ID) {
+                await loadParticipants();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'รีเฟรชข้อมูลเรียบร้อย',
+                    timer: 1000,
+                    showConfirmButton: false
+                });
+            }
+        }
+
+        // Toggle Auto Refresh
+        function toggleAutoRefresh() {
+            PD_AUTO_REFRESH = !PD_AUTO_REFRESH;
+            PD_AUTO_REFRESH_STATUS.textContent = PD_AUTO_REFRESH ? 'ON' : 'OFF';
+
+            if (PD_AUTO_REFRESH) {
+                startAutoRefresh();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'เปิดรีเฟรชอัตโนมัติ',
+                    text: `ข้อมูลจะอัปเดตทุก ${PD_REFRESH_INTERVAL_MS / 1000} วินาที`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                stopAutoRefresh();
+            }
+        }
+
+        // Start Auto Refresh
+        function startAutoRefresh() {
+            stopAutoRefresh();
+            PD_REFRESH_TIMER = setInterval(() => {
+                if (PD_AUTO_REFRESH && PD_CURRENT_ACTIVITY_ID) {
+                    loadParticipants();
+                }
+            }, PD_REFRESH_INTERVAL_MS);
+        }
+
+        // Stop Auto Refresh
+        function stopAutoRefresh() {
+            if (PD_REFRESH_TIMER) {
+                clearInterval(PD_REFRESH_TIMER);
+                PD_REFRESH_TIMER = null;
+            }
+        }
+
+        // Export Data
+        function exportData() {
+            const csv = [
+                ['ชื่อ', 'รหัสพนักงาน', 'ตำแหน่ง', 'แผนก', 'เวลาเช็คอิน', 'สถานะ'],
+                ...PD_PARTICIPANTS.map(p => [
+                    p.displayName,
+                    p.employeeId || '-',
+                    p.position || '-',
+                    p.department || '-',
+                    formatCheckInTime(p.checkInTime),
+                    p.status || '-'
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `participants_${PD_CURRENT_ACTIVITY_ID || 'demo'}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        }
+
+        // Cleanup when tab is hidden
+        function cleanup() {
+            stopAutoRefresh();
+            if (PD_ANIMATION_FRAME) {
+                cancelAnimationFrame(PD_ANIMATION_FRAME);
+                PD_ANIMATION_FRAME = null;
+            }
+        }
+
+        // Export functions for tab switching
+        window.PARTICIPANT_DISPLAY = {
+            init: initParticipantDisplay,
+            cleanup: cleanup
+        };
+
+        console.log('✅ Participant Display Tab loaded');
+    })();
     </script>
 
     <!-- Spin Wheel Modal -->
