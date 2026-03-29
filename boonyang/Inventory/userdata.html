@@ -24,6 +24,11 @@
         .table-container::-webkit-scrollbar-thumb:hover { background: #555; }
         table { word-break: break-word; }
         td, th { hyphens: auto; }
+        .active-staff-btn {
+            background-color: #3b82f6 !important;
+            color: white !important;
+            border-color: #2563eb !important;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -55,63 +60,89 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6">
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">ผู้ใช้ทั้งหมด</p>
-                        <p class="text-2xl font-bold text-gray-800" id="totalUsers">0</p>
-                    </div>
-                    <div class="bg-blue-100 p-3 rounded-full">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex flex-col items-center justify-center text-center">
+                    <div class="bg-blue-100 p-2 rounded-full mb-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                     </div>
+                    <p class="text-gray-500 text-xs">ผู้ใช้ทั้งหมด</p>
+                    <p class="text-xl font-bold text-gray-800" id="totalUsers">0</p>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">ลงทะเบียนสำเร็จ</p>
-                        <p class="text-2xl font-bold text-green-600" id="completeUsers">0</p>
-                    </div>
-                    <div class="bg-green-100 p-3 rounded-full">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex flex-col items-center justify-center text-center">
+                    <div class="bg-green-100 p-2 rounded-full mb-2">
+                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
+                    <p class="text-gray-500 text-xs">ลงทะเบียนสำเร็จ</p>
+                    <p class="text-xl font-bold text-green-600" id="completeUsers">0</p>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">รอข้อมูลเพิ่ม</p>
-                        <p class="text-2xl font-bold text-yellow-600" id="pendingUsers">0</p>
-                    </div>
-                    <div class="bg-yellow-100 p-3 rounded-full">
-                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex flex-col items-center justify-center text-center">
+                    <div class="bg-yellow-100 p-2 rounded-full mb-2">
+                        <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
+                    <p class="text-gray-500 text-xs">รอข้อมูลเพิ่ม</p>
+                    <p class="text-xl font-bold text-yellow-600" id="pendingUsers">0</p>
                 </div>
             </div>
-            <div class="bg-white rounded-lg shadow p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-gray-500 text-sm">Active Users</p>
-                        <p class="text-2xl font-bold text-blue-600" id="activeUsers">0</p>
-                    </div>
-                    <div class="bg-blue-100 p-3 rounded-full">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex flex-col items-center justify-center text-center">
+                    <div class="bg-blue-100 p-2 rounded-full mb-2">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.829a5 5 0 010-7.07m7.072 0a5 5 0 010 7.07M13 12a1 1 0 11-2 0 1 1 0 012 0z"></path>
                         </svg>
                     </div>
+                    <p class="text-gray-500 text-xs">Active Users</p>
+                    <p class="text-xl font-bold text-blue-600" id="activeUsers">0</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex flex-col items-center justify-center text-center">
+                    <div class="bg-blue-100 p-2 rounded-full mb-2">
+                        <span class="text-lg">👤</span>
+                    </div>
+                    <p class="text-gray-500 text-xs">Customer</p>
+                    <p class="text-xl font-bold text-blue-600" id="customerCount">0</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-3">
+                <div class="flex flex-col items-center justify-center text-center">
+                    <div class="bg-red-100 p-2 rounded-full mb-2">
+                        <span class="text-lg">👑</span>
+                    </div>
+                    <p class="text-gray-500 text-xs">Superadmin</p>
+                    <p class="text-xl font-bold text-red-600" id="superadminCount">0</p>
                 </div>
             </div>
         </div>
 
         <!-- Search and Filter -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <!-- Admin Toggle Section -->
+            <div id="adminToggleSection" class="hidden mb-4 pb-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-700">🔐 ระบบกรอง User Staff</span>
+                        <span id="filterStatusBadge" class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            เปิดอยู่
+                        </span>
+                    </div>
+                    <button id="toggleFilterBtn" onclick="toggleUserstaffFilter()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <span id="toggleKnob" class="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                    </button>
+                </div>
+                <p id="filterStatusText" class="text-xs text-gray-500 mt-1">เปิด: เฉพาะผู้มีสิทธิ์ (Customer, Admin, Superadmin) สามารถค้นหาได้</p>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหา</label>
@@ -139,6 +170,20 @@
                         <option value="active">Active</option>
                         <option value="suspended">Suspended</option>
                     </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">สิทธิ์การใช้งาน (User Staff)</label>
+                    <div class="flex space-x-2">
+                        <button onclick="filterByUserstaff('')" id="btnAllStaff" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium bg-gray-50 hover:bg-gray-100 transition active-staff-btn">
+                            ทั้งหมด
+                        </button>
+                        <button onclick="filterByUserstaff('customer')" id="btnCustomer" class="flex-1 px-4 py-2 border border-blue-300 rounded-lg text-sm font-medium bg-blue-50 hover:bg-blue-100 transition">
+                            👤 Customer
+                        </button>
+                        <button onclick="filterByUserstaff('admin')" id="btnAdmin" class="flex-1 px-4 py-2 border border-purple-300 rounded-lg text-sm font-medium bg-purple-50 hover:bg-purple-100 transition">
+                            👨‍💼 Admin
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -260,6 +305,7 @@
                                     <option value="">ไม่ระบุ</option>
                                     <option value="customer">Customer</option>
                                     <option value="admin">Admin</option>
+                                    <option value="superadmin">Superadmin</option>
                                 </select>
                             </div>
 
@@ -385,14 +431,25 @@
         let filteredUsers = [];
         let currentUser = null; // Track logged-in user
         let isVerifiedAdmin = false; // Track if current user is verified as admin
+        let isVerifiedSuperAdmin = false; // Track if current user is superadmin
+        let currentUserstaffFilter = ''; // Track userstaff filter
+        let isUserstaffFilterEnabled = true; // Track if userstaff filter is enabled (default: true)
 
         // Initialize - Show login modal first
         document.addEventListener('DOMContentLoaded', () => {
+            // Load filter enabled state from localStorage
+            const savedFilterState = localStorage.getItem('userstaffFilterEnabled');
+            if (savedFilterState !== null) {
+                isUserstaffFilterEnabled = savedFilterState === 'true';
+            }
+            updateFilterToggleUI();
+
             // Check if already logged in from session storage
             const savedUser = sessionStorage.getItem('boonyangUser');
             if (savedUser) {
                 currentUser = JSON.parse(savedUser);
-                isVerifiedAdmin = currentUser.userstaff === 'admin';
+                isVerifiedAdmin = currentUser.userstaff === 'admin' || currentUser.userstaff === 'superadmin';
+                isVerifiedSuperAdmin = currentUser.userstaff === 'superadmin';
                 showMainContent();
             }
         });
@@ -432,9 +489,9 @@
                     return;
                 }
 
-                // Check if user has admin staff
-                if (data.userstaff !== 'admin') {
-                    errorEl.textContent = 'คุณไม่มีสิทธิ์เข้าใช้งานระบบนี้ (ต้องมีสิทธิ์ Admin)';
+                // Check if user has admin or superadmin staff
+                if (data.userstaff !== 'admin' && data.userstaff !== 'superadmin') {
+                    errorEl.textContent = 'คุณไม่มีสิทธิ์เข้าใช้งานระบบนี้ (ต้องมีสิทธิ์ Admin หรือ Superadmin)';
                     errorEl.classList.remove('hidden');
                     return;
                 }
@@ -442,6 +499,7 @@
                 // Save user data
                 currentUser = data;
                 isVerifiedAdmin = true;
+                isVerifiedSuperAdmin = data.userstaff === 'superadmin';
 
                 // Save to session storage
                 sessionStorage.setItem('boonyangUser', JSON.stringify(currentUser));
@@ -465,7 +523,20 @@
             const loggedInUser = document.getElementById('loggedInUser');
             userInfo.classList.remove('hidden');
             userInfo.classList.add('flex');
-            loggedInUser.textContent = `${currentUser.display_name || currentUser.user_id} (${currentUser.userstaff === 'admin' ? 'Admin' : 'Customer'})`;
+
+            // Display user role
+            let roleText = 'Customer';
+            if (currentUser.userstaff === 'admin') roleText = 'Admin';
+            if (currentUser.userstaff === 'superadmin') roleText = 'Superadmin';
+            loggedInUser.textContent = `${currentUser.display_name || currentUser.user_id} (${roleText})`;
+
+            // Show admin toggle section only for superadmin
+            const adminToggleSection = document.getElementById('adminToggleSection');
+            if (isVerifiedSuperAdmin) {
+                adminToggleSection.classList.remove('hidden');
+            } else {
+                adminToggleSection.classList.add('hidden');
+            }
 
             // Fetch and display data
             window.fetchUsers();
@@ -475,12 +546,17 @@
         window.handleLogout = function() {
             currentUser = null;
             isVerifiedAdmin = false;
+            isVerifiedSuperAdmin = false;
             sessionStorage.removeItem('boonyangUser');
 
             // Hide user info
             const userInfo = document.getElementById('userInfo');
             userInfo.classList.add('hidden');
             userInfo.classList.remove('flex');
+
+            // Hide admin toggle section
+            const adminToggleSection = document.getElementById('adminToggleSection');
+            adminToggleSection.classList.add('hidden');
 
             // Show login modal
             document.getElementById('loginModal').classList.remove('hidden');
@@ -519,6 +595,13 @@
             document.getElementById('completeUsers').textContent = allUsers.filter(u => u.status_register === 'สำเร็จ').length;
             document.getElementById('pendingUsers').textContent = allUsers.filter(u => u.status_register !== 'สำเร็จ' && u.status_register !== 'pending').length;
             document.getElementById('activeUsers').textContent = allUsers.filter(u => u.status === 'active').length;
+
+            // Count by userstaff
+            const customerCount = allUsers.filter(u => u.userstaff === 'customer').length;
+            const adminCount = allUsers.filter(u => u.userstaff === 'admin').length;
+            const superadminCount = allUsers.filter(u => u.userstaff === 'superadmin').length;
+            document.getElementById('customerCount').textContent = customerCount;
+            document.getElementById('superadminCount').textContent = superadminCount;
         }
 
         // Render table
@@ -566,8 +649,8 @@
                     </td>
                     <td class="px-2 py-2">
                         ${user.userstaff ? `
-                            <span class="px-2 py-0.5 text-xs font-medium rounded-full ${user.userstaff === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
-                                ${user.userstaff === 'admin' ? '👨‍💼 Admin' : '👤 Customer'}
+                            <span class="px-2 py-0.5 text-xs font-medium rounded-full ${user.userstaff === 'superadmin' ? 'bg-red-100 text-red-800' : user.userstaff === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+                                ${user.userstaff === 'superadmin' ? '👑 Superadmin' : user.userstaff === 'admin' ? '👨‍💼 Admin' : '👤 Customer'}
                             </span>
                         ` : '<span class="text-xs text-gray-400">-</span>'}
                     </td>
@@ -600,6 +683,52 @@
             `).join('');
         }
 
+        // Toggle userstaff filter (superadmin only)
+        window.toggleUserstaffFilter = function() {
+            if (!isVerifiedSuperAdmin) {
+                showToast('คุณไม่มีสิทธิ์เปลี่ยนแปลงการตั้งค่านี้ (ต้องการสิทธิ์ Superadmin)', 'error');
+                return;
+            }
+
+            isUserstaffFilterEnabled = !isUserstaffFilterEnabled;
+            localStorage.setItem('userstaffFilterEnabled', isUserstaffFilterEnabled.toString());
+
+            updateFilterToggleUI();
+            filterUsers(); // Re-apply filters
+
+            showToast(`ระบบกรอง User Staff: ${isUserstaffFilterEnabled ? 'เปิด' : 'ปิด'}`);
+        };
+
+        // Update filter toggle UI
+        window.updateFilterToggleUI = function() {
+            const toggleBtn = document.getElementById('toggleFilterBtn');
+            const toggleKnob = document.getElementById('toggleKnob');
+            const statusBadge = document.getElementById('filterStatusBadge');
+            const statusText = document.getElementById('filterStatusText');
+
+            if (isUserstaffFilterEnabled) {
+                // Enabled state
+                toggleBtn.classList.remove('bg-gray-400');
+                toggleBtn.classList.add('bg-blue-600');
+                toggleKnob.classList.remove('translate-x-1');
+                toggleKnob.classList.add('translate-x-6');
+                statusBadge.textContent = 'เปิดอยู่';
+                statusBadge.classList.remove('bg-gray-100', 'text-gray-800');
+                statusBadge.classList.add('bg-green-100', 'text-green-800');
+                statusText.textContent = 'เปิด: เฉพาะผู้มีสิทธิ์ (Customer, Admin, Superadmin) สามารถค้นหาได้';
+            } else {
+                // Disabled state
+                toggleBtn.classList.remove('bg-blue-600');
+                toggleBtn.classList.add('bg-gray-400');
+                toggleKnob.classList.remove('translate-x-6');
+                toggleKnob.classList.add('translate-x-1');
+                statusBadge.textContent = 'ปิดอยู่';
+                statusBadge.classList.remove('bg-green-100', 'text-green-800');
+                statusBadge.classList.add('bg-gray-100', 'text-gray-800');
+                statusText.textContent = 'ปิด: ทุกคนสามารถค้นหาได้';
+            }
+        };
+
         // Filter users
         window.filterUsers = function() {
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -607,6 +736,14 @@
             const status = document.getElementById('statusFilter').value;
 
             filteredUsers = allUsers.filter(user => {
+                // Check if filter is enabled and user has permission
+                if (isUserstaffFilterEnabled && currentUser) {
+                    // Filter enabled: only show users with customer, admin, or superadmin userstaff
+                    if (!user.userstaff || user.userstaff === '') {
+                        return false; // Hide users without userstaff
+                    }
+                }
+
                 const matchesSearch = !search ||
                     (user.display_name && user.display_name.toLowerCase().includes(search)) ||
                     (user.shop_name && user.shop_name.toLowerCase().includes(search)) ||
@@ -617,11 +754,38 @@
 
                 const matchesStatusRegister = !statusRegister || user.status_register === statusRegister;
                 const matchesStatus = !status || user.status === status;
+                const matchesUserstaff = !currentUserstaffFilter || user.userstaff === currentUserstaffFilter;
 
-                return matchesSearch && matchesStatusRegister && matchesStatus;
+                return matchesSearch && matchesStatusRegister && matchesStatus && matchesUserstaff;
             });
 
             renderTable();
+        }
+
+        // Filter by userstaff
+        window.filterByUserstaff = function(userstaff) {
+            currentUserstaffFilter = userstaff;
+
+            // Update button styles
+            const btnAll = document.getElementById('btnAllStaff');
+            const btnCustomer = document.getElementById('btnCustomer');
+            const btnAdmin = document.getElementById('btnAdmin');
+
+            // Remove active class from all buttons
+            btnAll.classList.remove('active-staff-btn');
+            btnCustomer.classList.remove('active-staff-btn');
+            btnAdmin.classList.remove('active-staff-btn');
+
+            // Add active class to selected button
+            if (userstaff === '') {
+                btnAll.classList.add('active-staff-btn');
+            } else if (userstaff === 'customer') {
+                btnCustomer.classList.add('active-staff-btn');
+            } else if (userstaff === 'admin') {
+                btnAdmin.classList.add('active-staff-btn');
+            }
+
+            filterUsers();
         }
 
         // View user details

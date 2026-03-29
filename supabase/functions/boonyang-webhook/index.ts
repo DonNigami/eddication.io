@@ -8,10 +8,11 @@
  * - Flex carousel for multiple results
  * - Full registration flow (name, surname, shop name, tax ID)
  * - Reply templates (text, flex, template, telegram)
- * - System settings (bot_enabled, stock_enabled, require_approval, register_required)
- * - Admin commands (bot on/off, stock on/off, approve/block/makeadmin)
+ * - System settings (bot_enabled, stock_enabled, stock_require_approval, register_required, userstaff_filter_enabled)
+ * - Admin commands (bot on/off, stock on/off, require on/off, filter on/off, approve/block/makeadmin/makesuperadmin)
  * - Quote token support
- * - User permissions (admin, customer)
+ * - User permissions (superadmin, admin, customer)
+ * - Userstaff filter: restrict stock search to approved users only
  * - Group/Room vs User chat differences
  * - Member join/leave events
  * - Cache management for BotData and InventData
@@ -113,6 +114,7 @@ interface SystemSettings {
   stock_enabled: boolean;
   stock_require_approval: boolean;
   register_required: boolean;
+  userstaff_filter_enabled: boolean; // Filter by userstaff: only customer/admin/superadmin can search
 }
 
 // ============================================
@@ -582,7 +584,7 @@ async function getSystemSettings(): Promise<SystemSettings> {
     const { data, error } = await supabase
       .from('system_settings')
       .select('key, value')
-      .in('key', ['bot_enabled', 'stock_enabled', 'stock_require_approval', 'register_required']);
+      .in('key', ['bot_enabled', 'stock_enabled', 'stock_require_approval', 'register_required', 'userstaff_filter_enabled']);
 
     if (error) {
       console.error('❌ Error loading system settings:', error);
@@ -591,6 +593,7 @@ async function getSystemSettings(): Promise<SystemSettings> {
         stock_enabled: true,
         stock_require_approval: true,
         register_required: true,
+        userstaff_filter_enabled: true, // Default: filter enabled
       };
     }
 
@@ -599,6 +602,7 @@ async function getSystemSettings(): Promise<SystemSettings> {
       stock_enabled: true,
       stock_require_approval: true,
       register_required: true,
+      userstaff_filter_enabled: true, // Default: filter enabled
     };
 
     (data || []).forEach((setting: any) => {
@@ -616,6 +620,9 @@ async function getSystemSettings(): Promise<SystemSettings> {
         case 'register_required':
           settings.register_required = value;
           break;
+        case 'userstaff_filter_enabled':
+          settings.userstaff_filter_enabled = value;
+          break;
       }
     });
 
@@ -627,6 +634,7 @@ async function getSystemSettings(): Promise<SystemSettings> {
       stock_enabled: true,
       stock_require_approval: true,
       register_required: true,
+      userstaff_filter_enabled: true, // Default: filter enabled
     };
   }
 }
@@ -1278,12 +1286,14 @@ function createBotDataResponseText(items: BotDataItem[], query: string): string 
     
     const results = Array.from(groupedItems.values());
 
+    // Get current time and convert to Bangkok timezone (ICT = UTC+7)
     const now = new Date();
-    const year = now.getFullYear() + 543;
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const bangkokTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+    const year = bangkokTime.getUTCFullYear() + 543;
+    const month = bangkokTime.getUTCMonth() + 1;
+    const day = bangkokTime.getUTCDate();
+    const hours = bangkokTime.getUTCHours().toString().padStart(2, '0');
+    const minutes = bangkokTime.getUTCMinutes().toString().padStart(2, '0');
     const dateTimeString = `${day}/${month}/${year.toString().slice(-2)} ${hours}:${minutes}`;
 
     let message = `📅 เวลาค้นหา: ${dateTimeString}\n`;
@@ -1307,12 +1317,14 @@ function createBotDataResponseText(items: BotDataItem[], query: string): string 
 }
 
 function createInventDataResponseText(items: CombinedSearchResult[], query: string): string {
+    // Get current time and convert to Bangkok timezone (ICT = UTC+7)
     const now = new Date();
-    const year = now.getFullYear() + 543;
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const bangkokTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // UTC+7
+    const year = bangkokTime.getUTCFullYear() + 543;
+    const month = bangkokTime.getUTCMonth() + 1;
+    const day = bangkokTime.getUTCDate();
+    const hours = bangkokTime.getUTCHours().toString().padStart(2, '0');
+    const minutes = bangkokTime.getUTCMinutes().toString().padStart(2, '0');
     const dateTimeString = `${day}/${month}/${year.toString().slice(-2)} ${hours}:${minutes}`;
 
     let message = `📅 เวลาค้นหา: ${dateTimeString}\n`;
@@ -1853,9 +1865,14 @@ function looksLikeStockQuery(text: string): boolean {
     'stock off',
     'require on',
     'require off',
+    'filter on',
+    'filter off',
+    'เปิดกรอง',
+    'ปิดกรอง',
     'approve',
     'block',
     'makeadmin',
+    'makesuperadmin',
     '/refreshcache',
     '/rf',
   ];
@@ -1895,13 +1912,18 @@ function isPrivateChat(source: LineEvent['source']): boolean {
 
 function isAdminUser(user: LineUser): boolean {
   const role = (user.userstaff || '').trim();
-  return role === 'admin';
+  return role === 'admin' || role === 'superadmin';
+}
+
+function isSuperAdminUser(user: LineUser): boolean {
+  const role = (user.userstaff || '').trim();
+  return role === 'superadmin';
 }
 
 function isApprovedUser(user: LineUser): boolean {
   const role = (user.userstaff || '').trim();
-  console.log(`🔍 User approval check: userstaff="${user.userstaff}", trimmed="${role}", isApproved=${role === 'admin' || role === 'customer'}`);
-  return role === 'admin' || role === 'customer';
+  console.log(`🔍 User approval check: userstaff="${user.userstaff}", trimmed="${role}", isApproved=${role === 'admin' || role === 'customer' || role === 'superadmin'}`);
+  return role === 'admin' || role === 'customer' || role === 'superadmin';
 }
 
 // ============================================
@@ -2142,9 +2164,7 @@ async function handleSelectItemName3(userId: string, replyToken: string, quoteTo
     await lineService.replyMessage(replyToken, [carousel]);
   } catch (error) {
     console.error('❌ ERROR @ handleSelectItemName3:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2190,9 +2210,7 @@ async function handleSelectStandard(userId: string, replyToken: string, quoteTok
     await searchStateService.clear(userId);
   } catch (error) {
     console.error('❌ ERROR @ handleSelectStandard:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2247,11 +2265,22 @@ async function handleMessage(event: LineEvent): Promise<void> {
     console.log('📝 Normalized text:', msgText);
 
     // ========================
+    // GROUP/ROOM CHAT FILTER
+    // ========================
+
+    // If in group/room chat, DO NOT RESPOND at all
+    if (!isPrivate) {
+      console.log(`🔇 Group/Room chat: Ignoring message "${msgText}" - SILENT RETURN`);
+      return;
+    }
+
+    // ========================
     // ADMIN COMMANDS (Private chat only)
     // ========================
 
     if (isAdminUser(user) && isPrivate) {
-      console.log('👑 Admin in private chat - checking commands...');
+      const isSuperAdmin = isSuperAdminUser(user);
+      console.log(`👑 ${isSuperAdmin ? 'Superadmin' : 'Admin'} in private chat - checking commands...`);
 
       if (msgText === 'เปิดระบบ' || msgText === 'bot on') {
         await updateSystemSetting('bot_enabled', 'true');
@@ -2301,15 +2330,53 @@ async function handleMessage(event: LineEvent): Promise<void> {
         return;
       }
 
-      // Approve/Block/MakeAdmin commands
-      const m = messageText.trim().match(/^(approve|block|makeadmin)\s+(u[a-z0-9]+)$/i);
+      // Userstaff filter commands (SUPERADMIN ONLY)
+      if (msgText === 'filter on' || msgText === 'เปิดกรอง') {
+        if (!isSuperAdmin) {
+          await lineService.replyMessage(replyToken, [
+            { type: 'text', text: '❌ คำสั่งนี้ต้องการสิทธิ์ Superadmin เท่านั้น', quoteToken: quoteToken },
+          ]);
+          return;
+        }
+        await updateSystemSetting('userstaff_filter_enabled', 'true');
+        await lineService.replyMessage(replyToken, [
+          { type: 'text', text: '✅ เปิดระบบกรอง User Staff (เฉพาะผู้มีสิทธิ์ค้นหาได้)', quoteToken: quoteToken },
+        ]);
+        return;
+      }
+
+      if (msgText === 'filter off' || msgText === 'ปิดกรอง') {
+        if (!isSuperAdmin) {
+          await lineService.replyMessage(replyToken, [
+            { type: 'text', text: '❌ คำสั่งนี้ต้องการสิทธิ์ Superadmin เท่านั้น', quoteToken: quoteToken },
+          ]);
+          return;
+        }
+        await updateSystemSetting('userstaff_filter_enabled', 'false');
+        await lineService.replyMessage(replyToken, [
+          { type: 'text', text: '✅ ปิดระบบกรอง User Staff (ทุกคนค้นหาได้)', quoteToken: quoteToken },
+        ]);
+        return;
+      }
+
+      // Approve/Block/MakeAdmin/MakeSuperadmin commands
+      const m = messageText.trim().match(/^(approve|block|makeadmin|makesuperadmin)\s+(u[a-z0-9]+)$/i);
       if (m) {
         const cmd = m[1].toLowerCase();
         const targetUserId = m[2];
 
+        // Check if command requires superadmin
+        if ((cmd === 'makeadmin' || cmd === 'makesuperadmin') && !isSuperAdmin) {
+          await lineService.replyMessage(replyToken, [
+            { type: 'text', text: '❌ คำสั่งนี้ต้องการสิทธิ์ Superadmin เท่านั้น', quoteToken: quoteToken },
+          ]);
+          return;
+        }
+
         let roleValue = '';
         if (cmd === 'approve') roleValue = 'customer';
         if (cmd === 'makeadmin') roleValue = 'admin';
+        if (cmd === 'makesuperadmin') roleValue = 'superadmin';
         if (cmd === 'block') roleValue = '';
 
         const targetUser = await getUser(targetUserId);
@@ -2423,18 +2490,6 @@ async function handleMessage(event: LineEvent): Promise<void> {
     }
 
     // ========================
-    // REGISTRATION CHECK
-    // ========================
-
-    const allowWhileRegistering = ['รอชื่อ', 'รอนามสกุล', 'รอชื่อร้าน', 'รอเลขที่ภาษี'];
-    const isRegistering = allowWhileRegistering.includes(user.status_register || '');
-
-    if (settings.register_required && user.status_register !== 'สำเร็จ' && !isRegistering) {
-      console.log(`⛔ User not registered (status_register="${user.status_register}") - SILENT RETURN`);
-      return;
-    }
-
-    // ========================
     // REPLY TEMPLATES (Priority 1)
     // ========================
 
@@ -2461,9 +2516,35 @@ async function handleMessage(event: LineEvent): Promise<void> {
         return;
       }
 
-      if (settings.stock_require_approval && !isApprovedUser(user)) {
-        console.log(`⛔ User cannot ask stock (userstaff="${user.userstaff}") - SILENT RETURN`);
-        return;
+      // Check if userstaff filter is disabled - if so, everyone can search (skip ALL checks)
+      if (!settings.userstaff_filter_enabled) {
+        console.log(`✅ Userstaff filter DISABLED - allowing ALL users to search (skipping registration, approval, and role checks)`);
+      } else {
+        // Userstaff filter is ENABLED - check ALL requirements
+
+        // 1. Check registration requirement
+        const allowWhileRegistering = ['รอชื่อ', 'รอนามสกุล', 'รอชื่อร้าน', 'รอเลขที่ภาษี'];
+        const isRegistering = allowWhileRegistering.includes(user.status_register || '');
+
+        if (settings.register_required && user.status_register !== 'สำเร็จ' && !isRegistering) {
+          console.log(`⛔ Userstaff filter enabled: User not registered (status_register="${user.status_register}") - SILENT RETURN`);
+          return;
+        }
+
+        // 2. Check stock approval requirement
+        if (settings.stock_require_approval && !isApprovedUser(user)) {
+          console.log(`⛔ Userstaff filter enabled: User not approved (userstaff="${user.userstaff}") - SILENT RETURN`);
+          return;
+        }
+
+        // 3. Check if user has valid role (customer, admin, or superadmin)
+        const role = (user.userstaff || '').trim();
+        if (!role || (role !== 'customer' && role !== 'admin' && role !== 'superadmin')) {
+          console.log(`⛔ Userstaff filter enabled: User has no valid role (userstaff="${user.userstaff}") - SILENT RETURN`);
+          return;
+        }
+
+        console.log(`✅ Userstaff filter enabled: User passed all checks (registered, approved, valid role)`);
       }
 
       // ✅ LOGIC ใหม่: แยก 2 flow ชัดเจน
@@ -2571,9 +2652,7 @@ async function handleMessage(event: LineEvent): Promise<void> {
     console.log('🔇 NO MATCH - SILENT RETURN');
   } catch (error) {
     console.error('❌ ERROR @ handleMessage:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2591,13 +2670,6 @@ async function handleBotDataSearch(
   const chatId = event.source.userId || event.source.groupId || event.source.roomId;
 
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ BotData search blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      return;
-    }
-
     // Start loading animation
     if (chatId) {
       await lineService.startLoadingAnimation(chatId);
@@ -2623,9 +2695,7 @@ async function handleBotDataSearch(
 
   } catch (error) {
     console.error('❌ ERROR @ handleBotDataSearch:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2642,13 +2712,6 @@ async function handleInventDataSearch(
   const chatId = event.source.userId || event.source.groupId || event.source.roomId;
 
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ InventData search blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      return;
-    }
-
     // Start loading animation
     if (chatId) {
       await lineService.startLoadingAnimation(chatId);
@@ -2681,9 +2744,7 @@ async function handleInventDataSearch(
 
   } catch (error) {
     console.error('❌ ERROR @ handleInventDataSearch:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2697,13 +2758,6 @@ async function handleDirectInventDataSearch(
   const chatId = userId; // For loading animation
 
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ Direct InventData search blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      return;
-    }
-
     console.log(`🚗 Direct search with parts:`, parts);
 
     // Start loading animation
@@ -2786,9 +2840,7 @@ async function handleDirectInventDataSearch(
 
   } catch (error) {
     console.error('❌ ERROR @ handleDirectInventDataSearch:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2800,13 +2852,6 @@ async function handleInventDataSearchWithBrand(
   selectedBrand: string
 ): Promise<void> {
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ InventData search with brand blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      return;
-    }
-
     console.log(`🚗 Starting InventData search with pre-selected brand: ${selectedBrand}`);
 
     // Create search state and directly proceed to brand selection
@@ -2822,9 +2867,7 @@ async function handleInventDataSearchWithBrand(
     await handleBrandSelection(userId, replyToken, quoteToken, selectedBrand);
   } catch (error) {
     console.error('❌ ERROR @ handleInventDataSearchWithBrand:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
@@ -2838,14 +2881,6 @@ async function handleStockQuery(event: LineEvent, query: string): Promise<void> 
 // Handle Brand selection (when user clicks brand button from carousel)
 async function handleBrandSelection(userId: string, replyToken: string, quoteToken: string | undefined, selectedBrand: string): Promise<void> {
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ Brand selection blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      await searchStateService.clear(userId);
-      return;
-    }
-
     console.log(`✅ User selected brand: ${selectedBrand}`);
 
     // Start loading animation
@@ -2882,23 +2917,13 @@ async function handleBrandSelection(userId: string, replyToken: string, quoteTok
     await lineService.replyMessage(replyToken, [carousel]);
   } catch (error) {
     console.error('❌ ERROR @ handleBrandSelection:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
 // Handle Model selection (when user clicks model button from carousel)
 async function handleModelSelection(userId: string, replyToken: string, quoteToken: string | undefined, itemName2: string, selectedModel: string): Promise<void> {
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ Model selection blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      await searchStateService.clear(userId);
-      return;
-    }
-
     console.log(`✅ User selected model: ${selectedModel} for brand: ${itemName2}`);
 
     // Start loading animation
@@ -2931,23 +2956,13 @@ async function handleModelSelection(userId: string, replyToken: string, quoteTok
     await lineService.replyMessage(replyToken, [carousel]);
   } catch (error) {
     console.error('❌ ERROR @ handleModelSelection:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
 // Handle Final Results (get and display products)
 async function handleFinalResults(userId: string, replyToken: string, quoteToken: string | undefined, itemName2: string, itemName3: string, standard: string): Promise<void> {
   try {
-    // ✅ PERMISSION CHECK: Verify user is approved
-    const user = await getUser(userId);
-    if (!user || !isApprovedUser(user)) {
-      console.log(`⛔ Final results blocked: user not approved (userstaff="${user?.userstaff}") - SILENT RETURN`);
-      await searchStateService.clear(userId);
-      return;
-    }
-
     console.log(`✅ Getting final products for ${itemName2} ${itemName3} ${standard}`);
 
     // Update state to complete
@@ -2985,9 +3000,7 @@ async function handleFinalResults(userId: string, replyToken: string, quoteToken
     await searchStateService.clear(userId);
   } catch (error) {
     console.error('❌ ERROR @ handleFinalResults:', error);
-    await lineService.replyMessage(replyToken, [
-      { type: 'text', text: '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', quoteToken: quoteToken },
-    ]);
+    console.log('🔇 Error response suppressed - SILENT RETURN');
   }
 }
 
