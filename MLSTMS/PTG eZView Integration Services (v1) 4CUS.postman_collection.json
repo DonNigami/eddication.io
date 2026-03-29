@@ -1,0 +1,382 @@
+{
+  "info": {
+    "_postman_id": "a4cda45f-33a3-4cee-8752-a6a37a13f3c3",
+    "name": "PTG eZView Integration Services (v1) 4CUS",
+    "description": "Postman collection for eZView Integration Services API v1 (JWT Bearer). Includes login, token refresh, trips, and waypoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28487371"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (POST /v1/login) - save tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) { pm.environment.set('lastError', String(e)); }",
+                  "if (r && r.data) {",
+                  "  const accessToken = r.data.accessToken || '';",
+                  "  const refreshToken = r.data.refreshToken || '';",
+                  "  pm.collectionVariables.set('accessToken', accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', refreshToken);",
+                  "  pm.environment.set('accessToken', accessToken);",
+                  "  pm.environment.set('refreshToken', refreshToken);",
+                  "}",
+                  "pm.environment.set('lastLoginAt', new Date().toISOString());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"deviceInfo\": {\n    \"deviceId\": \"{{deviceId}}\",\n    \"deviceName\": \"{{deviceName}}\",\n    \"deviceType\": \"{{deviceType}}\",\n    \"os\": \"{{os}}\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token (POST /v1/refresh-token) - rotate tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "let r = {};",
+                  "try { r = pm.response.json(); } catch(e) { pm.environment.set('lastError', String(e)); }",
+                  "if (r && r.data) {",
+                  "  const accessToken = r.data.accessToken || '';",
+                  "  const refreshToken = r.data.refreshToken || '';",
+                  "  pm.collectionVariables.set('accessToken', accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', refreshToken);",
+                  "  pm.environment.set('accessToken', accessToken);",
+                  "  pm.environment.set('refreshToken', refreshToken);",
+                  "}",
+                  "pm.environment.set('lastRefreshAt', new Date().toISOString());"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/refresh-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "refresh-token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout (POST /v1/logout)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        {
+          "name": "List Trips (GET /v1/trips)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips?statusId={{statusId}}&startDate={{startDate}}&endDate={{endDate}}&limit={{limit}}&cursor={{cursor}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips"
+              ],
+              "query": [
+                {
+                  "key": "statusId",
+                  "value": "{{statusId}}"
+                },
+                {
+                  "key": "startDate",
+                  "value": "{{startDate}}"
+                },
+                {
+                  "key": "endDate",
+                  "value": "{{endDate}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{cursor}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Trip Details (GET /v1/trips/{tripId})",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Trips Bulk (POST /v1/trips/bulk)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trips\": [\n    {\n      \"tripName\": \"Bangkok to Chiang Mai\",\n      \"licenseNo\": \"ABC-1234\",\n      \"tripOpenDateTime\": \"2026-02-11T08:00:00+07:00\",\n      \"waypoints\": [\n        {\n          \"sequence\": 1,\n          \"waypointReferenceId\": \"WP001\",\n          \"arrivalDateTime\": \"2026-02-11T08:00:00+07:00\",\n          \"departureDateTime\": \"2026-02-11T08:30:00+07:00\"\n        },\n        {\n          \"sequence\": 2,\n          \"waypointReferenceId\": \"WP002\",\n          \"arrivalDateTime\": \"2026-02-11T14:00:00+07:00\",\n          \"departureDateTime\": \"2026-02-11T15:00:00+07:00\"\n        },\n        {\n          \"sequence\": 3,\n          \"waypointReferenceId\": \"WP003\",\n          \"arrivalDateTime\": \"2026-02-11T18:00:00+07:00\",\n          \"departureDateTime\": \"2026-02-11T18:30:00+07:00\"\n        }\n      ]\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/bulk",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "bulk"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Trip (PUT /v1/trips/{tripId})",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tripName\": \"Bangkok to Chiang Mai (Updated)\",\n  \"licenseNo\": \"ABC-1234\",\n  \"tripOpenDateTime\": \"2026-02-12T09:00:00+07:00\",\n  \"waypoints\": [\n    {\n      \"sequence\": 1,\n      \"waypointReferenceId\": \"WP001\",\n      \"arrivalDateTime\": \"2026-02-12T09:00:00+07:00\",\n      \"departureDateTime\": \"2026-02-12T09:30:00+07:00\"\n    },\n    {\n      \"sequence\": 2,\n      \"waypointReferenceId\": \"WP002\",\n      \"arrivalDateTime\": \"2026-02-12T14:00:00+07:00\",\n      \"departureDateTime\": \"2026-02-12T15:00:00+07:00\"\n    },\n    {\n      \"sequence\": 3,\n      \"waypointReferenceId\": \"WP003\",\n      \"arrivalDateTime\": \"2026-02-12T18:00:00+07:00\",\n      \"departureDateTime\": \"2026-02-12T18:30:00+07:00\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/trips/{{tripId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "trips",
+                "{{tripId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Waypoints",
+      "item": [
+        {
+          "name": "List Waypoints (GET /v1/waypoints)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/v1/waypoints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "waypoints"
+              ],
+              "query": [
+                {
+                  "key": "categoryId",
+                  "value": "{{categoryId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "{{waypointLimit}}",
+                  "disabled": true
+                },
+                {
+                  "key": "cursor",
+                  "value": "{{waypointCursor}}",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://203.151.215.230:9000/eZViewIntegrationService/web-service/api"
+    },
+    {
+      "key": "username",
+      "value": "johndoe"
+    },
+    {
+      "key": "password",
+      "value": "password123"
+    },
+    {
+      "key": "deviceId",
+      "value": "custom-device-id-123"
+    },
+    {
+      "key": "deviceName",
+      "value": "iPhone 13 Pro"
+    },
+    {
+      "key": "deviceType",
+      "value": "mobile"
+    },
+    {
+      "key": "os",
+      "value": "iOS 16.0"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "tripId",
+      "value": "1080644"
+    },
+    {
+      "key": "statusId",
+      "value": "4"
+    },
+    {
+      "key": "startDate",
+      "value": "2026-01-28"
+    },
+    {
+      "key": "endDate",
+      "value": "2026-01-29"
+    },
+    {
+      "key": "limit",
+      "value": "50"
+    },
+    {
+      "key": "cursor",
+      "value": ""
+    },
+    {
+      "key": "categoryId",
+      "value": "1"
+    },
+    {
+      "key": "waypointLimit",
+      "value": "50"
+    },
+    {
+      "key": "waypointCursor",
+      "value": ""
+    }
+  ]
+}

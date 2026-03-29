@@ -1,0 +1,34 @@
+# Dockerfile for Render.com - Python Version
+FROM python:3.11-slim
+
+# Set labels for Render
+LABEL com.render.alien.index.enabled="true"
+
+# Set working directory
+WORKDIR /opt/render/project
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application files
+COPY ptg_ezview_client.py .
+
+# Create data directory (Render disk mount point)
+RUN mkdir -p /opt/render/project/data
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PTG_SQLITE_PATH=/opt/render/project/data/ptg_data.db
+ENV PTG_CSV_PATH=/opt/render/project/data/csv_output
+ENV PTG_SCHEDULE_MINUTES=60
+
+# Run the application
+CMD ["python", "ptg_ezview_client.py", "--daemon"]

@@ -1,0 +1,31 @@
+{
+  "name": "ptg-ezview-client",
+  "version": "1.0.0",
+  "description": "PTG eZView API Integration Client - Node.js version",
+  "main": "ptg-ezview-client.js",
+  "bin": {
+    "ptg-ezview": "./ptg-ezview-client.js"
+  },
+  "scripts": {
+    "start": "node ptg-ezview-client.js --daemon",
+    "once": "node ptg-ezview-client.js --once",
+    "test": "node ptg-ezview-client.js --once"
+  },
+  "keywords": [
+    "ptg",
+    "ezview",
+    "integration",
+    "api",
+    "logistics",
+    "trips"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

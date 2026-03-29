@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Start - Participant Display</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-6">⚡ Quick Start: Participant Display</h1>
+
+            <!-- Step 1 -->
+            <div class="mb-8">
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4">1</div>
+                    <h2 class="text-xl font-semibold">Deploy Google Apps Script</h2>
+                </div>
+                <div class="ml-14 bg-blue-50 p-4 rounded-lg">
+                    <ol class="list-decimal list-inside space-y-2 text-gray-700">
+                        <li>เปิด <code class="bg-blue-100 px-2 py-1 rounded">backend/APIHandlers.gs</code></li>
+                        <li>ไปที่ <strong>Deploy</strong> → <strong>New deployment</strong></li>
+                        <li>เลือก <strong>Web app</strong></li>
+                        <li>Execute as: <strong>Me (your email)</strong></li>
+                        <li>Who has access: <strong>Anyone</strong></li>
+                        <li>กด <strong>Deploy</strong></li>
+                        <li>คัดลอก URL ที่ได้</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="mb-8">
+                <div class="flex items-center mb-4">
+                    <div class="bg-green-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4">2</div>
+                    <h2 class="text-xl font-semibold">อัปเดต participant-display.html</h2>
+                </div>
+                <div class="ml-14 bg-green-50 p-4 rounded-lg">
+                    <p class="text-gray-700 mb-3">แก้ไขบรรทัดที่ 458:</p>
+                    <pre class="bg-green-100 p-3 rounded text-sm overflow-x-auto"><code>// แทนที่ YOUR_WEB_APP_URL_HERE ด้วย URL จาก Step 1
+const response = await fetch('YOUR_WEB_APP_URL_HERE', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'getParticipantsForDisplay',
+    activityId: ACTIVITY_ID
+  })
+});</code></pre>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="mb-8">
+                <div class="flex items-center mb-4">
+                    <div class="bg-purple-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold mr-4">3</div>
+                    <h2 class="text-xl font-semibold">เปิดหน้าแสดงผล</h2>
+                </div>
+                <div class="ml-14 bg-purple-50 p-4 rounded-lg">
+                    <p class="text-gray-700 mb-3">ใช้ URL นี้:</p>
+                    <pre class="bg-purple-100 p-3 rounded text-sm overflow-x-auto"><code>participant-display.html?activityId=YOUR_ACTIVITY_ID</code></pre>
+                    <p class="text-gray-600 text-sm mt-3">
+                        💡 หรือกดปุ่มด้านล่างเพื่อดู Demo
+                    </p>
+                </div>
+            </div>
+
+            <!-- Demo Buttons -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-6 text-white">
+                <h3 class="text-xl font-bold mb-4">🎮 ทดลองใช้งาน</h3>
+                <div class="space-y-3">
+                    <a href="participant-display.html?activityId=demo"
+                       class="block bg-white text-blue-600 text-center py-3 rounded-lg font-semibold hover:bg-blue-50 transition"
+                       target="_blank">
+                        📺 เปิดหน้าแสดงผล (Demo Mode)
+                    </a>
+                    <a href="display-integration.html"
+                       class="block bg-transparent border-2 border-white text-white text-center py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
+                        📖 ดูคู่มือแบบเต็ม
+                    </a>
+                    <a href="checkin.html"
+                       class="block bg-transparent border-2 border-white text-white text-center py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition">
+                        ✅ ไปหน้า Check-in
+                    </a>
+                </div>
+            </div>
+
+            <!-- Features Preview -->
+            <div class="mt-8 grid md:grid-cols-2 gap-4">
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <h3 class="font-semibold text-yellow-900 mb-2">✨ ฟีเจอร์เด่น</h3>
+                    <ul class="text-sm text-yellow-800 space-y-1">
+                        <li>✓ รูปโปรไฟล์ลอยไปลอยมา</li>
+                        <li>✓ Real-time updates</li>
+                        <li>✓ Confetti effect</li>
+                        <li>✓ Export to CSV</li>
+                    </ul>
+                </div>
+                <div class="bg-red-50 border-l-4 border-red-400 p-4">
+                    <h3 class="font-semibold text-red-900 mb-2">⚠️ หมายเหตุ</h3>
+                    <ul class="text-sm text-red-800 space-y-1">
+                        <li>• เหมาะกับหน้าจอขนาดใหญ่</li>
+                        <li>• ต้อง Deploy Web App ก่อน</li>
+                        <li>• ต้องมี activity ID ที่ถูกต้อง</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Need Help? -->
+            <div class="mt-8 bg-gray-50 rounded-lg p-6">
+                <h3 class="font-semibold text-gray-900 mb-3">❓ ต้องการความช่วยเหลือ?</h3>
+                <ul class="text-sm text-gray-700 space-y-2">
+                    <li>📖 อ่าน <a href="README-PARTICIPANT-DISPLAY.md" class="text-blue-600 hover:underline">README</a> แบบเต็ม</li>
+                    <li>🔧 ตรวจสอบ Console (F12) ถ้ามีปัญหา</li>
+                    <li>📧 ติดต่อทีม support หากยังไม่ได้</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="text-center text-gray-500 text-sm mt-6">
+            <p>SCORDS Participant Display System | อัปเดตล่าสุด: มีนาคม 2026</p>
+        </div>
+    </div>
+</body>
+</html>

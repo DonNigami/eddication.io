@@ -1,0 +1,76 @@
+{
+  "description": "Expected search results for benchmarking",
+  "lastUpdated": "2025-02-10",
+  "benchmarks": {
+    "TH-001": {
+      "query": "ยางรถยนต์",
+      "expectedResults": [
+        {
+          "partNumber": "TIRE-001",
+          "name": "ยางรถยนต์ Michelin Energy XM2",
+          "category": "tires",
+          "relevanceScore": 0.95
+        },
+        {
+          "partNumber": "TIRE-002",
+          "name": "ยางรถยนต์ Bridgestone Ecopia",
+          "category": "tires",
+          "relevanceScore": 0.92
+        }
+      ],
+      "minResults": 2,
+      "minRelevanceScore": 0.7
+    },
+    "TH-002": {
+      "query": "น้ำมันเครื่อง",
+      "expectedResults": [
+        {
+          "partNumber": "OIL-001",
+          "name": "น้ำมันเครื่อง Motul 8100 X-cess",
+          "category": "engine-oil",
+          "relevanceScore": 0.93
+        },
+        {
+          "partNumber": "OIL-002",
+          "name": "น้ำมันเครื่อง Shell Helix HX8",
+          "category": "engine-oil",
+          "relevanceScore": 0.90
+        }
+      ],
+      "minResults": 2,
+      "minRelevanceScore": 0.7
+    },
+    "TH-M-001": {
+      "query": "ยางแม็ก",
+      "expectedResults": [
+        {
+          "partNumber": "TIRE-001",
+          "name": "ยางรถยนต์ Michelin Energy XM2",
+          "category": "tires",
+          "relevanceScore": 0.75
+        }
+      ],
+      "minResults": 1,
+      "minRelevanceScore": 0.5,
+      "note": "Colloquial term should still find results"
+    },
+    "EDGE-001": {
+      "query": "ยางสำหรับเครื่องบิน",
+      "expectedResults": [],
+      "shouldFindResults": false,
+      "note": "Out of scope - no results expected"
+    }
+  },
+  "performanceThresholds": {
+    "avgSearchTime": 500,
+    "p95SearchTime": 1000,
+    "p99SearchTime": 2000,
+    "maxSearchTime": 5000
+  },
+  "relevanceThresholds": {
+    "exactMatch": 0.9,
+    "highRelevance": 0.7,
+    "mediumRelevance": 0.5,
+    "lowRelevance": 0.3
+  }
+}

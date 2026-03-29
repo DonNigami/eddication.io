@@ -1,0 +1,27 @@
+{
+  "name": "jetsetgo",
+  "version": "1.0.0",
+  "description": "JETSETGO - RAG Agentic AI Catalog System for Automotive Parts & Tires",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:ocr": "vitest run tests/unit/ocr.test.ts",
+    "test:search": "vitest run tests/integration/search.test.ts",
+    "test:line": "vitest run tests/integration/line-webhook.test.ts"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "@vitest/coverage-v8": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "@playwright/test": "^1.49.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

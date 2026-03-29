@@ -1,0 +1,94 @@
+# Render.com Configuration
+# ไฟล์นี้ใช้สำหรับ configure services บน Render.com
+
+services:
+  # ============================================
+  # Background Worker - Python Version
+  # ============================================
+  - type: worker
+    name: ptg-ezview-python
+    env: docker
+    region: singapore
+    plan: free  # หรือ starter ($7/เดือน)
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    envVars:
+      - key: PTG_BASE_URL
+        sync: false
+      - key: PTG_USERNAME
+        sync: false
+      - key: PTG_PASSWORD
+        sync: false
+      - key: PTG_STATUS_ID
+        value: ""
+      - key: PTG_START_DATE
+        value: ""
+      - key: PTG_END_DATE
+        value: ""
+      - key: PTG_LIMIT
+        value: "50"
+      - key: PTG_RATE_LIMIT_MS
+        value: "1000"
+      - key: PTG_FAST_MODE
+        value: "false"
+      - key: PTG_ADAPTIVE_RATE_LIMIT
+        value: "true"
+      - key: PTG_MIN_RATE_LIMIT_MS
+        value: "100"
+      - key: PTG_MAX_RATE_LIMIT_MS
+        value: "1000"
+      - key: PTG_TARGET_RESPONSE_TIME_MS
+        value: "500"
+      - key: PTG_LOG_LEVEL
+        value: "INFO"
+      - key: PTG_STORAGE_TYPE
+        value: "sqlite"
+      - key: PTG_SQLITE_PATH
+        value: /opt/render/project/data/ptg_data.db
+      - key: PTG_CSV_PATH
+        value: /opt/render/project/data/csv_output
+      - key: PTG_SCHEDULE_MINUTES
+        value: "60"
+    disk:
+      name: ptg-data
+      mountPath: /opt/render/project/data
+      sizeGB: 1
+
+  # ============================================
+  # Background Worker - Node.js Version
+  # ============================================
+  - type: worker
+    name: ptg-ezview-nodejs
+    env: docker
+    region: singapore
+    plan: free
+    dockerfilePath: ./Dockerfile.render.nodejs
+    dockerContext: .
+    envVars:
+      - key: PTG_BASE_URL
+        sync: false
+      - key: PTG_USERNAME
+        sync: false
+      - key: PTG_PASSWORD
+        sync: false
+      - key: PTG_LOG_LEVEL
+        value: "INFO"
+      - key: PTG_STORAGE_TYPE
+        value: "json"
+      - key: PTG_JSON_PATH
+        value: /opt/render/project/data/json_output
+      - key: PTG_SCHEDULE_MINUTES
+        value: "60"
+    disk:
+      name: ptg-data-nodejs
+      mountPath: /opt/render/project/data
+      sizeGB: 1
+
+databases:
+  # ============================================
+  # PostgreSQL Database (Optional)
+  # ============================================
+  - name: ptg-ezview-db
+    databaseName: ptg_ezview
+    user: ptg_user
+    plan: free  # หรือ starter ($7/เดือน)

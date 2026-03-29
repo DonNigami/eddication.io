@@ -1,0 +1,18 @@
+# PTG eZView Integration Client - Python Dependencies
+
+# HTTP requests
+requests>=2.31.0
+
+# Environment variables (optional, for .env file support)
+python-dotenv>=1.0.0
+
+# PostgreSQL support (optional)
+psycopg2-binary>=2.9.0
+
+# Async support (optional)
+aiohttp>=3.9.0
+
+# Development dependencies (optional)
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0

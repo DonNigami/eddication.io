@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JETSETGO - Deploy Edge Functions</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #e0e0e0;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2rem;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .functions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .function-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+    .function-card:hover {
+      transform: translateY(-4px);
+      border-color: #00d4ff;
+      box-shadow: 0 10px 40px rgba(0, 212, 255, 0.1);
+    }
+    .function-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .function-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #00d4ff;
+    }
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-pending { background: #334155; color: #94a3b8; }
+    .status-deploying { background: #1e40af; color: #93c5fd; }
+    .status-success { background: #065f46; color: #6ee7b7; }
+    .status-error { background: #7f1d1d; color: #fca5a5; }
+    .function-desc {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    .code-preview {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 15px;
+      max-height: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+    .code-preview::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: linear-gradient(transparent, #0f172a);
+    }
+    .deploy-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      color: #0f172a;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .deploy-btn:hover:not(:disabled) {
+      transform: scale(1.02);
+      box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+    }
+    .deploy-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .instructions {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+    .instructions h2 {
+      margin-bottom: 20px;
+      color: #00ff88;
+    }
+    .instructions ol {
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    .instructions code {
+      background: #0f172a;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #00d4ff;
+      font-family: monospace;
+    }
+    .progress-bar {
+      height: 4px;
+      background: #334155;
+      border-radius: 2px;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .copy-all-btn {
+      padding: 15px 30px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e0e0e0;
+      cursor: pointer;
+      margin: 0 auto;
+      display: block;
+    }
+    .copy-all-btn:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 JETSETGO - Edge Functions Deployment</h1>
+
+    <div class="instructions">
+      <h2>📋 Deployment Instructions</h2>
+      <p style="margin-bottom: 15px; color: #94a3b8;">
+        Due to CLI permission issues, deploy functions manually through Supabase Dashboard:
+      </p>
+      <ol>
+        <li>Go to <a href="https://supabase.com/dashboard/project/icgtllieipahixesllux/functions" target="_blank" style="color: #00d4ff;">
+            Supabase Dashboard → Functions
+          </a></li>
+        <li>Click "New Function" for each function below</li>
+        <li>Copy the function code and paste it into the editor</li>
+        <li>Set environment variables (see below)</li>
+        <li>Click "Deploy"</li>
+      </ol>
+
+      <h3 style="margin-top: 25px; margin-bottom: 15px; color: #00d4ff;">🔑 Required Environment Variables</h3>
+      <div style="background: #0f172a; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: #64748b;">
+        <div style="margin-bottom: 8px;"><span style="color: #00d4ff;">GROQ_API_KEY</span> - Get from <a href="https://groq.com" target="_blank" style="color: #00d4ff;">groq.com</a> (FREE)</div>
+        <div style="margin-bottom: 8px;"><span style="color: #00d4ff;">HUGGINGFACE_API_KEY</span> - Optional, from <a href="https://huggingface.co/settings/tokens" target="_blank" style="color: #00d4ff;">huggingface.co</a></div>
+        <div style="margin-bottom: 8px;"><span style="color: #00d4ff;">LINE_CHANNEL_ACCESS_TOKEN</span> - From LINE Developers Console</div>
+        <div><span style="color: #00d4ff;">LINE_CHANNEL_SECRET</span> - From LINE Developers Console</div>
+      </div>
+    </div>
+
+    <div class="functions-grid">
+      <!-- jetsetgo-embed -->
+      <div class="function-card" id="card-jetsetgo-embed">
+        <div class="function-header">
+          <span class="function-name">jetsetgo-embed</span>
+          <span class="status-badge status-pending" id="status-jetsetgo-embed">Pending</span>
+        </div>
+        <p class="function-desc">
+          Generate Thai embeddings using Hugging Face FREE API (nina-thai-v3 model, 768 dimensions)
+        </p>
+        <div class="code-preview">244 lines • Hugging Face API • Batch embedding support</div>
+        <button class="deploy-btn" onclick="copyFunction('jetsetgo-embed')">📋 Copy Code</button>
+        <div class="progress-bar"><div class="progress-fill" id="progress-jetsetgo-embed"></div></div>
+      </div>
+
+      <!-- jetsetgo-ingest -->
+      <div class="function-card" id="card-jetsetgo-ingest">
+        <div class="function-header">
+          <span class="function-name">jetsetgo-ingest</span>
+          <span class="status-badge status-pending" id="status-jetsetgo-ingest">Pending</span>
+        </div>
+        <p class="function-desc">
+          PDF/Excel document ingestion pipeline with CSV parsing, validation, and auto-embedding trigger
+        </p>
+        <div class="code-preview">338 lines • Excel/CSV parsing • Async job processing</div>
+        <button class="deploy-btn" onclick="copyFunction('jetsetgo-ingest')">📋 Copy Code</button>
+        <div class="progress-bar"><div class="progress-fill" id="progress-jetsetgo-ingest"></div></div>
+      </div>
+
+      <!-- jetsetgo-ocr -->
+      <div class="function-card" id="card-jetsetgo-ocr">
+        <div class="function-header">
+          <span class="function-name">jetsetgo-ocr</span>
+          <span class="status-badge status-pending" id="status-jetsetgo-ocr">Pending</span>
+        </div>
+        <p class="function-desc">
+          OCR processing using Tesseract.js for Thai + English text extraction from scanned PDFs
+        </p>
+        <div class="code-preview">218 lines • Tesseract.js • Thai language support</div>
+        <button class="deploy-btn" onclick="copyFunction('jetsetgo-ocr')">📋 Copy Code</button>
+        <div class="progress-bar"><div class="progress-fill" id="progress-jetsetgo-ocr"></div></div>
+      </div>
+
+      <!-- jetsetgo-structure -->
+      <div class="function-card" id="card-jetsetgo-structure">
+        <div class="function-header">
+          <span class="function-name">jetsetgo-structure</span>
+          <span class="status-badge status-pending" id="status-jetsetgo-structure">Pending</span>
+        </div>
+        <p class="function-desc">
+          Data structuring with Thai brand mapping, part number patterns, validation, and deduplication
+        </p>
+        <div class="code-preview">420 lines • Pattern matching • Validation engine</div>
+        <button class="deploy-btn" onclick="copyFunction('jetsetgo-structure')">📋 Copy Code</button>
+        <div class="progress-bar"><div class="progress-fill" id="progress-jetsetgo-structure"></div></div>
+      </div>
+
+      <!-- jetsetgo-rag-query -->
+      <div class="function-card" id="card-jetsetgo-rag-query">
+        <div class="function-header">
+          <span class="function-name">jetsetgo-rag-query</span>
+          <span class="status-badge status-pending" id="status-jetsetgo-rag-query">Pending</span>
+        </div>
+        <p class="function-desc">
+          RAG orchestrator with vector search, Groq LLM responses, and Thai/English language detection
+        </p>
+        <div class="code-preview">443 lines • Groq API • pgvector search • Thai prompts</div>
+        <button class="deploy-btn" onclick="copyFunction('jetsetgo-rag-query')">📋 Copy Code</button>
+        <div class="progress-bar"><div class="progress-fill" id="progress-jetsetgo-rag-query"></div></div>
+      </div>
+
+      <!-- jetsetgo-line-webhook -->
+      <div class="function-card" id="card-jetsetgo-line-webhook">
+        <div class="function-header">
+          <span class="function-name">jetsetgo-line-webhook</span>
+          <span class="status-badge status-pending" id="status-jetsetgo-line-webhook">Pending</span>
+        </div>
+        <p class="function-desc">
+          LINE webhook with Thai intent detection, Flex Messages, greeting/help/search responses
+        </p>
+        <div class="code-preview">398 lines • LINE Messaging API • Thai NLP • Flex carousel</div>
+        <button class="deploy-btn" onclick="copyFunction('jetsetgo-line-webhook')">📋 Copy Code</button>
+        <div class="progress-bar"><div class="progress-fill" id="progress-jetsetgo-line-webhook"></div></div>
+      </div>
+    </div>
+
+    <button class="copy-all-btn" onclick="window.location.href='https://supabase.com/dashboard/project/icgtllieipahixesllux/functions'">
+      🚀 Go to Supabase Dashboard to Deploy
+    </button>
+  </div>
+
+  <script>
+    const functionFiles = {
+      'jetsetgo-embed': 'supabase/functions/jetsetgo-embed/index.ts',
+      'jetsetgo-ingest': 'supabase/functions/jetsetgo-ingest/index.ts',
+      'jetsetgo-ocr': 'supabase/functions/jetsetgo-ocr/index.ts',
+      'jetsetgo-structure': 'supabase/functions/jetsetgo-structure/index.ts',
+      'jetsetgo-rag-query': 'supabase/functions/jetsetgo-rag-query/index.ts',
+      'jetsetgo-line-webhook': 'supabase/functions/jetsetgo-line-webhook/index.ts'
+    };
+
+    async function copyFunction(funcName) {
+      const filePath = functionFiles[funcName];
+
+      // Update status
+      const statusEl = document.getElementById(`status-${funcName}`);
+      const progressEl = document.getElementById(`progress-${funcName}`);
+
+      statusEl.textContent = 'Loading...';
+      statusEl.className = 'status-badge status-deploying';
+
+      try {
+        const response = await fetch(filePath);
+        if (!response.ok) throw new Error('Failed to load file');
+
+        const code = await response.text();
+
+        // Copy to clipboard
+        await navigator.clipboard.writeText(code);
+
+        statusEl.textContent = 'Copied!';
+        statusEl.className = 'status-badge status-success';
+        progressEl.style.width = '100%';
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+          statusEl.textContent = 'Copied ✓';
+        }, 2000);
+
+      } catch (error) {
+        statusEl.textContent = 'Error';
+        statusEl.className = 'status-badge status-error';
+        console.error('Error copying file:', error);
+      }
+    }
+
+    // Check if files exist on load
+    document.addEventListener('DOMContentLoaded', () => {
+      Object.keys(functionFiles).forEach(async funcName => {
+        try {
+          const response = await fetch(functionFiles[funcName]);
+          if (response.ok) {
+            const statusEl = document.getElementById(`status-${funcName}`);
+            statusEl.textContent = 'Ready';
+            statusEl.className = 'status-badge status-success';
+          }
+        } catch (e) {
+          // File might not be accessible via fetch in some contexts
+        }
+      });
+    });
+  </script>
+</body>
+</html>

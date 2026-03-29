@@ -1,0 +1,45 @@
+# PTG eZView Integration Client - Systemd Service
+# วิธีติดตั้ง:
+# 1. sudo cp ptg-ezview.service /etc/systemd/system/
+# 2. sudo systemctl daemon-reload
+# 3. sudo systemctl enable ptg-ezview
+# 4. sudo systemctl start ptg-ezview
+
+[Unit]
+Description=PTG eZView API Integration Client
+After=network.target
+
+[Service]
+Type=simple
+User=ptguser
+Group=ptguser
+WorkingDirectory=/opt/ptg-ezview
+
+# Python Version
+#ExecStart=/usr/bin/python3 /opt/ptg-ezview/ptg_ezview_client.py --daemon
+
+# Node.js Version
+#ExecStart=/usr/bin/node /opt/ptg-ezview/ptg-ezview-client.js --daemon
+
+# Docker Version (Recommended)
+ExecStart=/usr/bin/docker-compose -f /opt/ptg-ezview/docker-compose.yml up -d
+ExecStop=/usr/bin/docker-compose -f /opt/ptg-ezview/docker-compose.yml down
+
+# Environment file
+EnvironmentFile=/opt/ptg-ezview/.env
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ptg-ezview
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

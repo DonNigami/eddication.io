@@ -1,0 +1,39 @@
+# Node.js Version
+FROM node:18-alpine
+
+LABEL maintainer="MLSTMS"
+LABEL description="PTG eZView API Integration Client - Node.js Version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json ./
+
+# Install dependencies (if any were added)
+RUN npm install --production || echo "No dependencies to install"
+
+# Copy application files
+COPY ptg-ezview-client.js .
+COPY .env.example .env.example
+
+# Create directories for data
+RUN mkdir -p /app/data /app/logs
+
+# Set environment variables
+ENV PTG_JSON_PATH=/app/data/json_output
+ENV NODE_ENV=production
+
+# Create a non-root user
+RUN addgroup -g 1000 ptguser && \
+    adduser -D -u 1000 -G ptguser ptguser && \
+    chown -R ptguser:ptguser /app
+
+USER ptguser
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "console.log('healthy')" || exit 1
+
+# Default command
+CMD ["node", "ptg-ezview-client.js", "--daemon"]

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ลงทะเบียนร้านค้า - Boonyang CheckInv</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 30px 20px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #333;
+      font-size: 24px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #555;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .success {
+      background: #efe;
+      color: #3c3;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+
+    .info {
+      background: #e3f2fd;
+      color: #1976d2;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .note {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📝 ลงทะเบียนร้านค้า</h1>
+    <p class="subtitle">ระบบตรวจสอบยอดคงค้าง Boonyang</p>
+
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p>กำลังเชื่อมต่อ...</p>
+    </div>
+
+    <div id="errorMessage" class="error hidden"></div>
+    <div id="successMessage" class="success hidden"></div>
+
+    <div id="registerForm" class="hidden">
+      <div class="info">
+        ℹ️ <strong>ข้อมูลที่ลงทะเบียน:</strong><br>
+        • ชื่อ-นามสกุลเจ้าของร้าน<br>
+        • ชื่อร้านค้า (ต้องตรงกับในระบบบัญชี)<br>
+        • เลขประจำตัวผู้เสียภาษี (13 หลัก)
+      </div>
+
+      <form id="customerForm">
+        <div class="form-group">
+          <label for="fullname">ชื่อ-นามสกุล *</label>
+          <input
+            type="text"
+            id="fullname"
+            placeholder="เช่น สมชาย ใจดี"
+            required
+            autocomplete="name">
+        </div>
+
+        <div class="form-group">
+          <label for="shopname">ชื่อร้านค้า *</label>
+          <input
+            type="text"
+            id="shopname"
+            placeholder="เช่น ร้านมาร์ท จำกัด"
+            required
+            autocomplete="organization">
+        </div>
+
+        <div class="form-group">
+          <label for="taxid">เลขประจำตัวผู้เสียภาษี *</label>
+          <input
+            type="text"
+            id="taxid"
+            placeholder="13 หลัก"
+            maxlength="13"
+            pattern="[0-9]{13}"
+            required
+            inputmode="numeric">
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          ลงทะเบียน
+        </button>
+      </form>
+
+      <p class="note">
+        🔒 ข้อมูลของคุณจะถูกเก็บเป็นความลับ<br>
+        ใช้เพื่อตรวจสอบยอดคงค้างเท่านั้น
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Configuration - UPDATE THESE VALUES
+    const CONFIG = {
+      LIFF_ID: "YOUR_LIFF_ID", // TODO: ใส่ LIFF ID ที่นี่
+      WEB_APP_URL: "YOUR_WEB_APP_URL" // TODO: ใส่ Web App URL ที่นี่
+    };
+
+    let lineUserId = "";
+    let displayName = "";
+
+    // Initialize LIFF
+    async function initializeLiff() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        lineUserId = profile.userId;
+        displayName = profile.displayName;
+
+        console.log("LIFF initialized:", { lineUserId, displayName });
+
+        // Show registration form
+        document.getElementById("loading").classList.add("hidden");
+        document.getElementById("registerForm").classList.remove("hidden");
+
+      } catch (error) {
+        console.error("LIFF init error:", error);
+        showError("เกิดข้อผิดพลาดในการเชื่อมต่อ LINE กรุณาลองใหม่");
+      }
+    }
+
+    // Show error message
+    function showError(message) {
+      const errorDiv = document.getElementById("errorMessage");
+      errorDiv.textContent = message;
+      errorDiv.classList.remove("hidden");
+
+      setTimeout(() => {
+        errorDiv.classList.add("hidden");
+      }, 5000);
+    }
+
+    // Show success message
+    function showSuccess(message) {
+      const successDiv = document.getElementById("successMessage");
+      successDiv.textContent = message;
+      successDiv.classList.remove("hidden");
+    }
+
+    // Format tax ID (add spaces for readability)
+    function formatTaxId(value) {
+      return value.replace(/\D/g, '').substring(0, 13);
+    }
+
+    // Tax ID input handler
+    document.getElementById("taxid").addEventListener("input", function(e) {
+      e.target.value = formatTaxId(e.target.value);
+    });
+
+    // Form submission handler
+    document.getElementById("customerForm").addEventListener("submit", async function(e) {
+      e.preventDefault();
+
+      const fullname = document.getElementById("fullname").value.trim();
+      const shopname = document.getElementById("shopname").value.trim();
+      const taxid = document.getElementById("taxid").value.trim();
+      const submitBtn = document.getElementById("submitBtn");
+
+      // Validation
+      if (!fullname || !shopname || !taxid) {
+        showError("กรุณากรอกข้อมูลให้ครบถ้วน");
+        return;
+      }
+
+      if (taxid.length !== 13) {
+        showError("เลขประจำตัวผู้เสียภาษีต้องมี 13 หลัก");
+        return;
+      }
+
+      // Disable submit button
+      submitBtn.disabled = true;
+      submitBtn.textContent = "กำลังบันทึก...";
+
+      try {
+        // Send data to Google Apps Script
+        const formData = new FormData();
+        formData.append("action", "register");
+        formData.append("lineUserId", lineUserId);
+        formData.append("fullName", fullname);
+        formData.append("shopName", shopname);
+        formData.append("taxId", taxid);
+
+        const response = await fetch(CONFIG.WEB_APP_URL, {
+          method: "POST",
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess(result.message);
+
+          // Clear form
+          document.getElementById("customerForm").reset();
+
+          // Close LIFF after 2 seconds
+          setTimeout(() => {
+            if (liff.isInClient()) {
+              liff.closeWindow();
+            } else {
+              window.location.href = "https://line.me/ti/p/@YOUR_LINE_ID"; // TODO: Update LINE ID
+            }
+          }, 2000);
+
+        } else {
+          showError(result.message || "การลงทะเบียนไม่สำเร็จ");
+        }
+
+      } catch (error) {
+        console.error("Registration error:", error);
+        showError("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "ลงทะเบียน";
+      }
+    });
+
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", function() {
+      // Check if config is set
+      if (CONFIG.LIFF_ID === "YOUR_LIFF_ID" || CONFIG.WEB_APP_URL === "YOUR_WEB_APP_URL") {
+        showError("ระบบยังไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแลระบบ");
+        document.getElementById("loading").classList.add("hidden");
+        return;
+      }
+
+      initializeLiff();
+    });
+  </script>
+</body>
+</html>

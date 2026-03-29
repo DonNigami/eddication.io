@@ -1,0 +1,45 @@
+{
+  "description": "Baseline expected results for Thai OCR accuracy testing",
+  "lastUpdated": "2025-02-10",
+  "accuracyThreshold": {
+    "overall": 80,
+    "thaiText": 75,
+    "numbers": 95,
+    "partNumbers": 85
+  },
+  "testCases": [
+    {
+      "id": "OCR-TH-001",
+      "image": "thai-text-sample.png",
+      "expectedText": "ยางรถยนต์ Michelin Energy XM2",
+      "minConfidence": 80,
+      "criticalTerms": ["ยาง", "รถยนต์", "Michelin"]
+    },
+    {
+      "id": "OCR-TH-002",
+      "image": "part-number-sample.png",
+      "expectedText": "Part No: TIRE-185-65R15",
+      "minConfidence": 85,
+      "criticalTerms": ["Part", "TIRE-185-65R15", "185", "65", "R15"]
+    },
+    {
+      "id": "OCR-TH-003",
+      "image": "catalog-page-1.png",
+      "expectedText": "รายการอะไหล่ยนต์",
+      "minConfidence": 75,
+      "criticalTerms": ["รายการ", "อะไหล่", "ยนต์"]
+    },
+    {
+      "id": "OCR-TH-004",
+      "image": "mixed-text.png",
+      "expectedText": "ขนาด 185/65R15 ยี่ห้อ Michelin",
+      "minConfidence": 80,
+      "criticalTerms": ["185", "65", "R15", "Michelin"]
+    }
+  ],
+  "performanceThresholds": {
+    "avgProcessingTime": 3000,
+    "maxProcessingTime": 10000,
+    "maxFileSize": 5242880
+  }
+}

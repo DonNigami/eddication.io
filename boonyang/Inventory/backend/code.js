@@ -1,0 +1,869 @@
+/************************************************
+ * CONFIG (Fix getValue + keep old structure)
+ ************************************************/
+const spreadsheet = SpreadsheetApp.openById("1izokvbl6DQMg81JdTzRDr3Vk6evTgIir5pBU-HHUZOk");
+const settingBot  = spreadsheet.getSheetByName("setting");
+
+const LINE_CHANNEL_TOKEN = settingBot.getRange("B1").getValue();
+const DFID               = settingBot.getRange("B2").getValue();
+const folder             = DriveApp.getFolderById(DFID);
+
+const SSN_USER  = "UserData";
+const userSheet = spreadsheet.getSheetByName(SSN_USER);
+
+const gd = spreadsheet.getSheetByName("คู่มือ");
+const linebotbasicId = settingBot.getRange("B11").getValue();
+const richMenuId     = settingBot.getRange("B12").getDisplayValue();
+
+/************************************************
+ * ✅ SYSTEM SWITCH (setting sheet)
+ * B20 = BOT ON/OFF
+ * B21 = STOCK ON/OFF
+ * B22 = STOCK REQUIRE APPROVAL ON/OFF (default=ON)
+ * B23 = REGISTER REQUIRED ON/OFF (default=ON)
+ ************************************************/
+function readSwitch_(a1, defaultOn) {
+  try {
+    const v = String(settingBot.getRange(a1).getDisplayValue() || "").trim().toUpperCase();
+    const result = (!v) ? !!defaultOn : (v === "ON" || v === "TRUE" || v === "1" || v === "YES");
+    Logger.log(`🔛 Switch ${a1} = "${v}" → ${result}`);
+    return result;
+  } catch (e) {
+    Logger.log("❌ ERROR @ readSwitch_(" + a1 + "): " + e);
+    return !!defaultOn;
+  }
+}
+function isBotEnabled_()           { return readSwitch_("B20", true); }
+function isStockEnabled_()         { return readSwitch_("B21", true); }
+function isStockRequireApproval_() { return readSwitch_("B22", true); } // default ON
+function isRegisterRequired_()     { return readSwitch_("B23", true); } // default ON
+
+/************************************************
+ * ✅ UserData Column Lock
+ * L = userStaff (12)
+ * M = status register (13)
+ * N = flowStatus (14)
+ * O = name (15)
+ * P = surname (16)
+ * Q = shopname (17)
+ * R = taxid (18)
+ ************************************************/
+const COL_USER_ID         = 1;
+const COL_DISPLAY_NAME    = 2;
+const COL_PROFILE_URL     = 3;
+const COL_STATUS_MSG      = 4;
+const COL_IMAGE_FORMULA   = 5;
+
+const COL_USERSTAFF       = 12; // L
+const COL_STATUS_REGISTER = 13; // M
+const COL_FLOW_STATUS     = 14; // N
+const COL_NAME            = 15; // O
+const COL_SURNAME         = 16; // P
+const COL_SHOPNAME        = 17; // Q
+const COL_TAXID           = 18; // R
+
+function normalizeText_(s) {
+  return String(s || "")
+    .replace(/\u200B/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+/************************************************
+ * ✅ Permission helpers
+ ************************************************/
+function getUserStaff_(userRow) {
+  return normalizeText_(userSheet.getRange(userRow, COL_USERSTAFF).getDisplayValue());
+}
+function isApprovedUser_(userRow) {
+  const staff = getUserStaff_(userRow);
+  return staff === "admin" || staff === "customer";
+}
+function isAdminUser_(userRow) {
+  return getUserStaff_(userRow) === "admin";
+}
+function canUserAskStock_(userRow) {
+  if (!isStockEnabled_()) return false;
+  if (!isStockRequireApproval_()) return true;
+  return isApprovedUser_(userRow);
+}
+function setUserStaffById_(targetUserId, roleValue) {
+  const row = findUserRow(userSheet, targetUserId);
+  if (!row) return false;
+  userSheet.getRange(row, COL_USERSTAFF).setValue(roleValue); // "admin" | "customer" | ""
+  return true;
+}
+
+/************************************************
+ * ✅ "ตอบเฉพาะมีคำตอบ" helpers (FIXED: ใช้ชีท "reply")
+ ************************************************/
+function hasGuideAnswer_(term) {
+  try {
+    // ✅ FIX: ต้องตรวจจากชีท "reply" เหมือนกับ replyFromSheet
+    const replySheet = spreadsheet.getSheetByName("reply");
+    if (!replySheet) {
+      Logger.log("⚠️ Reply sheet not found");
+      return false;
+    }
+
+    const t = normalizeText_(term);
+    if (!t) return false;
+
+    const lastRow = replySheet.getLastRow();
+    if (lastRow < 2) {
+      Logger.log("⚠️ Reply sheet is empty");
+      return false;
+    }
+
+    // ตรวจสอบ Column A (index 0) ว่ามีคำนี้ไหม
+    const vals = replySheet.getRange(2, 1, lastRow - 1, 1).getDisplayValues();
+    for (let i = 0; i < vals.length; i++) {
+      if (normalizeText_(vals[i][0]) === t) {
+        Logger.log("✅ Found \"" + t + "\" in reply sheet at row " + (i + 2));
+        return true;
+      }
+    }
+
+    Logger.log("❌ Not found in reply sheet: \"" + t + "\"");
+    return false;
+  } catch (e) {
+    Logger.log("❌ ERROR @ hasGuideAnswer_: " + e);
+    return false;
+  }
+}
+
+function looksLikeStockQuery_(text) {
+  const t = normalizeText_(text);
+  if (!t) return false;
+
+  // ✅ System commands - ไม่ใช่การค้นหาสต็อก
+  const systemCommands = ["ลงทะเบียน", "เปิดระบบ", "ปิดระบบ", "bot on", "bot off",
+                          "เปิดสต๊อก", "ปิดสต๊อก", "stock on", "stock off",
+                          "require on", "require off", "approve", "block", "makeadmin"];
+  if (systemCommands.some(cmd => t === cmd)) return false;
+
+  // ✅ Explicit stock keywords
+  if (t.startsWith("สต๊อก") || t.startsWith("สต็อก") || t.startsWith("stock")) return true;
+  if (t.startsWith("เช็คสต๊อก") || t.startsWith("เช็คสต็อก")) return true;
+
+  // ✅ SKU-like patterns (รหัสสินค้า)
+  const skuLike = /^[a-z0-9][a-z0-9\-_]{2,}$/i.test(t);
+  if (skuLike) return true;
+
+  // ✅ ชื่อสินค้าธรรมดา - ทุกข้อความที่ไม่ใช่คำสั่งระบบ
+  // เพื่อให้สามารถค้นหาชื่อสินค้าจาก InventData ได้
+  if (t.length >= 2) return true;
+
+  return false;
+}
+
+/************************************************
+ * ✅ Safe caller (Fixed for cross-file functions)
+ ************************************************/
+function callIfExists_(fnName, arg1, arg2, arg3) {
+  try {
+    // ✅ ลองหาฟังก์ชันจาก global scope (รองรับข้ามไฟล์ .gs)
+    let fn = this[fnName];
+
+    // ถ้าไม่เจอใน this ลอง globalThis
+    if (typeof fn !== "function") {
+      fn = globalThis[fnName];
+    }
+
+    // Debug: log ว่าเจอฟังก์ชันหรือไม่
+    if (typeof fn !== "function") {
+      Logger.log("❌ callIfExists_: NOT FOUND - " + fnName);
+      return { ok: false, message: "MISSING_FUNCTION: " + fnName };
+    }
+
+    Logger.log("✅ callIfExists_: FOUND " + fnName + " - calling...");
+    const result = fn(arg1, arg2, arg3);
+    Logger.log("✅ callIfExists_: " + fnName + " completed");
+    return { ok: true, result: result };
+  } catch (err) {
+    Logger.log("❌ callIfExists_: ERROR calling " + fnName + " => " + err);
+    return { ok: false, message: "CALL_ERROR: " + fnName + " => " + err };
+  }
+}
+
+/************************************************
+ * LINE Loading
+ ************************************************/
+function startLoading(userId) {
+  var url = "https://api.line.me/v2/bot/chat/loading/start";
+  var headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + LINE_CHANNEL_TOKEN
+  };
+  var payload = { "chatId": userId, "loadingSeconds": 60 };
+  var options = { "method": "post", "headers": headers, "payload": JSON.stringify(payload) };
+  UrlFetchApp.fetch(url, options);
+}
+
+function getUserName(userId) {
+  var url = "https://api.line.me/v2/bot/profile/" + userId;
+  var userProfile = UrlFetchApp.fetch(url, {
+    headers: { Authorization: "Bearer " + LINE_CHANNEL_TOKEN }
+  });
+  return JSON.parse(userProfile);
+}
+
+/************************************************
+ * Webhook Entry
+ ************************************************/
+function doPost(event) {
+  try {
+    Logger.log("🔔 doPost triggered at " + new Date());
+    if (event.postData) {
+      let reqObj = JSON.parse(event.postData.contents);
+      Logger.log("📦 Webhook received: " + JSON.stringify(reqObj));
+      execute(reqObj);
+    } else {
+      Logger.log("⚠️ No postData in webhook");
+    }
+  } catch (e) {
+    Logger.log("❌ ERROR @ doPost: " + e + "\n" + e.stack);
+    console.error(e.stack);
+  }
+}
+
+function execute(reqObj) {
+  Logger.log("🎯 execute() called with " + reqObj.events.length + " events");
+  for (let i in reqObj.events) {
+    let reqEvent = reqObj.events[i];
+    Logger.log("📍 Event type: " + reqEvent.type + ", source: " + JSON.stringify(reqEvent.source));
+
+    switch (reqEvent.type) {
+      case "follow":
+        executeFollow(reqEvent);
+        break;
+
+      case "unfollow":
+        executeUnfollow(reqEvent);
+        break;
+
+      case "message": {
+        const userId = reqEvent.source.userId;
+        const msgText = reqEvent.message ? (reqEvent.message.text || "[non-text]") : "[no message]";
+        Logger.log("💬 MESSAGE from " + userId + ": " + msgText);
+
+        // ✅ ตามที่ขอ: loading ขึ้น "ทุกอย่าง" ที่ส่งมา
+        try {
+          startLoading(reqEvent.source.userId);
+        } catch (e) {
+          Logger.log("⚠️ Loading failed: " + e);
+        }
+        executeMessage(reqEvent);
+        break;
+      }
+
+      case "postback":
+        executePostback(reqEvent);
+        break;
+
+      case "join":
+        executeJoinEvent(reqEvent);
+        break;
+
+      case "leave":
+        executeLeaveEvent(reqEvent);
+        break;
+
+      case "memberJoined":
+        executememberJoinedEvent(reqEvent);
+        break;
+
+      case "memberLeft":
+        executemembermemberLeftEvent(reqEvent);
+        break;
+    }
+  }
+}
+
+/************************************************
+ * Join / Leave (Keep old)
+ ************************************************/
+function executeJoinEvent(reqEvent) {
+  var botjoin = settingBot.getRange("B6").getValue();
+  const msgList = JSON.parse(botjoin);
+  sendLineReply(reqEvent.replyToken, msgList);
+}
+function executeLeaveEvent(reqEvent) {}
+
+/************************************************
+ * Group helpers (Keep old)
+ ************************************************/
+function getGroupName(groupId) {
+  var url = "https://api.line.me/v2/bot/group/" + groupId + "/summary";
+  var groupSummary = UrlFetchApp.fetch(url, {
+    headers: { Authorization: "Bearer " + LINE_CHANNEL_TOKEN }
+  });
+  var groupData = JSON.parse(groupSummary);
+  return groupData.groupName;
+}
+
+function getGroupMember(groupId, userId) {
+  var url = "https://api.line.me/v2/bot/group/" + groupId + "/member/" + userId;
+  var headers = { "Authorization": "Bearer " + LINE_CHANNEL_TOKEN };
+  var options = { "method": "get", "headers": headers };
+  var response = UrlFetchApp.fetch(url, options);
+  return JSON.parse(response);
+}
+
+/************************************************
+ * Member Joined / Left (Keep old + safe append)
+ ************************************************/
+function executememberJoinedEvent(reqEvent) {
+  var today = new Date();
+  var now = Utilities.formatDate(today, "GMT+7", "dd/MM/yyyy");
+  var nowTime = Utilities.formatDate(today, "GMT+7", "HH:mm");
+
+  var groupId = reqEvent.source.groupId;
+  var groupName = getGroupName(groupId);
+
+  var userId = reqEvent.joined.members[0].userId;
+  var username = getGroupMember(groupId, userId).displayName;
+  var userprof = getGroupMember(groupId, userId).pictureUrl;
+
+  var img = '=IMAGE("' + userprof + '")';
+
+  var dataGroup = userSheet.getDataRange().getValues();
+  var userRow = -1;
+  for (var i = 0; i < dataGroup.length; i++) {
+    if (dataGroup[i][0] === userId) { userRow = i + 1; break; }
+  }
+
+  if (userRow !== -1) {
+    userSheet.getRange(userRow, COL_DISPLAY_NAME).setValue(username);
+    userSheet.getRange(userRow, COL_PROFILE_URL).setValue(userprof);
+    userSheet.getRange(userRow, 4).setValue("คนที่มาจากกลุ่ม");
+    userSheet.getRange(userRow, COL_IMAGE_FORMULA).setValue(img);
+    userSheet.getRange(userRow, 7).setValue(now);
+    userSheet.getRange(userRow, 8).setValue(nowTime);
+    userSheet.getRange(userRow, 10).setValue(groupName);
+    userSheet.getRange(userRow, 11).setValue(groupId);
+  } else {
+    userSheet.appendRow([userId, username, userprof, "คนที่มาจากกลุ่ม", img, "", now, nowTime, "", groupName, groupId, "", "", "", "", "", "", ""]);
+  }
+
+  var greetings = "สมาชิกคนนี้ชื่อ\n" + username + "\nมาจากกลุ่ม :\n" + groupName;
+  var caption = "กลุ่ม :" + groupName;
+
+  callIfExists_("sendTelegramNotificationWithImage", greetings, userprof, caption);
+
+  const memberNew = settingBot.getRange("B5").getValue();
+  const msgList = JSON.parse(memberNew);
+  sendLineReply(reqEvent.replyToken, msgList);
+}
+
+function executemembermemberLeftEvent(reqEvent) {
+  const leftMembers = reqEvent.left.members;
+  leftMembers.forEach(member => {
+    if (member.type === "user") removeUserFromDatabase(member.userId);
+  });
+}
+
+/************************************************
+ * Follow / Unfollow (Keep old + safe append)
+ ************************************************/
+function executeFollow(reqEvent) {
+  var profile = getUserName(reqEvent.source.userId);
+  var username = profile.displayName;
+  var userprof = profile.pictureUrl;
+  var userst = profile.statusMessage;
+  var img = '=IMAGE("' + userprof + '")';
+  var followMsg = settingBot.getRange("B4").getValue();
+
+  let user = getUser(reqEvent.source.userId);
+  if (!user) {
+    var today = new Date();
+    var now = Utilities.formatDate(today, "GMT+7", "dd/MM/yyyy");
+    var nowTime = Utilities.formatDate(today, "GMT+7", "HH:mm");
+    var language = profile.language;
+
+    userSheet.appendRow([reqEvent.source.userId, username, userprof, userst, img, "", now, nowTime, language, "", "", "", "", "", "", "", "", ""]);
+
+    var greetings = "มีคนแอดมาใหม่\n" + username + "\nUserId :\nhttps://line.me/R/oaMessage/" + linebotbasicId + "/?" + reqEvent.source.userId;
+    var caption = username;
+
+    callIfExists_("sendTelegramNotificationWithImage", greetings, userprof, caption);
+
+    const msgList = JSON.parse(followMsg);
+    sendLineReply(reqEvent.replyToken, msgList);
+  }
+}
+
+function executeUnfollow(reqEvent) {
+  removeUserFromDatabase(reqEvent.source.userId);
+}
+
+/************************************************
+ * Message Dispatcher
+ ************************************************/
+function executeMessage(reqEvent) {
+  const userId = reqEvent.source.userId;
+  Logger.log("👤 executeMessage() for userId: " + userId);
+
+  let user = getUser(userId);
+  if (user) {
+    Logger.log("✅ User found: " + JSON.stringify(user));
+    handleUserMessage(reqEvent);
+  } else {
+    Logger.log("⚠️ User NOT found, registering new user...");
+    registerNewUser(reqEvent);
+    handleUserMessage(reqEvent);
+  }
+}
+
+/************************************************
+ * ✅ handleUserMessage
+ * - ✅ ไม่ตอบกลับรูป
+ * - ✅ ไม่ตอบในกลุ่ม/ห้องเมื่อยังไม่อนุมัติถามสต๊อก
+ * - ✅ ไม่เกี่ยวข้อง/ไม่มีคำตอบ = เงียบ
+ ************************************************/
+function handleUserMessage(reqEvent) {
+  const userId  = reqEvent.source.userId;
+  Logger.log("🔍 handleUserMessage() START for userId: " + userId);
+
+  const userRow = findUserRow(userSheet, userId);
+  Logger.log("📍 userRow found: " + (userRow ? "YES (row " + userRow + ")" : "NO"));
+
+  if (!reqEvent || !reqEvent.message || !reqEvent.message.type) {
+    Logger.log("⚠️ Invalid event structure");
+    return;
+  }
+
+  // ✅ master switch (ยังตอบเพื่อแจ้งว่าระบบปิด)
+  if (!isBotEnabled_()) {
+    Logger.log("🛑 Bot is DISABLED - sending disabled message");
+    sendLineReply(reqEvent.replyToken, [{ type: "text", text: "⛔ ระบบปิดชั่วคราว กรุณาลองใหม่ภายหลัง" }]);
+    return;
+  }
+  Logger.log("✅ Bot is ENABLED");
+
+  const sourceType = (reqEvent.source && reqEvent.source.type) ? reqEvent.source.type : "user";
+  const isPrivateChat = (sourceType === "user"); // group/room => false
+  const msgType = reqEvent.message.type;
+  Logger.log("💬 sourceType: " + sourceType + ", isPrivateChat: " + isPrivateChat + ", msgType: " + msgType);
+
+  // ✅ image -> เงียบ (ไม่ reply รูปเดิมกลับ)
+  if (msgType === "image") {
+    Logger.log("🖼️ Image received - saving only");
+    try {
+      let childFolder = getChildFolder(userId);
+      if (!childFolder) childFolder = folder.createFolder(userId);
+
+      let response = getLineContent(reqEvent.message.id);
+      let file = response.getBlob();
+      let timestamp = Utilities.formatDate(new Date(), "GMT+7", "yyyyMMddHHmmss");
+      file.setName(timestamp);
+
+      childFolder.createFile(file); // เก็บไว้เฉย ๆ
+    } catch (e) {
+      Logger.log("❌ Error saving image: " + e);
+    }
+    return;
+  }
+
+  // ✅ message อื่น ๆ ที่ไม่ใช่ text -> เงียบ
+  if (msgType !== "text") {
+    Logger.log("🔇 Non-text message type - ignoring");
+    return;
+  }
+
+  const rawText = String(reqEvent.message.text || "");
+  const msgtext = normalizeText_(rawText);
+  Logger.log("📝 Text message: \"" + rawText + "\" → normalized: \"" + msgtext + "\"");
+
+  // ไม่พบ userRow -> เงียบ
+  if (!userRow) {
+    Logger.log("❌ userRow is NULL - SILENT RETURN");
+    return;
+  }
+
+  // ✅ Register guard (group/room เงียบ)
+  const regStatus  = String(userSheet.getRange(userRow, COL_STATUS_REGISTER).getDisplayValue() || "").trim();
+  const flowStatus = String(userSheet.getRange(userRow, COL_FLOW_STATUS).getDisplayValue() || "").trim();
+  const allowWhileRegistering = ["รอชื่อ", "รอนามสกุล", "รอชื่อร้าน", "รอเลขที่ภาษี"];
+  const isRegistering = allowWhileRegistering.includes(flowStatus);
+  Logger.log("📋 regStatus: \"" + regStatus + "\", flowStatus: \"" + flowStatus + "\", isRegistering: " + isRegistering);
+
+  if (isRegisterRequired_()) {
+    Logger.log("🔐 Register required is ON");
+    if (regStatus !== "สำเร็จ" && msgtext !== "ลงทะเบียน" && !isRegistering) {
+      Logger.log("⛔ User not registered - should prompt");
+      if (!isPrivateChat) {
+        Logger.log("🔇 Not private chat - SILENT RETURN");
+        return;
+      }
+      Logger.log("💬 Sending registration prompt");
+      sendLineReply(reqEvent.replyToken, [{
+        type: "text",
+        text: "⛔ กรุณาลงทะเบียนก่อนใช้งาน\nพิมพ์ \"ลงทะเบียน\" เพื่อเริ่มต้น"
+      }]);
+      return;
+    }
+    Logger.log("✅ User registration check passed");
+  } else {
+    Logger.log("🔓 Register required is OFF");
+  }
+
+  // ✅ Admin commands (เฉพาะ private)
+  if (isAdminUser_(userRow) && isPrivateChat) {
+    Logger.log("👑 Admin in private chat - checking commands...");
+    if (msgtext === "เปิดระบบ" || msgtext === "bot on") {
+      settingBot.getRange("B20").setValue("ON");
+      sendLineReply(reqEvent.replyToken, [{ type: "text", text: "✅ เปิดระบบแล้ว (setting!B20=ON)" }]);
+      return;
+    }
+    if (msgtext === "ปิดระบบ" || msgtext === "bot off") {
+      settingBot.getRange("B20").setValue("OFF");
+      sendLineReply(reqEvent.replyToken, [{ type: "text", text: "✅ ปิดระบบแล้ว (setting!B20=OFF)" }]);
+      return;
+    }
+    if (msgtext === "เปิดสต๊อก" || msgtext === "stock on") {
+      settingBot.getRange("B21").setValue("ON");
+      sendLineReply(reqEvent.replyToken, [{ type: "text", text: "✅ เปิดการถามสต๊อกแล้ว (setting!B21=ON)" }]);
+      return;
+    }
+    if (msgtext === "ปิดสต๊อก" || msgtext === "stock off") {
+      settingBot.getRange("B21").setValue("OFF");
+      sendLineReply(reqEvent.replyToken, [{ type: "text", text: "✅ ปิดการถามสต๊อกแล้ว (setting!B21=OFF)" }]);
+      return;
+    }
+    if (msgtext === "require on") {
+      settingBot.getRange("B22").setValue("ON");
+      sendLineReply(reqEvent.replyToken, [{ type: "text", text: "✅ เปิด Require Approval (setting!B22=ON)" }]);
+      return;
+    }
+    if (msgtext === "require off") {
+      settingBot.getRange("B22").setValue("OFF");
+      sendLineReply(reqEvent.replyToken, [{ type: "text", text: "✅ ปิด Require Approval (setting!B22=OFF)" }]);
+      return;
+    }
+
+    let m = rawText.trim().match(/^(approve|block|makeadmin)\s+(u[a-z0-9]+)$/i);
+    if (m) {
+      const cmd = m[1].toLowerCase();
+      const target = m[2];
+      let ok = false;
+
+      if (cmd === "approve") ok = setUserStaffById_(target, "customer");
+      if (cmd === "makeadmin") ok = setUserStaffById_(target, "admin");
+      if (cmd === "block") ok = setUserStaffById_(target, "");
+
+      sendLineReply(reqEvent.replyToken, [{
+        type: "text",
+        text: ok
+          ? `✅ ตั้งค่า ${target} => ${cmd === "approve" ? "customer" : (cmd === "makeadmin" ? "admin" : "(blank)")} เรียบร้อย`
+          : `❌ ไม่พบ ${target} ในชีท UserData`
+      }]);
+      return;
+    }
+  }
+
+  // ✅ Registration flow
+  if (msgtext === "ลงทะเบียน") {
+    Logger.log("📝 Registration flow started");
+    userSheet.getRange(userRow, COL_FLOW_STATUS).setValue("รอชื่อ");
+    const icon = "https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png";
+    const r = callIfExists_("ansFlex", icon, "ลงทะเบียน", "โปรดกรอกชื่อของคุณ");
+    if (r.ok) sendLineReply(reqEvent.replyToken, [r.result]);
+    return;
+  }
+
+  if (flowStatus === "รอชื่อ") {
+    Logger.log("📝 Registration: waiting for name");
+    userSheet.getRange(userRow, COL_NAME).setValue(rawText.trim());
+    userSheet.getRange(userRow, COL_FLOW_STATUS).setValue("รอนามสกุล");
+    const icon = "https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png";
+    const r = callIfExists_("ansFlex", icon, userSheet.getRange(userRow, COL_NAME).getDisplayValue(), "โปรดกรอกนามสกุลของคุณ");
+    if (r.ok) sendLineReply(reqEvent.replyToken, [r.result]);
+    return;
+  }
+
+  if (flowStatus === "รอนามสกุล") {
+    Logger.log("📝 Registration: waiting for surname");
+    userSheet.getRange(userRow, COL_SURNAME).setValue(rawText.trim());
+    userSheet.getRange(userRow, COL_FLOW_STATUS).setValue("รอชื่อร้าน");
+    const icon = "https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png";
+    const r = callIfExists_("ansFlex", icon, userSheet.getRange(userRow, COL_SURNAME).getDisplayValue(), "กรุณากรอกชื่อร้าน");
+    if (r.ok) sendLineReply(reqEvent.replyToken, [r.result]);
+    return;
+  }
+
+  if (flowStatus === "รอชื่อร้าน") {
+    Logger.log("📝 Registration: waiting for shop name");
+    userSheet.getRange(userRow, COL_SHOPNAME).setValue(rawText.trim());
+    userSheet.getRange(userRow, COL_FLOW_STATUS).setValue("รอเลขที่ภาษี");
+    const icon = "https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png";
+    const r = callIfExists_("ansFlex", icon, userSheet.getRange(userRow, COL_SHOPNAME).getDisplayValue(), "กรุณากรอกเลขที่ผู้เสียภาษี");
+    if (r.ok) sendLineReply(reqEvent.replyToken, [r.result]);
+    return;
+  }
+
+  // ✅ CACHE REFRESH COMMAND (Admin only)
+  if (rawText.trim().toLowerCase() === "/refreshcache" || rawText.trim().toLowerCase() === "/rf") {
+    Logger.log("🔄 Cache refresh command requested");
+
+    // ตรวจสอบสิทธิ์ admin (ถ้าต้องการ) หรือเปิดให้ทุกคนใช้ได้
+    const staff = getUserStaff_(userRow);
+    const isAdmin = staff && (staff.includes("ADMIN") || staff.includes("OWNER"));
+
+    if (!isAdmin) {
+      sendLineReply(reqEvent.replyToken, [{
+        type: "text",
+        text: "⛔ คำสั่งนี้สงวนสำหรับ Admin เท่านั้น"
+      }]);
+      return;
+    }
+
+    // เรียก manualRefreshCache
+    const result = callIfExists_("manualRefreshCache");
+    if (result.ok) {
+      const data = result.result;
+      sendLineReply(reqEvent.replyToken, [{
+        type: "text",
+        text: `${data.message}\n⏰ เวลา: ${data.timestamp}`
+      }]);
+    } else {
+      sendLineReply(reqEvent.replyToken, [{
+        type: "text",
+        text: "❌ ไม่สามารถอัพเดท cache ได้"
+      }]);
+    }
+    return;
+  }
+
+  if (flowStatus === "รอเลขที่ภาษี") {
+    Logger.log("📝 Registration: waiting for tax ID");
+    userSheet.getRange(userRow, COL_TAXID).setValue("'" + rawText.trim());
+    userSheet.getRange(userRow, COL_FLOW_STATUS).setValue("");
+    userSheet.getRange(userRow, COL_STATUS_REGISTER).setValue("สำเร็จ");
+
+    const profile = getUserName(userId);
+    const username = profile.displayName;
+    const userprof = profile.pictureUrl;
+
+    const name    = userSheet.getRange(userRow, COL_NAME).getDisplayValue();
+    const surname = userSheet.getRange(userRow, COL_SURNAME).getDisplayValue();
+    const shop    = userSheet.getRange(userRow, COL_SHOPNAME).getDisplayValue();
+    const taxid   = userSheet.getRange(userRow, COL_TAXID).getDisplayValue();
+
+    const r = callIfExists_("flexRegister", userprof, username, name, surname, shop, taxid);
+    if (r.ok) sendLineReply(reqEvent.replyToken, [r.result]);
+    return;
+  }
+
+  // ✅ คู่มือ/คีย์เวิร์ด (reply sheet): ตอบเฉพาะเมื่อมี keyword จริง ๆ (PRIORITY 1)
+  if (hasGuideAnswer_(rawText)) {
+    Logger.log("📖 Found in guide/คู่มือ - calling replyFromSheet");
+    callIfExists_("replyFromSheet", reqEvent);
+    return;
+  }
+  Logger.log("📖 Not found in guide/คู่มือ");
+
+  // ✅ STOCK GATE: ค้นหา BotData → InventData (PRIORITY 2)
+  if (looksLikeStockQuery_(rawText)) {
+    Logger.log("📦 Looks like stock query");
+
+    if (!canUserAskStock_(userRow)) {
+      Logger.log("⛔ User cannot ask stock");
+      if (!isPrivateChat) {
+        Logger.log("🔇 Not private chat - SILENT RETURN");
+        return;
+      }
+
+      const staff = getUserStaff_(userRow);
+      const reason =
+        !isStockEnabled_() ? "⛔ ระบบถามสต๊อกปิดชั่วคราว"
+        : (!isStockRequireApproval_() ? "⛔ ไม่สามารถใช้งานการถามสต๊อกได้"
+          : (staff ? "⛔ ไม่มีสิทธิ์สอบถามสต๊อก" : "⏳ บัญชีนี้ยังไม่ได้รับการอนุมัติให้สอบถามสต๊อก"));
+
+      sendLineReply(reqEvent.replyToken, [{
+        type: "text",
+        text: reason + "\n\nหากต้องการอนุมัติ กรุณาติดต่อแอดมิน"
+      }]);
+      return;
+    }
+
+    Logger.log("✅ User can ask stock - calling findItemAndPrepareReply");
+    callIfExists_("findItemAndPrepareReply", reqEvent);
+    return;
+  }
+  Logger.log("📦 Not a stock query");
+
+  // ✅ ไม่เข้าเงื่อนไขใด ๆ => เงียบ
+  Logger.log("🔇 NO MATCH - SILENT RETURN (ตรงนี้คือบอทเงียบ)");
+  return;
+}
+
+/************************************************
+ * Postback (Keep old)
+ ************************************************/
+function executePostback(reqEvent) {}
+
+/************************************************
+ * Register New User (Keep old shape)
+ ************************************************/
+function registerNewUser(reqEvent) {
+  var profile = getUserName(reqEvent.source.userId);
+  var username = profile.displayName;
+  var userprof = profile.pictureUrl;
+  var userst = profile.statusMessage;
+  var language = profile.language;
+  var img = '=IMAGE("' + userprof + '")';
+  var userId = reqEvent.source.userId;
+
+  var today = new Date();
+  var now = Utilities.formatDate(today, "GMT+7", "dd/MM/yyyy");
+  var nowTime = Utilities.formatDate(today, "GMT+7", "HH:mm");
+
+  userSheet.appendRow([userId, username, userprof, userst, img, "", now, nowTime, language, "", "", "", "", "", "", "", "", ""]);
+}
+
+/************************************************
+ * Drive helper
+ ************************************************/
+function getChildFolder(folderName) {
+  let childFolders = folder.getFolders();
+  while (childFolders.hasNext()) {
+    let childFolder = childFolders.next();
+    if (childFolder.getName() == folderName) return childFolder;
+  }
+  return null;
+}
+
+/************************************************
+ * User helper
+ ************************************************/
+function getUser(userId) {
+  let userList = getUserList();
+  for (let i in userList) {
+    let user = userList[i];
+    if (user.userId === userId) {
+      return { index: parseInt(i, 10), item: user.follow };
+    }
+  }
+  return null;
+}
+
+function getUserList() {
+  let userList = [];
+  let lastRow = userSheet.getLastRow();
+  let lastCol = userSheet.getLastColumn();
+  if (lastRow > 1) {
+    const values = userSheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    userList = values.map(row => {
+      const staff = normalizeText_(row[COL_USERSTAFF - 1]);
+      return { userId: row[0], follow: staff };
+    });
+  }
+  return userList;
+}
+
+/************************************************
+ * LINE content / push / reply
+ ************************************************/
+function getLineContent(messageId) {
+  let url = `https://api-data.line.me/v2/bot/message/${messageId}/content`;
+  let options = {
+    method: "get",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Authorization": `Bearer ${LINE_CHANNEL_TOKEN}`
+    }
+  };
+  return UrlFetchApp.fetch(url, options);
+}
+
+function sendLinePush(targetId, msgList) {
+  let url = "https://api.line.me/v2/bot/message/push";
+  let options = {
+    method: "post",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Authorization": `Bearer ${LINE_CHANNEL_TOKEN}`
+    },
+    payload: JSON.stringify({ to: targetId, messages: msgList })
+  };
+  let response = UrlFetchApp.fetch(url, options);
+  return JSON.parse(response.getContentText("UTF-8"));
+}
+
+function sendLineReply(replyToken, msgList) {
+  let url = "https://api.line.me/v2/bot/message/reply";
+  let options = {
+    method: "post",
+    headers: {
+      "Content-Type": "application/json; charset=UTF-8",
+      "Authorization": `Bearer ${LINE_CHANNEL_TOKEN}`
+    },
+    payload: JSON.stringify({ replyToken: replyToken, messages: msgList })
+  };
+  let response = UrlFetchApp.fetch(url, options);
+  return JSON.parse(response.getContentText("UTF-8"));
+}
+
+/************************************************
+ * Remove user from UserData
+ ************************************************/
+function removeUserFromDatabase(senderId) {
+  var data = userSheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === senderId) {
+      userSheet.deleteRow(i + 1);
+      break;
+    }
+  }
+}
+
+/************************************************
+ * Find user row
+ ************************************************/
+function findUserRow(sheet, userId) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === userId) return i + 1;
+  }
+  return null;
+}
+
+/************************************************
+ * ✅ Auto Preload Trigger for Stock Cache (CacheService only)
+ ************************************************/
+function setupStockCacheTrigger() {
+  try {
+    // ลบ trigger เก่าถ้ามี
+    const triggers = ScriptApp.getProjectTriggers();
+    triggers.forEach(t => {
+      if (t.getHandlerFunction() === 'autoPreloadStockCache') {
+        ScriptApp.deleteTrigger(t);
+        Logger.log('🗑️ Deleted old autoPreloadStockCache trigger');
+      }
+    });
+
+    // สร้าง trigger ใหม่ (ทุก 4 ชั่วโมง) - เพื่อ refresh CacheService
+    ScriptApp.newTrigger('autoPreloadStockCache')
+      .timeBased()
+      .everyHours(4)
+      .create();
+
+    Logger.log('✅ Auto-preload trigger created (every 4 hours for CacheService)');
+    return '✅ ตั้งเวลา Auto Preload CacheService ทุก 4 ชั่วโมงเรียบร้อย';
+  } catch (e) {
+    Logger.log('❌ ERROR @ setupStockCacheTrigger: ' + e);
+    return '❌ เกิดข้อผิดพลาด: ' + e;
+  }
+}
+
+function autoPreloadStockCache() {
+  try {
+    Logger.log('🔄 Auto-preloading CacheService at ' + new Date());
+    callIfExists_('preloadStockCache');      // BotData
+    callIfExists_('preloadInventDataCache'); // InventData
+    Logger.log('✅ CacheService auto-reloaded successfully at ' + new Date());
+  } catch (e) {
+    Logger.log('❌ ERROR @ autoPreloadStockCache: ' + e);
+  }
+}

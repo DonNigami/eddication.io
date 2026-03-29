@@ -1,0 +1,28 @@
+# Dockerfile for Render.com - Node.js Version
+FROM node:18-alpine
+
+# Set labels for Render
+LABEL com.render.alien.index.enabled="true"
+
+# Set working directory
+WORKDIR /opt/render/project
+
+# Copy package files
+COPY package.json ./
+
+# Install dependencies (if any)
+RUN npm install --production || echo "No dependencies to install"
+
+# Copy application files
+COPY ptg-ezview-client.js .
+
+# Create data directory (Render disk mount point)
+RUN mkdir -p /opt/render/project/data
+
+# Set environment variables
+ENV PTG_JSON_PATH=/opt/render/project/data/json_output
+ENV PTG_SCHEDULE_MINUTES=60
+ENV NODE_ENV=production
+
+# Run the application
+CMD ["node", "ptg-ezview-client.js", "--daemon"]

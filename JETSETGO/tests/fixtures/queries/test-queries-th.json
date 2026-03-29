@@ -1,0 +1,137 @@
+{
+  "description": "Test queries for JETSETGO search testing - Thai and English",
+  "lastUpdated": "2025-02-10",
+  "queries": [
+    {
+      "id": "TH-001",
+      "text": "ยางรถยนต์",
+      "expectedCategory": "tires",
+      "minRelevanceScore": 0.7,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-002",
+      "text": "น้ำมันเครื่อง",
+      "expectedCategory": "engine-oil",
+      "minRelevanceScore": 0.7,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-003",
+      "text": "ไส้กรองอากาศ",
+      "expectedCategory": "air-filter",
+      "minRelevanceScore": 0.7,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-004",
+      "text": "หัวเทียน",
+      "expectedCategory": "spark-plug",
+      "minRelevanceScore": 0.7,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-C-001",
+      "text": "ยาง Michelin",
+      "expectedBrands": ["Michelin"],
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-C-002",
+      "text": "น้ำมัน Motul",
+      "expectedBrands": ["Motul"],
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-S-001",
+      "text": "ยาง 185/65R15",
+      "expectedSize": "185/65R15",
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-S-002",
+      "text": "ยาง 205/55R16",
+      "expectedSize": "205/55R16",
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-V-001",
+      "text": "ยาง Honda City",
+      "expectedVehicle": ["Honda", "City"],
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-V-002",
+      "text": "น้ำมันเครื่อง Toyota Vios",
+      "expectedVehicle": ["Toyota", "Vios"],
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "TH-M-001",
+      "text": "ยางแม็ก",
+      "expectedCategory": "tires",
+      "minRelevanceScore": 0.5,
+      "shouldFindResults": true,
+      "colloquial": true
+    },
+    {
+      "id": "TH-M-002",
+      "text": "น้ำมันหล่อลื่น",
+      "expectedCategory": "engine-oil",
+      "minRelevanceScore": 0.5,
+      "shouldFindResults": true,
+      "colloquial": true
+    },
+    {
+      "id": "EN-001",
+      "text": "car tires",
+      "expectedCategory": "tires",
+      "minRelevanceScore": 0.7,
+      "shouldFindResults": true
+    },
+    {
+      "id": "EN-002",
+      "text": "engine oil",
+      "expectedCategory": "engine-oil",
+      "minRelevanceScore": 0.7,
+      "shouldFindResults": true
+    },
+    {
+      "id": "EN-S-001",
+      "text": "tire 185/65R15",
+      "expectedSize": "185/65R15",
+      "minRelevanceScore": 0.6,
+      "shouldFindResults": true
+    },
+    {
+      "id": "EDGE-001",
+      "text": "ยางสำหรับเครื่องบิน",
+      "shouldFindResults": false,
+      "reason": "out_of_scope"
+    },
+    {
+      "id": "EDGE-002",
+      "text": "ขายแอร์บ้าน",
+      "shouldFindResults": false,
+      "reason": "out_of_scope"
+    },
+    {
+      "id": "EDGE-003",
+      "text": "",
+      "shouldFindResults": false,
+      "reason": "empty_query"
+    },
+    {
+      "id": "EDGE-004",
+      "text": "xyz123!@#",
+      "shouldFindResults": false,
+      "reason": "gibberish"
+    }
+  ]
+}

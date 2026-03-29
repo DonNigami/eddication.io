@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JETSETGO - Admin Panel</title>
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1>JETSETGO</h1>
+        <p class="subtitle">Agentic AI Catalog System</p>
+        <span class="badge badge-free">FREE EDITION</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" data-page="dashboard">
+          <span class="icon">📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="#catalog-upload" class="nav-item" data-page="catalog-upload">
+          <span class="icon">📤</span>
+          <span>Upload Catalog</span>
+        </a>
+        <a href="#ingestion" class="nav-item" data-page="ingestion">
+          <span class="icon">⚙️</span>
+          <span>Ingestion Jobs</span>
+        </a>
+        <a href="#parts-catalog" class="nav-item" data-page="parts-catalog">
+          <span class="icon">🔧</span>
+          <span>Parts Catalog</span>
+        </a>
+        <a href="#tires-catalog" class="nav-item" data-page="tires-catalog">
+          <span class="icon">🚗</span>
+          <span>Tires Catalog</span>
+        </a>
+        <a href="#validation" class="nav-item" data-page="validation">
+          <span class="icon">✅</span>
+          <span>Data Validation</span>
+        </a>
+        <a href="#search-test" class="nav-item" data-page="search-test">
+          <span class="icon">🔍</span>
+          <span>Search Test</span>
+        </a>
+        <a href="#analytics" class="nav-item" data-page="analytics">
+          <span class="icon">📈</span>
+          <span>Analytics</span>
+        </a>
+        <a href="#settings" class="nav-item" data-page="settings">
+          <span class="icon">⚙️</span>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="usage-stats">
+          <div class="stat-item">
+            <span class="label">Database</span>
+            <span class="value" id="db-usage">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="label">Storage</span>
+            <span class="value" id="storage-usage">--</span>
+          </div>
+        </div>
+        <p class="free-tier-note">Supabase Free Tier</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <h2 id="pageTitle">Dashboard</h2>
+        <div class="header-actions">
+          <span class="connection-status" id="connectionStatus">
+            <span class="status-dot"></span>
+            Connecting...
+          </span>
+        </div>
+      </header>
+
+      <!-- Page Content Container -->
+      <div class="page-container" id="pageContainer">
+        <!-- Dashboard Page -->
+        <section class="page active" id="page-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🔧</div>
+              <div class="stat-info">
+                <h3>Total Parts</h3>
+                <p class="stat-value" id="totalParts">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🚗</div>
+              <div class="stat-info">
+                <h3>Total Tires</h3>
+                <p class="stat-value" id="totalTires">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📤</div>
+              <div class="stat-info">
+                <h3>Catalog Sources</h3>
+                <p class="stat-value" id="totalSources">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⚙️</div>
+              <div class="stat-info">
+                <h3>Active Jobs</h3>
+                <p class="stat-value" id="activeJobs">0</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card">
+              <h3>Recent Ingestion Jobs</h3>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Source</th>
+                      <th>Status</th>
+                      <th>Progress</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentJobsTable">
+                    <tr><td colspan="4" class="empty-state">No recent jobs</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card">
+              <h3>Validation Queue</h3>
+              <div class="table-wrapper">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Severity</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="validationQueueTable">
+                    <tr><td colspan="3" class="empty-state">No pending validations</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Catalog Upload Page -->
+        <section class="page" id="page-catalog-upload">
+          <div class="card">
+            <h3>Upload Catalog File</h3>
+            <p class="help-text">Supports PDF, Excel (.xlsx, .xls), and CSV files. Max size: 50MB</p>
+
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-icon">📁</div>
+              <p>Drag & drop files here or click to browse</p>
+              <input type="file" id="fileInput" accept=".pdf,.xlsx,.xls,.csv" hidden>
+            </div>
+
+            <div class="upload-options">
+              <label>
+                <input type="checkbox" id="autoIngest" checked>
+                Start ingestion automatically after upload
+              </label>
+              <label>
+                <input type="checkbox" id="generateEmbeddings" checked>
+                Generate embeddings (uses FREE API)
+              </label>
+            </div>
+
+            <button class="btn btn-primary" id="uploadBtn" disabled>Upload File</button>
+
+            <div class="upload-progress" id="uploadProgress" style="display: none;">
+              <div class="progress-bar">
+                <div class="progress-fill" id="uploadProgressFill"></div>
+              </div>
+              <p id="uploadStatus">Uploading...</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Uploaded Files</h3>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="uploadedFilesTable">
+                  <tr><td colspan="6" class="empty-state">No files uploaded</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Ingestion Jobs Page -->
+        <section class="page" id="page-ingestion">
+          <div class="card">
+            <h3>Ingestion Jobs</h3>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Job ID</th>
+                    <th>Source</th>
+                    <th>Stage</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                    <th>Started</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ingestionJobsTable">
+                  <tr><td colspan="7" class="empty-state">No ingestion jobs</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card" id="jobDetailCard" style="display: none;">
+            <h3>Job Details</h3>
+            <div class="job-detail-content" id="jobDetailContent"></div>
+          </div>
+        </section>
+
+        <!-- Parts Catalog Page -->
+        <section class="page" id="page-parts-catalog">
+          <div class="page-header">
+            <h3>Parts Catalog</h3>
+            <div class="page-actions">
+              <input type="text" placeholder="Search parts..." id="partsSearchInput">
+              <select id="partsCategoryFilter">
+                <option value="">All Categories</option>
+              </select>
+              <button class="btn btn-secondary" id="exportPartsBtn">Export CSV</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Part Number</th>
+                    <th>OEM</th>
+                    <th>Name (TH)</th>
+                    <th>Name (EN)</th>
+                    <th>Brand</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="partsCatalogTable">
+                  <tr><td colspan="9" class="empty-state">No parts found</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" id="partsPagination"></div>
+          </div>
+        </section>
+
+        <!-- Tires Catalog Page -->
+        <section class="page" id="page-tires-catalog">
+          <div class="page-header">
+            <h3>Tires Catalog</h3>
+            <div class="page-actions">
+              <input type="text" placeholder="Search tires..." id="tiresSearchInput">
+              <select id="tiresTypeFilter">
+                <option value="">All Types</option>
+                <option value="summer">Summer</option>
+                <option value="winter">Winter</option>
+                <option value="all-season">All-Season</option>
+                <option value="performance">Performance</option>
+                <option value="off-road">Off-Road</option>
+              </select>
+              <button class="btn btn-secondary" id="exportTiresBtn">Export CSV</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Part Number</th>
+                    <th>Brand</th>
+                    <th>Model</th>
+                    <th>Size</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tiresCatalogTable">
+                  <tr><td colspan="8" class="empty-state">No tires found</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination" id="tiresPagination"></div>
+          </div>
+        </section>
+
+        <!-- Data Validation Page -->
+        <section class="page" id="page-validation">
+          <div class="page-header">
+            <h3>Data Validation Queue</h3>
+            <div class="page-actions">
+              <select id="validationSeverityFilter">
+                <option value="">All Severities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <select id="validationStatusFilter">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="validation-grid" id="validationGrid">
+              <div class="empty-state">No items in validation queue</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Search Test Page -->
+        <section class="page" id="page-search-test">
+          <div class="card">
+            <h3>Semantic Search Test</h3>
+            <p class="help-text">Test the RAG search functionality with natural language queries</p>
+
+            <div class="search-test-form">
+              <textarea id="searchQueryInput" placeholder="Enter your search query in Thai or English..." rows="3"></textarea>
+
+              <div class="search-options">
+                <label>
+                  <input type="radio" name="searchTarget" value="parts" checked>
+                  Search Parts
+                </label>
+                <label>
+                  <input type="radio" name="searchTarget" value="tires">
+                  Search Tires
+                </label>
+                <label>
+                  <input type="checkbox" id="hybridSearch">
+                  Hybrid Search (Semantic + Keyword)
+                </label>
+              </div>
+
+              <button class="btn btn-primary" id="searchTestBtn">Search</button>
+            </div>
+
+            <div class="search-results" id="searchTestResults" style="display: none;">
+              <h4>Results</h4>
+              <div class="results-meta" id="searchResultsMeta"></div>
+              <div class="results-list" id="searchResultsList"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Analytics Page -->
+        <section class="page" id="page-analytics">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🔍</div>
+              <div class="stat-info">
+                <h3>Total Searches</h3>
+                <p class="stat-value" id="totalSearches">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👤</div>
+              <div class="stat-info">
+                <h3>Unique Users</h3>
+                <p class="stat-value" id="uniqueUsers">0</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⏱️</div>
+              <div class="stat-info">
+                <h3>Avg Response Time</h3>
+                <p class="stat-value" id="avgResponseTime">0ms</p>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👍</div>
+              <div class="stat-info">
+                <h3>Positive Feedback</h3>
+                <p class="stat-value" id="positiveFeedback">0%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card">
+              <h3>Top Searches</h3>
+              <ul class="top-list" id="topSearchesList">
+                <li class="empty-state">No search data yet</li>
+              </ul>
+            </div>
+
+            <div class="card">
+              <h3>Recent Searches</h3>
+              <ul class="recent-list" id="recentSearchesList">
+                <li class="empty-state">No search data yet</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Settings Page -->
+        <section class="page" id="page-settings">
+          <div class="card">
+            <h3>API Configuration</h3>
+            <p class="help-text">Configure FREE API services for the RAG system</p>
+
+            <form class="settings-form" id="settingsForm">
+              <div class="form-group">
+                <label>Groq API Key</label>
+                <input type="password" id="groqApiKey" placeholder="gsk_...">
+                <small>FREE LLM API - Get key at groq.com</small>
+              </div>
+
+              <div class="form-group">
+                <label>Hugging Face API Key (Optional)</label>
+                <input type="password" id="hfApiKey" placeholder="hf_...">
+                <small>For embeddings - or use Transformers.js (completely free)</small>
+              </div>
+
+              <div class="form-group">
+                <label>LINE Channel Access Token</label>
+                <input type="password" id="lineAccessToken" placeholder="Channel Access Token">
+                <small>For LINE Bot integration</small>
+              </div>
+
+              <div class="form-group">
+                <label>LINE Channel Secret</label>
+                <input type="password" id="lineChannelSecret" placeholder="Channel Secret">
+              </div>
+
+              <div class="form-group">
+                <label>Embedding Mode</label>
+                <select id="embeddingMode">
+                  <option value="huggingface">Hugging Face API (1000 free/month)</option>
+                  <option value="transformersjs">Transformers.js (Client-side, FREE)</option>
+                </select>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <h3>System Status</h3>
+            <div class="system-status">
+              <div class="status-item">
+                <span class="status-label">pgvector Extension</span>
+                <span class="status-value" id="pgvectorStatus">Checking...</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Vector Indexes</span>
+                <span class="status-value" id="vectorIndexStatus">Checking...</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Groq API</span>
+                <span class="status-value" id="groqApiStatus">Checking...</span>
+              </div>
+              <div class="status-item">
+                <span class="status-label">Embedding Service</span>
+                <span class="status-value" id="embeddingStatus">Checking...</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal for editing records -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="editModalTitle">Edit Record</h3>
+        <button class="modal-close" id="editModalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="editModalBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="editModalCancel">Cancel</button>
+        <button class="btn btn-primary" id="editModalSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
