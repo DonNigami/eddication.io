@@ -127,22 +127,6 @@
 
         <!-- Search and Filter -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
-            <!-- Admin Toggle Section -->
-            <div id="adminToggleSection" class="hidden mb-4 pb-4 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm font-medium text-gray-700">🔐 ระบบกรอง User Staff</span>
-                        <span id="filterStatusBadge" class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                            เปิดอยู่
-                        </span>
-                    </div>
-                    <button id="toggleFilterBtn" onclick="toggleUserstaffFilter()" class="relative inline-flex h-6 w-11 items-center rounded-full bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                        <span id="toggleKnob" class="translate-x-6 inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
-                    </button>
-                </div>
-                <p id="filterStatusText" class="text-xs text-gray-500 mt-1">เปิด: เฉพาะผู้มีสิทธิ์ (Customer, Admin, Superadmin) สามารถค้นหาได้</p>
-            </div>
-
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหา</label>
@@ -433,17 +417,9 @@
         let isVerifiedAdmin = false; // Track if current user is verified as admin
         let isVerifiedSuperAdmin = false; // Track if current user is superadmin
         let currentUserstaffFilter = ''; // Track userstaff filter
-        let isUserstaffFilterEnabled = true; // Track if userstaff filter is enabled (default: true)
 
         // Initialize - Show login modal first
         document.addEventListener('DOMContentLoaded', () => {
-            // Load filter enabled state from localStorage
-            const savedFilterState = localStorage.getItem('userstaffFilterEnabled');
-            if (savedFilterState !== null) {
-                isUserstaffFilterEnabled = savedFilterState === 'true';
-            }
-            updateFilterToggleUI();
-
             // Check if already logged in from session storage
             const savedUser = sessionStorage.getItem('boonyangUser');
             if (savedUser) {
@@ -530,14 +506,6 @@
             if (currentUser.userstaff === 'superadmin') roleText = 'Superadmin';
             loggedInUser.textContent = `${currentUser.display_name || currentUser.user_id} (${roleText})`;
 
-            // Show admin toggle section only for superadmin
-            const adminToggleSection = document.getElementById('adminToggleSection');
-            if (isVerifiedSuperAdmin) {
-                adminToggleSection.classList.remove('hidden');
-            } else {
-                adminToggleSection.classList.add('hidden');
-            }
-
             // Fetch and display data
             window.fetchUsers();
         };
@@ -553,10 +521,6 @@
             const userInfo = document.getElementById('userInfo');
             userInfo.classList.add('hidden');
             userInfo.classList.remove('flex');
-
-            // Hide admin toggle section
-            const adminToggleSection = document.getElementById('adminToggleSection');
-            adminToggleSection.classList.add('hidden');
 
             // Show login modal
             document.getElementById('loginModal').classList.remove('hidden');
@@ -683,52 +647,6 @@
             `).join('');
         }
 
-        // Toggle userstaff filter (superadmin only)
-        window.toggleUserstaffFilter = function() {
-            if (!isVerifiedSuperAdmin) {
-                showToast('คุณไม่มีสิทธิ์เปลี่ยนแปลงการตั้งค่านี้ (ต้องการสิทธิ์ Superadmin)', 'error');
-                return;
-            }
-
-            isUserstaffFilterEnabled = !isUserstaffFilterEnabled;
-            localStorage.setItem('userstaffFilterEnabled', isUserstaffFilterEnabled.toString());
-
-            updateFilterToggleUI();
-            filterUsers(); // Re-apply filters
-
-            showToast(`ระบบกรอง User Staff: ${isUserstaffFilterEnabled ? 'เปิด' : 'ปิด'}`);
-        };
-
-        // Update filter toggle UI
-        window.updateFilterToggleUI = function() {
-            const toggleBtn = document.getElementById('toggleFilterBtn');
-            const toggleKnob = document.getElementById('toggleKnob');
-            const statusBadge = document.getElementById('filterStatusBadge');
-            const statusText = document.getElementById('filterStatusText');
-
-            if (isUserstaffFilterEnabled) {
-                // Enabled state
-                toggleBtn.classList.remove('bg-gray-400');
-                toggleBtn.classList.add('bg-blue-600');
-                toggleKnob.classList.remove('translate-x-1');
-                toggleKnob.classList.add('translate-x-6');
-                statusBadge.textContent = 'เปิดอยู่';
-                statusBadge.classList.remove('bg-gray-100', 'text-gray-800');
-                statusBadge.classList.add('bg-green-100', 'text-green-800');
-                statusText.textContent = 'เปิด: เฉพาะผู้มีสิทธิ์ (Customer, Admin, Superadmin) สามารถค้นหาได้';
-            } else {
-                // Disabled state
-                toggleBtn.classList.remove('bg-blue-600');
-                toggleBtn.classList.add('bg-gray-400');
-                toggleKnob.classList.remove('translate-x-6');
-                toggleKnob.classList.add('translate-x-1');
-                statusBadge.textContent = 'ปิดอยู่';
-                statusBadge.classList.remove('bg-green-100', 'text-green-800');
-                statusBadge.classList.add('bg-gray-100', 'text-gray-800');
-                statusText.textContent = 'ปิด: ทุกคนสามารถค้นหาได้';
-            }
-        };
-
         // Filter users
         window.filterUsers = function() {
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -736,14 +654,6 @@
             const status = document.getElementById('statusFilter').value;
 
             filteredUsers = allUsers.filter(user => {
-                // Check if filter is enabled and user has permission
-                if (isUserstaffFilterEnabled && currentUser) {
-                    // Filter enabled: only show users with customer, admin, or superadmin userstaff
-                    if (!user.userstaff || user.userstaff === '') {
-                        return false; // Hide users without userstaff
-                    }
-                }
-
                 const matchesSearch = !search ||
                     (user.display_name && user.display_name.toLowerCase().includes(search)) ||
                     (user.shop_name && user.shop_name.toLowerCase().includes(search)) ||
