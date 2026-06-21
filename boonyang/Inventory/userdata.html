@@ -380,7 +380,7 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
                         <input type="text" id="loginUsername" placeholder="กรอก Username ของคุณ"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               required>
+                               autocomplete="username" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
@@ -406,6 +406,11 @@
         import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
         // Supabase Configuration
+        // NOTE: anon key เป็น public client key — ปลอดภัยได้เพราะ RLS ปิด anon ไม่ให้แตะ
+        // userdata/system_settings (sql/phase1_stop_the_bleeding.sql). การ login + อ่าน/แก้/ลบ
+        // ทำผ่าน RPC แบบ SECURITY DEFINER (sql/phase2_rpc_auth.sql) ที่เช็ค user/pass ในตาราง
+        // userdata ฝั่ง server เท่านั้น — browser ไม่แตะตารางตรงๆ
+        // หลัง rotate anon key แล้ว ให้เปลี่ยนค่าด้านล่างเป็น key ใหม่
         const SUPABASE_URL = 'https://cbxicbynxnprscwqnyld.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNieGljYnlueG5wcnNjd3FueWxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1NDYwNDcsImV4cCI6MjA4OTEyMjA0N30.WkV9yn4jsqn3_jFIKU-WxCljHWGrwADakSItAwpUutk';
 
@@ -414,29 +419,46 @@
         let allUsers = [];
         let filteredUsers = [];
         let currentUser = null; // Track logged-in user
+        let authToken = null; // Session token จาก admin_login (RPC)
         let isVerifiedAdmin = false; // Track if current user is verified as admin
         let isVerifiedSuperAdmin = false; // Track if current user is superadmin
         let currentUserstaffFilter = ''; // Track userstaff filter
 
-        // Initialize - Show login modal first
+        // ตั้ง state จากผล admin_login (RPC)
+        function applyAuth(info) {
+            authToken = info.token;
+            currentUser = {
+                username: info.username,
+                user_id: info.user_id,
+                display_name: info.display_name,
+                role: info.userstaff
+            };
+            isVerifiedAdmin = info.userstaff === 'admin' || info.userstaff === 'superadmin';
+            isVerifiedSuperAdmin = info.userstaff === 'superadmin';
+            sessionStorage.setItem('boonyangAuth', JSON.stringify(info));
+        }
+
+        // Initialize - ถ้ามี token เดิม ลองใช้ต่อ (token หมดอายุ -> fetchUsers จะเด้ง login เอง)
         document.addEventListener('DOMContentLoaded', () => {
-            // Check if already logged in from session storage
-            const savedUser = sessionStorage.getItem('boonyangUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                isVerifiedAdmin = currentUser.userstaff === 'admin' || currentUser.userstaff === 'superadmin';
-                isVerifiedSuperAdmin = currentUser.userstaff === 'superadmin';
+            const saved = sessionStorage.getItem('boonyangAuth');
+            if (!saved) return;
+            try {
+                applyAuth(JSON.parse(saved));
+                document.getElementById('loginModal').classList.add('hidden');
                 showMainContent();
+            } catch (e) {
+                sessionStorage.removeItem('boonyangAuth');
             }
         });
 
-        // Handle login
+        // Handle login (RPC: เช็ค user/pass ในตาราง userdata ฝั่ง server)
         window.handleLogin = async function(event) {
             event.preventDefault();
 
             const username = document.getElementById('loginUsername').value.trim();
-            const password = document.getElementById('loginPassword').value.trim();
+            const password = document.getElementById('loginPassword').value;
             const errorEl = document.getElementById('loginError');
+            errorEl.classList.add('hidden');
 
             if (!username || !password) {
                 errorEl.textContent = 'กรุณากรอก Username และ Password';
@@ -445,45 +467,20 @@
             }
 
             try {
-                // Check if user exists with username
-                const { data, error } = await supabase
-                    .from('userdata')
-                    .select('*')
-                    .eq('username', username)
-                    .single();
+                const { data, error } = await supabase.rpc('admin_login', {
+                    p_username: username,
+                    p_password: password
+                });
 
-                if (error || !data) {
+                if (error || !data || data.ok !== true) {
                     errorEl.textContent = 'Username หรือ Password ไม่ถูกต้อง';
                     errorEl.classList.remove('hidden');
                     return;
                 }
 
-                // Simple password check (for demo - use hashed passwords in production!)
-                if (data.password !== password) {
-                    errorEl.textContent = 'Username หรือ Password ไม่ถูกต้อง';
-                    errorEl.classList.remove('hidden');
-                    return;
-                }
-
-                // Check if user has admin or superadmin staff
-                if (data.userstaff !== 'admin' && data.userstaff !== 'superadmin') {
-                    errorEl.textContent = 'คุณไม่มีสิทธิ์เข้าใช้งานระบบนี้ (ต้องมีสิทธิ์ Admin หรือ Superadmin)';
-                    errorEl.classList.remove('hidden');
-                    return;
-                }
-
-                // Save user data
-                currentUser = data;
-                isVerifiedAdmin = true;
-                isVerifiedSuperAdmin = data.userstaff === 'superadmin';
-
-                // Save to session storage
-                sessionStorage.setItem('boonyangUser', JSON.stringify(currentUser));
-
-                // Hide login modal and show main content
+                applyAuth(data);
                 document.getElementById('loginModal').classList.add('hidden');
                 showMainContent();
-
                 showToast(`ยินดีต้อนรับ ${data.display_name || data.username}`);
 
             } catch (err) {
@@ -494,28 +491,26 @@
 
         // Show main content after login
         window.showMainContent = function() {
-            // Show user info
             const userInfo = document.getElementById('userInfo');
             const loggedInUser = document.getElementById('loggedInUser');
             userInfo.classList.remove('hidden');
             userInfo.classList.add('flex');
 
-            // Display user role
-            let roleText = 'Customer';
-            if (currentUser.userstaff === 'admin') roleText = 'Admin';
-            if (currentUser.userstaff === 'superadmin') roleText = 'Superadmin';
-            loggedInUser.textContent = `${currentUser.display_name || currentUser.user_id} (${roleText})`;
+            const roleText = currentUser.role === 'superadmin' ? 'Superadmin' : 'Admin';
+            loggedInUser.textContent = `${currentUser.display_name || currentUser.username} (${roleText})`;
 
             // Fetch and display data
             window.fetchUsers();
         };
 
         // Handle logout
-        window.handleLogout = function() {
+        window.handleLogout = async function() {
+            try { if (authToken) await supabase.rpc('admin_logout', { p_token: authToken }); } catch (e) {}
+            authToken = null;
             currentUser = null;
             isVerifiedAdmin = false;
             isVerifiedSuperAdmin = false;
-            sessionStorage.removeItem('boonyangUser');
+            sessionStorage.removeItem('boonyangAuth');
 
             // Hide user info
             const userInfo = document.getElementById('userInfo');
@@ -524,30 +519,36 @@
 
             // Show login modal
             document.getElementById('loginModal').classList.remove('hidden');
-            document.getElementById('loginUserId').value = '';
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
             document.getElementById('loginError').classList.add('hidden');
 
             showToast('ออกจากระบบแล้ว');
         };
 
-        // Fetch users from Supabase
+        // Fetch users (RPC: admin_list_users + token)
         window.fetchUsers = async function() {
             showLoading(true);
             try {
-                const { data, error } = await supabase
-                    .from('userdata')
-                    .select('*')
-                    .order('last_interaction_at', { ascending: false, nullsFirst: false });
+                const { data, error } = await supabase.rpc('admin_list_users', { p_token: authToken });
 
                 if (error) throw error;
+                if (!data || data.ok !== true) {
+                    // token หมดอายุ/ไม่ถูกต้อง -> เด้งกลับหน้า login
+                    showToast('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'error');
+                    handleLogout();
+                    return false;
+                }
 
-                allUsers = data || [];
+                allUsers = data.data || [];
                 filteredUsers = [...allUsers];
                 updateStats();
                 renderTable();
+                return true;
             } catch (error) {
                 console.error('Error fetching users:', error);
                 showToast('เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
+                return false;
             } finally {
                 showLoading(false);
             }
@@ -865,12 +866,17 @@
             };
 
             try {
-                const { error } = await supabase
-                    .from('userdata')
-                    .update(updates)
-                    .eq('id', userId);
+                const { data, error } = await supabase.rpc('admin_update_user', {
+                    p_token: authToken,
+                    p_id: Number(userId),
+                    p_updates: updates
+                });
 
                 if (error) throw error;
+                if (!data || data.ok !== true) {
+                    showToast('บันทึกไม่สำเร็จ (สิทธิ์/เซสชันหมดอายุ)', 'error');
+                    return;
+                }
 
                 showToast('บันทึกข้อมูลสำเร็จ');
                 closeEditModal();
@@ -891,12 +897,16 @@
             if (!confirm('คุณแน่ใจหรือไม่ที่จะลบผู้ใช้งานนี้?')) return;
 
             try {
-                const { error } = await supabase
-                    .from('userdata')
-                    .delete()
-                    .eq('id', userId);
+                const { data, error } = await supabase.rpc('admin_delete_user', {
+                    p_token: authToken,
+                    p_id: Number(userId)
+                });
 
                 if (error) throw error;
+                if (!data || data.ok !== true) {
+                    showToast('ลบไม่สำเร็จ (สิทธิ์/เซสชันหมดอายุ)', 'error');
+                    return;
+                }
 
                 showToast('ลบข้อมูลสำเร็จ');
                 fetchUsers();
