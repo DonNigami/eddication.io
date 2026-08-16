@@ -1,726 +1,485 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Registration</title>
-    <meta name="description" content="Modern Registration for LIFF App" />
-    <meta name="author" content="iton5" />
-    <meta property="og:title" content="Modern Registration-iton5-thailand" />
-    <meta property="og:description" content="Modern Registration for LIFF App" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lh3.googleusercontent.com/d/1Ck_OCfEW4dEp3A1k9yfQplYmW7qmwzFF" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="https://bit.ly/fontiton5" type="text/css" charset="utf-8" />
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ลงทะเบียน | EddiCation</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root{
+    --bg:#0d0d0f; --surface:#17171b; --surface-2:#1f1f25; --line:#2c2c34;
+    --brand:#FFCC00; --brand-ink:#1a1a00;
+    --text:#f2f2f4; --muted:#9a9aa4; --danger:#ff5a5a; --ok:#39d98a;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:"Leelawadee UI","Noto Sans Thai",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    line-height:1.6; padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:20px 18px 40px}
+  .screen{display:none}
+  .screen.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-        body {
-            font-family: 'line_seed_sans_th';
-            background: linear-gradient(135deg, #f0f4f8, #d9e2ec);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-        }
+  h1{font-size:22px;margin:0 0 6px;font-weight:700}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
 
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .pdpa-body{max-height:46vh;overflow-y:auto;font-size:14px;color:#d4d4da;
+             background:var(--surface-2);border-radius:10px;padding:14px;margin:14px 0}
+  .pdpa-body h3{font-size:15px;margin:14px 0 6px;color:var(--brand)}
+  .pdpa-body h3:first-child{margin-top:0}
+  .pdpa-body ul{padding-left:18px;margin:6px 0}
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+  .profile{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .profile img{width:54px;height:54px;border-radius:50%;object-fit:cover;border:2px solid var(--brand)}
+  .profile .name{font-weight:600}
+  .profile .role{font-size:13px;color:var(--muted)}
 
-        .card {
-            background: #ffffff;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            padding: 30px 40px;
-            box-sizing: border-box;
-            animation: fadeIn 0.6s ease-out forwards;
-        }
+  label{display:block;font-size:14px;font-weight:600;margin:14px 0 6px}
+  .req::after{content:" *";color:var(--danger)}
+  input,select{
+    width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--surface-2);color:var(--text);font-size:16px;font-family:inherit;
+  }
+  input:focus,select:focus{outline:2px solid var(--brand);outline-offset:1px;border-color:transparent}
+  input[readonly]{opacity:.7}
 
-       
-        .screen {
-            display: none;
-        }
-        .screen.active {
-            display: block;
-        }
+  .file-drop{
+    border:1.5px dashed var(--line);border-radius:10px;padding:22px 14px;text-align:center;
+    background:var(--surface-2);cursor:pointer;color:var(--muted);font-size:14px;
+  }
+  .file-drop:active{border-color:var(--brand)}
+  #imageUpload{display:none}
+  .preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px;margin-top:10px}
+  .preview img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
 
-        h1 {
-            text-align: center;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 2rem;
-            background: linear-gradient(45deg, #00b09b, #96c93d);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
+  .btn{
+    width:100%;padding:14px;border:0;border-radius:10px;font-size:16px;font-weight:700;
+    font-family:inherit;cursor:pointer;margin-top:18px;
+  }
+  .btn-primary{background:var(--brand);color:var(--brand-ink)}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);margin-top:8px}
 
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
+  .msg{font-size:14px;padding:10px 12px;border-radius:8px;margin-top:14px;display:none}
+  .msg.show{display:block}
+  .msg.error{background:rgba(255,90,90,.12);color:var(--danger);border:1px solid rgba(255,90,90,.3)}
+  .msg.ok{background:rgba(57,217,138,.12);color:var(--ok);border:1px solid rgba(57,217,138,.3)}
 
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #4a5568;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .form-input, .form-select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            color: #2d3748;
-            background-color: #f7fafc;
-            transition: all 0.3s ease;
-        }
-
-        .form-input:focus, .form-select:focus {
-            outline: none;
-            border-color: #00b09b;
-            box-shadow: 0 0 0 3px rgba(0, 176, 155, 0.2);
-            background-color: #ffffff;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 1rem;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #00b09b, #96c93d);
-            color: white;
-            box-shadow: 0 4px 15px rgba(0, 176, 155, 0.3);
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(0, 176, 155, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-            box-shadow: 0 4px 15px rgba(0, 176, 155, 0.3);
-        }
-
-        .btn-secondary {
-            background-color: #e2e8f0;
-            color: #4a5568;
-        }
-        .btn-secondary:hover {
-            background-color: #cbd5e0;
-            box-shadow: none;
-        }
-
-        .pdpa-box {
-            background-color: #f7fafc;
-            border: 1px solid #e2e8f0;
-            padding: 15px;
-            border-radius: 10px;
-            height: 500px;
-            overflow-y: auto;
-            color: #718096;
-            font-size: 0.9rem;
-            margin-bottom: 1.5rem;
-        }
-        .pdpa-actions {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .file-input-wrapper {
-            border: 2px dashed #e2e8f0;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        .file-input-wrapper:hover {
-            background-color: #f7fafc;
-            border-color: #00b09b;
-        }
-        #imageUpload { display: none; }
-        .image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
-        .image-preview-item { width: 70px; height: 70px; border-radius: 10px; overflow: hidden; }
-        .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
-
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(5px); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
-        .spinner { border: 5px solid #e2e8f0; border-top: 5px solid #00b09b; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
-        #loading-text { color: #4a5568; font-weight: 600; margin-top: 20px; }
-        .hidden { display: none !important; }
-        #status { text-align: center; margin-top: 1.5rem; font-weight: 600; min-height: 24px; }
-        .profile-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .profile-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 4px solid #ffffff;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            object-fit: cover;
-        }
-
-        .profile-name {
-            margin-top: 0.75rem;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #2d3748;
-        }
-    </style>
-    </head>
+  .overlay{
+    position:fixed;inset:0;background:rgba(13,13,15,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:50;
+  }
+  .overlay.show{display:flex}
+  .spinner{width:38px;height:38px;border:3px solid var(--line);border-top-color:var(--brand);
+           border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
 <body>
 
+<div class="wrap">
+
+  <!-- ---------- กำลังโหลด ---------- -->
+  <section id="screen-loading" class="screen active">
+    <div class="card" style="text-align:center">
+      <div class="spinner" style="margin:10px auto"></div>
+      <p class="sub" style="margin:14px 0 0">กำลังเชื่อมต่อ LINE...</p>
+    </div>
+  </section>
+
+  <!-- ---------- PDPA ---------- -->
+  <section id="screen-pdpa" class="screen">
+    <h1>ความยินยอมข้อมูลส่วนบุคคล</h1>
+    <p class="sub">กรุณาอ่านและยอมรับก่อนเริ่มลงทะเบียน</p>
     <div class="card">
-        <div id="screen-loading" class="screen active">
-             <h1>กำลังโหลด...</h1>
-        </div>
-
-        <div id="screen-pdpa" class="screen">
-            <h1>ข้อตกลงการใช้งาน</h1>
-            <div class="pdpa-box">
-                <p><strong>นโยบายคุ้มครองข้อมูลส่วนบุคคล (Privacy Policy)</strong></p>
-                <p class="mt-2">บริษัทฯ ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของท่าน เพื่อให้ท่านมั่นใจได้ว่าข้อมูลที่ท่านมอบให้จะถูกนำไปใช้ตรงตามวัตถุประสงค์และเป็นไปตามที่กฎหมายกำหนด</p>
-
-                <p class="mt-3"><strong>1. ข้อมูลที่เก็บรวบรวม:</strong></p>
-                <p>เราจะเก็บข้อมูลของท่านซึ่งรวมถึงแต่ไม่จำกัดเพียง: ข้อมูลโปรไฟล์จาก LINE (User ID, ชื่อที่แสดง, รูปโปรไฟล์), ชื่อ-นามสกุล, คำนำหน้าชื่อ, อีเมล, เบอร์โทรศัพท์ และรูปภาพที่ท่านอัปโหลดผ่านแบบฟอร์มนี้</p>
-
-                <p class="mt-3"><strong>2. วัตถุประสงค์ในการเก็บข้อมูล:</strong></p>
-                <p>เพื่อใช้ในการยืนยันตัวตน, ดำเนินการลงทะเบียนเข้าร่วมกิจกรรม, และเพื่อการติดต่อสื่อสารที่เกี่ยวข้องกับกิจกรรมนี้เท่านั้น บริษัทฯ จะไม่นำข้อมูลของท่านไปใช้เพื่อวัตถุประสงค์อื่นนอกเหนือจากที่แจ้งไว้โดยไม่ได้รับความยินยอมจากท่านก่อน</p>
-
-                <p class="mt-3"><strong>3. การจัดเก็บและรักษาความปลอดภัย:</strong></p>
-                <p>ข้อมูลของท่านจะถูกจัดเก็บอย่างปลอดภัยบนระบบฐานข้อมูลที่มีมาตรการรักษาความปลอดภัยที่เหมาะสม และจะถูกเก็บรักษาไว้เท่าที่จำเป็นสำหรับวัตถุประสงค์ที่กล่าวมาข้างต้น</p>
-
-                <p class="mt-3"><strong>4. สิทธิของเจ้าของข้อมูล:</strong></p>
-                <p>ท่านมีสิทธิในการเข้าถึง, แก้ไข, หรือร้องขอให้ลบข้อมูลส่วนบุคคลของท่านได้ตลอดเวลา โดยสามารถติดต่อเราได้ตามช่องทางที่ระบุไว้</p>
-
-                <p class="mt-4">การกดปุ่ม "ยินยอม" ถือว่าท่านได้อ่านและเข้าใจข้อตกลงและนโยบายคุ้มครองข้อมูลส่วนบุคคลฉบับนี้โดยละเอียดแล้ว</p>
-            </div>
-            <div class="pdpa-actions">
-                <button id="btn-pdpa-disagree" class="btn btn-secondary">ไม่ยินยอม</button>
-                <button id="btn-pdpa-agree" class="btn btn-primary">ยินยอม</button>
-            </div>
-        </div>
-
-        <div id="screen-form" class="screen">
-                <h1
-                    class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-slate-200 sm:text-3xl md:text-4xl">ลงทะเบียน</h1>
-            <div class="profile-header mt-4">
-                <img id="profileImage" src="" alt="Profile Picture" class="profile-image">
-                <p class="profile-name">สวัสดี, <span id="displayName"></span>!</p>
-            </div>
-            <form id="registrationForm">
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="title">คำนำหน้า</label>
-                        <select id="title" class="form-select" required>
-                            <option value="นาย">นาย</option>
-                            <option value="นาง">นาง</option>
-                            <option value="นางสาว">นางสาว</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="first_name">ชื่อ</label>
-                        <input type="text" id="first_name" class="form-input" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="last_name">นามสกุล</label>
-                    <input type="text" id="last_name" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">อีเมล</label>
-                    <input type="email" id="email" class="form-input" placeholder="example@email.com" required>
-                </div>
-                <div class="form-group">
-                    <label for="phone">เบอร์โทรศัพท์</label>
-                    <input type="tel" id="phone" class="form-input" maxlength="10" pattern="[0-9]{10}" inputmode="numeric" placeholder="0812345678" required>
-                </div>
-                <div class="form-group">
-                    <label for="imageUpload">อัปโหลดรูปภาพ (สูงสุด 5 รูป)</label>
-                    <label for="imageUpload" class="file-input-wrapper">
-                        <span id="file-input-text">คลิกเพื่อเลือกไฟล์</span>
-                    </label>
-                    <input type="file" id="imageUpload" accept="image/*" multiple>
-                    <div id="image-preview" class="image-preview-container"></div>
-                </div>
-                <div class="form-group">
-                    <button type="submit" class="btn btn-primary">ยืนยันการลงทะเบียน</button>
-                </div>
-            </form>
-        </div>
-
-        <p id="status"></p>
+      <div class="pdpa-body">
+        <h3>ข้อมูลที่เราเก็บ</h3>
+        <ul>
+          <li>ชื่อ-นามสกุล คำนำหน้า</li>
+          <li>อีเมล และเบอร์โทรศัพท์</li>
+          <li>ข้อมูลโปรไฟล์ LINE (ชื่อที่แสดง รูปโปรไฟล์ และรหัสผู้ใช้)</li>
+          <li>ไฟล์ภาพที่ท่านอัปโหลด</li>
+        </ul>
+        <h3>วัตถุประสงค์</h3>
+        <ul>
+          <li>ยืนยันตัวตนและติดต่อกลับเรื่องบริการ</li>
+          <li>ให้บริการและแจ้งข่าวสารผ่าน LINE Official Account</li>
+        </ul>
+        <h3>การเก็บรักษาและสิทธิของท่าน</h3>
+        <ul>
+          <li>ข้อมูลถูกจัดเก็บอย่างปลอดภัย เข้าถึงได้เฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต</li>
+          <li>ไฟล์ภาพเก็บแบบไม่เปิดสาธารณะ เปิดดูได้เฉพาะผ่านลิงก์ชั่วคราวที่ระบบสร้างให้</li>
+          <li>ท่านมีสิทธิขอเข้าถึง แก้ไข หรือขอลบข้อมูลของท่านได้ตลอดเวลา</li>
+        </ul>
+      </div>
+      <button id="btn-agree" class="btn btn-primary">ยินยอมและดำเนินการต่อ</button>
+      <button id="btn-disagree" class="btn btn-ghost">ไม่ยินยอม</button>
+      <div id="pdpa-msg" class="msg error"></div>
     </div>
+  </section>
 
-    <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-        <p id="loading-text">โปรดรอสักครู่...</p>
+  <!-- ---------- ฟอร์ม ---------- -->
+  <section id="screen-form" class="screen">
+    <h1>ลงทะเบียน</h1>
+    <p class="sub">กรอกข้อมูลให้ครบถ้วนเพื่อเริ่มใช้บริการ</p>
+    <div class="card">
+      <div class="profile">
+        <img id="profileImage" alt="รูปโปรไฟล์" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+        <div>
+          <div class="name" id="displayName">-</div>
+          <div class="role">เชื่อมต่อผ่าน LINE แล้ว</div>
+        </div>
+      </div>
+
+      <form id="registrationForm" novalidate>
+        <label for="title" class="req">คำนำหน้า</label>
+        <select id="title" required>
+          <option value="นาย">นาย</option>
+          <option value="นาง">นาง</option>
+          <option value="นางสาว">นางสาว</option>
+          <option value="ดร.">ดร.</option>
+          <option value="อื่นๆ">อื่นๆ</option>
+        </select>
+
+        <label for="first_name" class="req">ชื่อ</label>
+        <input id="first_name" type="text" maxlength="100" required autocomplete="given-name">
+
+        <label for="last_name" class="req">นามสกุล</label>
+        <input id="last_name" type="text" maxlength="100" required autocomplete="family-name">
+
+        <label for="email">อีเมล</label>
+        <input id="email" type="email" maxlength="200" autocomplete="email" inputmode="email">
+
+        <label for="phone" class="req">เบอร์โทรศัพท์</label>
+        <input id="phone" type="tel" maxlength="10" required inputmode="numeric"
+               placeholder="0812345678" autocomplete="tel">
+
+        <label class="req">แนบรูปภาพ (สูงสุด 5 รูป)</label>
+        <div class="file-drop" id="file-drop">
+          <span id="file-text">แตะเพื่อเลือกไฟล์</span>
+        </div>
+        <input id="imageUpload" type="file" accept="image/*" multiple>
+        <div class="preview" id="image-preview"></div>
+        <p class="hint">ระบบจะย่อและบีบอัดรูปให้อัตโนมัติก่อนอัปโหลด</p>
+
+        <button type="submit" id="btn-submit" class="btn btn-primary">ยืนยันการลงทะเบียน</button>
+        <div id="form-msg" class="msg"></div>
+      </form>
     </div>
+  </section>
 
-    <script>
+</div>
 
-        const LIFF_ID = "2007368597-78MQkENk";
-        const SUPABASE_URL = "https://tmyamslnkaarskhstcok.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRteWFtc2xua2FhcnNraHN0Y29rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwOTY5MjAsImV4cCI6MjA2OTY3MjkyMH0.x3pVwT9yIye4DlHBK6OzLpNRqw3zhefm-UKxHK3PypY";
-        const BUCKET_NAME = "user-uploads";
-        const TELEGRAM_BOT_TOKEN = "7828748964:AAGwSn58_yag0GCaRe7e1QUL55PIoiaeniE"; 
-        const TELEGRAM_CHAT_ID = "7828748964"; 
-       
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        let liffProfile = null;
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <p id="overlay-text" style="color:var(--muted);font-size:14px;margin:0">กำลังดำเนินการ...</p>
+</div>
 
-        const screens = {
-            loading: document.getElementById('screen-loading'),
-            pdpa: document.getElementById('screen-pdpa'),
-            form: document.getElementById('screen-form')
-        };
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingText = document.getElementById('loading-text');
-        const statusElement = document.getElementById('status');
+<script>
+// ===========================================================================
+// หน้านี้ "ไม่มี" service key / anon key / Telegram token ฝังอยู่
+// ทุกอย่างคุยผ่าน Edge Function ที่ verify LIFF id_token ฝั่ง server
+// userId มาจาก token ที่ LINE รับรอง — ปลอมจากฝั่ง client ไม่ได้
+// ===========================================================================
 
-        function showScreen(screenName) {
-            Object.values(screens).forEach(screen => screen.classList.remove('active'));
-            screens[screenName]?.classList.add('active');
-        }
+const LIFF_ID    = "2007368597-78MQkENk";
+const FUNCTIONS  = "https://tmyamslnkaarskhstcok.supabase.co/functions/v1";
+const MAX_FILES  = 5;
 
-       
-        function initializeForm() {
-            if (!liffProfile) return;
-            document.getElementById('profileImage').src = liffProfile.pictureUrl || '';
-            document.getElementById('displayName').innerText = liffProfile.displayName;
-        }
+const el = (id) => document.getElementById(id);
+const overlay = el("overlay");
+const overlayText = el("overlay-text");
 
-        async function main() {
-            try {
-                await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true  });
-                if (!liff.isLoggedIn()) { liff.login({ redirectUri: window.location.href }); return; }
-                liffProfile = await liff.getProfile();
-                document.getElementById('email').value = liff.getDecodedIDToken().email || '';
-                const { data } = await supabaseClient
-                    .from('registrations')
-                    .select('pdpa_consent')
-                    .eq('user_id', liffProfile.userId)
-                    .single();
-
-                if (data && data.pdpa_consent) {
-                    initializeForm(); 
-                    showScreen('form');
-                } else {
-                    showScreen('pdpa');
-                }
-            } catch (error) {
-                if (error.code === 'PGRST116') {
-                    showScreen('pdpa');
-                } else {
-                    console.error("Init Error:", error);
-                    statusElement.textContent = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
-                }
-            } finally {
-                screens.loading.classList.remove('active');
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', main);
-
-        document.getElementById('btn-pdpa-agree').addEventListener('click', async () => {
-            loadingOverlay.classList.remove('hidden');
-            loadingText.textContent = 'กำลังบันทึกความยินยอม...';
-            try {
-                const { error } = await supabaseClient
-                    .from('registrations')
-                    .upsert({ user_id: liffProfile.userId, pdpa_consent: true, display_name: liffProfile.displayName, picture_url: liffProfile.pictureUrl }, { onConflict: 'user_id' });
-                if (error) throw error;
-
-                initializeForm(); 
-                showScreen('form');
-            } catch (error) {
-                console.error("PDPA Consent Error:", error);
-                statusElement.textContent = "เกิดข้อผิดพลาดในการให้ความยินยอม";
-            } finally {
-                loadingOverlay.classList.add('hidden');
-            }
-        });
-
-               document.getElementById('btn-pdpa-disagree').addEventListener('click', () => {
-                   if (liff.isInClient()) liff.closeWindow();
-               });
-
-               document.getElementById('imageUpload').addEventListener('change', (event) => {
-                   const previewContainer = document.getElementById('image-preview');
-                   const textLabel = document.getElementById('file-input-text');
-                   previewContainer.innerHTML = '';
-                   const files = event.target.files;
-
-                   if (files.length > 5) {
-                       alert("สามารถอัปโหลดได้สูงสุด 5 รูปภาพ");
-                       event.target.value = '';
-                       textLabel.textContent = 'คลิกเพื่อเลือกไฟล์';
-                       return;
-                   }
-
-                   if(files.length > 0) {
-                       textLabel.textContent = `${files.length} ไฟล์ถูกเลือก`;
-                   } else {
-                       textLabel.textContent = 'คลิกเพื่อเลือกไฟล์';
-                   }
-
-                   Array.from(files).forEach(file => {
-                       const reader = new FileReader();
-                       reader.onload = (e) => {
-                           const div = document.createElement('div');
-                           div.className = 'image-preview-item';
-                           div.innerHTML = `<img src="${e.target.result}" alt="${file.name}">`;
-                           previewContainer.appendChild(div);
-                       };
-                       reader.readAsDataURL(file);
-                   });
-               });
-
-
-        function processAndCompressImage(file, maxDimension = 1280, quality = 0.8) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onerror = (error) => reject(error);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onerror = (error) => reject(error);
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-
-                        let newWidth = img.width;
-                        let newHeight = img.height;
-
-                        if (newWidth > maxDimension || newHeight > maxDimension) {
-                            if (newWidth > newHeight) {
-                                newHeight *= maxDimension / newWidth;
-                                newWidth = maxDimension;
-                            } else {
-                                newWidth *= maxDimension / newHeight;
-                                newHeight = maxDimension;
-                            }
-                        }
-
-                        canvas.width = newWidth;
-                        canvas.height = newHeight;
-
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
-                        const webpDataUrl = canvas.toDataURL('image/webp', quality);
-
-                        const blob = (() => {
-                            const parts = webpDataUrl.split(',');
-                            const mimeType = parts[0].match(/:(.*?);/)[1];
-                            const decodedData = atob(parts[1]);
-                            let n = decodedData.length;
-                            const u8arr = new Uint8Array(n);
-                            while (n--) {
-                                u8arr[n] = decodedData.charCodeAt(n);
-                            }
-                            return new Blob([u8arr], { type: mimeType });
-                        })();
-
-                        const newFileName = file.name.substring(0, file.name.lastIndexOf('.')) + '.webp';
-                        const webpFile = new File([blob], newFileName, { type: 'image/webp' });
-
-                        console.log(`Processed ${file.name}: Original size ${(file.size / 1024).toFixed(1)} KB -> New size ${(webpFile.size / 1024).toFixed(1)} KB`);
-                        resolve(webpFile);
-                    };
-                };
-            });
-        }
-
-async function sendTelegramNotification_ClientSide(formData, imageUrls) {
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
-        console.warn("Telegram credentials are not set.");
-        return;
-    }
-
-    const message = `
-🔔 <b>มีการลงทะเบียนใหม่!</b>
-
-<b>ชื่อ-สกุล:</b> ${formData.title} ${formData.first_name} ${formData.last_name}
-<b>อีเมล:</b> ${formData.email || "ไม่ได้กรอก"}
-<b>เบอร์โทร:</b> ${formData.phone || "ไม่ได้กรอก"}
-<b>จำนวนรูป:</b> ${imageUrls.length} รูป
-
-<a href="${imageUrls[0] || ' '}">ดูรูปภาพแรกที่อัปโหลด</a>
-`;
-
-    const encodedMessage = encodeURIComponent(message);
-    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodedMessage}&parse_mode=HTML`;
-
-    try {
-       
-        fetch(url);
-        console.log("Telegram notification request sent.");
-    } catch (error) {
-        console.error("Failed to send Telegram notification:", error);
-    }
+function showScreen(name) {
+  document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+  el("screen-" + name).classList.add("active");
 }
-            document.getElementById('registrationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            loadingOverlay.classList.remove('hidden');
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
 
-            try {
-                const imageFiles = document.getElementById('imageUpload').files;
-                if (imageFiles.length === 0) {
-                    throw new Error("กรุณาอัปโหลดรูปภาพอย่างน้อย 1 รูป");
-                }
+function busy(on, text) {
+  overlayText.textContent = text || "กำลังดำเนินการ...";
+  overlay.classList.toggle("show", on);
+}
 
-                loadingText.textContent = `กำลังประมวลผล ${imageFiles.length} รูป...`;
-                const processingPromises = Array.from(imageFiles).map(file => processAndCompressImage(file, 1280, 0.8));
-                const processedFiles = await Promise.all(processingPromises);
+function say(id, text, kind) {
+  const box = el(id);
+  box.textContent = text;
+  box.className = "msg show " + (kind || "error");
+}
 
-                loadingText.textContent = `กำลังอัปโหลด ${processedFiles.length} รูป...`;
-                const uploadPromises = processedFiles.map(file => {
-                    const filePath = `${liffProfile.userId}/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
-                    return supabaseClient.storage.from(BUCKET_NAME).upload(filePath, file);
-                });
+function clearMsg(id) {
+  el(id).className = "msg";
+}
 
-                const uploadResults = await Promise.all(uploadPromises);
-                const imageUrls = [];
-                for (const result of uploadResults) {
-                    if (result.error) throw new Error(`Upload failed: ${result.error.message}`);
-                    const { data: urlData } = supabaseClient.storage.from(BUCKET_NAME).getPublicUrl(result.data.path);
-                    imageUrls.push(urlData.publicUrl);
-                }
+/** เรียก edge function พร้อมแนบ id_token ที่สดใหม่เสมอ */
+async function callFn(path, payload) {
+  const idToken = liff.getIDToken();
+  if (!idToken) throw new Error("เซสชัน LINE หมดอายุ กรุณาเปิดหน้านี้ใหม่");
 
-                loadingText.textContent = 'กำลังบันทึกข้อมูล...';
-                const formData = {
-                    title: document.getElementById('title').value,
-                    first_name: document.getElementById('first_name').value,
-                    last_name: document.getElementById('last_name').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    uploaded_image_urls: imageUrls
-                };
+  const res = await fetch(`${FUNCTIONS}/${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, id_token: idToken }),
+  });
 
-                const { error: updateError } = await supabaseClient
-                    .from('registrations')
-                    .update(formData)
-                    .eq('user_id', liffProfile.userId);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `เกิดข้อผิดพลาด (${res.status})`);
+  return data;
+}
 
-                if (updateError) throw updateError;
-                 await sendTelegramNotification_ClientSide(formData, imageUrls);
-                
-                loadingText.textContent = 'กำลังส่งข้อความยืนยัน...';
+// ------------------------------ เริ่มต้น ------------------------------
 
-                const messagesToSend = [
-                 {
-                        "type": "flex",
-                        "altText": "การลงทะเบียนของคุณเสร็จสมบูรณ์",
-                        "contents": {
-                      "type": "bubble",
-                      "header": {
-                        "type": "box",
-                        "layout": "vertical",
-                        "contents": [
-                          {
-                            "type": "text",
-                            "text": "ลงทะเบียนเรียบร้อย",
-                            "wrap": true,
-                            "weight": "bold",
-                            "size": "xl",
-                            "color": "#06C755",
-                            "margin": "none",
-                            "align": "center"
-                          }
-                        ]
-                      },
-                      "hero": {
-                        "type": "image",
-                        "url": imageUrls[0],
-                        "aspectMode": "fit",
-                        "aspectRatio": "1:1",
-                        "size": "full"
-                      },
-                      "body": {
-                        "type": "box",
-                        "layout": "vertical",
-                        "contents": [
-                          {
-                            "type": "text",
-                            "text": "ขอบคุณที่ลงทะเบียนเข้าร่วมกิจกรรมกับเรา",
-                            "color": "#aaaaaa",
-                            "adjustMode": "shrink-to-fit"
-                          },
-                          {
-                            "type": "box",
-                            "layout": "horizontal",
-                            "contents": [
-                              {
-                                "type": "text",
-                                "text": "ชื่อ-สกุล:",
-                                "wrap": true,
-                                "flex": 3,
-                                "size": "xs",
-                                "color": "#989898"
-                              },
-                              {
-                                "type": "text",
-                                "text": `${formData.title} ${formData.first_name} ${formData.last_name}`,
-                                "wrap": true,
-                                "size": "xs",
-                                "margin": "md",
-                                "flex": 7,
-                                "color": "#222222",
-                                "align": "start"
-                              }
-                            ],
-                            "margin": "xxl"
-                          },
-                          {
-                            "type": "box",
-                            "layout": "baseline",
-                            "contents": [
-                              {
-                                "type": "text",
-                                "text": "อีเมล:",
-                                "wrap": true,
-                                "flex": 3,
-                                "size": "xs",
-                                "color": "#989898"
-                              },
-                              {
-                                "type": "text",
-                                "text": `${formData.email}`,
-                                "wrap": true,
-                                "size": "xs",
-                                "margin": "md",
-                                "flex": 7,
-                                "color": "#222222"
-                              }
-                            ],
-                            "margin": "md"
-                          },
-                          {
-                            "type": "box",
-                            "layout": "baseline",
-                            "contents": [
-                              {
-                                "type": "text",
-                                "text": "เบอร์โทร:",
-                                "wrap": true,
-                                "flex": 3,
-                                "size": "xs",
-                                "color": "#989898"
-                              },
-                              {
-                                "type": "text",
-                                "wrap": true,
-                                "size": "xs",
-                                "margin": "md",
-                                "flex": 7,
-                                "text": `${formData.phone}`,
-                                "color": "#222222"
-                              }
-                            ],
-                            "margin": "md"
-                          }
-                        ],
-                        "spacing": "sm"
-                      },
-                      "footer": {
-                        "type": "box",
-                        "layout": "vertical",
-                        "contents": [
-                          {
-                            "type": "button",
-                            "style": "primary",
-                            "action": {
-                              "type": "uri",
-                              "label": "แก้ไขใหม่",
-                              "uri": "https://liff.line.me/"+ LIFF_ID
-                            },
-                            "color": "#06C755",
-                            "height": "sm"
-                          }
-                        ]
-                      }
-                    }
-                    }
-                ];
+async function main() {
+  try {
+    await liff.init({ liffId: LIFF_ID, withLoginOnExternalBrowser: true });
 
-              
-                if (liff.isInClient()) {
-                    await liff.sendMessages(messagesToSend);
-                    statusElement.textContent = "ลงทะเบียนสำเร็จและส่งข้อความแล้ว!";
-                    Swal.fire('สำเร็จ', "ลงทะเบียนสำเร็จและส่งข้อความแล้ว!", 'success');
-                    setTimeout(() => liff.closeWindow(), 2000);
-                } else {
-             
-                    statusElement.textContent = "ลงทะเบียนสำเร็จ! (Flex Message จะแสดงเฉพาะมือถือเท่านั้น)";
-                  
-                }
-              
+    if (!liff.isLoggedIn()) {
+      liff.login({ redirectUri: window.location.href });
+      return;
+    }
 
-            } catch (error) {
-                console.error('Submission Error:', error);
-                statusElement.textContent = `เกิดข้อผิดพลาด: ${error.message}`;
-            } finally {
-                loadingOverlay.classList.add('hidden');
-                submitButton.disabled = false;
-            }
-        });
-      const message = "ไม่อนุญาตให้คลิกขวาครับ";
+    const status = await callFn("register", { action: "status" });
+    const p = status.line_profile || {};
 
-        document.addEventListener("contextmenu", function (e) {
-            Swal.fire('Oh!', message, 'error');
+    if (p.pictureUrl) el("profileImage").src = p.pictureUrl;
+    el("displayName").textContent = p.displayName || "ผู้ใช้ LINE";
+    if (p.email) el("email").value = p.email;
 
-            e.preventDefault();
-        });
+    if (status.profile) {
+      el("first_name").value = status.profile.first_name || "";
+      el("last_name").value  = status.profile.last_name || "";
+      el("phone").value      = status.profile.phone || "";
+      if (status.profile.email) el("email").value = status.profile.email;
+    }
 
-        document.addEventListener("mousedown", function (e) {
-            if (e.button === 2 || e.button === 1) {
-                Swal.fire('Oh!', message, 'error');
+    showScreen(status.pdpa_consent ? "form" : "pdpa");
+  } catch (err) {
+    console.error("init error:", err);
+    showScreen("pdpa");
+    say("pdpa-msg", err.message || "เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่");
+  }
+}
 
-                e.preventDefault();
-            }
-        });
-           </script>
-       </body>
-       </html>
+document.addEventListener("DOMContentLoaded", main);
+
+// ------------------------------- PDPA -------------------------------
+
+el("btn-agree").addEventListener("click", async () => {
+  clearMsg("pdpa-msg");
+  busy(true, "กำลังบันทึกความยินยอม...");
+  try {
+    await callFn("register", { action: "consent", agree: true });
+    showScreen("form");
+  } catch (err) {
+    say("pdpa-msg", err.message);
+  } finally {
+    busy(false);
+  }
+});
+
+el("btn-disagree").addEventListener("click", () => {
+  if (liff.isInClient()) liff.closeWindow();
+  else say("pdpa-msg", "ต้องยินยอมก่อนจึงจะลงทะเบียนได้");
+});
+
+// ---------------------------- เลือก/ย่อรูป ----------------------------
+
+el("file-drop").addEventListener("click", () => el("imageUpload").click());
+
+el("imageUpload").addEventListener("change", (e) => {
+  const files = Array.from(e.target.files || []);
+  const preview = el("image-preview");
+  preview.innerHTML = "";
+
+  if (files.length > MAX_FILES) {
+    say("form-msg", `เลือกได้สูงสุด ${MAX_FILES} รูป`);
+    e.target.value = "";
+    el("file-text").textContent = "แตะเพื่อเลือกไฟล์";
+    return;
+  }
+
+  clearMsg("form-msg");
+  el("file-text").textContent = files.length ? `เลือกแล้ว ${files.length} ไฟล์` : "แตะเพื่อเลือกไฟล์";
+
+  files.forEach((f) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = document.createElement("img");
+      img.src = ev.target.result;
+      img.alt = f.name;
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+});
+
+/** ย่อรูปให้ด้านยาวสุดไม่เกิน 1280px แล้วแปลงเป็น webp */
+function compress(file, maxDim = 1280, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("อ่านไฟล์ไม่สำเร็จ"));
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("ไฟล์ภาพไม่ถูกต้อง"));
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else       { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error("บีบอัดรูปไม่สำเร็จ"));
+          const base = file.name.replace(/\.[^.]+$/, "") || "image";
+          resolve(new File([blob], `${base}.webp`, { type: "image/webp" }));
+        }, "image/webp", quality);
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ------------------ ใบยืนยันที่ส่งกลับเข้าแชท ------------------
+// ไม่ใส่รูปที่อัปโหลดเป็น hero เหมือนของเดิม เพราะ bucket เป็น private แล้ว
+// และรูปบัตร/เอกสารไม่ควรไปโผล่ในแชทอยู่แล้ว
+
+function row(label, value) {
+  return {
+    type: "box", layout: "horizontal", margin: "md",
+    contents: [
+      { type: "text", text: label, size: "xs", color: "#989898", flex: 3, wrap: true },
+      { type: "text", text: value, size: "xs", color: "#222222", flex: 7, margin: "md", wrap: true },
+    ],
+  };
+}
+
+function confirmFlex(f) {
+  return {
+    type: "flex",
+    altText: "ลงทะเบียนเรียบร้อย",
+    contents: {
+      type: "bubble",
+      header: {
+        type: "box", layout: "vertical",
+        contents: [{
+          type: "text", text: "ลงทะเบียนเรียบร้อย", align: "center",
+          weight: "bold", size: "xl", color: "#06C755", wrap: true,
+        }],
+      },
+      body: {
+        type: "box", layout: "vertical", spacing: "sm",
+        contents: [
+          { type: "text", text: "ขอบคุณที่ลงทะเบียนเข้าร่วมกิจกรรมกับเรา",
+            color: "#aaaaaa", size: "sm", wrap: true },
+          row("ชื่อ-สกุล:", `${f.title}${f.first_name} ${f.last_name}`),
+          row("เบอร์โทร:", f.phone),
+        ],
+      },
+      footer: {
+        type: "box", layout: "vertical",
+        contents: [{
+          type: "button", style: "primary", height: "sm", color: "#06C755",
+          action: { type: "uri", label: "แก้ไขใหม่", uri: `https://liff.line.me/${LIFF_ID}` },
+        }],
+      },
+    },
+  };
+}
+
+// ------------------------------ ส่งฟอร์ม ------------------------------
+
+el("registrationForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearMsg("form-msg");
+
+  const btn = el("btn-submit");
+  const files = Array.from(el("imageUpload").files || []);
+
+  const form = {
+    title:      el("title").value,
+    first_name: el("first_name").value.trim(),
+    last_name:  el("last_name").value.trim(),
+    email:      el("email").value.trim(),
+    phone:      el("phone").value.trim(),
+  };
+
+  if (!form.first_name || !form.last_name) {
+    say("form-msg", "กรุณากรอกชื่อและนามสกุล");
+    return;
+  }
+  if (!/^0[0-9]{8,9}$/.test(form.phone)) {
+    say("form-msg", "เบอร์โทรไม่ถูกต้อง (ขึ้นต้นด้วย 0 และมี 9-10 หลัก)");
+    return;
+  }
+  if (files.length === 0) {
+    say("form-msg", "กรุณาแนบรูปอย่างน้อย 1 รูป");
+    return;
+  }
+
+  btn.disabled = true;
+
+  try {
+    busy(true, `กำลังย่อรูป ${files.length} ไฟล์...`);
+    const compressed = await Promise.all(files.map((f) => compress(f)));
+
+    // 1) ขอ signed upload URL จาก server (bucket เป็น private แล้ว)
+    busy(true, "กำลังเตรียมพื้นที่อัปโหลด...");
+    const { files: slots } = await callFn("upload-url", {
+      action: "upload",
+      filenames: compressed.map((f) => f.name),
+    });
+
+    // 2) อัปโหลดตรงไปยัง signed URL
+    busy(true, `กำลังอัปโหลด ${compressed.length} รูป...`);
+    await Promise.all(slots.map((slot, i) =>
+      fetch(slot.signed_url, {
+        method: "PUT",
+        headers: { "Content-Type": compressed[i].type },
+        body: compressed[i],
+      }).then((r) => {
+        if (!r.ok) throw new Error(`อัปโหลดรูปที่ ${i + 1} ไม่สำเร็จ`);
+      })
+    ));
+
+    // 3) บันทึกข้อมูล (server ผูก user_id จาก token เอง)
+    busy(true, "กำลังบันทึกข้อมูล...");
+    await callFn("register", {
+      action: "submit",
+      ...form,
+      image_paths: slots.map((s) => s.path),
+    });
+
+    say("form-msg", "ลงทะเบียนสำเร็จ ขอบคุณครับ", "ok");
+
+    // ส่งใบยืนยันกลับเข้าแชท (ของเดิมมีฟีเจอร์นี้ จึงคงไว้)
+    // ส่งไม่สำเร็จไม่ถือว่าลงทะเบียนล้มเหลว — ข้อมูลบันทึกไปแล้ว
+    if (liff.isInClient()) {
+      try {
+        await liff.sendMessages([confirmFlex(form)]);
+      } catch (e) {
+        console.warn("ส่งใบยืนยันเข้าแชทไม่สำเร็จ:", e);
+      }
+    }
+
+    setTimeout(() => { if (liff.isInClient()) liff.closeWindow(); }, 1600);
+  } catch (err) {
+    console.error("submit error:", err);
+    say("form-msg", err.message || "บันทึกข้อมูลไม่สำเร็จ");
+    btn.disabled = false;
+  } finally {
+    busy(false);
+  }
+});
+</script>
+</body>
+</html>
