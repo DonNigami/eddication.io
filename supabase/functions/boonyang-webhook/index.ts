@@ -275,6 +275,15 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const LINE_CHANNEL_TOKEN = Deno.env.get('LINE_CHANNEL_TOKEN');
 const LINE_CHANNEL_SECRET = Deno.env.get('LINE_CHANNEL_SECRET');
+// LINE webhook signature verification mode: 'off' | 'monitor' | 'enforce'
+// 'monitor' = verify + record anomalies but still serve the request (safe rollout);
+// 'enforce' = reject forged requests. Changed via `supabase secrets set LINE_SIGNATURE_MODE=...`
+// (env, not a DB read, so it costs nothing per request and doubles as an instant kill switch).
+const LINE_SIGNATURE_MODE = (Deno.env.get('LINE_SIGNATURE_MODE') || 'monitor').toLowerCase();
+// Telegram admin notifications (new-registration approval)
+const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
+const TELEGRAM_ADMIN_CHAT_ID = Deno.env.get('TELEGRAM_ADMIN_CHAT_ID');
+const TELEGRAM_WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET');
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
@@ -576,6 +585,217 @@ class LineService {
 const lineService = new LineService();
 
 // ============================================
+// Telegram Admin Notifications (new-registration approval)
+// ============================================
+
+const TELEGRAM_API = TELEGRAM_BOT_TOKEN
+  ? `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`
+  : '';
+
+function escapeHtml(s: string): string {
+  return (s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// Bangkok timestamp without locale dependency (e.g. "2026-06-26 14:30")
+function bangkokNow(): string {
+  const bkk = new Date(Date.now() + 7 * 3600 * 1000);
+  return bkk.toISOString().replace('T', ' ').slice(0, 16);
+}
+
+async function telegramCall(method: string, payload: Record<string, unknown>): Promise<any> {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.error(`❌ TELEGRAM_BOT_TOKEN not set - skipping ${method}`);
+    return null;
+  }
+  try {
+    const res = await fetch(`${TELEGRAM_API}/${method}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      console.error(`❌ Telegram ${method} failed:`, JSON.stringify(data));
+    }
+    return data;
+  } catch (e) {
+    console.error(`❌ Telegram ${method} error:`, e);
+    return null;
+  }
+}
+
+// Notify admin Telegram chat about a new registration awaiting approval (with action buttons)
+async function notifyNewRegistration(user: LineUser): Promise<void> {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_CHAT_ID) {
+    console.log('⚠️ Telegram not configured - skip new-registration notify');
+    return;
+  }
+
+  const name = escapeHtml(`${user.name || ''} ${user.surname || ''}`.trim() || '-');
+  const shop = escapeHtml(user.shop_name || '-');
+  const taxId = escapeHtml(user.tax_id || '-');
+  const display = escapeHtml(user.display_name || '-');
+
+  const text =
+    `🆕 <b>ลงทะเบียนใหม่ — รออนุมัติ</b>\n\n` +
+    `👤 ชื่อ: <b>${name}</b>\n` +
+    `🏪 ร้าน: ${shop}\n` +
+    `🧾 เลขภาษี: ${taxId}\n` +
+    `📱 LINE: ${display}\n` +
+    `🆔 <code>${escapeHtml(user.user_id)}</code>\n` +
+    `📅 ${bangkokNow()}\n\n` +
+    `กดปุ่มด้านล่างเพื่ออนุมัติหรือบล็อก`;
+
+  await telegramCall('sendMessage', {
+    chat_id: TELEGRAM_ADMIN_CHAT_ID,
+    text,
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[
+        { text: '✅ อนุมัติ', callback_data: `approve:${user.user_id}` },
+        { text: '🚫 บล็อก', callback_data: `block:${user.user_id}` },
+      ]],
+    },
+  });
+  console.log(`📨 Telegram: notified admin of new registration ${user.user_id}`);
+}
+
+// Handle an incoming Telegram update (callback_query from the approval buttons)
+async function handleTelegramUpdate(update: any): Promise<void> {
+  const cq = update?.callback_query;
+  if (!cq) {
+    console.log('🔇 Telegram update without callback_query - ignoring');
+    return;
+  }
+
+  const data: string = cq.data || '';
+  const fromName =
+    `${cq.from?.first_name || ''} ${cq.from?.last_name || ''}`.trim() ||
+    cq.from?.username ||
+    'admin';
+  const chatId = cq.message?.chat?.id;
+  const messageId = cq.message?.message_id;
+
+  const match = data.match(/^(approve|block):(.+)$/);
+  if (!match) {
+    await telegramCall('answerCallbackQuery', {
+      callback_query_id: cq.id,
+      text: 'คำสั่งไม่ถูกต้อง',
+    });
+    return;
+  }
+
+  const action = match[1];
+  const targetUserId = match[2];
+
+  const targetUser = await getUser(targetUserId);
+  if (!targetUser) {
+    await telegramCall('answerCallbackQuery', {
+      callback_query_id: cq.id,
+      text: '❌ ไม่พบผู้ใช้ในระบบ',
+      show_alert: true,
+    });
+    return;
+  }
+
+  const roleValue = action === 'approve' ? 'customer' : '';
+  await updateUser(targetUserId, { userstaff: roleValue });
+
+  const verdict = action === 'approve' ? '✅ อนุมัติแล้ว' : '🚫 บล็อกแล้ว';
+  await telegramCall('answerCallbackQuery', {
+    callback_query_id: cq.id,
+    text: verdict,
+  });
+
+  // Edit the original message: stamp the decision + remove buttons (prevent re-tap)
+  if (chatId && messageId) {
+    const originalText = cq.message?.text || '';
+    const newText =
+      `${escapeHtml(originalText)}\n\n` +
+      `${verdict} โดย ${escapeHtml(fromName)}\n` +
+      `🕒 ${bangkokNow()}`;
+    await telegramCall('editMessageText', {
+      chat_id: chatId,
+      message_id: messageId,
+      text: newText,
+      parse_mode: 'HTML',
+      // no reply_markup => inline buttons removed
+    });
+  }
+
+  // Tell the customer on LINE when approved (best-effort: a push failure must NOT fail the callback)
+  if (action === 'approve') {
+    try {
+      await lineService.pushMessage(targetUserId, [
+        {
+          type: 'text',
+          text: '🎉 บัญชีของคุณได้รับการอนุมัติแล้ว\nสามารถสอบถามสต็อกสินค้าได้เลยครับ',
+        },
+      ]);
+    } catch (e) {
+      console.error('❌ approve: LINE push to customer failed (non-fatal):', e);
+    }
+  }
+
+  console.log(`✅ Telegram ${action} -> ${targetUserId} by ${fromName}`);
+}
+
+// ============================================
+// LINE Webhook Signature Verification
+// ============================================
+
+// Imported once per worker and reused, so the per-request cost stays ~0.1ms.
+let lineHmacKeyPromise: Promise<CryptoKey> | null = null;
+function getLineHmacKey(): Promise<CryptoKey> {
+  if (!lineHmacKeyPromise) {
+    lineHmacKeyPromise = crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(LINE_CHANNEL_SECRET || ''),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+  }
+  return lineHmacKeyPromise;
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// LINE signs the RAW request body with the channel secret (HMAC-SHA256, base64) in x-line-signature.
+async function isValidLineSignature(rawBody: string, signature: string | null): Promise<boolean> {
+  if (!LINE_CHANNEL_SECRET || !signature) return false;
+  try {
+    const key = await getLineHmacKey();
+    const mac = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(mac)));
+    return timingSafeEqual(expected, signature);
+  } catch (e) {
+    console.error('❌ LINE signature check error:', e);
+    return false;
+  }
+}
+
+// Bounded per-worker cap: a misconfigured secret must never turn every request into a DB write.
+let sigAnomaliesRecorded = 0;
+async function recordSignatureAnomaly(detail: Record<string, unknown>): Promise<void> {
+  if (sigAnomaliesRecorded >= 5) return;
+  sigAnomaliesRecorded++;
+  try {
+    await supabase.from('security_events').insert({ kind: 'line_sig_mismatch', detail });
+  } catch (e) {
+    console.error('❌ recordSignatureAnomaly failed:', e);
+  }
+}
+
+// ============================================
 // System Settings
 // ============================================
 
@@ -797,17 +1017,16 @@ function formatLotDisplay(lotVal: string): string {
 // Search Functions
 // ============================================
 
-// Search in BotData (Exact Match)
+// Search in BotData (Partial Match - ดึงครบทุกรายการ)
 async function searchBotData(query: string): Promise<BotDataItem[]> {
-  console.log(`🔍 Searching BotData (exact match) for: ${query}`);
+  console.log(`🔍 Searching BotData (partial match) for: ${query}`);
 
   try {
-    // Query database directly (no cache)
+    // Query database directly (no cache) - no limit, partial match to get ALL results
     const { data, error } = await supabase
       .from('botdata')
       .select('*')
-      .or(`item_code.eq.${query},alternative_key_1.eq.${query},alternative_key_2.eq.${query}`)
-      .limit(100);
+      .or(`item_code.ilike.%${query}%,alternative_key_1.ilike.%${query}%,alternative_key_2.ilike.%${query}%,item_name.ilike.%${query}%`);
 
     if (error) {
       console.error('❌ Error searching BotData:', error);
@@ -1200,6 +1419,9 @@ function createRegisterCompleteFlex(user: LineUser): LineMessage {
 }
 
 function createAnswerFlex(icon: string, preAnswer: string, answer: string): LineMessage {
+  // LINE rejects flex text components that are empty/null -> fallback to '-'
+  const safePre = (preAnswer ?? '').toString().trim() || '-';
+  const safeAns = (answer ?? '').toString().trim() || '-';
   const flex = {
     type: 'flex',
     altText: 'register',
@@ -1219,7 +1441,7 @@ function createAnswerFlex(icon: string, preAnswer: string, answer: string): Line
               },
               {
                 type: 'text',
-                text: preAnswer,
+                text: safePre,
                 margin: 'md',
                 wrap: true,
               },
@@ -1235,7 +1457,7 @@ function createAnswerFlex(icon: string, preAnswer: string, answer: string): Line
               },
               {
                 type: 'text',
-                text: answer,
+                text: safeAns,
                 margin: 'md',
                 wrap: true,
                 weight: 'bold',
@@ -1253,10 +1475,13 @@ function createAnswerFlex(icon: string, preAnswer: string, answer: string): Line
 
 
 function createBotDataResponseText(items: BotDataItem[], query: string): string {
+    // ✅ Group สินค้าเหมือนกัน แต่เลือกเฉพาะ LOT ที่เก่าที่สุด
+    // ✅ ใช้จำนวนของ LOT ที่เก่าที่สุดในการเช็คสถานะ
+
     const groupedItems = new Map<string, {
         name: string;
-        total_stock: number;
         oldest_lot: string;
+        oldest_lot_stock: number;  // ✅ จำนวนของ LOT ที่เก่าที่สุด
     }>();
 
     items.forEach(item => {
@@ -1266,24 +1491,27 @@ function createBotDataResponseText(items: BotDataItem[], query: string): string 
         }
         if (!itemName) return;
 
+        const normalizedName = itemName.toUpperCase();
         const currentLot = item.lot_number || '';
         const currentStock = item.on_hand_quantity || 0;
 
-        if (!groupedItems.has(itemName)) {
-            groupedItems.set(itemName, {
+        if (!groupedItems.has(normalizedName)) {
+            // ✅ ครั้งแรก - เพิ่มเข้าไปเลย
+            groupedItems.set(normalizedName, {
                 name: itemName,
-                total_stock: currentStock,
                 oldest_lot: currentLot,
+                oldest_lot_stock: currentStock,
             });
         } else {
-            const existing = groupedItems.get(itemName)!;
-            existing.total_stock += currentStock;
+            const existing = groupedItems.get(normalizedName)!;
+            // ✅ เปรียบเทียบ LOT และเก็บเฉพาะ LOT ที่เก่ากว่า
             if (isLotAEarlier(currentLot, existing.oldest_lot)) {
                 existing.oldest_lot = currentLot;
+                existing.oldest_lot_stock = currentStock;
             }
         }
     });
-    
+
     const results = Array.from(groupedItems.values());
 
     // Get current time and convert to Bangkok timezone (ICT = UTC+7)
@@ -1304,8 +1532,9 @@ function createBotDataResponseText(items: BotDataItem[], query: string): string 
     );
 
     sortedResults.forEach((item, index) => {
-        const stockIcon = item.total_stock >= 4 ? '✅' : '☎️';
-        const stockText = item.total_stock >= 4 ? 'มีสินค้า' : 'กรุณาโทรสอบถาม';
+        // ✅ เช็คสถานะจากจำนวนของ LOT ที่เก่าที่สุด
+        const stockIcon = item.oldest_lot_stock >= 4 ? '✅' : '☎️';
+        const stockText = item.oldest_lot_stock >= 4 ? 'มีสินค้า' : 'กรุณาโทรสอบถาม';
         const lotDisplay = formatLotDisplay(item.oldest_lot);
 
         message += `${index + 1}. ${item.name}\n`;
@@ -2439,7 +2668,7 @@ async function handleMessage(event: LineEvent): Promise<void> {
       });
 
       const icon = 'https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png';
-      const flex = createAnswerFlex(icon, user.name, 'โปรดกรอกนามสกุลของคุณ');
+      const flex = createAnswerFlex(icon, messageText.trim(), 'โปรดกรอกนามสกุลของคุณ');
 
       await lineService.replyMessage(replyToken, [flex]);
       return;
@@ -2453,7 +2682,7 @@ async function handleMessage(event: LineEvent): Promise<void> {
       });
 
       const icon = 'https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png';
-      const flex = createAnswerFlex(icon, user.surname, 'กรุณากรอกชื่อร้าน');
+      const flex = createAnswerFlex(icon, messageText.trim(), 'กรุณากรอกชื่อร้าน');
 
       await lineService.replyMessage(replyToken, [flex]);
       return;
@@ -2467,7 +2696,7 @@ async function handleMessage(event: LineEvent): Promise<void> {
       });
 
       const icon = 'https://cdn4.iconfinder.com/data/icons/business-331/24/name_id_tag_license_identity_office_1-512.png';
-      const flex = createAnswerFlex(icon, user.shop_name, 'กรุณากรอกเลขที่ผู้เสียภาษี');
+      const flex = createAnswerFlex(icon, messageText.trim(), 'กรุณากรอกเลขที่ผู้เสียภาษี');
 
       await lineService.replyMessage(replyToken, [flex]);
       return;
@@ -2478,14 +2707,28 @@ async function handleMessage(event: LineEvent): Promise<void> {
       await updateUser(userId, {
         tax_id: messageText.trim(),
         status_register: 'สำเร็จ',
-        userstaff: 'customer', // Auto-approve as customer
+        // ไม่ auto-approve — userstaff คงว่างไว้จนกว่าแอดมินจะสั่ง approve u<userid>
+        // (stock_require_approval จึงทำงานจริง: ต้องอนุมัติก่อนถึงถามสต็อกได้)
       });
 
       // Get updated user
       user = (await getUser(userId))!;
 
       const flex = createRegisterCompleteFlex(user);
-      await lineService.replyMessage(replyToken, [flex]);
+      await lineService.replyMessage(replyToken, [
+        flex,
+        {
+          type: 'text',
+          text: '✅ ลงทะเบียนเรียบร้อยแล้ว\n⏳ กรุณารอแอดมินอนุมัติสักครู่ จึงจะสอบถามสต็อกได้ครับ',
+        },
+      ]);
+
+      // Notify admin on Telegram (with approve/block buttons) — non-blocking
+      try {
+        await notifyNewRegistration(user);
+      } catch (e) {
+        console.error('❌ notifyNewRegistration failed (non-fatal):', e);
+      }
       return;
     }
 
@@ -2522,11 +2765,17 @@ async function handleMessage(event: LineEvent): Promise<void> {
       } else {
         // Userstaff filter is ENABLED - check ALL requirements
 
-        // 1. Check registration requirement
+        // 1. Check registration requirement.
+        // Approved users (userstaff = customer/admin/superadmin) are already vetted by an admin →
+        // they BYPASS the registration-status requirement entirely (owner decision 2026-06-26).
+        // For everyone else we still require a finished registration, accepting BOTH the current
+        // 'สำเร็จ' convention and the legacy 'DONE' (old GAS/import) so neither is wrongly blocked.
         const allowWhileRegistering = ['รอชื่อ', 'รอนามสกุล', 'รอชื่อร้าน', 'รอเลขที่ภาษี'];
         const isRegistering = allowWhileRegistering.includes(user.status_register || '');
+        const regStatus = (user.status_register || '').trim();
+        const isRegistered = regStatus === 'สำเร็จ' || regStatus.toUpperCase() === 'DONE';
 
-        if (settings.register_required && user.status_register !== 'สำเร็จ' && !isRegistering) {
+        if (settings.register_required && !isApprovedUser(user) && !isRegistered && !isRegistering) {
           console.log(`⛔ Userstaff filter enabled: User not registered (status_register="${user.status_register}") - SILENT RETURN`);
           return;
         }
@@ -3137,12 +3386,61 @@ serve(async (req) => {
     // Get request body
     const body = await req.text();
 
-    // ⚠️ Signature verification DISABLED for compatibility
-    // If you want to enable it, set LINE_CHANNEL_SECRET environment variable
-    console.log('⚠️ Signature verification disabled - accepting all requests');
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(body);
+    } catch (_e) {
+      parsed = null;
+    }
+
+    // ============================================
+    // Telegram update routing (admin approval buttons)
+    // ============================================
+    const tgSecretHeader = req.headers.get('X-Telegram-Bot-Api-Secret-Token');
+    const looksLikeTelegram =
+      parsed &&
+      (typeof parsed.update_id !== 'undefined' ||
+        parsed.callback_query ||
+        parsed.my_chat_member);
+
+    if (tgSecretHeader || looksLikeTelegram) {
+      // Reject spoofed requests: a valid secret token MUST be configured and match
+      if (!TELEGRAM_WEBHOOK_SECRET || tgSecretHeader !== TELEGRAM_WEBHOOK_SECRET) {
+        console.error('❌ Telegram webhook: bad/missing secret token - rejecting');
+        return new Response('Unauthorized', { status: 401 });
+      }
+      console.log('🤖 Telegram update received');
+      await handleTelegramUpdate(parsed);
+      return new Response('OK', { status: 200 });
+    }
+
+    // ============================================
+    // LINE signature verification (anti-forgery)
+    // Without this, anyone could POST a fake event impersonating an admin userId and
+    // run admin commands (approve/block/bot off/filter off) against the live DB.
+    // ============================================
+    if (LINE_SIGNATURE_MODE !== 'off') {
+      const lineSignature = req.headers.get('x-line-signature');
+      const signatureOk = await isValidLineSignature(body, lineSignature);
+
+      if (!signatureOk) {
+        await recordSignatureAnomaly({
+          mode: LINE_SIGNATURE_MODE,
+          has_signature: !!lineSignature,
+          has_secret: !!LINE_CHANNEL_SECRET,
+          body_len: body.length,
+        });
+
+        if (LINE_SIGNATURE_MODE === 'enforce') {
+          console.error('❌ LINE signature invalid - REJECTED');
+          return new Response('Unauthorized', { status: 401 });
+        }
+        console.error('⚠️ LINE signature invalid (monitor mode - request still served)');
+      }
+    }
 
     // Parse webhook
-    const webhook: LineWebhook = JSON.parse(body);
+    const webhook: LineWebhook = parsed ?? JSON.parse(body);
     console.log('🎯 Webhook received');
     console.log(`📦 Events: ${webhook.events.length}`);
 
