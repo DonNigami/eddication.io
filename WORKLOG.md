@@ -19,3 +19,28 @@
 - ไฟล์/ที่แก้: `supabase/functions/boonyang-webhook/index.ts` (deploy v70), migrations `security_hardening_lock_anon_and_enable_rls`, `add_security_events_table`, `admin_login_bruteforce_throttle`
 - **ค้างที่เจ้าของ:** เปลี่ยนรหัสแอดมิน 3 บัญชี · rotate LINE channel token+secret · rotate Supabase anon key + PAT
   ⚠️ ถ้า rotate LINE secret ต้องอัปเดต `LINE_CHANNEL_SECRET` ใน Supabase secrets พร้อมกัน ไม่งั้นบอทจะปฏิเสธทุก request
+
+---
+
+## 2026-09-15 11:45 — Boonyang: บอทเงียบ ไม่ตอบลูกค้า (incident)
+
+- **ต้นเหตุหลัก: LINE webhook ถูกเปลี่ยนไปชี้ที่ Zaapi** (`api.zaapi.co/api/chat/webhook/messages/line/...`)
+  ไม่ใช่ edge function ของเรา — LINE ตั้ง webhook ได้ URL เดียว ข้อความจึงไม่ถึงบอทเลย
+  ข้อความสุดท้ายที่บอทประมวลผลได้ = 04:00:33 UTC
+- **ต้นเหตุรอง: channel secret ถูก rotate ที่คอนโซล LINE (~04:00) แต่ค่าใน Supabase ยังเป็นตัวเก่า**
+  → ระบบตรวจลายเซ็นโหมด enforce ปฏิเสธข้อความจริงไป **67 รายการ** ในช่วง 04:00–04:36
+  → กด kill switch `LINE_SIGNATURE_MODE=monitor` คืนบริการแล้ว (ไม่ปฏิเสธอีก)
+- **channel access token ยังใช้ได้ปกติ** (ทดสอบกับ `/v2/bot/info` → 200, OA = Boonyangcorp)
+- ตรวจแล้วไม่ใช่สาเหตุ: bot_enabled/stock_enabled ยัง true ทุกตัว · function ยังมีชีวิต (GET→405)
+- **รอเจ้าของตัดสินใจ:** ตั้งใจย้ายไป Zaapi หรือไม่ · ถ้าจะให้บอทกลับมา ต้องชี้ webhook กลับ + ใส่ channel secret ตัวใหม่
+
+---
+
+## 2026-09-22 — Boonyang: บอทไม่ตอบ (เช็คสถานะ ยังไม่ได้แก้)
+
+- **นี่คือ incident เดิมจาก 2026-09-15 ที่ยังไม่ถูกปิด** — ไม่มีการแก้โค้ด/secret ใดๆ ในระบบนี้ตั้งแต่วันนั้น
+  (commit ล่าสุดที่แตะ boonyang-webhook คือ 09-09, secret ล่าสุดที่ถูกแก้คือ `LINE_SIGNATURE_MODE` เมื่อ 09-15 04:36 — หลังจากนั้นไม่มีอะไรขยับเลย)
+- ตรวจซ้ำวันนี้: function `boonyang-webhook` (v75) ยัง ACTIVE, GET → 405 ตามปกติ (function ไม่ได้ตาย)
+- `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_TOKEN` ใน Supabase ยังเป็นค่าเดิมตั้งแต่ 2026-03-29 — ถ้า LINE console ถูก rotate ไปแล้วจริงตอน 09-15 ค่าที่นี่ยังไม่ตรง
+- **ยังตรวจไม่ได้จากฝั่งนี้:** LINE webhook ชี้ไปไหนตอนนี้ (Zaapi หรือกลับมาที่เราแล้ว) — ต้องดูใน LINE Developers Console โดยตรง ไม่มี credential ฝั่งนี้ที่จะเรียก `/v2/bot/channel/webhook/endpoint` ได้อย่างปลอดภัย
+- **ยังค้างเหมือนเดิม รอเจ้าของตัดสินใจ:** ตั้งใจย้ายไป Zaapi ถาวรหรือไม่ · ถ้าจะให้บอทกลับมาที่ระบบนี้ ต้องชี้ webhook กลับที่ Supabase edge function + อัปเดต channel secret ให้ตรงของจริงใน LINE console
