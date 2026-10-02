@@ -44,3 +44,19 @@
 - `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_TOKEN` ใน Supabase ยังเป็นค่าเดิมตั้งแต่ 2026-03-29 — ถ้า LINE console ถูก rotate ไปแล้วจริงตอน 09-15 ค่าที่นี่ยังไม่ตรง
 - **ยังตรวจไม่ได้จากฝั่งนี้:** LINE webhook ชี้ไปไหนตอนนี้ (Zaapi หรือกลับมาที่เราแล้ว) — ต้องดูใน LINE Developers Console โดยตรง ไม่มี credential ฝั่งนี้ที่จะเรียก `/v2/bot/channel/webhook/endpoint` ได้อย่างปลอดภัย
 - **ยังค้างเหมือนเดิม รอเจ้าของตัดสินใจ:** ตั้งใจย้ายไป Zaapi ถาวรหรือไม่ · ถ้าจะให้บอทกลับมาที่ระบบนี้ ต้องชี้ webhook กลับที่ Supabase edge function + อัปเดต channel secret ให้ตรงของจริงใน LINE console
+
+---
+
+## 2026-10-02 23:00 — Boonyang: Disk IO Budget ใกล้หมด (แก้แล้ว)
+
+- **ต้นเหตุ: ตาราง `security_events` ที่ผมเพิ่มตอน hardening เขียนรัว** — 40,440 แถว / 9 MB
+  ใน 23 วัน (~1,800–3,400 แถว/วัน) กลายเป็นตารางใหญ่สุดใน DB
+- ทำไมหลุด: ตัวกันเดิมใช้ "นับไม่เกิน 5 ครั้งต่อ worker" แต่ edge worker รีไซเคิลบ่อย → ตัวนับรีเซ็ต
+  และตั้งแต่ channel secret ไม่ตรง (incident 09-15) **ทุก request = mismatch** จึงเขียนทุกครั้ง
+- **แก้แล้ว:** ตั้ง `LINE_SIGNATURE_MODE=off` หยุดเขียนทันที · `truncate security_events`
+  → DB **32 MB → 23 MB** · log ใหม่ = 0 แถว
+- **กันเกิดซ้ำ:** เปลี่ยนตัวกันเป็น throttle ด้วยเวลา (1 แถว/15 นาที/worker, เพดาน 20) — deploy **v77** ACTIVE
+- ⚠️ **ผลข้างเคียงที่ต้องรู้:** ตรวจลายเซ็น LINE ถูกปิดชั่วคราว = ช่องโหว่ event ปลอมกลับมา
+  **ต้องได้ channel secret ตัวใหม่จากคอนโซล LINE** แล้วตั้งค่า + กลับไปโหมด enforce
+- ตัวกิน IO รองที่เจอ (ยังไม่แก้): `userdata` update 383,164 ครั้ง (อัปเดต last_interaction_at ทุกข้อความ)
+  · `botdata` insert 1,024,937 ครั้งสำหรับ 3,131 แถว (การ re-import ทับทั้งตาราง)

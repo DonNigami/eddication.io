@@ -783,10 +783,18 @@ async function isValidLineSignature(rawBody: string, signature: string | null): 
   }
 }
 
-// Bounded per-worker cap: a misconfigured secret must never turn every request into a DB write.
+// Bounded anomaly recording. A per-worker COUNT cap alone was not enough: edge workers recycle,
+// so the counter kept resetting and a stale channel secret turned EVERY request into a DB write
+// (~2-3k rows/day, 40k rows / 9MB before it was caught, which drained the project's disk IO
+// budget). Throttling by TIME as well keeps a permanently failing secret down to a few rows.
+const SIG_ANOMALY_MIN_INTERVAL_MS = 15 * 60 * 1000; // at most one row per 15 min per worker
 let sigAnomaliesRecorded = 0;
+let lastSigAnomalyAt = 0;
 async function recordSignatureAnomaly(detail: Record<string, unknown>): Promise<void> {
-  if (sigAnomaliesRecorded >= 5) return;
+  const now = Date.now();
+  if (sigAnomaliesRecorded >= 20) return;
+  if (now - lastSigAnomalyAt < SIG_ANOMALY_MIN_INTERVAL_MS) return;
+  lastSigAnomalyAt = now;
   sigAnomaliesRecorded++;
   try {
     await supabase.from('security_events').insert({ kind: 'line_sig_mismatch', detail });
