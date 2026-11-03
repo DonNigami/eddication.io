@@ -2487,10 +2487,18 @@ async function handleMessage(event: LineEvent): Promise<void> {
       console.log('✅ Created new user:', user.display_name);
     }
 
-    // Update last interaction
-    await updateUser(userId, {
-      last_interaction_at: new Date().toISOString(),
-    });
+    // Update last interaction — but NOT on every message. Writing this on each inbound
+    // message cost ~450k UPDATEs (1,602 autovacuum runs) on a 1,367-row table and was one
+    // of the top disk-IO consumers on the project. 15-minute freshness is plenty for
+    // "last seen" and for the re-engage-after-silence logic.
+    const lastSeenRaw = (user as unknown as { last_interaction_at?: string | null })
+      .last_interaction_at;
+    const lastSeenMs = lastSeenRaw ? Date.parse(lastSeenRaw) : 0;
+    if (!lastSeenMs || Date.now() - lastSeenMs > 15 * 60 * 1000) {
+      await updateUser(userId, {
+        last_interaction_at: new Date().toISOString(),
+      });
+    }
 
     // Check message type
     if (event.message?.type !== 'text') {

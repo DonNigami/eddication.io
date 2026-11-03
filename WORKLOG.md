@@ -60,3 +60,20 @@
   **ต้องได้ channel secret ตัวใหม่จากคอนโซล LINE** แล้วตั้งค่า + กลับไปโหมด enforce
 - ตัวกิน IO รองที่เจอ (ยังไม่แก้): `userdata` update 383,164 ครั้ง (อัปเดต last_interaction_at ทุกข้อความ)
   · `botdata` insert 1,024,937 ครั้งสำหรับ 3,131 แถว (การ re-import ทับทั้งตาราง)
+
+---
+
+## 2026-11-03 — Boonyang: Disk IO Budget เตือนอีกรอบ (คนละสาเหตุกับรอบก่อน)
+
+- **ไม่ใช่ตัวเดิม** — `security_events` = 0 แถว (แพตช์ 10-02 ยังอยู่) · DB นิ่งที่ 23 MB
+  → ปัญหาไม่ใช่ข้อมูลโต แต่เป็น **write churn (เขียนทับซ้ำๆ)**
+- ตัวกินอันดับ 1 **`botdata`**: insert 1,341,168 / delete 1,340,092 สำหรับแค่ 3,131 แถว (autovacuum 471 ครั้ง)
+  = **ลบทั้งตารางแล้วใส่ใหม่หมด** ~101 รอบ/เดือน (+316k insert ในเดือนเดียว ≈ 631k row-writes/เดือน)
+  → โค้ดอยู่ใน **Google Apps Script** (`backend/menu.js` + trigger ตั้งเวลา) **นอก repo นี้ ผม deploy ไม่ได้**
+- ตัวกินอันดับ 2 **`userdata`**: update 449,917 ครั้ง / 1,367 แถว (autovacuum 1,602) ≈ +67k/เดือน
+  เพราะ `last_interaction_at` ถูก update **ทุกข้อความ**
+- **แก้แล้ว (เท่าที่อยู่ในมือ):** throttle การเขียน `last_interaction_at` → เขียนเฉพาะเมื่อข้อมูลเก่ากว่า 15 นาที
+  แตะ `boonyang-webhook/index.ts:2490` → deploy **v78 ACTIVE** · baseline ไว้เทียบ: `userdata.n_tup_upd = 449,917`
+- รีเซ็ตตัวนับสถิติไม่ได้ (permission denied, ไม่ใช่ superuser) → วัดผลด้วยการเทียบ counter กับ baseline รอบหน้า
+- **ค้างที่เจ้าของ (ตัวใหญ่กว่า ~10 เท่า):** เปลี่ยน import BotData จาก delete-all+insert-all → **upsert ตาม item_code**
+  (UserData ใช้ upsert อยู่แล้ว) หรือลดความถี่ trigger · ทางเลือกสุดท้ายคืออัป compute add-on
