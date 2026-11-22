@@ -1,0 +1,14 @@
+# Dependabot version updates - intentionally limited to the LINE LIFF SDK.
+# Weekly PR when a new @line/liff release is out (SDK drops/deprecates APIs over time).
+# Merging a PR to main auto-deploys via .github/workflows/deploy-all.yml
+# (its paths filter includes project/line/clinic-connect-saas/**).
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    # pnpm workspace root: holds pnpm-lock.yaml + pnpm-workspace.yaml (apps/*, packages/*).
+    # apps/liff-doctor and apps/liff-patient both depend on @line/liff.
+    directory: "/project/line/clinic-connect-saas"
+    schedule:
+      interval: "weekly"
+    allow:
+      - dependency-name: "@line/liff"
