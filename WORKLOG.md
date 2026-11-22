@@ -105,3 +105,15 @@
 - รันจริงแล้ว: ลบแถวขยะ (ว่างทุกช่อง) 765 แถว → botdata 3,131 → **2,366 = ชีตพอดี** · เทียบทุกช่องหลัง sync ต่างกัน 0
 - ตรวจ: dry-run · guard ทดสอบใน transaction+rollback · ADVISOR review (ไม่พบทางลบข้อมูลที่ยังอยู่ในชีต; แก้ 3 จุดที่แนะนำแล้ว) · cron path → HTTP 200
 - **ค้างที่เจ้าของ:** วาง `syncStockViaSupabase_` + `importBotData` + `importInventData` จาก `menu.js` ใน Apps Script · ตั้ง Script Property `BOONYANG_SYNC_SECRET`
+
+---
+
+## 2026-11-22 17:53 — LIFF SDK 2.32.0: clinic-connect-saas + driverconnect acc (CVE-2026-112148)
+
+- **ทำอะไร:** ถอดแท็ก `edge/3/sdk.js` (URL นี้ตอบ 403 ไม่เคยโหลดได้จริง) ออกจาก 3 หน้า clinic-connect (`apps/index.html`, `liff-doctor`, `liff-patient`) · `PTGLG/driverconnect/liff-apps/acc/index.html` เปลี่ยน `edge/2.1` → `edge/2`
+- **หน้า router `apps/index.html`:** เลิกรอ `liffReady` / timeout 5 วินาที เริ่มทำงานทันทีที่ DOM พร้อม (เดิมค้างรอ 5 วิทุกครั้งเพราะ SDK โหลดไม่ขึ้น) · LIFF init/login ยังทำโดยแอปลูกผ่าน `@line/liff` (npm) เหมือนเดิม
+- **เวอร์ชัน:** `@line/liff` `^2.27.3` → `^2.32.0` ใน liff-doctor + liff-patient · อัปเดต `pnpm-lock.yaml` (เขียนด้วย pnpm 10 แล้วทดสอบ `--frozen-lockfile` ด้วย pnpm 9 แบบเดียวกับ CI ผ่าน)
+- **dist:** `apps/liff-patient/dist` ถูก commit และ `static.yml` เสิร์ฟไฟล์ในรีโปตรงๆ → build ใหม่แล้ว commit ไปด้วย (chunk liff = 2.32.0, ไม่มี sdk.js) · `liff-doctor/dist` ไม่ได้ commit (เหมือนเดิม) มีเฉพาะตอน deploy-all build ใน CI
+- **ตรวจ:** `pnpm build` (tsc + vite) ทั้ง 2 แอปผ่าน · turbo build ผ่าน · `@line/liff` ที่ติดตั้งจริง = 2.32.0
+- **ส่งขึ้น:** push main พร้อม commit นี้ → GitHub Pages deploy ผ่าน Actions (deploy-all + static) · ไม่แตะ DB/secrets
+- **เหลือ:** พี่เอ็ดดี้ลองเปิดแอปใน LINE (login + หน้าคนไข้/หมอ) 1 รอบ เพราะทดสอบในแอป LINE จากเครื่องนี้ไม่ได้ · `apps/shared/role-detection.js` ยังอ้าง `window.liff` แต่ไม่มีไฟล์ไหนเรียกใช้ (โค้ดตาย ไม่ได้แตะ)

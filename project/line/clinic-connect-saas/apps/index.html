@@ -73,20 +73,6 @@
     </div>
   </div>
 
-  <!-- LIFF SDK -->
-  <script>
-    // Track LIFF SDK load status
-    window.liffReady = false;
-    window.liffLoadTimedOut = false;
-
-    // Fallback if LIFF SDK fails to load
-    window.liffLoadTimeout = setTimeout(() => {
-      console.warn('LIFF SDK load timeout - app will run without LIFF');
-      window.liffLoadTimedOut = true;
-    }, 5000);
-  </script>
-  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/3/sdk.js" onload="clearTimeout(window.liffLoadTimeout); window.liffReady = true;"></script>
-
   <!-- Router Script -->
   <script>
     // =====================================================
@@ -162,11 +148,12 @@
       async initLiff() {
         const liffId = this.config.liffId;
 
-        // Use window.liff since we've ensured it's loaded
+        // The router no longer loads the LIFF SDK from the CDN.
+        // The child apps bundle @line/liff via npm and run liff.init() themselves.
         const liff = window.liff;
 
-        // If LIFF SDK didn't load or timed out, just continue without it
-        if (!liff || window.liffLoadTimedOut) {
+        // No SDK on this page: just continue without LINE integration
+        if (!liff) {
           console.warn('LIFF SDK not available, running without LINE integration');
           this.currentUser = null;
           this.userRole = this.config.defaultRole;
@@ -390,32 +377,15 @@
     window.router = router;
 
     // Auto-start router when DOM ready
+    // (no LIFF SDK wait here: the child apps load @line/liff via npm)
     function startApp() {
-      let attempts = 0;
-      const maxAttempts = 60; // 6 seconds max wait
-
-      // Check if DOM is ready and LIFF SDK is either loaded or timed out
-      const checkReady = () => {
-        attempts++;
-
-        // Start if DOM is ready AND (LIFF is ready OR load timed out)
-        if (document.readyState !== 'loading' && (window.liffReady || window.liffLoadTimedOut || attempts >= maxAttempts)) {
-          console.log('Starting app...');
-          router.init();
-        } else if (attempts < maxAttempts) {
-          // Check again in 100ms
-          setTimeout(checkReady, 100);
-        } else {
-          // Timeout - start anyway
-          console.warn('App init timeout, starting anyway');
-          router.init();
-        }
-      };
-
-      checkReady();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => router.init(), { once: true });
+      } else {
+        router.init();
+      }
     }
 
-    // Start checking for readiness
     startApp();
   </script>
 
