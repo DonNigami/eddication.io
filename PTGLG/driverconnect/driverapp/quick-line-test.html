@@ -140,7 +140,8 @@
         addDetail('In LINE Client', inClient ? '✅ Yes' : '❌ No');
         addDetail('Logged In', loggedIn ? '✅ Yes' : '❌ No');
         addDetail('OS', liff.getOS());
-        addDetail('Language', liff.getLanguage());
+        // liff.getLanguage() is deprecated -> prefer liff.getAppLanguage() (LIFF SDK >= 2.24.0)
+        addDetail('Language', typeof liff.getAppLanguage === 'function' ? liff.getAppLanguage() : liff.getLanguage());
 
         // Step 5: Get profile if possible
         if (loggedIn) {

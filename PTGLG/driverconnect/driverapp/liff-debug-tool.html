@@ -112,6 +112,11 @@
       el.innerHTML = `<div class="status ${className}">${text}</div>`;
     }
 
+    // liff.getLanguage() is deprecated -> prefer liff.getAppLanguage() (LIFF SDK >= 2.24.0)
+    function getLiffLanguage() {
+      return typeof liff.getAppLanguage === 'function' ? liff.getAppLanguage() : liff.getLanguage();
+    }
+
     // Environment info
     document.getElementById('userAgent').textContent = navigator.userAgent;
     
@@ -148,14 +153,14 @@
         document.getElementById('isInClient').textContent = liff.isInClient() ? '✅ Yes (in LINE app)' : '❌ No (in browser)';
         document.getElementById('isLoggedIn').textContent = liff.isLoggedIn() ? '✅ Yes' : '❌ No';
         document.getElementById('liffOS').textContent = liff.getOS();
-        document.getElementById('liffLang').textContent = liff.getLanguage();
+        document.getElementById('liffLang').textContent = getLiffLanguage();
         document.getElementById('liffVersion').textContent = liff.getVersion();
 
         log('📊 LIFF Status:', {
           isInClient: liff.isInClient(),
           isLoggedIn: liff.isLoggedIn(),
           os: liff.getOS(),
-          language: liff.getLanguage(),
+          language: getLiffLanguage(),
           version: liff.getVersion()
         });
 
