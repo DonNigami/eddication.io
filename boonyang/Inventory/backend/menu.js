@@ -765,71 +765,47 @@ function clearAllDataMenu() {
 }
 
 /**
- * Import BotData to Supabase (with full column duplicate check + backup)
+ * Sync stock tables through the Supabase edge function `boonyang-stock-sync`.
+ *
+ * The old import deleted and re-inserted every row on each click (~6,000 row writes per click),
+ * which exhausted the project's disk IO budget. The function diffs the sheet against the table and
+ * writes only rows that changed — an unchanged sheet costs zero writes. The same function also
+ * runs hourly on pg_cron, so clicking is optional.
+ *
+ * One-time setup: Apps Script → Project Settings → Script Properties →
+ *   BOONYANG_SYNC_SECRET = <value from Supabase secret SYNC_SECRET>
+ */
+function syncStockViaSupabase_(table) {
+  const secret = PropertiesService.getScriptProperties().getProperty('BOONYANG_SYNC_SECRET');
+  if (!secret) {
+    throw new Error('ยังไม่ได้ตั้ง Script Property: BOONYANG_SYNC_SECRET');
+  }
+
+  const url = SUPABASE_URL + '/functions/v1/boonyang-stock-sync' + (table ? '?table=' + table : '');
+  const res = UrlFetchApp.fetch(url, {
+    method: 'post',
+    headers: { 'x-sync-secret': secret },
+    muteHttpExceptions: true,
+  });
+  const text = res.getContentText();
+  let body = null;
+  try { body = JSON.parse(text); } catch (e) { /* non-JSON error page */ }
+
+  if (res.getResponseCode() !== 200 || !body || !body.ok) {
+    throw new Error('Sync ล้มเหลว (HTTP ' + res.getResponseCode() + '): ' + text.substring(0, 500));
+  }
+
+  body.results.forEach(r => {
+    Logger.log(`✅ ${r.table}: ชีต ${r.sheet_rows} แถว · ลบ ${r.to_delete} · เพิ่ม ${r.to_insert} · ไม่เปลี่ยน ${r.unchanged}`);
+  });
+  return body;
+}
+
+/**
+ * Import BotData to Supabase via boonyang-stock-sync (writes only rows that changed)
  */
 function importBotData() {
-  const ss = SpreadsheetApp.openById(STOCK_SHEET_ID);
-  const sheet = ss.getSheetByName('BotData');
-
-  if (!sheet) {
-    throw new Error('ไม่พบ Sheet: BotData');
-  }
-
-  // Get all data (skip header row)
-  const lastRow = sheet.getLastRow();
-  const lastCol = sheet.getLastColumn();
-
-  if (lastRow <= 1) {
-    Logger.log('⚠️ BotData: ไม่มีข้อมูล');
-    return;
-  }
-
-  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
-
-  Logger.log(`📦 BotData: พบ ${data.length} รายการ`);
-
-  // Transform data
-  const transformedData = data.map(row => ({
-    item_code: row[0] || null,
-    field_unknown: row[1] || null,
-    item_name: row[2] || null,
-    lot_number: row[3] || null,
-    on_hand_quantity: parseInt(row[4]) || 0,
-    alternative_key_1: row[5] || null,
-    alternative_key_2: row[6] || null
-  }));
-
-  // ⏭️ ข้ามถ้าข้อมูลในชีตเหมือนรอบที่แล้ว — เดิมลบทั้งตาราง+ใส่ใหม่ 3,131 แถวทุกรอบ
-  // แม้ไม่มีอะไรเปลี่ยน (~17,000 row-writes/วัน) จนกิน Disk IO budget ของ Supabase หมด
-  const props = PropertiesService.getScriptProperties();
-  const digest = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.MD5,
-    JSON.stringify(transformedData),
-    Utilities.Charset.UTF_8
-  );
-  const hash = Utilities.base64Encode(digest);
-  if (props.getProperty('BOTDATA_LAST_HASH') === hash) {
-    Logger.log('⏭️ BotData: ข้อมูลไม่เปลี่ยนจากรอบก่อน — ข้ามการ import');
-    return;
-  }
-
-  // 🗑️ ลบข้อมูลเก่าทิ้งทั้งหมด
-  Logger.log('🗑️ กำลังลบข้อมูลเก่า...');
-  deleteAllRows('botdata');
-  Logger.log('✅ ลบข้อมูลเก่าเรียบร้อย');
-
-  // ✅ Insert ข้อมูลใหม่ทั้งหมด
-  Logger.log(`📥 Import ข้อมูลใหม่ ${transformedData.length} รายการ...`);
-  const result = insertBatch('botdata', transformedData);
-
-  // บันทึก hash เฉพาะตอน insert ครบทุกแถว — insertBatch กลืน error ไว้ภายใน ถ้าบันทึกทั้งที่
-  // บางชุดล้ม รอบหน้าจะ "ข้าม" แล้วตารางขาดข้อมูลค้างไปเรื่อยๆ
-  if (result && result.errorCount === 0 && result.insertedCount === transformedData.length) {
-    props.setProperty('BOTDATA_LAST_HASH', hash);
-  } else {
-    props.deleteProperty('BOTDATA_LAST_HASH');
-    Logger.log('⚠️ BotData: insert ไม่ครบ — ไม่บันทึก hash รอบหน้าจะ import ใหม่');
-  }
+  return syncStockViaSupabase_('botdata');
 }
 
 /**
@@ -907,7 +883,7 @@ function updateBotDataRow(id, newItem) {
 }
 
 /**
- * Import InventData to Supabase (with full column duplicate check + backup)
+ * Import InventData to Supabase via boonyang-stock-sync (writes only rows that changed)
  *
  * Sheet columns (in order):
  * A: ItemName
@@ -917,43 +893,7 @@ function updateBotDataRow(id, newItem) {
  * E: OnhandQtyByTotalPiece
  */
 function importInventData() {
-  const ss = SpreadsheetApp.openById(STOCK_SHEET_ID);
-  const sheet = ss.getSheetByName('InventData');
-
-  if (!sheet) {
-    throw new Error('ไม่พบ Sheet: InventData');
-  }
-
-  // Get all data (skip header row)
-  const lastRow = sheet.getLastRow();
-
-  if (lastRow <= 1) {
-    Logger.log('⚠️ InventData: ไม่มีข้อมูล');
-    return;
-  }
-
-  // Get 5 columns: ItemName, Standard, ItemName2, ItemName3, OnhandQtyByTotalPiece
-  const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
-
-  Logger.log(`📊 InventData: พบ ${data.length} รายการ`);
-
-  // 🗑️ ลบข้อมูลเก่าทิ้งทั้งหมด
-  Logger.log('🗑️ กำลังลบข้อมูลเก่า...');
-  deleteAllRows('inventdata');
-  Logger.log('✅ ลบข้อมูลเก่าเรียบร้อย');
-
-  // Transform data matching Supabase table structure
-  const transformedData = data.map(row => ({
-    ItemName: row[0] || null,
-    Standard: row[1] || null,
-    ItemName2: row[2] || null,
-    ItemName3: row[3] || null,
-    OnhandQtyByTotalPiece: parseInt(row[4]) || 0
-  }));
-
-  // ✅ Insert ข้อมูลใหม่ทั้งหมด
-  Logger.log(`📥 Import ข้อมูลใหม่ ${transformedData.length} รายการ...`);
-  insertBatch('inventdata', transformedData);
+  return syncStockViaSupabase_('inventdata');
 }
 
 /**

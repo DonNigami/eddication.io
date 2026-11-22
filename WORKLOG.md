@@ -92,3 +92,16 @@
 - ตรวจ: `node --check` ผ่าน · จำลองตรรกะ 5 กรณีผ่าน รวม "insert ล้ม → รอบหน้าต้อง import ใหม่"
 - **ค้างที่เจ้าของ:** ก๊อป `importBotData()` + `insertBatch()` จาก `menu.js` ไปวางใน Apps Script editor แล้วกดบันทึก
   (ไม่มี `.clasp.json` ผูก project → push จากเครื่องนี้ไม่ได้)
+
+---
+
+## 2026-11-22 — Boonyang: ย้าย import สต็อกจาก Apps Script → edge function `boonyang-stock-sync`
+
+- เดิมกด Import 1 ครั้ง = ลบ+ใส่ใหม่ทั้งตาราง ~6,262 แถว (ต้นเหตุหลักของ Disk IO) — ตอนนี้ **เขียนเฉพาะแถวที่เปลี่ยน · ชีตไม่เปลี่ยน = 0 แถว** (วัดจาก counter จริง)
+- อ่านชีตได้ 2 แบบ: public link (`/export?format=csv&gid=` — ไม่ใช้ gviz เพราะเดาชนิดคอลัมน์แล้วทำค่าหาย) · Service Account (ใส่ secret `GOOGLE_SA_JSON` แล้วสลับเอง — ยังไม่ได้ทดสอบจริง)
+- สั่ง sync ได้ 2 แบบ: pg_cron ทุกชั่วโมง (secret อ่านจาก Vault) · ปุ่มเมนูเดิมใน Apps Script (`menu.js` → เรียก function แทน)
+- Migrations: `20261122120000` RPC atomic · `…121000` lock+กันชนกัน (cron กับปุ่มทำพร้อมกัน → ยกเลิกแทนใส่ซ้ำ) · `…130000` pg_cron+pg_net
+- ด่านกันพัง: ชีตว่าง / ไม่ใช่ CSV / หัวคอลัมน์ไม่ตรง / แถวหายเกิน 50% → **ไม่แตะตาราง**
+- รันจริงแล้ว: ลบแถวขยะ (ว่างทุกช่อง) 765 แถว → botdata 3,131 → **2,366 = ชีตพอดี** · เทียบทุกช่องหลัง sync ต่างกัน 0
+- ตรวจ: dry-run · guard ทดสอบใน transaction+rollback · ADVISOR review (ไม่พบทางลบข้อมูลที่ยังอยู่ในชีต; แก้ 3 จุดที่แนะนำแล้ว) · cron path → HTTP 200
+- **ค้างที่เจ้าของ:** วาง `syncStockViaSupabase_` + `importBotData` + `importInventData` จาก `menu.js` ใน Apps Script · ตั้ง Script Property `BOONYANG_SYNC_SECRET`
