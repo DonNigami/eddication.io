@@ -2975,14 +2975,14 @@
 
         async function scanQRCode(activityId, coords) {
             try {
-                const os = liff.getOS();
-                let qrResult;
-                if (os === 'android') {
-                    qrResult = await liff.scanCode();
-                } else {
-                    qrResult = await liff.scanCodeV2();
+                // liff.scanCode() is deprecated (and undefined on LINE for iOS) -> use scanCodeV2() on every OS.
+                // Needs "Scan QR" enabled for this LIFF app in the LINE Developers Console;
+                // on Android the LIFF browser also requires screen size = Full.
+                if (typeof liff.scanCodeV2 !== 'function') {
+                    throw new Error("แอป LINE เวอร์ชันนี้ไม่รองรับการสแกน QR Code กรุณาอัปเดตแอป LINE แล้วลองใหม่อีกครั้ง");
                 }
-                
+                const qrResult = await liff.scanCodeV2();
+
                 if (qrResult && qrResult.value) {
                     processQRCode(activityId, qrResult.value, coords);
                 } else {
