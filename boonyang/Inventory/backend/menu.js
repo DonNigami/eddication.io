@@ -788,11 +788,6 @@ function importBotData() {
 
   Logger.log(`📦 BotData: พบ ${data.length} รายการ`);
 
-  // 🗑️ ลบข้อมูลเก่าทิ้งทั้งหมด
-  Logger.log('🗑️ กำลังลบข้อมูลเก่า...');
-  deleteAllRows('botdata');
-  Logger.log('✅ ลบข้อมูลเก่าเรียบร้อย');
-
   // Transform data
   const transformedData = data.map(row => ({
     item_code: row[0] || null,
@@ -804,9 +799,37 @@ function importBotData() {
     alternative_key_2: row[6] || null
   }));
 
+  // ⏭️ ข้ามถ้าข้อมูลในชีตเหมือนรอบที่แล้ว — เดิมลบทั้งตาราง+ใส่ใหม่ 3,131 แถวทุกรอบ
+  // แม้ไม่มีอะไรเปลี่ยน (~17,000 row-writes/วัน) จนกิน Disk IO budget ของ Supabase หมด
+  const props = PropertiesService.getScriptProperties();
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.MD5,
+    JSON.stringify(transformedData),
+    Utilities.Charset.UTF_8
+  );
+  const hash = Utilities.base64Encode(digest);
+  if (props.getProperty('BOTDATA_LAST_HASH') === hash) {
+    Logger.log('⏭️ BotData: ข้อมูลไม่เปลี่ยนจากรอบก่อน — ข้ามการ import');
+    return;
+  }
+
+  // 🗑️ ลบข้อมูลเก่าทิ้งทั้งหมด
+  Logger.log('🗑️ กำลังลบข้อมูลเก่า...');
+  deleteAllRows('botdata');
+  Logger.log('✅ ลบข้อมูลเก่าเรียบร้อย');
+
   // ✅ Insert ข้อมูลใหม่ทั้งหมด
   Logger.log(`📥 Import ข้อมูลใหม่ ${transformedData.length} รายการ...`);
-  insertBatch('botdata', transformedData);
+  const result = insertBatch('botdata', transformedData);
+
+  // บันทึก hash เฉพาะตอน insert ครบทุกแถว — insertBatch กลืน error ไว้ภายใน ถ้าบันทึกทั้งที่
+  // บางชุดล้ม รอบหน้าจะ "ข้าม" แล้วตารางขาดข้อมูลค้างไปเรื่อยๆ
+  if (result && result.errorCount === 0 && result.insertedCount === transformedData.length) {
+    props.setProperty('BOTDATA_LAST_HASH', hash);
+  } else {
+    props.deleteProperty('BOTDATA_LAST_HASH');
+    Logger.log('⚠️ BotData: insert ไม่ครบ — ไม่บันทึก hash รอบหน้าจะ import ใหม่');
+  }
 }
 
 /**
@@ -1431,6 +1454,8 @@ function insertBatch(tableName, data) {
   Logger.log(`  ✅ Inserted: ${insertedCount} rows`);
   Logger.log(`  ❌ Errors: ${errorCount} rows`);
   Logger.log(`  📝 Total: ${data.length} rows\n`);
+
+  return { insertedCount, errorCount };
 }
 
 /**

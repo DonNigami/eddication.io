@@ -77,3 +77,18 @@
 - รีเซ็ตตัวนับสถิติไม่ได้ (permission denied, ไม่ใช่ superuser) → วัดผลด้วยการเทียบ counter กับ baseline รอบหน้า
 - **ค้างที่เจ้าของ (ตัวใหญ่กว่า ~10 เท่า):** เปลี่ยน import BotData จาก delete-all+insert-all → **upsert ตาม item_code**
   (UserData ใช้ upsert อยู่แล้ว) หรือลดความถี่ trigger · ทางเลือกสุดท้ายคืออัป compute add-on
+
+---
+
+## 2026-11-22 — Boonyang: Disk IO หนักอีก → แก้ที่ต้นตอ botdata import
+
+- **วัดผลแพตช์ 11-03 แล้ว:** `userdata` update ลดจาก ~2,200 → **464 ครั้ง/วัน (-79%)** ✅
+- **ตัวกินที่เหลือทั้งหมด = `botdata`:** ~17,470 row-writes/วัน (ลบ+ใส่ทั้งตาราง 3,131 แถว **2.8 รอบ/วัน**) ≈ 38 เท่าของที่เหลือ
+- ต้นตอ: `importBotData()` ใน `backend/menu.js` ลบทั้งตาราง+ใส่ใหม่**ทุกรอบ แม้ชีตไม่เปลี่ยน**
+- upsert ทำไม่ได้: ข้อมูลไม่มี key ที่ unique (3,131 แถว / item_code 212 / code+lot 1,664) — upsert จะยุบแถวทิ้งเงียบๆ
+- **แก้ที่ DB (มีผลแล้ว):** ลบ `idx_botdata_item_name` (ใช้ 0 ครั้ง แต่ถูกเขียนทุก insert) → botdata 2,280 → 1,848 kB
+- **แก้ที่ Apps Script (`menu.js`):** เทียบ MD5 ของข้อมูลชีตกับรอบก่อน → **ไม่เปลี่ยน = ข้ามทั้งการลบและใส่**
+  บันทึก hash เฉพาะตอน insert ครบทุกแถว (`insertBatch` เดิมกลืน error → แก้ให้คืน `{insertedCount, errorCount}`)
+- ตรวจ: `node --check` ผ่าน · จำลองตรรกะ 5 กรณีผ่าน รวม "insert ล้ม → รอบหน้าต้อง import ใหม่"
+- **ค้างที่เจ้าของ:** ก๊อป `importBotData()` + `insertBatch()` จาก `menu.js` ไปวางใน Apps Script editor แล้วกดบันทึก
+  (ไม่มี `.clasp.json` ผูก project → push จากเครื่องนี้ไม่ได้)
