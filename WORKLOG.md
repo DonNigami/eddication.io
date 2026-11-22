@@ -117,3 +117,13 @@
 - **ตรวจ:** `pnpm build` (tsc + vite) ทั้ง 2 แอปผ่าน · turbo build ผ่าน · `@line/liff` ที่ติดตั้งจริง = 2.32.0
 - **ส่งขึ้น:** push main พร้อม commit นี้ → GitHub Pages deploy ผ่าน Actions (deploy-all + static) · ไม่แตะ DB/secrets
 - **เหลือ:** พี่เอ็ดดี้ลองเปิดแอปใน LINE (login + หน้าคนไข้/หมอ) 1 รอบ เพราะทดสอบในแอป LINE จากเครื่องนี้ไม่ได้ · `apps/shared/role-detection.js` ยังอ้าง `window.liff` แต่ไม่มีไฟล์ไหนเรียกใช้ (โค้ดตาย ไม่ได้แตะ)
+
+---
+
+## 2026-11-22 18:20 — LIFF เฟส 3: เลิกใช้ API ที่ถูก deprecate + Dependabot เฝ้า @line/liff
+
+- **ทำอะไร:** SCORDS `checkin.html` + `checkin_new.html` เลิกเรียก `liff.scanCode()` (เดิมใช้เฉพาะ Android) → `liff.scanCodeV2()` ทุก OS (ถ้า SDK ไม่มีฟังก์ชันนี้ขึ้นข้อความไทยให้อัปเดตแอป LINE) · หน้าทดสอบ driverconnect (`liff-debug-tool.html`, `quick-line-test.html`) เปลี่ยน `getLanguage()` → `getAppLanguage()` (มี fallback) · เพิ่ม `.github/dependabot.yml` (npm · รายสัปดาห์ · เฉพาะ `@line/liff` ที่ `/project/line/clinic-connect-saas`)
+- **commit:** `72da338` SCORDS · `c039457` driverconnect · `11e31b9` dependabot (post-commit hook ดัน origin/main ให้เองทุก commit) · ไม่มี migration · ไม่แตะ secrets
+- **ตรวจ:** compile inline script ครบ 5 ไฟล์ · จำลอง `scanCodeV2` มี/ขาด/พัง/คืนค่าว่าง ผ่านหมด · Actions: deploy-all (72da338) + static (11e31b9) + Dependabot run สำเร็จ · curl หน้าจริงบน github.io เห็นโค้ดใหม่ครบ 4 หน้า
+- **FuelSlip:** มีจุดเดียว `liff/edit-ocr.html:528` ซึ่งอยู่ในโฟลเดอร์ untracked ของงาน "edit OCR" ที่ค้างตั้งแต่ 7 เม.ย. (พร้อมไฟล์แก้ค้างอื่นของงานเดียวกัน) → แก้ในเครื่องแล้วแต่ **ไม่ commit / ไม่ push / ไม่ deploy** เพราะไม่อยากขนงานที่ยังไม่เสร็จขึ้นไปด้วย · repo นี้ผูก Railway/Render ตาม DEPLOYMENT.md ให้พี่เอ็ดดี้ commit งาน edit OCR ทั้งชุดเองก่อน
+- **เหลือ:** (1) เช็ค LIFF console ว่า SCORDS เปิด "Scan QR" และ screen size = Full (Android ใช้ scanCodeV2 ได้เฉพาะ Full) แล้วลองสแกนใน LINE 1 รอบ (2) Dependabot ยังไม่เปิด PR เพราะ `@line/liff` ล่าสุดคือ 2.32.0 อยู่แล้ว · เมื่อมี PR ต้องกด merge เอง (ไม่มี auto-merge)
